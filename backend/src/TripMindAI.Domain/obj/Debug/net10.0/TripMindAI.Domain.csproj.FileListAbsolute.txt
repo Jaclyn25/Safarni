@@ -1,0 +1,13 @@
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\bin\Debug\net10.0\TripMindAI.Domain.deps.json
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\bin\Debug\net10.0\TripMindAI.Domain.dll
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\bin\Debug\net10.0\TripMindAI.Domain.pdb
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\obj\Debug\net10.0\TripMindAI.Domain.csproj.AssemblyReference.cache
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\obj\Debug\net10.0\TripMindAI.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\obj\Debug\net10.0\TripMindAI.Domain.AssemblyInfoInputs.cache
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\obj\Debug\net10.0\TripMindAI.Domain.AssemblyInfo.cs
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\obj\Debug\net10.0\TripMindAI.Domain.csproj.CoreCompileInputs.cache
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\obj\Debug\net10.0\TripMindAI.Domain.sourcelink.json
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\obj\Debug\net10.0\TripMindAI.Domain.dll
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\obj\Debug\net10.0\refint\TripMindAI.Domain.dll
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\obj\Debug\net10.0\TripMindAI.Domain.pdb
+C:\Users\Lenovo\GitProjects\v-go\backend\src\TripMindAI.Domain\obj\Debug\net10.0\ref\TripMindAI.Domain.dll

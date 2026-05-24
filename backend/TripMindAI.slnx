@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TripMindAI.API/TripMindAI.API.csproj" />
+    <Project Path="src/TripMindAI.Application/TripMindAI.Application.csproj" />
+    <Project Path="src/TripMindAI.Domain/TripMindAI.Domain.csproj" />
+    <Project Path="src/TripMindAI.Infrastructure/TripMindAI.Infrastructure.csproj" />
+  </Folder>
+</Solution>

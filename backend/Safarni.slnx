@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Safarni.API/Safarni.API.csproj" />
+  </Folder>
+</Solution>

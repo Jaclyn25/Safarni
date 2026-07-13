@@ -2,6 +2,11 @@ namespace Safarni.Application.Common.Errors;
 
 public static class AuthenticationErrors
 {
+    public static readonly Error AuthenticationRequired = new(
+        "Auth.AuthenticationRequired",
+        "An authenticated user is required.",
+        ErrorType.Unauthorized);
+
     public static readonly Error InvalidCredentials = new(
         "Auth.InvalidCredentials",
         "The provided credentials are invalid.",

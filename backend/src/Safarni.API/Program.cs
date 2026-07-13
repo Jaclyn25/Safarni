@@ -1,6 +1,8 @@
 using Safarni.API.Middleware;
 using Safarni.API.Extensions;
+using Safarni.API.Services;
 using Safarni.Application;
+using Safarni.Application.Abstractions.Authentication;
 using Safarni.Infrastructure;
 using Safarni.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -9,6 +11,8 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {

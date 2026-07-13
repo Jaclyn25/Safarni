@@ -1,4 +1,63 @@
 @Safarni_API_HostAddress = http://localhost:5110
+@AccessToken = paste-access-token-here
+@VisaApplicationId = paste-visa-application-id-here
 
 GET {{Safarni_API_HostAddress}}/api/health
 Accept: application/json
+
+###
+
+PUT {{Safarni_API_HostAddress}}/api/preferences/travel
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+
+{
+  "preferredDestinationCountry": "Italy",
+  "travelPurpose": "Tourism",
+  "travelStyle": "Family",
+  "minBudget": 1000,
+  "maxBudget": 3500,
+  "passportNumber": "A1234567",
+  "nationality": "Egyptian",
+  "passportExpiryDate": "2031-06-30"
+}
+
+###
+
+GET {{Safarni_API_HostAddress}}/api/preferences/travel
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+###
+
+POST {{Safarni_API_HostAddress}}/api/visa-applications
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+
+{
+  "destinationCountry": "Italy",
+  "travelPurpose": "Tourism",
+  "plannedTravelDate": "2026-09-15"
+}
+
+###
+
+GET {{Safarni_API_HostAddress}}/api/visa-applications
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+###
+
+GET {{Safarni_API_HostAddress}}/api/visa-applications/{{VisaApplicationId}}
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+###
+
+PUT {{Safarni_API_HostAddress}}/api/visa-applications/{{VisaApplicationId}}/visa-type
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+
+{
+  "visaType": "Tourist"
+}

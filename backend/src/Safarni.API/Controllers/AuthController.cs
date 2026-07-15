@@ -8,6 +8,12 @@ using Safarni.Application.Features.Auth.Login;
 using Safarni.Application.Features.Auth.Logout;
 using Safarni.Application.Features.Auth.RefreshTokens;
 using Safarni.Application.Features.Auth.Register;
+using Safarni.Application.Features.Auth.ForgotPassword;
+using System.Security.Claims;
+using Safarni.Application.Features.Auth.ChangePassword;
+using Safarni.Application.Features.Auth.VerifyEmail;
+using Safarni.Application.Features.Auth.ResetPassword;
+using Safarni.Application.Features.Auth.GoogleLogin;
 
 namespace Safarni.API.Controllers;
 
@@ -48,6 +54,48 @@ public sealed class AuthController : ControllerBase
 
         return StatusCode(StatusCodes.Status201Created, successResponse);
     }
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(typeof(ApiResponse<ForgotPasswordResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            var failureResponse = ApiResponse<ForgotPasswordResponse>.FailureResponse(
+                [new ApiError(result.Error.Code, result.Error.Message)],
+                "Forgot password failed.",
+                StatusCodes.Status400BadRequest);
+
+            return BadRequest(failureResponse);
+        }
+
+        var successResponse = ApiResponse<ForgotPasswordResponse>.SuccessResponse(
+            result.Value!,
+            "If the email exists, a reset link has been sent.",
+            StatusCodes.Status200OK);
+
+        return Ok(successResponse);
+    }
+    [HttpPost("reset-password")]
+    [ProducesResponseType(typeof(ApiResponse<ResetPasswordResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(command, cancellationToken);
+        if (result.IsFailure)
+        {
+            var failureResponse = ApiResponse<ResetPasswordResponse>.FailureResponse(
+                [new ApiError(result.Error.Code, result.Error.Message)],
+                "Password reset failed.",
+                StatusCodes.Status400BadRequest);
+            return BadRequest(failureResponse);
+        }
+        var successResponse = ApiResponse<ResetPasswordResponse>.SuccessResponse(
+            result.Value!,
+            "Password reset successful.",
+            StatusCodes.Status200OK);
+        return Ok(successResponse);
+    }
 
     [HttpPost("login")]
     [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
@@ -74,6 +122,25 @@ public sealed class AuthController : ControllerBase
             "Login successful.",
             StatusCodes.Status200OK);
 
+        return Ok(successResponse);
+    }
+    [HttpPost("google-login")]
+    [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(command, cancellationToken);
+        if (result.IsFailure)
+        {
+            var failureResponse = ApiResponse<LoginResponse>.FailureResponse(
+                [new ApiError(result.Error.Code, result.Error.Message)],
+                "Google login failed.",
+                StatusCodes.Status400BadRequest);
+            return BadRequest(failureResponse);
+        }
+        var successResponse = ApiResponse<LoginResponse>.SuccessResponse(
+            result.Value!,
+            "Google login successful.",
+            StatusCodes.Status200OK);
         return Ok(successResponse);
     }
 
@@ -104,6 +171,68 @@ public sealed class AuthController : ControllerBase
         return Ok(successResponse);
     }
 
+
+[HttpPost("verify-email")]
+[ProducesResponseType(typeof(ApiResponse<VerifyEmailResponse>), StatusCodes.Status200OK)]
+public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailCommand command, CancellationToken cancellationToken)
+{
+    var result = await _sender.Send(command, cancellationToken);
+    if (result.IsFailure)
+    {
+        var failureResponse = ApiResponse<VerifyEmailResponse>.FailureResponse(
+            [new ApiError(result.Error.Code, result.Error.Message)],
+            "Email verification failed.",
+            StatusCodes.Status400BadRequest);
+        return BadRequest(failureResponse);
+    }
+    var successResponse = ApiResponse<VerifyEmailResponse>.SuccessResponse(
+        result.Value!,
+        "Email verified successfully.",
+        StatusCodes.Status200OK);
+    return Ok(successResponse);
+}
+
+    [HttpGet("verify-email")]
+    public async Task<IActionResult> VerifyEmail(
+    [FromQuery] string email,
+    [FromQuery] string token,
+    CancellationToken cancellationToken)
+    {
+        var command = new VerifyEmailCommand(email, token);
+
+        var result = await _sender.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return BadRequest(result.Error.Message);
+        }
+
+        return Content(
+    "<h2>Email verified successfully ✅</h2>",
+    "text/html");
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordCommand command, CancellationToken cancellationToken)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _sender.Send(command with { UserId = userId }, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return Ok(result.Value);
+    }
+
     [Authorize]
     [HttpPost("logout")]
     [ProducesResponseType(typeof(ApiResponse<LogoutResponse>), StatusCodes.Status200OK)]
@@ -132,6 +261,7 @@ public sealed class AuthController : ControllerBase
 
         return Ok(successResponse);
     }
+
 
     private static int MapStatusCode(ErrorType errorType)
     {

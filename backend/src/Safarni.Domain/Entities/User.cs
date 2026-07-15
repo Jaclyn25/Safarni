@@ -13,6 +13,19 @@ public class User
     public DateTime CreatedAt { get; set; }
 
     public bool IsActive { get; set; }
+    public string? PasswordResetToken { get; set; }
+
+    public DateTime? PasswordResetTokenExpiresAt { get; set; }
+
+    public bool IsEmailVerified { get; set; }
+
+    public string? EmailVerificationToken { get; set; }
+
+    public DateTime? EmailVerificationTokenExpiresAt { get; set; }
+
+    public string? Provider { get; set; }
+
+    public string? ProviderUserId { get; set; }
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }

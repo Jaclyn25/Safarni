@@ -13,6 +13,12 @@ public sealed class ApplicationDbContext : DbContext
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public DbSet<TravelPreference> TravelPreferences => Set<TravelPreference>();
+
+    public DbSet<PassportInfo> PassportInfos => Set<PassportInfo>();
+
+    public DbSet<VisaApplication> VisaApplications => Set<VisaApplication>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

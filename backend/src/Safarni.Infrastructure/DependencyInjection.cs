@@ -22,6 +22,8 @@ public static class DependencyInjection
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<ITravelProfileRepository, TravelProfileRepository>();
+        services.AddScoped<IVisaApplicationRepository, VisaApplicationRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasherService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));

@@ -13,6 +13,9 @@ using Safarni.Application.Features.Auth.VerifyEmail;
 using Safarni.Application.Features.Auth.GoogleLogin;
 using Safarni.Application.Features.Auth.ResetPassword;
 
+using Safarni.Application.Features.Preferences.UpsertTravelProfile;
+using Safarni.Application.Features.VisaApplications.CreateVisaApplication;
+using Safarni.Application.Features.VisaApplications.SelectVisaType;
 
 namespace Safarni.Application;
 
@@ -33,6 +36,9 @@ public static class DependencyInjection
         services.AddTransient<IValidator<GoogleLoginCommand>, GoogleLoginCommandValidator>();
 
         
+        services.AddTransient<IValidator<UpsertTravelProfileCommand>, UpsertTravelProfileCommandValidator>();
+        services.AddTransient<IValidator<CreateVisaApplicationCommand>, CreateVisaApplicationCommandValidator>();
+        services.AddTransient<IValidator<SelectVisaTypeCommand>, SelectVisaTypeCommandValidator>();
 
         return services;
     }

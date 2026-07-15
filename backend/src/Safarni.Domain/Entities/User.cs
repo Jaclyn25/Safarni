@@ -28,4 +28,10 @@ public class User
     public string? ProviderUserId { get; set; }
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+
+    public TravelPreference? TravelPreference { get; set; }
+
+    public PassportInfo? PassportInfo { get; set; }
+
+    public ICollection<VisaApplication> VisaApplications { get; set; } = new List<VisaApplication>();
 }

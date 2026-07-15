@@ -34,4 +34,10 @@ public sealed class UserRepository : IUserRepository
     {
         return _dbContext.Users.FirstOrDefaultAsync(user => user.Id == id, cancellationToken);
     }
+
+    public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
+    {
+        _dbContext.Users.Update(user);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
 }

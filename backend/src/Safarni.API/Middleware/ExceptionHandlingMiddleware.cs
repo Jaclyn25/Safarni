@@ -31,8 +31,12 @@ public sealed class ExceptionHandlingMiddleware
 
             await context.Response.WriteAsJsonAsync(response);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.WriteLine("========== UNHANDLED EXCEPTION ==========");
+            Console.WriteLine(ex.ToString());
+            Console.WriteLine("=========================================");
+
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
             context.Response.ContentType = "application/json";
 

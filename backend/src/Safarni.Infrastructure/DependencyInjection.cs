@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Abstractions.Security;
 using Safarni.Infrastructure.Authentication;
+using Safarni.Infrastructure.Email;
 using Safarni.Infrastructure.Persistence;
 using Safarni.Infrastructure.Repositories;
 using Safarni.Infrastructure.Security;
@@ -25,6 +26,8 @@ public static class DependencyInjection
         services.AddScoped<IVisaApplicationRepository, VisaApplicationRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasherService>();
         services.AddScoped<ITokenService, JwtTokenService>();
+        services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+        services.AddScoped<IEmailService, EmailService>();
 
         return services;
     }

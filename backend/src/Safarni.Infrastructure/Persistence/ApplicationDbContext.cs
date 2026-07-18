@@ -18,6 +18,7 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<PassportInfo> PassportInfos => Set<PassportInfo>();
 
     public DbSet<VisaApplication> VisaApplications => Set<VisaApplication>();
+    public DbSet<UserSettings> UserSettings => Set<UserSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

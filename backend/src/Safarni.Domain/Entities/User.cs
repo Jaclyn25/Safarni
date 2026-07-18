@@ -9,8 +9,19 @@ public class User
     public string Email { get; set; } = string.Empty;
 
     public string PasswordHash { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+
+    public DateTime? DateOfBirth { get; set; }
+
+    public string? Country { get; set; }
+
+    public string? City { get; set; }
+
+    public string? Bio { get; set; }
+    public string? ProfilePhotoUrl { get; set; }
 
     public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 
     public bool IsActive { get; set; }
     public string? PasswordResetToken { get; set; }

@@ -1,0 +1,235 @@
+<!-- TopAppBar -->
+<header class="bg-surface/80 dark:bg-surface/80 backdrop-blur-xl docked full-width top-0 sticky z-50 flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4"
+        [class.shadow-md]="scrolled" [class.shadow-sm]="!scrolled">
+  <div class="flex items-center gap-3">
+    <span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim">travel_explore</span>
+    <h1 class="text-headline-md font-headline-md font-bold tracking-tight text-primary dark:text-primary-fixed-dim">Safarni</h1>
+  </div>
+  <div class="flex items-center gap-6">
+    <nav class="hidden md:flex gap-8">
+      <a routerLink="/" routerLinkActive="text-primary dark:text-primary-fixed-dim font-semibold" [routerLinkActiveOptions]="{exact: true}"
+         class="text-label-md font-label-md text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-opacity">Explore</a>
+      <a routerLink="/planner" routerLinkActive="text-primary dark:text-primary-fixed-dim font-semibold"
+         class="text-label-md font-label-md text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-opacity">Planner</a>
+      <a routerLink="/bookings" routerLinkActive="text-primary dark:text-primary-fixed-dim font-semibold"
+         class="text-label-md font-label-md text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-opacity">Bookings</a>
+      <a routerLink="/concierge" routerLinkActive="text-primary dark:text-primary-fixed-dim font-semibold"
+         class="text-label-md font-label-md text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-opacity">Concierge</a>
+    </nav>
+    <div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border border-outline-variant/30">
+      <img class="w-full h-full object-cover" alt="A professional and friendly portrait of a young adult traveler." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDasr7vpPWnPK4H8oCdze4OQdX7Ubl6B5U2AVHwa4pOOQrPFK54Zvy8jEaH7pUxYP0bSnP6azhZE2goOAlVhn6d420BD0JPQQ2Lcd0VnjF1Sf0IxB_RMMMN-tYiWfL4a7lGjUxqwJ6iEpe32MESEhcZ0jYbLA26V0jfOOOTfDRZuV1yuozcHcyBPzvag6bE_fhHXT-erlIwAkQIZmJ5qdoK2Gj3xaFHXgEt0XInoGzn0SKaT-HTNzir7Q"/>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 pb-32">
+  <!-- Header Section -->
+  <section class="mb-stack-lg">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div>
+        <span class="text-label-md font-label-md text-primary uppercase tracking-widest mb-2 block">AI Powered Itinerary</span>
+        <h2 class="text-display-lg-mobile md:text-display-lg font-display-lg text-on-surface">7-day Tokyo Adventure</h2>
+        <p class="text-body-lg font-body-lg text-on-surface-variant mt-2 max-w-2xl">A curated blend of futuristic art, traditional markets, and hidden urban escapes, optimized for seamless travel.</p>
+      </div>
+      <div class="flex gap-3">
+        <button class="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant px-5 py-2.5 rounded-xl text-label-md font-label-md hover:bg-surface-container-low transition-colors shadow-sm">
+          <span class="material-symbols-outlined text-[20px]">share</span>
+          Share
+        </button>
+        <button class="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl text-label-md font-label-md hover:opacity-90 transition-opacity shadow-lg">
+          <span class="material-symbols-outlined text-[20px]">download</span>
+          Export PDF
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Grid -->
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-stack-lg">
+    <div class="bg-surface-container-lowest p-5 rounded-[20px] shadow-sm border border-outline-variant/10">
+      <span class="text-label-sm font-label-sm text-outline block mb-1">Duration</span>
+      <span class="text-headline-sm font-headline-sm text-on-surface">7 Days</span>
+    </div>
+    <div class="bg-surface-container-lowest p-5 rounded-[20px] shadow-sm border border-outline-variant/10">
+      <span class="text-label-sm font-label-sm text-outline block mb-1">Vibe</span>
+      <span class="text-headline-sm font-headline-sm text-on-surface">Urban Tech</span>
+    </div>
+    <div class="bg-surface-container-lowest p-5 rounded-[20px] shadow-sm border border-outline-variant/10">
+      <span class="text-label-sm font-label-sm text-outline block mb-1">Est. Budget</span>
+      <span class="text-headline-sm font-headline-sm text-on-surface">$2,400</span>
+    </div>
+    <div class="bg-surface-container-lowest p-5 rounded-[20px] shadow-sm border border-outline-variant/10">
+      <span class="text-label-sm font-label-sm text-outline block mb-1">Weather</span>
+      <span class="text-headline-sm font-headline-sm text-on-surface">18°C Sunny</span>
+    </div>
+  </section>
+
+  <!-- Timeline Section -->
+  <div class="flex flex-col lg:flex-row gap-8">
+    <!-- Main Content: Vertical Timeline -->
+    <div class="flex-1 space-y-12">
+      <!-- Day 1 Block -->
+      <div class="relative timeline-line">
+        <div class="flex items-center gap-4 mb-8">
+          <div class="w-6 h-6 rounded-full bg-primary border-[4px] border-white shadow-md z-10 relative"></div>
+          <h3 class="text-headline-md font-headline-md text-on-surface">Day 1: Cultural Foundations</h3>
+        </div>
+        <div class="ml-10 space-y-6">
+          <!-- Activity Card 1 -->
+          <div class="bg-surface-container-lowest rounded-[20px] shadow-sm border border-outline-variant/20 overflow-hidden hover:translate-y-[-4px] transition-all duration-300 group">
+            <div class="flex flex-col md:flex-row">
+              <div class="w-full md:w-48 h-48 md:h-auto overflow-hidden">
+                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="A bustling Tsukiji Outer Market scene in Tokyo." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnwdsKkavKePILi9wOU_wBSm_26l2hQr16VBvQwM8ukj-LBkip85l_7bAhGdJaiadx6GA9ns8IcU0rWGxSOj8pcQER7qdMZl9bVrgALBmDzJvGggB6J9bcovEYDdsuVfIkA8fqS1ar1Sr_jJz43fryQILQf64MnHaGGs88JNO2Tu_P4e1Iiyw7A1PJZ3hvdsThrkazsOpURLD4j7rHxMsV6CWyHHBpVtiyj0tByLtJtZH-Kmy2_bozlg"/>
+              </div>
+              <div class="p-6 flex-1">
+                <div class="flex justify-between items-start mb-2">
+                  <div>
+                    <span class="text-label-sm font-label-sm text-primary uppercase mb-1 block">08:00 AM • Breakfast</span>
+                    <h4 class="text-headline-sm font-headline-sm text-on-surface">Tsukiji Outer Market</h4>
+                  </div>
+                  <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">restaurant</span>
+                </div>
+                <p class="text-body-md font-body-md text-on-surface-variant mb-4">Start your journey with the world's freshest sashimi breakfast. Wander through the narrow alleys filled with culinary treasures.</p>
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full">
+                    <span class="material-symbols-outlined text-[14px]">schedule</span>
+                    2 Hours
+                  </div>
+                  <div class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full">
+                    <span class="material-symbols-outlined text-[14px]">attach_money</span>
+                    Moderate
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Activity Card 2 -->
+          <div class="bg-surface-container-lowest rounded-[20px] shadow-sm border border-outline-variant/20 overflow-hidden hover:translate-y-[-4px] transition-all duration-300 group">
+            <div class="flex flex-col md:flex-row">
+              <div class="w-full md:w-48 h-48 md:h-auto overflow-hidden">
+                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="The mesmerizing TeamLab Borderless digital art museum in Tokyo." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9ZD76j2-ASNWE_6qrqeHnPmZ47844NGrCnIa5fwb29CVa2yqOKBf1dJTbqldGtm4CFzLI2C-uoViBEFwr0_2hEBOxkMFtWDfZE0lq6PIL5DIKKyhb3HbXbVaYq1hNQaBMTmHo3oZQIGgR31qnU0VnQX6EsCUZ5A16GXa8lSItvgTAtFD6__xhDWyktvVEMMz1LYL2L8Bz5T5w9YfA7yfM1XNWr9jCJYAdWYW_rx1gKlzRD1xCX7fnSw"/>
+              </div>
+              <div class="p-6 flex-1">
+                <div class="flex justify-between items-start mb-2">
+                  <div>
+                    <span class="text-label-sm font-label-sm text-primary uppercase mb-1 block">11:30 AM • Immersive Art</span>
+                    <h4 class="text-headline-sm font-headline-sm text-on-surface">TeamLab Borderless</h4>
+                  </div>
+                  <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">palette</span>
+                </div>
+                <p class="text-body-md font-body-md text-on-surface-variant mb-4">Get lost in a world of digital art where borders between people and art dissolve. A highlight of modern Tokyo.</p>
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full">
+                    <span class="material-symbols-outlined text-[14px]">schedule</span>
+                    3 Hours
+                  </div>
+                  <div class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full text-secondary">
+                    <span class="material-symbols-outlined text-[14px]">confirmation_number</span>
+                    Booked
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Day 2 Block -->
+      <div class="relative timeline-line">
+        <div class="flex items-center gap-4 mb-8 mt-12">
+          <div class="w-6 h-6 rounded-full bg-outline-variant border-[4px] border-white shadow-md z-10 relative"></div>
+          <h3 class="text-headline-md font-headline-md text-on-surface">Day 2: Neon &amp; Tradition</h3>
+        </div>
+        <div class="ml-10 space-y-6 opacity-80">
+          <div class="bg-surface-container-lowest rounded-[20px] shadow-sm border border-outline-variant/20 p-6 hover:translate-y-[-4px] transition-all duration-300">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="text-label-sm font-label-sm text-primary uppercase mb-1 block">10:00 AM • Spiritual</span>
+                <h4 class="text-headline-sm font-headline-sm text-on-surface">Meiji Jingu Shrine</h4>
+              </div>
+              <span class="material-symbols-outlined text-outline">account_balance</span>
+            </div>
+            <p class="text-body-md font-body-md text-on-surface-variant">A peaceful forest sanctuary in the heart of Shibuya. Walk through the grand Torii gates.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar: Contextual AI Actions -->
+    <aside class="w-full lg:w-80 space-y-6">
+      <!-- AI Assistant Suggestion -->
+      <div class="bg-white p-6 rounded-[24px] shadow-xl border border-primary/10 relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-4 opacity-10">
+          <span class="material-symbols-outlined text-[64px]">auto_awesome</span>
+        </div>
+        <h5 class="text-headline-sm font-headline-sm text-on-surface mb-3 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+          AI Optimizer
+        </h5>
+        <p class="text-label-md font-label-md text-on-surface-variant mb-4">I've noticed a gap in your schedule on Day 3. Would you like me to suggest some local hidden gems in Akihabara?</p>
+        <button class="w-full py-3 bg-primary-container text-on-primary-container rounded-xl text-label-md font-label-md hover:brightness-110 transition-all font-semibold">
+          Show Suggestions
+        </button>
+      </div>
+      <!-- Weather Card -->
+      <div class="bg-surface-container-lowest p-6 rounded-[24px] shadow-sm border border-outline-variant/20">
+        <h5 class="text-label-md font-label-md text-outline uppercase tracking-wider mb-4">Travel Tips</h5>
+        <ul class="space-y-4">
+          <li class="flex items-start gap-3">
+            <span class="material-symbols-outlined text-secondary">train</span>
+            <span class="text-body-md font-body-md text-on-surface-variant">Purchase a Suica or Pasmo card for easy transit.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="material-symbols-outlined text-secondary">wifi</span>
+            <span class="text-body-md font-body-md text-on-surface-variant">Pocket Wi-Fi is highly recommended for navigation.</span>
+          </li>
+        </ul>
+      </div>
+      <!-- Small Map Preview -->
+      <div class="rounded-[24px] overflow-hidden shadow-sm border border-outline-variant/20 h-48 relative group">
+        <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDafiHIYbxI3XC3k83-e65LF9ru_NPGiA9pie7Uw86fkwQ_2xethsxAP0ZGQxhNLezJNXm-pVhK19lVSi2JxOUbP92QQZ4xQzeh9KNm3gqQfurQ5L5Ow2z_K0lOjhl1_q9d1mLvpXbDeBM3cFCL5UHu5P90jTetX1ker5tI9iJgi4HkYXsHuF3jfB-6_eMrO1WhWneBA12mxWev9wtikJt1diGUjEoolRk7Qa-ezSOTMOwlxNcLYWh6lQ')"></div>
+        <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+        <div class="absolute bottom-4 left-4 right-4 glass-blur bg-white/60 p-3 rounded-xl border border-white/40 flex items-center justify-between">
+          <span class="text-label-md font-label-md text-on-surface font-semibold">View Trip Map</span>
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<!-- Floating AI Action Button -->
+<div class="fixed bottom-24 right-6 md:bottom-12 md:right-12 z-50">
+  <button routerLink="/concierge" class="bg-gradient-to-r from-primary to-secondary text-on-primary px-6 py-4 rounded-full flex items-center gap-3 shadow-[0_8px_30px_rgb(37,99,235,0.4)] hover:scale-105 active:scale-95 transition-all group">
+    <span class="material-symbols-outlined animate-pulse" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+    <span class="text-label-md font-label-md font-bold">Refine with AI</span>
+  </button>
+</div>
+
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pt-3 pb-8 bg-surface/80 backdrop-blur-xl border-t border-outline-variant/20 z-50 rounded-t-[20px] shadow-[0_-4px_20px_rgba(15,23,42,0.05)]">
+  <a routerLink="/" routerLinkActive="text-primary font-semibold bg-primary-container/10 rounded-xl"
+     [routerLinkActiveOptions]="{exact: true}"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
+    <span class="material-symbols-outlined">explore</span>
+    <span class="text-label-sm font-label-sm mt-1">Explore</span>
+  </a>
+  <a routerLink="/planner" routerLinkActive="text-primary font-semibold bg-primary-container/10 rounded-xl"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
+    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">event_note</span>
+    <span class="text-label-sm font-label-sm mt-1">Planner</span>
+  </a>
+  <a routerLink="/bookings" routerLinkActive="text-primary font-semibold bg-primary-container/10 rounded-xl"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
+    <span class="material-symbols-outlined">confirmation_number</span>
+    <span class="text-label-sm font-label-sm mt-1">Bookings</span>
+  </a>
+  <a routerLink="/concierge" routerLinkActive="text-primary font-semibold bg-primary-container/10 rounded-xl"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
+    <span class="material-symbols-outlined">auto_awesome</span>
+    <span class="text-label-sm font-label-sm mt-1">Concierge</span>
+  </a>
+  <a href="#" class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
+    <span class="material-symbols-outlined">person</span>
+    <span class="text-label-sm font-label-sm mt-1">Profile</span>
+  </a>
+</nav>

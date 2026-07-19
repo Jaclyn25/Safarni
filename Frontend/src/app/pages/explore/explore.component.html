@@ -1,0 +1,292 @@
+<!-- TopAppBar -->
+<header class="bg-surface/80 dark:bg-surface/80 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm">
+  <div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-primary text-headline-md">travel_explore</span>
+      <h1 class="text-headline-md font-headline-md font-bold tracking-tight text-primary">Safarni</h1>
+    </div>
+    <div class="hidden md:flex items-center gap-stack-lg">
+      <nav class="flex gap-stack-lg">
+        <a routerLink="/" routerLinkActive="text-primary font-semibold" [routerLinkActiveOptions]="{exact: true}"
+           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">Explore</a>
+        <a routerLink="/planner" routerLinkActive="text-primary font-semibold"
+           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">Planner</a>
+        <a routerLink="/bookings" routerLinkActive="text-primary font-semibold"
+           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">Bookings</a>
+      </nav>
+      <a routerLink="/login" class="bg-primary text-white px-5 py-2 rounded-full font-label-md text-label-md hover:opacity-90 transition-opacity">
+        Sign In
+      </a>
+      <div class="h-8 w-8 rounded-full bg-surface-container-high flex items-center justify-center overflow-hidden border border-outline-variant/30">
+        <img class="w-full h-full object-cover" alt="A professional, high-end close-up studio portrait of a sophisticated world traveler." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsg_MLhtbAVl45hILnaBmeMeT9k8jkjU6nMuPTfC8hw93elSuannHZfIZDQuhGdBYGrx5Rz2csAHAijhxbnORV0aDutle48Sy-9Xn-MHJYwTqORn8MU9vmQXYduJCS_5HhOuwDQp-zgA0Qt0KmQo8ZhamTzCy53ECX8TzKDNGveWXEGh5abNo60h3SKFgWMXmH6OF95ldWq6kMBAZCtHck8suy61RYJLWCa3e6HZmHvOMf5tkfdVGU1g"/>
+      </div>
+    </div>
+    <div class="md:hidden flex items-center gap-3">
+      <a routerLink="/login" class="bg-primary text-white px-4 py-1.5 rounded-full font-label-sm text-label-sm hover:opacity-90 transition-opacity">
+        Sign In
+      </a>
+      <div class="h-8 w-8 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant/30">
+        <img class="w-full h-full object-cover" alt="A high-quality avatar of a smiling traveler against a soft-focus architectural background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhza-xaA-F48Lr92ukc6AHywDB1TcIwm85D_vhr7LvHf-kVsEEYIT7qTD_zzepXcaOxaw5TReJNHlPqnJZGoD7p1Rg2V7AZlXX2oaWuyDPIrlG10hCYDNM26ELhI_aaicOzQC1HFc-Frct563o3M66NAHFZtowB_95_7x1NLygarWsgN2VbMowyUIDUIi7YR2dHDOE4HM0TUDkSeHfVaWVcEEvSuJjsRecx7-Qwv7_KkRqkpA_1l4l9g"/>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="hero-gradient pb-24 md:pb-0">
+  <!-- Hero Search Section -->
+  <section class="px-margin-mobile md:px-margin-desktop py-stack-lg max-w-4xl mx-auto text-center">
+    <h2 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-background mb-stack-md">Where to next?</h2>
+    <div class="relative group">
+      <div class="absolute inset-0 bg-primary/10 blur-2xl rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500"></div>
+      <div class="relative flex items-center bg-surface-container-lowest rounded-2xl shadow-lg border border-outline-variant/20 h-14 md:h-16 px-6 transition-all duration-300 focus-within:shadow-xl focus-within:ring-2 focus-within:ring-primary/20">
+        <span class="material-symbols-outlined text-primary mr-4">auto_awesome</span>
+        <input class="bg-transparent border-none focus:ring-0 w-full text-body-lg placeholder:text-on-surface-variant/50" placeholder="Ask AI for your perfect itinerary..." type="text"/>
+        <button class="bg-primary text-on-primary rounded-xl px-4 py-2 text-label-md font-semibold hover:bg-primary-container transition-colors active:scale-95 duration-200">
+          Search
+        </button>
+      </div>
+    </div>
+    <div class="flex flex-wrap justify-center gap-2 mt-stack-md">
+      <span class="text-label-sm text-on-surface-variant">Try:</span>
+      <button class="text-label-sm bg-surface-container px-3 py-1 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">"Romantic weekend in Paris"</button>
+      <button class="text-label-sm bg-surface-container px-3 py-1 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">"Family hiking in Swiss Alps"</button>
+      <button class="text-label-sm bg-surface-container px-3 py-1 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">"Best street food in Osaka"</button>
+    </div>
+  </section>
+
+  <!-- Trending Now (Horizontal Scroll) -->
+  <section class="py-stack-lg overflow-hidden">
+    <div class="px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto mb-stack-md flex justify-between items-end">
+      <div>
+        <h3 class="text-headline-sm font-headline-sm text-on-background">Trending Now</h3>
+        <p class="text-label-md text-on-surface-variant">Popular destinations curated by fellow travelers</p>
+      </div>
+      <button class="text-primary font-semibold text-label-md hover:underline">View all</button>
+    </div>
+    <div class="flex gap-gutter overflow-x-auto px-margin-mobile md:px-margin-desktop hide-scrollbar pb-4">
+      <div class="min-w-[280px] md:min-w-[320px] group cursor-pointer">
+        <div class="relative h-48 md:h-56 rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 transform group-hover:-translate-y-1">
+          <img class="w-full h-full object-cover" alt="A breathtaking cinematic wide shot of the Amalfi Coast at golden hour." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaWkyby5OElt9D0zwD8mQkEIF-vUIcDQjqZyKFAQCIMMDjMKgNLgbuwxareniZ1HSKiFV1Uq02IBw2mdPj8BZb0Zwf0B2qaTyttnl398vIR_L5Mync_YQ1MUaG7M6MxnUDI54Eph5tTmO66vZO7545KHCBnikbC0QNsxE46s8IvEBG9B8god24vC7RxLne2W4eD4TRNLrgIPlETJzSFXVd1HFg8WenuQq8qkNBBTaqUTBWh8vef5svQw"/>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+          <div class="absolute bottom-4 left-4 text-white">
+            <p class="text-label-sm opacity-80 uppercase tracking-widest">Italy</p>
+            <h4 class="text-headline-sm font-bold">Amalfi Coast</h4>
+          </div>
+        </div>
+      </div>
+      <div class="min-w-[280px] md:min-w-[320px] group cursor-pointer">
+        <div class="relative h-48 md:h-56 rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 transform group-hover:-translate-y-1">
+          <img class="w-full h-full object-cover" alt="A vibrant night scene in Tokyo's Shinjuku district." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDECYyjvqzEQlav3dRYNAAfx1pGt8BcoWc5zwwIw-Qns-bBtlc08fM577hRJCmfIrLtUZMMz84_QpPvptGbFxoq9cTybqSYk8eAPyJPlFQvfqvRNAf66uRxgv38ISyNMjkVpUTQhHR0IQuZQRCfQb-1gM62iQuZO6KDwpcDEvwCtOrbfdbs6P3rua6GBSd7nZjCMgX7dR8hOeDJ14E6FIaF4jro_hFGHDJUsVzHGGcftpaXdmJRuin_-g"/>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+          <div class="absolute bottom-4 left-4 text-white">
+            <p class="text-label-sm opacity-80 uppercase tracking-widest">Japan</p>
+            <h4 class="text-headline-sm font-bold">Tokyo</h4>
+          </div>
+        </div>
+      </div>
+      <div class="min-w-[280px] md:min-w-[320px] group cursor-pointer">
+        <div class="relative h-48 md:h-56 rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 transform group-hover:-translate-y-1">
+          <img class="w-full h-full object-cover" alt="A stunning aerial view of Iceland's Blue Lagoon." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8h2B3kLKVl5yCEMGPeuwdG-S3HWjeRkxEeVb386op0JODP_DtRJt7hkLCF8HEfVPft0fwBileEWcXQk1f5oMB-2UAvI62Eb2dTHoiP6fYYy4MZNT9vrCGdcAI3z5D5RqMOHM42rhajD9HAvPjKegvgl5M8xBQEIKrMACTg6bSP4NIR33KvbRzFMDydYv1cK7mvua-p0II0eqPKGq5ETwniaQqIDeAiRttbOqTs1j9iF4oLv9jg5qeNg"/>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+          <div class="absolute bottom-4 left-4 text-white">
+            <p class="text-label-sm opacity-80 uppercase tracking-widest">Iceland</p>
+            <h4 class="text-headline-sm font-bold">Blue Lagoon</h4>
+          </div>
+        </div>
+      </div>
+      <div class="min-w-[280px] md:min-w-[320px] group cursor-pointer">
+        <div class="relative h-48 md:h-56 rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 transform group-hover:-translate-y-1">
+          <img class="w-full h-full object-cover" alt="A majestic view of the Swiss Alps in winter." src="https://lh3.googleusercontent.com/aida-public/AB6AXuChIhItiwOVpkGXc4hdCP3Vhk341Z3LTdYmPdzis3Qip8ZNVh-L4QNGyLelEtA1Cwj0nfMqVjCA-sb4McdsuZwoV8EuLHaH0lZnwsgw2u2MPK01B2VyJ3TJpPnH7IBmZl_o_snlMPQ7B1BMvsnA4CYbTZv7XIZ92RV9Ukx3TSt5bqQroPmzWZJtDvW8HDMNatKRdQ57_lGXnKGv4E84rLEs0J_vFOZvGO_8UKJgniuKJiwoA7NqfmGrDQ"/>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+          <div class="absolute bottom-4 left-4 text-white">
+            <p class="text-label-sm opacity-80 uppercase tracking-widest">Switzerland</p>
+            <h4 class="text-headline-sm font-bold">Zermatt</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI Recommendations (Bento Grid) -->
+  <section class="px-margin-mobile md:px-margin-desktop py-stack-lg max-w-container-max mx-auto">
+    <div class="mb-stack-lg">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+        <h3 class="text-headline-sm font-headline-sm text-on-background">Your AI Recommendations</h3>
+      </div>
+      <p class="text-label-md text-on-surface-variant">Based on your recent interest in culture and architecture</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="md:col-span-2 relative group rounded-2xl overflow-hidden shadow-sm bg-surface-container-lowest border border-outline-variant/10">
+        <div class="grid grid-cols-1 md:grid-cols-2">
+          <div class="h-64 md:h-[400px]">
+            <img class="w-full h-full object-cover" alt="A detailed, wide-angle interior shot of a contemporary museum in Kyoto." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwzJeouqB-QGW8xaF3oCU6ggXGNk6FTBcbPHTm7x8kw9EWzM2IMkrq7gELWCzQwqdRWv0szO_l7Kcys-9vgtx3DpSIR2h3C-Hqrmo47dqz59m0nD0WApCUw5P86bsb2CR_VumsRgR-7IM3Bz3gRSKc0sHqlkm1aa3g2pwVdReAeRMCE18DuxzL-YeinmCKxBHd7igjPK7ndTUu7Um_nN81MNEVoeI77gIL0Y-eMG65I19gAv1_c_SNoA"/>
+          </div>
+          <div class="p-8 flex flex-col justify-center">
+            <div class="bg-primary/10 text-primary px-3 py-1 rounded-full text-label-sm w-fit mb-4">Top Match for You</div>
+            <h4 class="text-headline-md font-bold mb-2">Kyoto Modernism</h4>
+            <p class="text-body-md text-on-surface-variant mb-6">Discover the intersection of ancient tradition and contemporary architecture in Japan's cultural heart.</p>
+            <div class="space-y-3 mb-8">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-on-surface-variant text-[20px]">museum</span>
+                <span class="text-label-md">Curated Museum Pass</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-on-surface-variant text-[20px]">temple_buddhist</span>
+                <span class="text-label-md">Secret Temple Access</span>
+              </div>
+            </div>
+            <button class="w-full md:w-fit bg-primary text-on-primary font-semibold py-3 px-8 rounded-xl shadow-md hover:bg-primary/90 transition-all active:scale-95">Explore Itinerary</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/10 shadow-sm flex flex-col group transition-all duration-300 hover:shadow-md">
+        <div class="h-40 rounded-xl overflow-hidden mb-4">
+          <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="A high-angle view of the colorful streets of Lisbon, Portugal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqU7pwfRPO5mu8-6wDyuH7u4ijRV2qyHzDcGh7spwDUVlITEk4AyEEDj5UvkC09H1RHke9zLV6s8gWdnhmm5r5Y_X45-Vbc_bWE4sQh5CPFVjmxvvAP4DPVkb2g_wO-Az29GggTTe-kCHLi0jZF7I8fyuJqAFQqSCFd4pF8QB_HS9HRAkN77ls3oX1-bbryDljr4G-ftK3k2KxJcQ6orG6uCv-1V0fi-BLn56jy_vF6BwWRfop33OJtw"/>
+        </div>
+        <h4 class="text-headline-sm font-bold mb-1">Lisbon Textures</h4>
+        <p class="text-label-md text-on-surface-variant mb-4">Perfect for a 4-day deep dive into tile art and coastal dining.</p>
+        <div class="mt-auto flex justify-between items-center">
+          <span class="text-primary font-bold">$1,240 <span class="text-label-sm font-normal text-on-surface-variant">avg</span></span>
+          <span class="material-symbols-outlined text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+        </div>
+      </div>
+
+      <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/10 shadow-sm flex flex-col group transition-all duration-300 hover:shadow-md">
+        <div class="h-40 rounded-xl overflow-hidden mb-4">
+          <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="A minimalist architectural shot of Santorini, Greece." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMMyb6UfeIlaXccBIYhVWU2pdy2QXcTFucYI-nJSmIamPXVMBDotTZ2csOa446mC8smElnzlmkJQyQ1cMw9XMdpeL3XB-hEeWBhBQf7_O1_MsKs6egD_rXLwSxXOWmUhTFOclZIc7LI4p-jJC3PXkhJVdEK8DnbqSPTIVI8ESaDWvAGv9GikJLQUC6NMISWN5lg2OsB-F2_vuSa4szJMl5fni7Sjwr57s8gZlDtpwmLwn51YHJuY1i0A"/>
+        </div>
+        <h4 class="text-headline-sm font-bold mb-1">Santorini Escape</h4>
+        <p class="text-label-md text-on-surface-variant mb-4">A curated selection of private villas with caldera views.</p>
+        <div class="mt-auto flex justify-between items-center">
+          <span class="text-primary font-bold">$2,800 <span class="text-label-sm font-normal text-on-surface-variant">avg</span></span>
+          <span class="material-symbols-outlined text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+        </div>
+      </div>
+
+      <div class="md:col-span-2 bg-gradient-to-br from-primary-container to-secondary rounded-2xl p-8 text-white flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+        <div class="relative z-10 text-center md:text-left">
+          <h4 class="text-headline-md font-bold mb-2">Still undecided?</h4>
+          <p class="text-body-md opacity-90 mb-6 max-w-md">Our AI Concierge can build a custom trip based on your personal photos and past travel history.</p>
+          <button routerLink="/concierge" class="bg-white text-primary font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-surface-container-lowest transition-all active:scale-95">Chat with AI</button>
+        </div>
+        <div class="relative z-10 flex-1 flex justify-center">
+          <div class="glass-card p-4 rounded-2xl w-full max-w-xs border border-white/20 shadow-2xl">
+            <div class="flex gap-3 mb-4">
+              <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+              </div>
+              <div class="flex-1 bg-white/10 rounded-lg p-2 text-label-sm">Suggesting a hidden gem in Tuscany...</div>
+            </div>
+            <div class="flex gap-3 justify-end">
+              <div class="flex-1 bg-primary text-on-primary rounded-lg p-2 text-label-sm text-right">Show me something rustic but luxury.</div>
+              <div class="w-8 h-8 rounded-full bg-white/20"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Newsletter / Community Section -->
+  <section class="bg-surface-container-low mt-stack-lg py-20 px-margin-mobile">
+    <div class="max-w-2xl mx-auto text-center">
+      <h3 class="text-headline-md font-bold mb-4">Join the Elite Explorers</h3>
+      <p class="text-body-md text-on-surface-variant mb-8">Get early access to exclusive itineraries and hidden gems found by our AI engine.</p>
+      <form class="flex flex-col md:flex-row gap-3">
+        <input class="flex-1 rounded-xl border-outline-variant/30 focus:ring-primary focus:border-primary px-6 py-3" placeholder="Enter your email" type="email"/>
+        <button class="bg-on-background text-surface-container-lowest font-bold py-3 px-8 rounded-xl hover:opacity-90 transition-opacity">Subscribe</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pt-3 pb-safe-bottom bg-surface/80 dark:bg-surface/80 backdrop-blur-xl border-t border-outline-variant/20 z-50 rounded-t-[20px] shadow-[0_-4px_20px_rgba(15,23,42,0.05)]">
+  <a routerLink="/" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
+     [routerLinkActiveOptions]="{exact: true}"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
+    <span class="material-symbols-outlined">explore</span>
+    <span class="text-label-sm font-label-sm">Explore</span>
+  </a>
+  <a routerLink="/planner" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
+    <span class="material-symbols-outlined">event_note</span>
+    <span class="text-label-sm font-label-sm">Planner</span>
+  </a>
+  <a routerLink="/bookings" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
+    <span class="material-symbols-outlined">confirmation_number</span>
+    <span class="text-label-sm font-label-sm">Bookings</span>
+  </a>
+  <a routerLink="/concierge" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
+    <span class="material-symbols-outlined">auto_awesome</span>
+    <span class="text-label-sm font-label-sm">Concierge</span>
+  </a>
+  <a href="#" class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
+    <span class="material-symbols-outlined">person</span>
+    <span class="text-label-sm font-label-sm">Profile</span>
+  </a>
+</nav>
+
+<!-- AI Chat Floating Bubble -->
+<div class="fixed bottom-6 right-6 z-[60] hidden md:block">
+  <button routerLink="/concierge" class="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full shadow-2xl flex items-center justify-center text-white hover:scale-110 transition-transform active:scale-95 group relative">
+    <span class="material-symbols-outlined text-[32px]">auto_awesome</span>
+    <div class="absolute right-full mr-4 bg-surface-container-lowest text-on-background px-4 py-2 rounded-xl text-label-md font-semibold whitespace-nowrap shadow-xl border border-outline-variant/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+      How can I help plan your trip?
+    </div>
+  </button>
+</div>
+
+<footer class="hidden md:block py-12 px-margin-desktop bg-surface-container-lowest border-t border-outline-variant/10">
+  <div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-start gap-12">
+    <div class="max-w-xs">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="material-symbols-outlined text-primary text-headline-md">travel_explore</span>
+        <h1 class="text-headline-md font-bold tracking-tight text-primary">Safarni</h1>
+      </div>
+      <p class="text-label-md text-on-surface-variant">The future of intelligent travel. Experience journeys designed by AI, curated by experts.</p>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-12">
+      <div>
+        <h5 class="text-label-md font-bold text-on-background mb-4">Platform</h5>
+        <ul class="space-y-2 text-label-md text-on-surface-variant">
+          <li><a class="hover:text-primary" href="#">Explore</a></li>
+          <li><a class="hover:text-primary" href="#">AI Concierge</a></li>
+          <li><a class="hover:text-primary" href="#">Itinerary Planner</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5 class="text-label-md font-bold text-on-background mb-4">Company</h5>
+        <ul class="space-y-2 text-label-md text-on-surface-variant">
+          <li><a class="hover:text-primary" href="#">About Us</a></li>
+          <li><a class="hover:text-primary" href="#">Journal</a></li>
+          <li><a class="hover:text-primary" href="#">Careers</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5 class="text-label-md font-bold text-on-background mb-4">Legal</h5>
+        <ul class="space-y-2 text-label-md text-on-surface-variant">
+          <li><a class="hover:text-primary" href="#">Privacy Policy</a></li>
+          <li><a class="hover:text-primary" href="#">Terms of Service</a></li>
+          <li><a class="hover:text-primary" href="#">Cookie Policy</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="max-w-container-max mx-auto mt-12 pt-8 border-t border-outline-variant/10 flex flex-col md:flex-row justify-between items-center gap-4">
+    <p class="text-label-sm text-on-surface-variant/60">© 2024 Safarni AI Travel. All rights reserved.</p>
+    <div class="flex gap-6">
+      <a class="text-on-surface-variant/60 hover:text-primary transition-colors" href="#">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"></path></svg>
+      </a>
+      <a class="text-on-surface-variant/60 hover:text-primary transition-colors" href="#">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"></path></svg>
+      </a>
+    </div>
+  </div>
+</footer>

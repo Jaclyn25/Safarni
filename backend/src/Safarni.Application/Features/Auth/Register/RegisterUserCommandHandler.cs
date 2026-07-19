@@ -4,25 +4,30 @@ using Safarni.Application.Abstractions.Security;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Common.Results;
 using Safarni.Domain.Entities;
-using System.Security.Cryptography;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Safarni.Application.Features.Auth.Register;
 
-public sealed class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Result<RegisterUserResponse>>
+public sealed class RegisterUserCommandHandler 
+    : IRequestHandler<RegisterUserCommand, Result<RegisterUserResponse>>
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IEmailService _emailService;
+    private readonly IServiceProvider _serviceProvider;
 
-    public RegisterUserCommandHandler(IUserRepository userRepository, IPasswordHasher passwordHasher, IEmailService emailService)
+    public RegisterUserCommandHandler(
+        IUserRepository userRepository,
+        IPasswordHasher passwordHasher,
+        IServiceProvider serviceProvider)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
-        _emailService = emailService;
+        _serviceProvider = serviceProvider;
     }
 
-
-    public async Task<Result<RegisterUserResponse>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+    public async Task<Result<RegisterUserResponse>> Handle(
+        RegisterUserCommand request,
+        CancellationToken cancellationToken)
     {
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
@@ -38,37 +43,42 @@ public sealed class RegisterUserCommandHandler : IRequestHandler<RegisterUserCom
             Email = normalizedEmail,
             PasswordHash = _passwordHasher.Hash(request.Password),
             CreatedAt = DateTime.UtcNow,
-            IsActive = true,
-            IsEmailVerified = false
+            IsActive = true
         };
-
-        var verificationToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        user.EmailVerificationToken = verificationToken;
-        user.EmailVerificationTokenExpiresAt = DateTime.UtcNow.AddHours(24);
 
         await _userRepository.AddAsync(user, cancellationToken);
 
-        var verifyLink = $"http://localhost:5110/api/Auth/verify-email?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(verificationToken)}";
+        var verifyLink =
+            $"http://localhost:5110/api/Auth/verify-email?email={Uri.EscapeDataString(user.Email)}";
 
-        try
+        _ = Task.Run(async () =>
         {
-            await _emailService.SendEmailVerificationAsync(
+            using var scope = _serviceProvider.CreateScope();
+
+            var emailService =
+                scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            try
+            {
+                await emailService.SendEmailVerificationAsync(
+                    user.Email,
+                    verifyLink,
+                    CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("========== EMAIL ERROR ==========");
+                Console.WriteLine(ex.ToString());
+                Console.WriteLine("=================================");
+            }
+        });
+
+        return Result<RegisterUserResponse>.Success(
+            new RegisterUserResponse(
+                user.Id,
+                user.FullName,
                 user.Email,
-                verifyLink,
-                cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("========== EMAIL ERROR ==========");
-            Console.WriteLine(ex.ToString());
-            Console.WriteLine("=================================");
-        }
-
-        return Result<RegisterUserResponse>.Success(new RegisterUserResponse(
-            user.Id,
-            user.FullName,
-            user.Email,
-            user.CreatedAt,
-            user.IsActive));
+                user.CreatedAt,
+                user.IsActive));
     }
 }

@@ -1,3 +1,19 @@
-bin/ 
-obj/ 
-.vs/ 
+# Frontend
+Frontend/node_modules/
+Frontend/.angular/
+Frontend/dist/
+
+# Node
+node_modules/
+
+# Logs
+*.log
+backend-run.*
+frontend-run.*
+
+# .NET
+bin/
+obj/
+
+# Visual Studio
+.vs/

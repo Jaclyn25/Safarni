@@ -1,0 +1,59 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface ChatMessage {
+  role: string;
+  content: string;
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  createdAt: string;
+  messages: ChatMessage[];
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ChatService {
+  private apiUrl = 'http://localhost:5110/api/Chat';
+
+  constructor(private http: HttpClient) {}
+
+  private getHeaders(): HttpHeaders {
+    const token = localStorage.getItem('access_token');
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+    return headers;
+  }
+
+  startConversation(title?: string): Observable<Conversation> {
+    return this.http.post<Conversation>(`${this.apiUrl}/conversations`, { title }, { headers: this.getHeaders() });
+  }
+
+  getConversations(): Observable<Conversation[]> {
+    return this.http.get<Conversation[]>(`${this.apiUrl}/conversations`, { headers: this.getHeaders() });
+  }
+
+  getConversationById(id: string): Observable<Conversation> {
+    return this.http.get<Conversation>(`${this.apiUrl}/conversations/${id}`, { headers: this.getHeaders() });
+  }
+
+  sendMessage(conversationId: string, message: string): Observable<Conversation> {
+    return this.http.post<Conversation>(`${this.apiUrl}/send`, { conversationId, message }, { headers: this.getHeaders() });
+  }
+
+  regenerateResponse(conversationId: string): Observable<Conversation> {
+    return this.http.post<Conversation>(`${this.apiUrl}/regenerate`, { conversationId }, { headers: this.getHeaders() });
+  }
+
+  deleteConversation(id: string): Observable<{ success: boolean }> {
+    return this.http.delete<{ success: boolean }>(`${this.apiUrl}/conversations/${id}`, { headers: this.getHeaders() });
+  }
+}

@@ -1,13 +1,19 @@
 using Microsoft.EntityFrameworkCore;
 using Safarni.Domain.Entities;
+using ChatBotApi.Domain.Entities;
 
 namespace Safarni.Infrastructure.Persistence;
 
 public sealed class ApplicationDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+    public ApplicationDbContext(
+        DbContextOptions<ApplicationDbContext> options)
+        : base(options)
     {
     }
+
+
+    // Safarni Tables
 
     public DbSet<User> Users => Set<User>();
 
@@ -18,11 +24,110 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<PassportInfo> PassportInfos => Set<PassportInfo>();
 
     public DbSet<VisaApplication> VisaApplications => Set<VisaApplication>();
+
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+
+    // Chatbot Tables
+
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+
+    public DbSet<ConversationMessage> ConversationMessages => Set<ConversationMessage>();
+
+    public DbSet<TravelKnowledge> TravelKnowledges => Set<TravelKnowledge>();
+
+
+    protected override void OnModelCreating(
+        ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+
+
+        // Safarni Configurations
+
+        modelBuilder.ApplyConfigurationsFromAssembly(
+            typeof(ApplicationDbContext).Assembly);
+
+
+
+        // ===============================
+        // ChatBot Configurations
+        // ===============================
+
+
+        modelBuilder.Entity<Conversation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+
+            entity.Property(e => e.UserId)
+                .IsRequired()
+                .HasMaxLength(100);
+
+
+            entity.Property(e => e.Title)
+                .IsRequired()
+                .HasMaxLength(200);
+
+
+            entity.Property(e => e.CreatedAt)
+                .IsRequired();
+
+
+
+            entity.HasMany(e => e.Messages)
+                .WithOne(m => m.Conversation)
+                .HasForeignKey(m => m.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+        });
+
+
+
+        modelBuilder.Entity<ConversationMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+
+            entity.Property(e => e.Role)
+                .IsRequired()
+                .HasMaxLength(50);
+
+
+            entity.Property(e => e.Content)
+                .IsRequired();
+
+
+            entity.Property(e => e.CreatedAt)
+                .IsRequired();
+
+        });
+
+
+
+        modelBuilder.Entity<TravelKnowledge>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+
+            entity.Property(e => e.Category)
+                .IsRequired()
+                .HasMaxLength(100);
+
+
+            entity.Property(e => e.Title)
+                .IsRequired()
+                .HasMaxLength(250);
+
+
+            entity.Property(e => e.Content)
+                .IsRequired();
+
+
+            entity.Ignore(e => e.Embedding);
+
+        });
+
     }
 }

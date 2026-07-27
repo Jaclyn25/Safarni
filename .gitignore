@@ -1,3 +1,15 @@
 bin/ 
 obj/ 
 .vs/ 
+# Node
+node_modules/
+
+# Angular
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.angular/
+
+# Logs
+*.log
+backend-run.*
+frontend-run.*

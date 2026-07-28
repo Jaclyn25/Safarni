@@ -127,7 +127,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
         if (foundInDb)
         {
             _logger.LogInformation("Answer found in RAG Database ({Count} chunks). Responding from Database.", contextChunks!.Count);
-            systemPrompt = _promptBuilder.BuildSystemPrompt(contextChunks!);
+            systemPrompt = _promptBuilder.BuildSystemPrompt(contextChunks!, request.Message);
         }
         else
         {
@@ -135,7 +135,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             if (intent == ChatIntent.RagOnly)
             {
                 _logger.LogInformation("Intent is RagOnly and not found in database. Bypassing Google Places and responding using general travel knowledge.");
-                systemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>());
+                systemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), request.Message);
             }
             else
             {
@@ -144,7 +144,10 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                 List<PlaceDetails>? places = null;
                 try
                 {
-                    places = await _googlePlacesService.TextSearchAsync(request.Message, cancellationToken);
+                    places = await _googlePlacesService.TextSearchAsync(
+                        request.Message,
+                        cancellationToken,
+                        _promptBuilder.GetGooglePlacesLanguageCode(request.Message));
                 }
                 catch (Exception ex)
                 {
@@ -156,13 +159,13 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                 if (foundInPlaces)
                 {
                     _logger.LogInformation("Answer found in Google Places API ({Count} places). Responding from Google Places.", places!.Count);
-                    systemPrompt = _promptBuilder.BuildSystemPromptWithPlaces(null, places, intent);
+                    systemPrompt = _promptBuilder.BuildSystemPromptWithPlaces(null, places, intent, request.Message);
                 }
                 else
                 {
                 // STEP 3: NEITHER DB NOR GOOGLE PLACES HAS IT -> Refuse to answer from external AI knowledge!
                 _logger.LogInformation("No data found in Database or Google Places API. Returning refusal message.");
-                var refusalText = "عفواً، لا يمكنني العثور على هذه المعلومات في قاعدة المعرفة الخاصة بي ولا عبر Google Places.";
+                var refusalText = _promptBuilder.BuildKnowledgeNotFoundMessage(request.Message);
 
                 var refusalMsg = new ConversationMessage
                 {

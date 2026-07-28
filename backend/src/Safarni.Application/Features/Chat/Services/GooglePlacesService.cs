@@ -36,7 +36,7 @@ public class GooglePlacesService : IGooglePlacesService
         }
     }
 
-    public async Task<List<PlaceDetails>> TextSearchAsync(string query, CancellationToken cancellationToken = default)
+    public async Task<List<PlaceDetails>> TextSearchAsync(string query, CancellationToken cancellationToken = default, string languageCode = "en")
     {
         if (string.IsNullOrWhiteSpace(_apiKey))
         {
@@ -54,7 +54,7 @@ public class GooglePlacesService : IGooglePlacesService
             requestMessage.Headers.Add("X-Goog-Api-Key", _apiKey);
             requestMessage.Headers.Add("X-Goog-FieldMask", "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.googleMapsUri,places.photos,places.editorialSummary,places.types");
 
-            var payload = new { textQuery = query, languageCode = "ar" };
+            var payload = new { textQuery = query, languageCode = NormalizeLanguageCode(languageCode) };
             var jsonPayload = JsonSerializer.Serialize(payload);
             requestMessage.Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
@@ -92,7 +92,7 @@ public class GooglePlacesService : IGooglePlacesService
         // 2. Legacy Places API Fallback
         try
         {
-            var requestUrl = $"{_baseUrl.TrimEnd('/')}/textsearch/json?query={Uri.EscapeDataString(query)}&key={_apiKey}";
+            var requestUrl = $"{_baseUrl.TrimEnd('/')}/textsearch/json?query={Uri.EscapeDataString(query)}&language={Uri.EscapeDataString(NormalizeLanguageCode(languageCode))}&key={_apiKey}";
             _logger.LogInformation("Calling Legacy Google Places Text Search API for query: {Query}", query);
 
             var response = await _httpClient.GetAsync(requestUrl, cancellationToken);
@@ -139,6 +139,11 @@ public class GooglePlacesService : IGooglePlacesService
     {
         var results = await TextSearchAsync(placeId, cancellationToken);
         return results.FirstOrDefault();
+    }
+
+    private static string NormalizeLanguageCode(string languageCode)
+    {
+        return string.Equals(languageCode, "ar", StringComparison.OrdinalIgnoreCase) ? "ar" : "en";
     }
 
     public string GetPhotoUrl(string photoReference, int maxWidth = 400)

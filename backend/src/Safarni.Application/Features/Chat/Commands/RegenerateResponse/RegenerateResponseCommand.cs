@@ -122,7 +122,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
 
         if (foundInDb)
         {
-            systemPrompt = _promptBuilder.BuildSystemPrompt(contextChunks!);
+            systemPrompt = _promptBuilder.BuildSystemPrompt(contextChunks!, lastUserMsg.Content);
         }
         else
         {
@@ -130,7 +130,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
             if (intent == ChatIntent.RagOnly)
             {
                 _logger.LogInformation("Regeneration - Intent is RagOnly and not found in database. Bypassing Google Places and responding using general travel knowledge.");
-                systemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>());
+                systemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), lastUserMsg.Content);
             }
             else
             {
@@ -139,7 +139,10 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                 List<PlaceDetails>? places = null;
                 try
                 {
-                    places = await _googlePlacesService.TextSearchAsync(lastUserMsg.Content, cancellationToken);
+                    places = await _googlePlacesService.TextSearchAsync(
+                        lastUserMsg.Content,
+                        cancellationToken,
+                        _promptBuilder.GetGooglePlacesLanguageCode(lastUserMsg.Content));
                 }
                 catch (Exception ex)
                 {
@@ -150,12 +153,12 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
 
                 if (foundInPlaces)
                 {
-                    systemPrompt = _promptBuilder.BuildSystemPromptWithPlaces(null, places, intent);
+                    systemPrompt = _promptBuilder.BuildSystemPromptWithPlaces(null, places, intent, lastUserMsg.Content);
                 }
                 else
                 {
                     // STEP 3: Refuse if neither DB nor Google Places has it
-                    var refusalText = "عفواً، لا يمكنني العثور على هذه المعلومات في قاعدة المعرفة الخاصة بي ولا عبر Google Places.";
+                    var refusalText = _promptBuilder.BuildKnowledgeNotFoundMessage(lastUserMsg.Content);
                     var newAssistantRefusalMsg = new ConversationMessage
                     {
                         Id = Guid.NewGuid(),

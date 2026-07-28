@@ -1,3 +1,187 @@
 # Safarni
 
-Clean Safarni backend scaffold.
+Safarni is a travel planning platform with an ASP.NET Core backend and an Angular frontend. It includes account/profile features, travel preferences, visa application flows, and an AI concierge chatbot for travel questions, destination guidance, Google Places recommendations, and optional RAG indexing through Qdrant.
+
+## Tech Stack
+
+- Backend: ASP.NET Core / .NET 10, MediatR, FluentValidation, Entity Framework Core
+- Database: SQL Server
+- Frontend: Angular 21, standalone components, Angular Router
+- AI services: Groq chat completions, local embeddings, optional Qdrant vector search
+- External APIs: Google Places, Google OAuth
+
+## Project Structure
+
+```text
+Safarni/
+  backend/
+    Safarni.slnx
+    src/
+      Safarni.API/              # Controllers, middleware, API startup
+      Safarni.Application/      # Features, commands, queries, interfaces
+      Safarni.Domain/           # Domain entities
+      Safarni.Infrastructure/   # EF Core, repositories, AI, email, storage
+  Frontend/
+    src/
+      app/
+        pages/                  # Explore, Planner, Bookings, Concierge, Register
+        services/               # Auth and chat API clients
+```
+
+## Backend Setup
+
+From the repository root:
+
+```powershell
+dotnet restore backend\Safarni.slnx
+dotnet build backend\Safarni.slnx
+dotnet run --project backend\src\Safarni.API\Safarni.API.csproj --launch-profile http
+```
+
+The API listens on:
+
+```text
+http://localhost:5110
+```
+
+Useful endpoints:
+
+- `GET /api/health`
+- `POST /api/Auth/register`
+- `POST /api/Auth/login`
+- `GET /api/Chat/conversations`
+- `POST /api/Chat/conversations`
+- `POST /api/Chat/send`
+- `POST /api/Chat/regenerate`
+- `DELETE /api/Chat/conversations/{id}`
+- Swagger is available in Development mode at `/swagger`.
+
+## Database
+
+The default connection string is configured in:
+
+```text
+backend/src/Safarni.API/appsettings.json
+```
+
+Example local SQL Server override:
+
+```powershell
+$env:ConnectionStrings__DefaultConnection='Server=.;Database=Saffrni_DB;Trusted_Connection=True;Encrypt=False;'
+dotnet run --project backend\src\Safarni.API\Safarni.API.csproj --launch-profile http
+```
+
+Apply EF Core migrations when the database schema changes:
+
+```powershell
+dotnet ef database update --project backend\src\Safarni.Infrastructure --startup-project backend\src\Safarni.API
+```
+
+No migration is needed for prompt/chat-language changes unless entities, `ApplicationDbContext`, or migrations were modified.
+
+## Frontend Setup
+
+From the frontend folder:
+
+```powershell
+cd Frontend
+npm install
+npm start
+```
+
+The frontend listens on:
+
+```text
+http://127.0.0.1:4200
+```
+
+The Angular app calls the backend at:
+
+```text
+http://localhost:5110/api
+```
+
+## Running Both Locally
+
+Backend:
+
+```powershell
+$env:ConnectionStrings__DefaultConnection='Server=.;Database=Saffrni_DB;Trusted_Connection=True;Encrypt=False;'
+dotnet run --project backend\src\Safarni.API\Safarni.API.csproj --launch-profile http
+```
+
+Frontend:
+
+```powershell
+cd Frontend
+npm start -- --host 127.0.0.1 --port 4200
+```
+
+## Chatbot Notes
+
+The AI Concierge supports:
+
+- English and Arabic responses based on the latest user message
+- Travel-only guardrails for non-travel questions
+- Conversation follow-up context
+- SQL Server knowledge fallback
+- Google Places recommendations
+- Optional Qdrant vector search when Qdrant is running on `http://localhost:6333`
+
+If Qdrant is not running, the backend logs a warning and falls back to SQL/database knowledge. This does not stop the chatbot from working.
+
+## Configuration And Secrets
+
+Do not commit real API keys, tokens, passwords, or local-only connection strings.
+
+Recommended local secret options:
+
+- Environment variables
+- `dotnet user-secrets`
+- A local ignored config file such as `appsettings.Local.json`
+
+Important configuration keys:
+
+- `ConnectionStrings:DefaultConnection`
+- `JwtSettings:*`
+- `GoogleSettings:ClientId`
+- `EmailSettings:*`
+- `Groq:ApiKey`
+- `GooglePlaces:ApiKey`
+- `RAG:QdrantUrl`
+
+## Troubleshooting
+
+SQL Server connection fails:
+
+- Confirm the SQL Server instance exists.
+- The checked-in example may point to `.\MSSQLSERVER01`; if your database is on the default instance, use `Server=.` as an environment override.
+
+Backend build fails because DLL files are locked:
+
+- Stop the running `Safarni.API.exe` / `dotnet run` process, then rebuild.
+
+Qdrant warning appears:
+
+- Start Qdrant on `http://localhost:6333`, or ignore the warning if SQL fallback is enough for local development.
+
+Frontend cannot reach backend:
+
+- Confirm backend is running on `http://localhost:5110`.
+- Confirm CORS includes `http://127.0.0.1:4200` and `http://localhost:4200`.
+
+## Verification
+
+Backend:
+
+```powershell
+dotnet build backend\Safarni.slnx --no-restore
+Invoke-WebRequest http://localhost:5110/api/health
+```
+
+Frontend:
+
+```powershell
+cd Frontend
+npm run build
+```

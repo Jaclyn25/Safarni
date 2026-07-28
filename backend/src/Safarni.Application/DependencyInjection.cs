@@ -47,6 +47,10 @@ public static class DependencyInjection
         services.AddTransient<IValidator<CreateVisaApplicationCommand>, CreateVisaApplicationCommandValidator>();
         services.AddTransient<IValidator<SelectVisaTypeCommand>, SelectVisaTypeCommandValidator>();
 
+        // Chatbot Validators
+        services.AddTransient<IValidator<ChatBotApi.Application.Features.Chat.Commands.CreateConversation.CreateConversationCommand>, ChatBotApi.Application.Features.Chat.Commands.CreateConversation.CreateConversationCommandValidator>();
+        services.AddTransient<IValidator<ChatBotApi.Application.Features.Chat.Commands.SendMessage.SendMessageCommand>, ChatBotApi.Application.Features.Chat.Commands.SendMessage.SendMessageCommandValidator>();
+
         return services;
     }
 }

@@ -1,8 +1,69 @@
-bin/ 
-obj/ 
-.vs/ 
+# OS and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Frontend generated files
+# Visual Studio / .NET
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Bb]in/
+[Oo]bj/
+TestResults/
+coverage/
+coverage.*
+*.trx
+
+# ASP.NET local configuration and publish output
+appsettings.Local.json
+appsettings.*.local.json
+*.pubxml.user
+backend/src/Safarni.API/wwwroot/uploads/
+backend/src/Safarni.API/logs/
+backend/**/publish/
+
+# Node / Angular
+node_modules/
 Frontend/node_modules/
+.angular/
 Frontend/.angular/
+dist/
 Frontend/dist/
+.cache/
+Frontend/.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.secret.json
+secrets.json
+
+# Logs and local run artifacts
+*.log
+logs/
+backend-run.*
+frontend-run.*
+*.pid
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Generated local database files
+*.db
+*.db-shm
+*.db-wal
+*.mdf
+*.ldf

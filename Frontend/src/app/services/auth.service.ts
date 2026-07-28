@@ -1,5 +1,5 @@
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 
 export interface ApiError {
@@ -33,25 +33,102 @@ export interface LoginResponse {
   email: string;
 }
 
+export interface PasswordRecoveryResponse {
+  message: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface VerifyEmailRequest {
+  email: string;
+  token: string;
+}
+
+export interface VerifyEmailResponse {
+  message: string;
+}
+  export type AuthOperation = 'login' | 'register';
+export interface GoogleLoginRequest {
+  idToken: string;
+}
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:5110/api/Auth';
+  /**
+   * Relative URL keeps the frontend environment-agnostic.
+   * In development, proxy.conf.json forwards /api to http://localhost:5110.
+   * In production, route /api to the ASP.NET API through your web server.
+   */
+  private readonly apiUrl = '/api/Auth';
 
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
-  register(command: any): Observable<ApiResponse<RegisterUserResponse>> {
+  register(command: {
+    fullName: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  }): Observable<ApiResponse<RegisterUserResponse>> {
     return this.http.post<ApiResponse<RegisterUserResponse>>(`${this.apiUrl}/register`, command);
   }
 
-  login(command: any): Observable<ApiResponse<LoginResponse>> {
+  login(command: { email: string; password: string }): Observable<ApiResponse<LoginResponse>> {
     return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/login`, command).pipe(
-      tap((res) => {
-        if (res.success && res.data) {
-          this.saveSession(res.data);
+      tap((response) => {
+        if (response.success && response.data) {
+          this.saveSession(response.data);
         }
       })
+    );
+  }
+  googleLogin(
+  command: GoogleLoginRequest
+): Observable<ApiResponse<LoginResponse>> {
+  return this.http
+    .post<ApiResponse<LoginResponse>>(
+      `${this.apiUrl}/google-login`,
+      command
+    )
+    .pipe(
+      tap((response) => {
+        if (
+          response.success &&
+          response.data
+        ) {
+          this.saveSession(response.data);
+        }
+      })
+    );
+}
+
+  forgotPassword(command: ForgotPasswordRequest): Observable<ApiResponse<PasswordRecoveryResponse>> {
+    return this.http.post<ApiResponse<PasswordRecoveryResponse>>(
+      `${this.apiUrl}/forgot-password`,
+      command
+    );
+  }
+
+  resetPassword(command: ResetPasswordRequest): Observable<ApiResponse<PasswordRecoveryResponse>> {
+    return this.http.post<ApiResponse<PasswordRecoveryResponse>>(
+      `${this.apiUrl}/reset-password`,
+      command
+    );
+  }
+
+  verifyEmail(command: VerifyEmailRequest): Observable<ApiResponse<VerifyEmailResponse>> {
+    return this.http.post<ApiResponse<VerifyEmailResponse>>(
+      `${this.apiUrl}/verify-email`,
+      command
     );
   }
 
@@ -60,27 +137,37 @@ export class AuthService {
     const refreshToken = localStorage.getItem('refresh_token');
 
     if (accessToken && refreshToken) {
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${accessToken}`
-      });
-      // Try to inform backend about logout, but always clear local session
+      const headers = new HttpHeaders({ Authorization: `Bearer ${accessToken}` });
       this.http.post(`${this.apiUrl}/logout`, { refreshToken }, { headers }).subscribe({
         next: () => this.clearSession(),
         error: () => this.clearSession()
       });
-    } else {
-      this.clearSession();
+      return;
     }
+
+    this.clearSession();
+  }
+
+  isAuthenticated(): boolean {
+    return Boolean(localStorage.getItem('access_token'));
+  }
+
+  getCurrentUser(): { userId: string; fullName: string; email: string } | null {
+    const user = localStorage.getItem('user');
+    return user ? (JSON.parse(user) as { userId: string; fullName: string; email: string }) : null;
   }
 
   private saveSession(data: LoginResponse): void {
     localStorage.setItem('access_token', data.accessToken);
     localStorage.setItem('refresh_token', data.refreshToken);
-    localStorage.setItem('user', JSON.stringify({
-      userId: data.userId,
-      fullName: data.fullName,
-      email: data.email
-    }));
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        userId: data.userId,
+        fullName: data.fullName,
+        email: data.email
+      })
+    );
   }
 
   private clearSession(): void {
@@ -88,13 +175,115 @@ export class AuthService {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
   }
+}
 
-  isAuthenticated(): boolean {
-    return !!localStorage.getItem('access_token');
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof HttpErrorResponse) {
+    const apiResponse = error.error as Partial<ApiResponse<unknown>> | null;
+    const firstError = apiResponse?.errors?.[0]?.message;
+
+    if (firstError) {
+      return firstError;
+    }
+
+    if (apiResponse?.message) {
+      return apiResponse.message;
+    }
+
+    if (error.status === 0) {
+      return 'The API is unavailable. Make sure the backend is running on http://localhost:5110.';
+    }
   }
 
-  getCurrentUser(): any {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+  return fallback;
+}
+
+export function getAuthFormErrorMessage(
+  error: unknown,
+  operation: AuthOperation
+): string {
+  const fallback =
+    operation === 'login'
+      ? 'We could not sign you in. Please try again.'
+      : 'We could not create your account. Please try again.';
+
+  if (!(error instanceof HttpErrorResponse)) {
+    return fallback;
+  }
+
+  const response =
+    error.error &&
+    typeof error.error === 'object'
+      ? (error.error as Partial<ApiResponse<unknown>>)
+      : null;
+
+  const firstApiError =
+    response?.errors && response.errors.length > 0
+      ? response.errors[0]
+      : null;
+
+  /*
+   * Map backend error codes to clear, user-friendly messages.
+   */
+  switch (firstApiError?.code) {
+    case 'Auth.InvalidCredentials':
+      /*
+       * Do not reveal whether the email exists.
+       * This avoids account-enumeration security problems.
+       */
+      return 'The email address or password you entered is incorrect.';
+
+    case 'Auth.EmailNotVerified':
+      return 'Please verify your email address before signing in. Check your inbox for the verification email.';
+
+    case 'Auth.InactiveAccount':
+      return 'This account is currently inactive. Please contact support for assistance.';
+
+    case 'User.EmailAlreadyExists':
+      return 'An account already exists with this email address. Try signing in instead.';
+
+    default:
+      break;
+  }
+
+  /*
+   * Return backend validation messages when available.
+   */
+  const backendMessage = firstApiError?.message?.trim();
+
+  if (backendMessage) {
+    return backendMessage;
+  }
+
+  /*
+   * Handle HTTP failures when an error code was not returned.
+   */
+  switch (error.status) {
+    case 0:
+      return 'We could not connect to the server. Make sure the backend is running and try again.';
+
+    case 400:
+      return operation === 'login'
+        ? 'Please check your email and password and try again.'
+        : 'Please check your account information and try again.';
+
+    case 401:
+      return 'The email address or password you entered is incorrect.';
+
+    case 403:
+      return 'You cannot sign in to this account yet. Make sure your email has been verified.';
+
+    case 404:
+      return 'The authentication service could not be reached. Please try again later.';
+
+    case 409:
+      return 'An account already exists with this email address. Try signing in instead.';
+
+    default:
+      if (error.status >= 500) {
+        return 'The server encountered a problem. Please try again in a moment.';
+      }
+
+      return fallback;
   }
 }

@@ -39,5 +39,51 @@ export const routes: Routes = [
     data: { isLogin: true },
     title: 'Safarni | Sign In'
   },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./pages/forgot-password/forgot-password.component').then(
+        (m) => m.ForgotPasswordComponent
+      ),
+    title: 'Safarni | Reset Your Password'
+  },
+  {
+    path: 'check-email',
+    loadComponent: () =>
+      import('./pages/check-email/check-email.component').then((m) => m.CheckEmailComponent),
+    title: 'Safarni | Check Your Email'
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password.component').then(
+        (m) => m.ResetPasswordComponent
+      ),
+    title: 'Safarni | Create New Password'
+  },
+  {
+    path: 'password-updated',
+    loadComponent: () =>
+      import('./pages/password-updated/password-updated.component').then(
+        (m) => m.PasswordUpdatedComponent
+      ),
+    title: 'Safarni | Password Updated'
+  },
+  {
+    path: 'verification-email-sent',
+    loadComponent: () =>
+      import('./pages/verification-email-sent/verification-email-sent.component').then(
+        (m) => m.VerificationEmailSentComponent
+      ),
+    title: 'Safarni | Verify Your Email'
+  },
+  {
+    path: 'verify-email',
+    loadComponent: () =>
+      import('./pages/verify-email/verify-email.component').then(
+        (m) => m.VerifyEmailComponent
+      ),
+    title: 'Safarni | Email Verification'
+  },
   { path: '**', redirectTo: '' }
 ];

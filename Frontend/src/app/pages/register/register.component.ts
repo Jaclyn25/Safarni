@@ -1,7 +1,36 @@
-import { Component, OnInit } from '@angular/core';
-import { RouterLink, ActivatedRoute, Router } from '@angular/router';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  OnInit,
+  ViewChild,
+  computed,
+  signal
+} from '@angular/core';
+
+import {
+  ActivatedRoute,
+  Router,
+  RouterLink
+} from '@angular/router';
+
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../../services/auth.service';
+import { finalize } from 'rxjs';
+
+import {
+  GOOGLE_AUTH_CONFIG
+} from '../../config/google-auth.config';
+
+import {
+  GoogleCredentialResponse,
+  GoogleIdentityService
+} from '../../services/google-identity.service';
+
+import {
+  AuthService,
+  getApiErrorMessage,
+  getAuthFormErrorMessage
+} from '../../services/auth.service';
 
 interface PasswordChecks {
   length: boolean;
@@ -13,11 +42,21 @@ interface PasswordChecks {
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [RouterLink, FormsModule],
-  templateUrl: './register.component.html'
+  imports: [
+    RouterLink,
+    FormsModule
+  ],
+  templateUrl: './register.component.html',
+  styleUrl: './register.component.css'
 })
-export class RegisterComponent implements OnInit {
+export class RegisterComponent
+  implements OnInit, AfterViewInit {
+
+  @ViewChild('googleButton')
+  private googleButton?: ElementRef<HTMLDivElement>;
+
   isLogin = false;
+
   showPassword = false;
   showConfirmPassword = false;
 
@@ -27,155 +66,393 @@ export class RegisterComponent implements OnInit {
   confirmPassword = '';
   agreeToTerms = false;
 
-  isLoading = false;
-  errorMessage = '';
-  successMessage = '';
+  readonly isLoading = signal(false);
+  readonly isGoogleLoading = signal(false);
+
+  readonly errorMessage = signal('');
+  readonly successMessage = signal('');
+
+  /**
+   * Prevents Google login and email/password login
+   * from running at the same time.
+   */
+  readonly isBusy = computed(
+    () =>
+      this.isLoading() ||
+      this.isGoogleLoading()
+  );
+
+  checks: PasswordChecks = {
+    length: false,
+    symbol: false,
+    upper: false,
+    number: false
+  };
+
+  matchState: 'match' | 'mismatch' | null = null;
 
   constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private authService: AuthService
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
+    private readonly authService: AuthService,
+    private readonly googleIdentityService:
+      GoogleIdentityService
   ) {}
 
   ngOnInit(): void {
-    this.route.data.subscribe(data => {
+    this.route.data.subscribe((data) => {
       this.isLogin = data['isLogin'] ?? false;
       this.clearMessages();
     });
   }
 
-  private clearMessages(): void {
-    this.errorMessage = '';
-    this.successMessage = '';
-  }
-
-  toggleMode(): void {
-    this.isLogin = !this.isLogin;
-    this.clearMessages();
-    if (this.isLogin) {
-      this.router.navigate(['/login']);
-    } else {
-      this.router.navigate(['/register']);
-    }
+  ngAfterViewInit(): void {
+    void this.renderGoogleButton();
   }
 
   onSubmit(): void {
+    if (this.isBusy()) {
+      return;
+    }
+
     this.clearMessages();
 
-    if (!this.isLogin) {
-      // Registration flow
-      if (!this.fullName || !this.email || !this.password || !this.confirmPassword) {
-        this.errorMessage = 'Please fill in all fields.';
-        return;
-      }
+    if (this.isLogin) {
+      this.submitLogin();
+      return;
+    }
 
-      if (this.password !== this.confirmPassword) {
-        this.errorMessage = 'Passwords do not match.';
-        return;
-      }
+    this.submitRegistration();
+  }
 
-      if (this.strengthScore < 4) {
-        this.errorMessage = 'Please make sure your password meets all criteria.';
-        return;
-      }
+  private submitLogin(): void {
+    const normalizedEmail =
+      this.email.trim().toLowerCase();
 
-      if (!this.agreeToTerms) {
-        this.errorMessage = 'You must agree to the Terms & Conditions.';
-        return;
-      }
+    if (!normalizedEmail || !this.password) {
+      this.setError(
+        'Please enter your email address and password.'
+      );
+      return;
+    }
 
-      this.isLoading = true;
-      this.authService.register({
-        fullName: this.fullName,
-        email: this.email,
-        password: this.password,
-        confirmPassword: this.confirmPassword
-      }).subscribe({
-        next: (res) => {
-          this.isLoading = false;
-          if (res.success) {
-            this.successMessage = 'Account created successfully! Redirecting to login...';
-            setTimeout(() => {
-              this.router.navigate(['/login']);
-            }, 2000);
-          } else {
-            this.errorMessage = res.message || 'Registration failed.';
-          }
-        },
-        error: (err) => {
-          this.isLoading = false;
-          this.errorMessage = this.extractErrorMessage(err);
-        }
-      });
+    if (!this.isValidEmail(normalizedEmail)) {
+      this.setError(
+        'Please enter a valid email address.'
+      );
+      return;
+    }
 
-    } else {
-      // Login flow
-      if (!this.email || !this.password) {
-        this.errorMessage = 'Please enter your email and password.';
-        return;
-      }
+    this.email = normalizedEmail;
+    this.isLoading.set(true);
 
-      this.isLoading = true;
-      this.authService.login({
-        email: this.email,
+    this.authService
+      .login({
+        email: normalizedEmail,
         password: this.password
-      }).subscribe({
-        next: (res) => {
-          this.isLoading = false;
-          if (res.success) {
-            this.successMessage = 'Signed in successfully! Redirecting...';
-            setTimeout(() => {
-              this.router.navigate(['/']);
-            }, 1500);
-          } else {
-            this.errorMessage = res.message || 'Login failed.';
+      })
+      .pipe(
+        finalize(() => {
+          this.isLoading.set(false);
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          if (
+            !response.success ||
+            !response.data
+          ) {
+            this.setError(
+              response.errors?.[0]?.message ||
+                response.message ||
+                'We could not sign you in.'
+            );
+            return;
           }
+
+          this.errorMessage.set('');
+
+          this.successMessage.set(
+            'Signed in successfully. Redirecting...'
+          );
+
+          window.setTimeout(() => {
+            void this.router.navigate(['/']);
+          }, 700);
         },
-        error: (err) => {
-          this.isLoading = false;
-          this.errorMessage = this.extractErrorMessage(err);
+
+        error: (error: unknown) => {
+          this.setError(
+            getAuthFormErrorMessage(
+              error,
+              'login'
+            )
+          );
         }
       });
+  }
+
+  private submitRegistration(): void {
+    const normalizedFullName =
+      this.fullName.trim();
+
+    const normalizedEmail =
+      this.email.trim().toLowerCase();
+
+    if (
+      !normalizedFullName ||
+      !normalizedEmail ||
+      !this.password ||
+      !this.confirmPassword
+    ) {
+      this.setError(
+        'Please complete all required fields.'
+      );
+      return;
+    }
+
+    if (!this.isValidEmail(normalizedEmail)) {
+      this.setError(
+        'Please enter a valid email address.'
+      );
+      return;
+    }
+
+    if (
+      this.password !==
+      this.confirmPassword
+    ) {
+      this.setError(
+        'The password confirmation does not match.'
+      );
+      return;
+    }
+
+    if (this.strengthScore < 4) {
+      this.setError(
+        'Your password must contain at least 8 characters, one uppercase letter, one number, and one special character.'
+      );
+      return;
+    }
+
+    if (!this.agreeToTerms) {
+      this.setError(
+        'You must agree to the Terms & Conditions and Privacy Policy.'
+      );
+      return;
+    }
+
+    this.fullName = normalizedFullName;
+    this.email = normalizedEmail;
+    this.isLoading.set(true);
+
+    this.authService
+      .register({
+        fullName: normalizedFullName,
+        email: normalizedEmail,
+        password: this.password,
+        confirmPassword:
+          this.confirmPassword
+      })
+      .pipe(
+        finalize(() => {
+          this.isLoading.set(false);
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          if (!response.success) {
+            this.setError(
+              response.errors?.[0]?.message ||
+                response.message ||
+                'We could not create your account.'
+            );
+            return;
+          }
+
+          const registeredEmail = (
+            response.data?.email ||
+            normalizedEmail
+          )
+            .trim()
+            .toLowerCase();
+
+          sessionStorage.setItem(
+            'email_verification_email',
+            registeredEmail
+          );
+
+          void this.router.navigate(
+            ['/verification-email-sent'],
+            {
+              queryParams: {
+                email: registeredEmail
+              }
+            }
+          );
+        },
+
+        error: (error: unknown) => {
+          this.setError(
+            getAuthFormErrorMessage(
+              error,
+              'register'
+            )
+          );
+        }
+      });
+  }
+
+  /**
+   * Loads and displays the official Google
+   * Identity Services button.
+   */
+  private async renderGoogleButton():
+    Promise<void> {
+    const container =
+      this.googleButton?.nativeElement;
+
+    if (!container) {
+      return;
+    }
+
+    try {
+      await this.googleIdentityService
+        .renderButton(
+          container,
+          GOOGLE_AUTH_CONFIG.clientId,
+          this.handleGoogleCredential
+        );
+    } catch (error: unknown) {
+      console.error(
+        'Google Identity Services initialization failed.',
+        error
+      );
+
+      this.setError(
+        'Google sign-in is temporarily unavailable. ' +
+          'You can still continue with email and password.'
+      );
     }
   }
 
-  private extractErrorMessage(err: any): string {
-    if (err.error) {
-      if (err.error.errors && err.error.errors.length > 0) {
-        return err.error.errors[0].message;
-      }
-      if (err.error.message) {
-        return err.error.message;
-      }
+  /**
+   * Receives the Google ID token, then sends it
+   * to the ASP.NET backend for validation.
+   */
+  private readonly handleGoogleCredential = (
+    response: GoogleCredentialResponse
+  ): void => {
+    const idToken =
+      response.credential?.trim();
+
+    if (!idToken) {
+      this.setError(
+        'Google did not return a valid sign-in credential. Please try again.'
+      );
+      return;
     }
-    return err.message || 'An unexpected error occurred. Please try again.';
+
+    if (this.isBusy()) {
+      return;
+    }
+
+    this.clearMessages();
+    this.isGoogleLoading.set(true);
+
+    this.authService
+      .googleLogin({ idToken })
+      .pipe(
+        finalize(() => {
+          this.isGoogleLoading.set(false);
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          if (
+            !response.success ||
+            !response.data
+          ) {
+            this.setError(
+              response.errors?.[0]?.message ||
+                response.message ||
+                'Google authentication could not be completed.'
+            );
+            return;
+          }
+
+          this.errorMessage.set('');
+
+          this.successMessage.set(
+            'Google authentication successful. Redirecting...'
+          );
+
+          /*
+           * AuthService should already have stored:
+           * - Access token
+           * - Refresh token
+           * - Current user
+           */
+          void this.router.navigate(['/']);
+        },
+
+        error: (error: unknown) => {
+          this.setError(
+            getApiErrorMessage(
+              error,
+              'Google authentication could not be completed. Please try again.'
+            )
+          );
+        }
+      });
+  };
+
+  toggleMode(): void {
+    if (this.isBusy()) {
+      return;
+    }
+
+    this.isLogin = !this.isLogin;
+    this.clearMessages();
+
+    void this.router.navigate([
+      this.isLogin
+        ? '/login'
+        : '/register'
+    ]);
   }
 
-  checks: PasswordChecks = { length: false, symbol: false, upper: false, number: false };
-
-  matchState: 'match' | 'mismatch' | null = null;
+  dismissError(): void {
+    this.errorMessage.set('');
+  }
 
   togglePassword(): void {
-    this.showPassword = !this.showPassword;
+    this.showPassword =
+      !this.showPassword;
   }
 
   toggleConfirmPassword(): void {
-    this.showConfirmPassword = !this.showConfirmPassword;
+    this.showConfirmPassword =
+      !this.showConfirmPassword;
   }
 
   onPasswordInput(value: string): void {
     this.password = value;
+    this.dismissError();
+
     this.checks = {
       length: value.length >= 8,
       symbol: /[^A-Za-z0-9]/.test(value),
       upper: /[A-Z]/.test(value),
       number: /[0-9]/.test(value)
     };
+
     this.validatePasswordMatch();
   }
 
   onConfirmInput(value: string): void {
     this.confirmPassword = value;
+    this.dismissError();
     this.validatePasswordMatch();
   }
 
@@ -184,17 +461,51 @@ export class RegisterComponent implements OnInit {
       this.matchState = null;
       return;
     }
-    this.matchState = this.password === this.confirmPassword ? 'match' : 'mismatch';
+
+    this.matchState =
+      this.password ===
+      this.confirmPassword
+        ? 'match'
+        : 'mismatch';
+  }
+
+  private clearMessages(): void {
+    this.errorMessage.set('');
+    this.successMessage.set('');
+  }
+
+  private setError(message: string): void {
+    this.successMessage.set('');
+    this.errorMessage.set(message);
+  }
+
+  private isValidEmail(
+    email: string
+  ): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      email
+    );
   }
 
   get strengthScore(): number {
-    return Object.values(this.checks).filter(Boolean).length;
+    return Object
+      .values(this.checks)
+      .filter(Boolean)
+      .length;
   }
 
   get strengthBarClass(): string {
-    const base = 'h-full transition-all duration-500';
-    if (this.strengthScore <= 1) return `${base} bg-error`;
-    if (this.strengthScore <= 3) return `${base} bg-secondary-fixed-dim`;
+    const base =
+      'h-full transition-all duration-500';
+
+    if (this.strengthScore <= 1) {
+      return `${base} bg-error`;
+    }
+
+    if (this.strengthScore <= 3) {
+      return `${base} bg-secondary-fixed-dim`;
+    }
+
     return `${base} bg-tertiary`;
   }
 

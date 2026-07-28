@@ -16,14 +16,27 @@
             "index": "./src/index.html",
             "browser": "./src/main.ts",
             "tsConfig": "./tsconfig.app.json",
-            "assets": [],
-            "styles": ["./src/styles.css"],
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "assets"
+              }
+            ],
+            "styles": [
+              "./src/styles.css",
+              "./src/app/shared/password-recovery-shell/password-recovery-shared.css"
+            ],
             "scripts": []
           },
           "configurations": {
             "production": {
               "budgets": [
-                { "type": "initial", "maximumWarning": "500kb", "maximumError": "1mb" }
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                }
               ],
               "outputHashing": "all"
             },
@@ -37,9 +50,16 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
-            "production": { "buildTarget": "safarni-angular:build:production" },
-            "development": { "buildTarget": "safarni-angular:build:development" }
+            "production": {
+              "buildTarget": "safarni-angular:build:production"
+            },
+            "development": {
+              "buildTarget": "safarni-angular:build:development"
+            }
           },
           "defaultConfiguration": "development"
         }

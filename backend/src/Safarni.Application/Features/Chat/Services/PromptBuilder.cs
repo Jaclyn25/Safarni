@@ -18,7 +18,7 @@ public class PromptBuilder : IPromptBuilder
         sb.AppendLine("CRITICAL RULE 4: If the user asks a general geographic, historical, or travel-related question (e.g., 'What is the capital of X?'), you MAY use your own accurate general knowledge if it's not in the Database Context.");
         sb.AppendLine("CRITICAL RULE 5: Be extremely accurate with geography. (e.g., The capital of Turkey is Ankara, not Istanbul. The capital of UAE is Abu Dhabi, not Dubai). Double-check your facts before answering.");
         sb.AppendLine("CRITICAL RULE 6: NEVER mention 'Database Context', 'System', or 'AI model' to the user. Speak naturally as Safarni AI.");
-        sb.AppendLine("If the user asks about ANY non-travel topic (programming, math, science, etc.), politely decline to answer.");
+        sb.AppendLine("CRITICAL RULE 7: If the user asks about ANY non-travel topic (programming, math, science, sports, etc.), you MUST politely decline to answer AND YOU MUST NOT provide the answer or any information related to their non-travel question under any circumstances.");
         sb.AppendLine("Answer strictly in Arabic with a warm, helpful tone.");
         sb.AppendLine();
         sb.AppendLine("Database Context:");
@@ -53,7 +53,7 @@ public class PromptBuilder : IPromptBuilder
         sb.AppendLine("CRITICAL RULE 2: You MUST use the provided Chat History to understand conversational follow-up questions (e.g., 'Are you sure?', 'Why?', 'Tell me more'). DO NOT lose context of the conversation.");
         sb.AppendLine("CRITICAL RULE 3: Use the Google Places data below as your ONLY source of factual truth for these specific places.");
         sb.AppendLine("CRITICAL RULE 4: NEVER mention 'Google Places', 'Database Context', 'System', or 'AI model' to the user. Speak naturally as Safarni AI.");
-        sb.AppendLine("If the user asks about ANY non-travel topic, politely decline to answer.");
+        sb.AppendLine("CRITICAL RULE 5: If the user asks about ANY non-travel topic, you MUST politely decline to answer AND YOU MUST NOT provide the answer or any information related to their non-travel question under any circumstances.");
         sb.AppendLine("Answer strictly in Arabic.");
         sb.AppendLine("Never return raw JSON.");
         sb.AppendLine("Format links as markdown links, not plain URLs.");

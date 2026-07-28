@@ -1,28 +1,34 @@
+using System.Security.Cryptography;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Abstractions.Security;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Common.Results;
 using Safarni.Domain.Entities;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Safarni.Application.Features.Auth.Register;
 
-public sealed class RegisterUserCommandHandler 
+public sealed class RegisterUserCommandHandler
     : IRequestHandler<RegisterUserCommand, Result<RegisterUserResponse>>
 {
+    private static readonly TimeSpan VerificationTokenLifetime = TimeSpan.FromHours(24);
+
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IEmailVerificationLinkFactory _emailVerificationLinkFactory;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public RegisterUserCommandHandler(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
-        IServiceProvider serviceProvider)
+        IEmailVerificationLinkFactory emailVerificationLinkFactory,
+        IServiceScopeFactory scopeFactory)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
-        _serviceProvider = serviceProvider;
+        _emailVerificationLinkFactory = emailVerificationLinkFactory;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<Result<RegisterUserResponse>> Handle(
@@ -36,42 +42,29 @@ public sealed class RegisterUserCommandHandler
             return Result<RegisterUserResponse>.Failure(UserErrors.EmailAlreadyExists);
         }
 
+        var verificationToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        var createdAt = DateTime.UtcNow;
+
         var user = new User
         {
             Id = Guid.NewGuid(),
             FullName = request.FullName.Trim(),
             Email = normalizedEmail,
             PasswordHash = _passwordHasher.Hash(request.Password),
-            CreatedAt = DateTime.UtcNow,
-            IsActive = true
+            CreatedAt = createdAt,
+            IsActive = true,
+            IsEmailVerified = false,
+            EmailVerificationToken = verificationToken,
+            EmailVerificationTokenExpiresAt = createdAt.Add(VerificationTokenLifetime)
         };
 
         await _userRepository.AddAsync(user, cancellationToken);
 
-        var verifyLink =
-            $"http://localhost:5110/api/Auth/verify-email?email={Uri.EscapeDataString(user.Email)}";
+        var verificationLink = _emailVerificationLinkFactory.Create(
+            user.Email,
+            verificationToken);
 
-        _ = Task.Run(async () =>
-        {
-            using var scope = _serviceProvider.CreateScope();
-
-            var emailService =
-                scope.ServiceProvider.GetRequiredService<IEmailService>();
-
-            try
-            {
-                await emailService.SendEmailVerificationAsync(
-                    user.Email,
-                    verifyLink,
-                    CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("========== EMAIL ERROR ==========");
-                Console.WriteLine(ex.ToString());
-                Console.WriteLine("=================================");
-            }
-        });
+        QueueVerificationEmail(user.Email, verificationLink);
 
         return Result<RegisterUserResponse>.Success(
             new RegisterUserResponse(
@@ -80,5 +73,29 @@ public sealed class RegisterUserCommandHandler
                 user.Email,
                 user.CreatedAt,
                 user.IsActive));
+    }
+
+    private void QueueVerificationEmail(string email, string verificationLink)
+    {
+        // This preserves the project's current non-blocking registration behavior.
+        // For production, replace this with a durable queue/outbox worker.
+        _ = Task.Run(async () =>
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            try
+            {
+                await emailService.SendEmailVerificationAsync(
+                    email,
+                    verificationLink,
+                    CancellationToken.None);
+            }
+            catch (Exception exception)
+            {
+                Console.Error.WriteLine(
+                    $"Failed to send verification email to {email}: {exception}");
+            }
+        });
     }
 }

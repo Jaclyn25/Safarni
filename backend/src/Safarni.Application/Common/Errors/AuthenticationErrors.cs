@@ -17,6 +17,11 @@ public static class AuthenticationErrors
         "The account is inactive.",
         ErrorType.Forbidden);
 
+    public static readonly Error EmailNotVerified = new(
+        "Auth.EmailNotVerified",
+        "Verify your email address before signing in.",
+        ErrorType.Forbidden);
+
     public static readonly Error InvalidRefreshToken = new(
         "Auth.InvalidRefreshToken",
         "The refresh token is invalid.",

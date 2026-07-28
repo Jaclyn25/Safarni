@@ -49,7 +49,7 @@ public sealed class AuthController : ControllerBase
 
         var successResponse = ApiResponse<RegisterUserResponse>.SuccessResponse(
             result.Value!,
-            "User registered successfully.",
+            "Registration successful. A verification email has been sent.",
             StatusCodes.Status201Created);
 
         return StatusCode(StatusCodes.Status201Created, successResponse);
@@ -125,24 +125,55 @@ public sealed class AuthController : ControllerBase
         return Ok(successResponse);
     }
     [HttpPost("google-login")]
-    [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginCommand command, CancellationToken cancellationToken)
+[ProducesResponseType(
+    typeof(ApiResponse<LoginResponse>),
+    StatusCodes.Status200OK)]
+[ProducesResponseType(
+    typeof(ApiResponse<LoginResponse>),
+    StatusCodes.Status400BadRequest)]
+[ProducesResponseType(
+    typeof(ApiResponse<LoginResponse>),
+    StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(
+    typeof(ApiResponse<LoginResponse>),
+    StatusCodes.Status403Forbidden)]
+public async Task<IActionResult> GoogleLogin(
+    [FromBody] GoogleLoginCommand command,
+    CancellationToken cancellationToken)
+{
+    var result =
+        await _sender.Send(
+            command,
+            cancellationToken);
+
+    if (result.IsFailure)
     {
-        var result = await _sender.Send(command, cancellationToken);
-        if (result.IsFailure)
-        {
-            var failureResponse = ApiResponse<LoginResponse>.FailureResponse(
-                [new ApiError(result.Error.Code, result.Error.Message)],
+        var statusCode =
+            MapStatusCode(result.Error.Type);
+
+        var failureResponse =
+            ApiResponse<LoginResponse>.FailureResponse(
+                [
+                    new ApiError(
+                        result.Error.Code,
+                        result.Error.Message)
+                ],
                 "Google login failed.",
-                StatusCodes.Status400BadRequest);
-            return BadRequest(failureResponse);
-        }
-        var successResponse = ApiResponse<LoginResponse>.SuccessResponse(
+                statusCode);
+
+        return StatusCode(
+            statusCode,
+            failureResponse);
+    }
+
+    var successResponse =
+        ApiResponse<LoginResponse>.SuccessResponse(
             result.Value!,
             "Google login successful.",
             StatusCodes.Status200OK);
-        return Ok(successResponse);
-    }
+
+    return Ok(successResponse);
+}
 
     [HttpPost("refresh-token")]
     [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponse>), StatusCodes.Status200OK)]
@@ -172,44 +203,34 @@ public sealed class AuthController : ControllerBase
     }
 
 
-[HttpPost("verify-email")]
-[ProducesResponseType(typeof(ApiResponse<VerifyEmailResponse>), StatusCodes.Status200OK)]
-public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailCommand command, CancellationToken cancellationToken)
-{
-    var result = await _sender.Send(command, cancellationToken);
-    if (result.IsFailure)
-    {
-        var failureResponse = ApiResponse<VerifyEmailResponse>.FailureResponse(
-            [new ApiError(result.Error.Code, result.Error.Message)],
-            "Email verification failed.",
-            StatusCodes.Status400BadRequest);
-        return BadRequest(failureResponse);
-    }
-    var successResponse = ApiResponse<VerifyEmailResponse>.SuccessResponse(
-        result.Value!,
-        "Email verified successfully.",
-        StatusCodes.Status200OK);
-    return Ok(successResponse);
-}
-
-    [HttpGet("verify-email")]
+    [HttpPost("verify-email")]
+    [ProducesResponseType(typeof(ApiResponse<VerifyEmailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<VerifyEmailResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<VerifyEmailResponse>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<VerifyEmailResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> VerifyEmail(
-    [FromQuery] string email,
-    [FromQuery] string token,
-    CancellationToken cancellationToken)
+        [FromBody] VerifyEmailCommand command,
+        CancellationToken cancellationToken)
     {
-        var command = new VerifyEmailCommand(email, token);
-
         var result = await _sender.Send(command, cancellationToken);
 
         if (result.IsFailure)
         {
-            return BadRequest(result.Error.Message);
+            var statusCode = MapStatusCode(result.Error.Type);
+            var failureResponse = ApiResponse<VerifyEmailResponse>.FailureResponse(
+                [new ApiError(result.Error.Code, result.Error.Message)],
+                "Email verification failed.",
+                statusCode);
+
+            return StatusCode(statusCode, failureResponse);
         }
 
-        return Content(
-    "<h2>Email verified successfully ✅</h2>",
-    "text/html");
+        var successResponse = ApiResponse<VerifyEmailResponse>.SuccessResponse(
+            result.Value!,
+            "Email verified successfully.",
+            StatusCodes.Status200OK);
+
+        return Ok(successResponse);
     }
 
     [Authorize]

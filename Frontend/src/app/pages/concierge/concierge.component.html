@@ -74,8 +74,8 @@
             <div class="w-10 h-10 rounded-xl bg-surface-container-highest flex items-center justify-center flex-shrink-0">
               <span class="material-symbols-outlined text-on-surface-variant">person</span>
             </div>
-            <div class="space-y-2 text-right">
-              <div class="bg-surface-container-lowest text-on-surface p-5 rounded-2xl rounded-tr-none border border-outline-variant/30 shadow-[0_4px_20px_rgba(15,23,42,0.05)] text-body-md">
+            <div class="space-y-2 text-right max-w-full">
+              <div class="bg-surface-container-lowest text-on-surface p-5 rounded-2xl rounded-tr-none border border-outline-variant/30 shadow-[0_4px_20px_rgba(15,23,42,0.05)] text-body-md chat-message-text">
                 {{ m.text }}
               </div>
               <span class="text-label-sm font-label-sm text-on-surface-variant opacity-50 mr-1">{{ m.time }}</span>
@@ -86,9 +86,57 @@
             <div class="w-10 h-10 rounded-xl ai-gradient flex items-center justify-center shadow-lg flex-shrink-0">
               <span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
             </div>
-            <div class="space-y-2">
-              <div class="ai-gradient text-white p-5 rounded-2xl rounded-tl-none shadow-sm text-body-md">
-                {{ m.text }}
+            <div class="space-y-2 min-w-0 flex-1">
+              <div class="assistant-response rounded-2xl rounded-tl-none p-5 shadow-sm text-body-md"
+                   [dir]="m.formatted.direction"
+                   [class.text-right]="m.formatted.direction === 'rtl'">
+                @if (m.formatted.paragraphs.length) {
+                  <div class="assistant-response__prose">
+                    @for (paragraph of m.formatted.paragraphs; track $index) {
+                      <p>{{ paragraph }}</p>
+                    }
+                  </div>
+                }
+
+                @if (m.formatted.recommendations.length) {
+                  <div class="assistant-response__cards">
+                    @for (item of m.formatted.recommendations; track $index) {
+                      <article class="assistant-place-card">
+                        <div class="flex items-start justify-between gap-3">
+                          <h3>{{ item.title }}</h3>
+                          @if (item.rating) {
+                            <span class="assistant-rating">
+                              <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                              {{ item.rating }}
+                            </span>
+                          }
+                        </div>
+                        <p>{{ item.description }}</p>
+                        @if (item.link) {
+                          <a class="assistant-link-button" [href]="item.link.url" target="_blank" rel="noopener noreferrer">
+                            <span class="material-symbols-outlined text-[18px]">{{ item.link.icon }}</span>
+                            {{ item.link.label }}
+                          </a>
+                        }
+                      </article>
+                    }
+                  </div>
+                }
+
+                @if (m.formatted.links.length) {
+                  <div class="assistant-response__links">
+                    @for (link of m.formatted.links; track link.url) {
+                      <a class="assistant-link-button" [href]="link.url" target="_blank" rel="noopener noreferrer">
+                        <span class="material-symbols-outlined text-[18px]">{{ link.icon }}</span>
+                        {{ link.label }}
+                      </a>
+                    }
+                  </div>
+                }
+
+                @if (!m.formatted.paragraphs.length && !m.formatted.recommendations.length && !m.formatted.links.length) {
+                  <p class="chat-message-text">{{ m.text }}</p>
+                }
               </div>
               <span class="text-label-sm font-label-sm text-on-surface-variant opacity-50 ml-1">{{ m.time }}</span>
             </div>

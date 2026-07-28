@@ -14,6 +14,27 @@ interface ChatMessage {
   text: string;
   isUser: boolean;
   time: string;
+  formatted: FormattedMessage;
+}
+
+interface FormattedMessage {
+  direction: 'rtl' | 'ltr';
+  paragraphs: string[];
+  links: MessageLink[];
+  recommendations: RecommendationItem[];
+}
+
+interface MessageLink {
+  label: string;
+  url: string;
+  icon: string;
+}
+
+interface RecommendationItem {
+  title: string;
+  rating?: string;
+  description: string;
+  link?: MessageLink;
 }
 
 @Component({
@@ -33,6 +54,7 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
   
   private messageSubscription?: Subscription;
   private shouldScroll = false;
+  private readonly urlPattern = /https?:\/\/[^\s)\]]+/gi;
 
   constructor(private chatService: ChatService) {}
 
@@ -92,11 +114,7 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
           this.conversationsList = list || [];
         });
 
-        this.messages = conv.messages.map(m => ({
-          text: m.content,
-          isUser: m.role === 'user',
-          time: this.nowLabel()
-        }));
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
         this.shouldScroll = true;
       },
       error: (err) => {
@@ -108,11 +126,7 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
   loadConversationMessages(id: string): void {
     this.chatService.getConversationById(id).subscribe({
       next: (conv) => {
-        this.messages = conv.messages.map(m => ({
-          text: m.content,
-          isUser: m.role === 'user',
-          time: this.nowLabel()
-        }));
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
         this.shouldScroll = true;
       },
       error: (err) => {
@@ -164,7 +178,7 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
     }
 
     // Add user message to UI immediately
-    this.messages.push({ text, isUser: true, time: this.nowLabel() });
+    this.messages.push(this.toChatMessage(text, true));
     this.inputValue = '';
     this.shouldScroll = true;
     this.isTyping = true;
@@ -174,11 +188,7 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
         this.isTyping = false;
         this.messageSubscription = undefined;
         
-        this.messages = conv.messages.map(m => ({
-          text: m.content,
-          isUser: m.role === 'user',
-          time: this.nowLabel()
-        }));
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
 
         // Refresh list to update titles if changed from "محادثة جديدة"
         const currentConv = this.conversationsList.find(c => c.id === this.conversationId);
@@ -196,7 +206,8 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
         this.messages.push({
           text: 'عذراً، حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى.',
           isUser: false,
-          time: this.nowLabel()
+          time: this.nowLabel(),
+          formatted: this.formatMessage('Sorry, something went wrong while sending your message. Please try again.')
         });
         this.shouldScroll = true;
         console.error('Error sending message', err);
@@ -214,5 +225,122 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
 
   handleRefresh(): void {
     this.startNewConversation();
+  }
+
+  private toChatMessage(text: string, isUser: boolean): ChatMessage {
+    return {
+      text,
+      isUser,
+      time: this.nowLabel(),
+      formatted: this.formatMessage(text)
+    };
+  }
+
+  private formatMessage(text: string): FormattedMessage {
+    const links = this.extractLinks(text);
+    const withoutUrls = text.replace(this.urlPattern, '').trim();
+    const recommendations = this.extractRecommendations(withoutUrls, links);
+    const cleaned = this.cleanMarkdown(withoutUrls);
+
+    return {
+      direction: this.detectDirection(cleaned),
+      paragraphs: this.extractParagraphs(cleaned, recommendations),
+      links: links.filter(link => !recommendations.some(item => item.link?.url === link.url)),
+      recommendations
+    };
+  }
+
+  private detectDirection(text: string): 'rtl' | 'ltr' {
+    return /[\u0600-\u06FF]/.test(text) ? 'rtl' : 'ltr';
+  }
+
+  private cleanMarkdown(text: string): string {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/__(.*?)__/g, '$1')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+      .replace(/^\s*[-*]\s+/gm, '')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  private extractLinks(text: string): MessageLink[] {
+    const matches = text.match(this.urlPattern) || [];
+
+    return matches.map((rawUrl, index) => {
+      const url = rawUrl.replace(/[.,،؛]+$/, '');
+      const host = this.getHostname(url);
+      const isMap = /maps\.google|google\.com\/maps|place_id/i.test(url);
+
+      return {
+        url,
+        icon: isMap ? 'map' : 'open_in_new',
+        label: isMap ? 'View on map' : (host || `Open link ${index + 1}`)
+      };
+    });
+  }
+
+  private getHostname(url: string): string {
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return '';
+    }
+  }
+
+  private extractRecommendations(text: string, links: MessageLink[]): RecommendationItem[] {
+    const normalized = this.cleanMarkdown(text).replace(/\s*\n+\s*/g, ' ');
+    const candidatePattern = /(?:^|\s)(?:\d+[.)]\s*)?([^:：.!؟]{3,80})\s*[:：]\s*([^:：]+?)(?=(?:\s+\d+[.)]\s*)?[^:：.!؟]{3,80}\s*[:：]|$)/g;
+    const items: RecommendationItem[] = [];
+    let match: RegExpExecArray | null;
+
+    while ((match = candidatePattern.exec(normalized)) !== null) {
+      const item = this.parseRecommendation(match[1], match[2], links[items.length]);
+      if (item) {
+        items.push(item);
+      }
+    }
+
+    return items.length >= 2 ? items.slice(0, 6) : [];
+  }
+
+  private parseRecommendation(titleText: string, bodyText: string, link?: MessageLink): RecommendationItem | null {
+    const title = titleText.replace(/^[*-]\s*/, '').trim();
+    const body = bodyText.trim();
+    const rating = body.match(/(?:⭐\s*)?([0-5](?:\.\d)?\s*\/\s*5)/)?.[1]?.replace(/\s+/g, '');
+
+    if (!title || title.length > 80 || body.length < 12 || !rating) {
+      return null;
+    }
+
+    return {
+      title,
+      rating,
+      description: this.compactDescription(body.replace(/(?:⭐\s*)?[0-5](?:\.\d)?\s*\/\s*5/g, '')),
+      link
+    };
+  }
+
+  private compactDescription(text: string): string {
+    return text
+      .replace(/\s*\[.*?\]\s*/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/^[\s,،:：.-]+/, '')
+      .slice(0, 220)
+      .trim();
+  }
+
+  private extractParagraphs(text: string, recommendations: RecommendationItem[]): string[] {
+    if (recommendations.length) {
+      const intro = text.split(/(?:\d+[.)]\s*)?[^:：.!؟]{3,80}\s*[:：]/)[0]?.trim();
+      return intro ? [intro] : [];
+    }
+
+    return text
+      .split(/\n{2,}|(?<=[.!؟])\s+(?=[\u0600-\u06FFA-Z])/)
+      .map(paragraph => paragraph.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .slice(0, 6);
   }
 }

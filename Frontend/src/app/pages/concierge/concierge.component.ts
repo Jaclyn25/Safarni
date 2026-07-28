@@ -165,11 +165,7 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
         },
         error: (err) => {
           this.isTyping = false;
-          this.messages.push({
-            text: 'عذراً، حدث خطأ أثناء إنشاء المحادثة.',
-            isUser: false,
-            time: this.nowLabel()
-          });
+          this.messages.push(this.toChatMessage('عذراً، حدث خطأ أثناء إنشاء المحادثة.', false));
           this.shouldScroll = true;
           console.error('Error starting conversation', err);
         }

@@ -166,7 +166,6 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
         error: (err) => {
           this.isTyping = false;
           this.messages.push(this.toChatMessage('عذراً، حدث خطأ أثناء إنشاء المحادثة.', false));
-          this.shouldScroll = true;
           console.error('Error starting conversation', err);
         }
       });
@@ -195,12 +194,7 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
       error: (err) => {
         this.isTyping = false;
         this.messageSubscription = undefined;
-        this.messages.push({
-          text: 'عذراً، حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى.',
-          isUser: false,
-          time: this.nowLabel(),
-          formatted: this.formatMessage('Sorry, something went wrong while sending your message. Please try again.')
-        });
+        this.messages.push(this.toChatMessage('عذراً، حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى.', false));
         this.shouldScroll = true;
         console.error('Error sending message', err);
       }

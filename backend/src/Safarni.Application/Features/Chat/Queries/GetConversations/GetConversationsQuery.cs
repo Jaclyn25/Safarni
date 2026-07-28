@@ -23,7 +23,13 @@ public class GetConversationsQueryHandler : IRequestHandler<GetConversationsQuer
     {
         var conversations = await _repository.GetByUserIdAsync(request.UserId, cancellationToken);
         
-        return conversations
+        System.Console.WriteLine($"[DEBUG] Total conversations for user {request.UserId}: {conversations.Count}");
+        foreach(var c in conversations) {
+            System.Console.WriteLine($"[DEBUG] Conv {c.Id} - Title: {c.Title} - Messages: {c.Messages?.Count ?? 0}");
+        }
+
+        var filtered = conversations
+            .Where(c => c.Messages != null && c.Messages.Count > 1)
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => new ConversationSummaryDto
             {
@@ -32,5 +38,8 @@ public class GetConversationsQueryHandler : IRequestHandler<GetConversationsQuer
                 CreatedAt = c.CreatedAt
             })
             .ToList();
+
+        System.Console.WriteLine($"[DEBUG] Returned conversations after filter: {filtered.Count}");
+        return filtered;
     }
 }

@@ -1,3 +1,8 @@
 bin/ 
 obj/ 
 .vs/ 
+
+# Frontend generated files
+Frontend/node_modules/
+Frontend/.angular/
+Frontend/dist/

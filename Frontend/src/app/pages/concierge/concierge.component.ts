@@ -3,7 +3,8 @@ import {
   Component,
   ElementRef,
   OnInit,
-  ViewChild
+  ViewChild,
+  ChangeDetectorRef
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, RouterLinkActive } from '@angular/router';
@@ -51,12 +52,12 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
   conversationId: string | null = null;
   messages: ChatMessage[] = [];
   conversationsList: any[] = [];
-  
+
   private messageSubscription?: Subscription;
   private shouldScroll = false;
   private readonly urlPattern = /https?:\/\/[^\s)\]]+/gi;
 
-  constructor(private chatService: ChatService) {}
+  constructor(private chatService: ChatService, private cdr: ChangeDetectorRef) { }
 
   ngOnInit(): void {
     this.loadOrCreateConversation();
@@ -78,25 +79,13 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
     this.chatService.getConversations().subscribe({
       next: (conversations) => {
         this.conversationsList = conversations || [];
-        
-        // Check localStorage first
-        const savedId = localStorage.getItem('active_conversation_id');
-        if (savedId && this.conversationsList.some(c => c.id === savedId)) {
-          this.conversationId = savedId;
-          this.loadConversationMessages(savedId);
-        } else if (this.conversationsList.length > 0) {
-          // Load the latest conversation
-          const latest = this.conversationsList[this.conversationsList.length - 1];
-          this.conversationId = latest.id;
-          localStorage.setItem('active_conversation_id', latest.id);
-          this.loadConversationMessages(latest.id);
-        } else {
-          // Create a new one
-          this.startNewConversation();
-        }
+        this.cdr.detectChanges();
+
+        // Requirement 1: Open an empty chat on page load
+        this.startNewConversation();
       },
       error: (err) => {
-        console.error('Error fetching conversations, starting new one', err);
+        console.error('Error fetching conversations', err);
         this.startNewConversation();
       }
     });
@@ -104,23 +93,12 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
 
   startNewConversation(): void {
     this.stopResponse();
-    this.chatService.startConversation('محادثة جديدة').subscribe({
-      next: (conv) => {
-        this.conversationId = conv.id;
-        localStorage.setItem('active_conversation_id', conv.id);
-        
-        // Refresh conversations list
-        this.chatService.getConversations().subscribe(list => {
-          this.conversationsList = list || [];
-        });
 
-        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
-        this.shouldScroll = true;
-      },
-      error: (err) => {
-        console.error('Failed to start conversation', err);
-      }
-    });
+    // Requirement 3: +new chat only opens an empty chat locally
+    this.conversationId = null;
+    this.messages = [];
+    this.shouldScroll = true;
+    localStorage.removeItem('active_conversation_id');
   }
 
   loadConversationMessages(id: string): void {
@@ -145,23 +123,14 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
 
   deleteConversation(id: string, event: Event): void {
     event.stopPropagation(); // Prevent selection trigger
-    
+
     if (confirm('هل أنت متأكد من رغبتك في حذف هذه المحادثة؟')) {
       this.chatService.deleteConversation(id).subscribe({
         next: () => {
           this.conversationsList = this.conversationsList.filter(c => c.id !== id);
-          
+
           if (this.conversationId === id) {
-            localStorage.removeItem('active_conversation_id');
-            this.conversationId = null;
-            this.messages = [];
-            
-            if (this.conversationsList.length > 0) {
-              const latest = this.conversationsList[this.conversationsList.length - 1];
-              this.selectConversation(latest.id);
-            } else {
-              this.startNewConversation();
-            }
+            this.startNewConversation();
           }
         },
         error: (err) => {
@@ -173,7 +142,7 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
 
   handleSend(): void {
     const text = this.inputValue.trim();
-    if (!text || !this.conversationId) {
+    if (!text) {
       return;
     }
 
@@ -183,32 +152,49 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
     this.shouldScroll = true;
     this.isTyping = true;
 
-    this.messageSubscription = this.chatService.sendMessage(this.conversationId, text).subscribe({
+    if (!this.conversationId) {
+      // Create a new conversation on the backend first
+      const title = text.length > 30 ? text.substring(0, 30) + '...' : text;
+      this.chatService.startConversation(title).subscribe({
+        next: (conv) => {
+          this.conversationId = conv.id;
+          localStorage.setItem('active_conversation_id', conv.id);
+
+          // Now send the actual message
+          this._sendMessage(conv.id, text);
+        },
+        error: (err) => {
+          this.isTyping = false;
+          this.messages.push(this.toChatMessage('عذراً، حدث خطأ أثناء إنشاء المحادثة.', false));
+          console.error('Error starting conversation', err);
+        }
+      });
+    } else {
+      // Existing conversation
+      this._sendMessage(this.conversationId, text);
+    }
+  }
+
+  private _sendMessage(convId: string, text: string): void {
+    this.messageSubscription = this.chatService.sendMessage(convId, text).subscribe({
       next: (conv) => {
         this.isTyping = false;
         this.messageSubscription = undefined;
-        
+
         this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
 
-        // Refresh list to update titles if changed from "محادثة جديدة"
-        const currentConv = this.conversationsList.find(c => c.id === this.conversationId);
-        if (currentConv && currentConv.title === 'محادثة جديدة') {
-          this.chatService.getConversations().subscribe(list => {
-            this.conversationsList = list || [];
-          });
-        }
-        
+        // Refresh the list to ensure the title is updated or newly created chat is visible
+        this.chatService.getConversations().subscribe(list => {
+          this.conversationsList = list || [];
+          this.cdr.detectChanges();
+        });
+
         this.shouldScroll = true;
       },
       error: (err) => {
         this.isTyping = false;
         this.messageSubscription = undefined;
-        this.messages.push({
-          text: 'عذراً، حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى.',
-          isUser: false,
-          time: this.nowLabel(),
-          formatted: this.formatMessage('Sorry, something went wrong while sending your message. Please try again.')
-        });
+        this.messages.push(this.toChatMessage('عذراً، حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى.', false));
         this.shouldScroll = true;
         console.error('Error sending message', err);
       }

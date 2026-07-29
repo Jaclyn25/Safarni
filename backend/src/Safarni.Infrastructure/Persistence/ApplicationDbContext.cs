@@ -17,6 +17,8 @@ public sealed class ApplicationDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
 
+    public DbSet<Trip> Trips => Set<Trip>();
+
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public DbSet<TravelPreference> TravelPreferences => Set<TravelPreference>();

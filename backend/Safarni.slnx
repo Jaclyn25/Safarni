@@ -5,4 +5,7 @@
     <Project Path="src/Safarni.Application/Safarni.Application.csproj" />
     <Project Path="src/Safarni.Infrastructure/Safarni.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Safarni.Application.UnitTests/Safarni.Application.UnitTests.csproj" />
+  </Folder>
 </Solution>

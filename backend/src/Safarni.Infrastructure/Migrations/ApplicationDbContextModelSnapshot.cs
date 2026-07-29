@@ -225,6 +225,44 @@ namespace Safarni.Infrastructure.Migrations
                     b.ToTable("TravelPreferences", (string)null);
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.Trip", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Destination")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Trips");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -449,6 +487,17 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.Trip", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.User", "User")
+                        .WithMany("Trips")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.UserSettings", b =>
                 {
                     b.HasOne("Safarni.Domain.Entities.User", "User")
@@ -483,6 +532,8 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("TravelPreference");
+
+                    b.Navigation("Trips");
 
                     b.Navigation("VisaApplications");
                 });

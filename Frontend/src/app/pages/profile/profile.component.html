@@ -1,0 +1,277 @@
+<!-- Top Navigation -->
+<nav class="topnav">
+  <div class="topnav__inner">
+    <div class="topnav__left">
+      <span class="topnav__brand">Voyage Elite</span>
+      <div class="topnav__links">
+        <a href="#">Explore</a>
+        <a href="#">Bookings</a>
+        <a href="#">Concierge</a>
+      </div>
+    </div>
+    <div class="topnav__right">
+      <button class="icon-btn" aria-label="Notifications">
+        <span class="material-symbols-outlined">notifications</span>
+      </button>
+      <button class="icon-btn" aria-label="Help">
+        <span class="material-symbols-outlined">help</span>
+      </button>
+      <div class="avatar-btn">
+        <img [src]="profile?.avatarUrl || 'https://placehold.co/64x64'" alt="Profile photo" />
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="layout">
+  <!-- Side Navigation -->
+  <aside class="sidenav">
+    <div class="sidenav__profile">
+      <div class="sidenav__avatar">{{ (profile?.fullName || 'JW').charAt(0) }}{{ (profile?.fullName || ' W').split(' ')[1]?.charAt(0) }}</div>
+      <div>
+        <h3>{{ profile?.fullName || 'Julian Walters' }}</h3>
+        <p>{{ profile?.membershipTier || 'Premium Member' }}</p>
+      </div>
+    </div>
+
+    <nav class="sidenav__nav">
+      <a
+        *ngFor="let item of navItems"
+        href="javascript:void(0)"
+        class="sidenav__link"
+        [class.sidenav__link--active]="activeSection() === item.key"
+        (click)="setActiveSection(item.key)"
+      >
+        <span class="material-symbols-outlined">{{ item.icon }}</span>
+        <span>{{ item.label }}</span>
+      </a>
+
+      <div class="sidenav__danger">
+        <a href="javascript:void(0)" class="sidenav__link sidenav__link--danger" (click)="setActiveSection('account')">
+          <span class="material-symbols-outlined">delete_forever</span>
+          <span>Delete Account</span>
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <section class="content">
+    <header class="content__header">
+      <h1>Settings</h1>
+      <p>Manage your profile, preferences, and account security.</p>
+    </header>
+
+    <div *ngIf="isLoading()" class="loading-state">Loading your profile…</div>
+
+    <form *ngIf="!isLoading()" [formGroup]="profileForm" (ngSubmit)="saveChanges()" class="sections">
+      <!-- Account Profile -->
+      <section class="card" id="account">
+        <div class="card__header">
+          <h2><span class="material-symbols-outlined">account_circle</span> Account Profile</h2>
+        </div>
+
+        <div class="profile-grid">
+          <div class="avatar-upload">
+            <div class="avatar-upload__image">
+              <img [src]="profile?.avatarUrl || 'https://placehold.co/96x96'" alt="Profile photo" />
+            </div>
+            <label class="avatar-upload__btn">
+              <span class="material-symbols-outlined">photo_camera</span>
+              <input type="file" accept="image/*" hidden (change)="onAvatarSelected($event)" />
+            </label>
+          </div>
+
+          <div class="fields">
+            <div class="field">
+              <label for="fullName">Full Name</label>
+              <input id="fullName" type="text" formControlName="fullName" />
+              <p class="field__error" *ngIf="f['fullName'].touched && f['fullName'].errors?.['required']">
+                Full name is required.
+              </p>
+              <p class="field__error" *ngIf="f['fullName'].errors?.['maxlength']">
+                Full name must be 100 characters or fewer.
+              </p>
+            </div>
+
+            <div class="field">
+              <label for="email">Email Address</label>
+              <input id="email" type="email" formControlName="email" />
+              <p class="field__error" *ngIf="f['email'].touched && f['email'].errors?.['email']">
+                Enter a valid email address.
+              </p>
+            </div>
+
+            <div class="field">
+              <label for="phoneNumber">Phone Number</label>
+              <input id="phoneNumber" type="tel" formControlName="phoneNumber" placeholder="+1 (555) 000-1234" />
+              <p class="field__error" *ngIf="f['phoneNumber'].errors?.['pattern']">
+                Use only digits, spaces, and + - ( ).
+              </p>
+            </div>
+
+            <div class="field">
+              <label for="dateOfBirth">Date of Birth</label>
+              <input id="dateOfBirth" type="date" formControlName="dateOfBirth" />
+              <p class="field__error" *ngIf="f['dateOfBirth'].errors?.['dateInFuture']">
+                Date of birth cannot be in the future.
+              </p>
+            </div>
+
+            <div class="field">
+              <label for="country">Country</label>
+              <input id="country" type="text" formControlName="country" placeholder="e.g. Egypt" />
+            </div>
+
+            <div class="field">
+              <label for="city">City</label>
+              <input id="city" type="text" formControlName="city" placeholder="e.g. Cairo" />
+            </div>
+
+            <div class="field field--full">
+              <label for="bio">Bio</label>
+              <textarea id="bio" rows="3" formControlName="bio"></textarea>
+              <p class="field__hint">{{ f['bio'].value?.length || 0 }}/500</p>
+              <p class="field__error" *ngIf="f['bio'].errors?.['maxlength']">Bio must be 500 characters or fewer.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Travel Preferences -->
+      <section class="card" id="travel-preferences">
+        <h2><span class="material-symbols-outlined">explore</span> Travel Preferences</h2>
+
+        <div class="stack">
+          <div class="field">
+            <label>Travel Style</label>
+            <div class="chip-row">
+              <span
+                *ngFor="let style of travelStyles"
+                class="chip"
+                [class.chip--active]="isTravelStyleSelected(style)"
+                (click)="toggleTravelStyle(style)"
+              >
+                {{ style }}
+              </span>
+            </div>
+          </div>
+
+          <div class="fields fields--two">
+            <div class="field">
+              <label for="dietary">Dietary Requirements</label>
+              <select id="dietary" [(ngModel)]="dietaryRequirement" [ngModelOptions]="{ standalone: true }">
+                <option *ngFor="let opt of dietaryOptions" [value]="opt">{{ opt }}</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="seat">Seat Preference</label>
+              <select id="seat" [(ngModel)]="seatPreference" [ngModelOptions]="{ standalone: true }">
+                <option *ngFor="let opt of seatOptions" [value]="opt">{{ opt }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Appearance -->
+      <section class="card" id="theme">
+        <h2><span class="material-symbols-outlined">palette</span> Appearance</h2>
+
+        <div class="theme-grid">
+          <button
+            type="button"
+            class="theme-option"
+            [class.theme-option--active]="themeChoice === 'light'"
+            (click)="selectTheme('light')"
+          >
+            <div class="theme-preview theme-preview--light">
+              <div class="bar bar--wide"></div>
+              <div class="bar"></div>
+            </div>
+            <span>Light Mode</span>
+          </button>
+
+          <button
+            type="button"
+            class="theme-option"
+            [class.theme-option--active]="themeChoice === 'dark'"
+            (click)="selectTheme('dark')"
+          >
+            <div class="theme-preview theme-preview--dark">
+              <div class="bar bar--wide"></div>
+              <div class="bar"></div>
+            </div>
+            <span>Dark Mode</span>
+          </button>
+
+          <button
+            type="button"
+            class="theme-option"
+            [class.theme-option--active]="themeChoice === 'system'"
+            (click)="selectTheme('system')"
+          >
+            <div class="theme-preview theme-preview--split">
+              <div class="theme-preview__half theme-preview__half--light"><div class="bar"></div></div>
+              <div class="theme-preview__half theme-preview__half--dark"><div class="bar"></div></div>
+            </div>
+            <span>System Default</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Connected Accounts -->
+      <section class="card" id="connected-accounts">
+        <h2><span class="material-symbols-outlined">link</span> Connected Accounts</h2>
+
+        <div class="accounts">
+          <div class="account-row" *ngFor="let account of connectedAccounts">
+            <div class="account-row__info">
+              <div class="account-row__icon">
+                <span class="material-symbols-outlined">{{ account.provider === 'google' ? 'g_translate' : 'thumb_up' }}</span>
+              </div>
+              <div>
+                <p class="account-row__label">{{ account.label }}</p>
+                <p class="account-row__status">{{ account.status }}</p>
+              </div>
+            </div>
+            <button type="button" class="btn" [class.btn--outline]="account.connected" [class.btn--primary]="!account.connected">
+              {{ account.connected ? 'Disconnect' : 'Connect' }}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Danger Zone -->
+      <section class="card card--danger">
+        <div class="card__header card__header--danger">
+          <span class="material-symbols-outlined">report</span>
+          <h2>Danger Zone</h2>
+        </div>
+        <p>Once you delete your account, there is no going back. Please be certain.</p>
+        <button type="button" class="btn btn--danger">
+          <span class="material-symbols-outlined">delete</span>
+          Delete My Account
+        </button>
+      </section>
+
+      <!-- Footer Action Bar -->
+      <div class="action-bar">
+        <span class="action-bar__message" *ngIf="saveError()">{{ saveError() }}</span>
+        <span class="action-bar__message action-bar__message--success" *ngIf="saveSuccess()">Changes saved.</span>
+        <button type="button" class="btn btn--ghost" (click)="discardChanges()">Discard Changes</button>
+        <button type="submit" class="btn btn--primary" [disabled]="isSaving()">
+          {{ isSaving() ? 'Saving…' : 'Save Changes' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<!-- AI Floating Bubble -->
+<div class="ai-bubble">
+  <button aria-label="Open AI assistant">
+    <span class="material-symbols-outlined">auto_awesome</span>
+  </button>
+</div>
+

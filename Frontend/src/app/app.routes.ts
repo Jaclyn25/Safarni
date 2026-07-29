@@ -85,5 +85,13 @@ export const routes: Routes = [
       ),
     title: 'Safarni | Email Verification'
   },
+ {
+  path: 'profile',
+  loadComponent: () =>
+    import('./pages/profile/profile.component').then(
+      (m) => m.ProfileComponent
+    ),
+  title: 'Safarni | My Profile'
+},
   { path: '**', redirectTo: '' }
 ];

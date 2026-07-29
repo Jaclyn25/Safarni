@@ -1,360 +1,348 @@
-<main class="hero-gradient pb-24 md:pb-0">
+<main class="hero-gradient pb-24 md:pb-12">
 
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 1: Hero Search                         -->
-  <!-- ═══════════════════════════════════════════════ -->
+  <!-- Hero Search Section -->
   <section class="px-margin-mobile md:px-margin-desktop py-stack-lg max-w-4xl mx-auto text-center">
-    <h2 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-background mb-stack-md">Where to next?</h2>
-    <p class="text-body-lg text-on-surface-variant mb-6 max-w-2xl mx-auto">Discover your dream destination with AI-powered travel planning. From tropical paradises to ancient wonders.</p>
-    <div class="relative group">
-      <div class="absolute inset-0 bg-primary/10 blur-2xl rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500"></div>
-      <div class="relative flex items-center bg-surface-container-lowest rounded-2xl shadow-lg border border-outline-variant/20 h-14 md:h-16 px-6 transition-all duration-300 focus-within:shadow-xl focus-within:ring-2 focus-within:ring-primary/20">
-        <span class="material-symbols-outlined text-primary mr-4">auto_awesome</span>
-        <input class="bg-transparent border-none focus:ring-0 w-full text-body-lg placeholder:text-on-surface-variant/50" placeholder="Ask AI for your perfect itinerary..." type="text"/>
-        <button class="bg-primary text-on-primary rounded-xl px-4 py-2 text-label-md font-semibold hover:bg-primary-container transition-colors active:scale-95 duration-200">
-          Search
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-label-sm font-semibold mb-4">
+      <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+      <span>AI-Powered Travel Companion</span>
+    </div>
+
+    <h1 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-background mb-stack-md tracking-tight">
+      Plan your next trip with AI
+    </h1>
+
+    <p class="text-body-lg text-on-surface-variant mb-8 max-w-2xl mx-auto">
+      From tropical paradises to ancient wonders, discover custom itineraries built around your style.
+    </p>
+
+    <!-- Search Input Box -->
+    <div class="relative group max-w-2xl mx-auto">
+      <div class="absolute inset-0 bg-primary/15 blur-2xl rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500"></div>
+      <div class="relative flex items-center bg-surface-container-lowest rounded-2xl shadow-lg border border-outline-variant/20 h-14 md:h-16 px-4 md:px-6 transition-all duration-300 focus-within:shadow-xl focus-within:ring-2 focus-within:ring-primary/30">
+        <span class="material-symbols-outlined text-primary mr-3 text-[24px]">search</span>
+        <input
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="onSearch()"
+          class="bg-transparent border-none focus:ring-0 w-full text-body-lg text-on-background placeholder:text-on-surface-variant/50 outline-none"
+          placeholder="Where do you want to go or what do you want to experience?"
+          type="text"
+          aria-label="Search destinations or ask AI"
+        />
+        <button
+          (click)="onSearch()"
+          class="bg-primary text-on-primary rounded-xl px-5 py-2.5 text-label-md font-semibold hover:bg-primary/90 transition-all active:scale-95 duration-200 flex items-center gap-2 flex-shrink-0"
+        >
+          <span>Search</span>
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
         </button>
       </div>
     </div>
-    <div class="flex flex-wrap justify-center gap-2 mt-stack-md">
-      <span class="text-label-sm text-on-surface-variant">Try:</span>
-      <button class="text-label-sm bg-surface-container px-3 py-1 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">"Romantic weekend in Paris"</button>
-      <button class="text-label-sm bg-surface-container px-3 py-1 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">"Beach holiday in Maldives"</button>
-      <button class="text-label-sm bg-surface-container px-3 py-1 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">"Best street food in Bangkok"</button>
+
+    <!-- Quick Prompt Chips -->
+    <div class="flex flex-wrap justify-center items-center gap-2 mt-6">
+      <span class="text-label-sm text-on-surface-variant font-medium">Try:</span>
+      @for (prompt of quickPrompts; track prompt) {
+        <button
+          (click)="onSelectPrompt(prompt)"
+          class="text-label-sm bg-surface-container px-3.5 py-1.5 rounded-full hover:bg-primary/10 hover:text-primary transition-all text-on-surface-variant cursor-pointer border border-transparent hover:border-primary/20 active:scale-95"
+        >
+          "{{ prompt }}"
+        </button>
+      }
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 2: Featured Destinations (7 Countries) -->
-  <!-- ═══════════════════════════════════════════════ -->
+  <!-- Featured Destinations Section -->
   <section class="px-margin-mobile md:px-margin-desktop py-stack-lg max-w-container-max mx-auto">
-    <div class="mb-stack-lg">
-      <div class="flex items-center gap-2 mb-1">
-        <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">travel_explore</span>
-        <h3 class="text-headline-sm font-headline-sm text-on-background">Featured Destinations</h3>
-      </div>
-      <p class="text-label-md text-on-surface-variant">Handpicked destinations waiting to be explored</p>
-    </div>
-
-    <!-- Bento Grid: 3 large on top row, 4 on bottom row -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-
-      <!-- Maldives (Large Card) -->
-      <div class="relative group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer h-72 md:h-80">
-        <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Crystal clear turquoise waters and overwater bungalows in the Maldives" src="assets/countries/maldives.png"/>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-label-sm font-semibold text-primary flex items-center gap-1">
-          <span class="material-symbols-outlined text-[14px]">local_fire_department</span>
-          Hot
-        </div>
-        <div class="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-          <p class="text-label-sm text-white/80 uppercase tracking-widest mb-1">Maldives</p>
-          <h4 class="text-headline-md font-bold text-white mb-2">Tropical Paradise</h4>
-          <p class="text-body-md text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mb-3">Crystal clear waters, overwater villas & unforgettable sunsets</p>
-          <div class="flex items-center justify-between">
-            <span class="text-label-md text-white/90">From <strong>$1,850</strong>/trip</span>
-            <span class="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">arrow_forward</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Thailand (Large Card) -->
-      <div class="relative group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer h-72 md:h-80">
-        <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Golden Buddhist temples surrounded by lush tropical greenery in Thailand" src="assets/countries/thailand.png"/>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-        <div class="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-          <p class="text-label-sm text-white/80 uppercase tracking-widest mb-1">Thailand</p>
-          <h4 class="text-headline-md font-bold text-white mb-2">Land of Smiles</h4>
-          <p class="text-body-md text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mb-3">Ancient temples, vibrant street food & pristine islands</p>
-          <div class="flex items-center justify-between">
-            <span class="text-label-md text-white/90">From <strong>$980</strong>/trip</span>
-            <span class="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">arrow_forward</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Turkey (Large Card) -->
-      <div class="relative group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer h-72 md:h-80">
-        <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Istanbul skyline with the iconic Hagia Sophia and Blue Mosque at sunset" src="assets/countries/turkey.png"/>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-        <div class="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-          <p class="text-label-sm text-white/80 uppercase tracking-widest mb-1">Turkey</p>
-          <h4 class="text-headline-md font-bold text-white mb-2">Where East Meets West</h4>
-          <p class="text-body-md text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mb-3">Majestic mosques, hot air balloons & the Bosphorus</p>
-          <div class="flex items-center justify-between">
-            <span class="text-label-md text-white/90">From <strong>$1,120</strong>/trip</span>
-            <span class="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">arrow_forward</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Dubai -->
-      <div class="relative group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer h-64 md:h-72">
-        <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Stunning Dubai skyline with the Burj Khalifa towering over glass skyscrapers at golden hour" src="assets/countries/dubai.png"/>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-label-sm font-semibold text-secondary flex items-center gap-1">
-          <span class="material-symbols-outlined text-[14px]">diamond</span>
-          Luxury
-        </div>
-        <div class="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-          <p class="text-label-sm text-white/80 uppercase tracking-widest mb-1">Dubai, UAE</p>
-          <h4 class="text-headline-md font-bold text-white mb-2">City of Gold</h4>
-          <p class="text-body-md text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mb-3">Futuristic skyline, desert safaris & world-class luxury</p>
-          <div class="flex items-center justify-between">
-            <span class="text-label-md text-white/90">From <strong>$2,200</strong>/trip</span>
-            <span class="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">arrow_forward</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Japan -->
-      <div class="relative group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer h-64 md:h-72">
-        <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Mount Fuji with cherry blossoms and traditional Japanese pagoda" src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&q=80&auto=format"/>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-        <div class="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-          <p class="text-label-sm text-white/80 uppercase tracking-widest mb-1">Japan</p>
-          <h4 class="text-headline-md font-bold text-white mb-2">Ancient & Modern</h4>
-          <p class="text-body-md text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mb-3">Cherry blossoms, neon lights & centuries of tradition</p>
-          <div class="flex items-center justify-between">
-            <span class="text-label-md text-white/90">From <strong>$1,650</strong>/trip</span>
-            <span class="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">arrow_forward</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- France -->
-      <div class="relative group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer h-64 md:h-72">
-        <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Eiffel Tower with charming Parisian architecture at golden hour" src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80&auto=format"/>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-label-sm font-semibold text-error flex items-center gap-1">
-          <span class="material-symbols-outlined text-[14px]">favorite</span>
-          Popular
-        </div>
-        <div class="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-          <p class="text-label-sm text-white/80 uppercase tracking-widest mb-1">France</p>
-          <h4 class="text-headline-md font-bold text-white mb-2">City of Love</h4>
-          <p class="text-body-md text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mb-3">Eiffel Tower, Louvre Museum & French countryside charm</p>
-          <div class="flex items-center justify-between">
-            <span class="text-label-md text-white/90">From <strong>$1,340</strong>/trip</span>
-            <span class="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">arrow_forward</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Poland -->
-      <div class="relative group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer h-64 md:h-72 md:col-span-3">
-        <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Historic Krakow old town with colorful buildings and Wawel Castle" src="https://images.unsplash.com/photo-1519197924294-4ba991a11128?w=1200&q=80&auto=format"/>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-label-sm font-semibold text-tertiary flex items-center gap-1">
-          <span class="material-symbols-outlined text-[14px]">savings</span>
-          Budget Friendly
-        </div>
-        <div class="absolute bottom-0 left-0 right-0 p-6 md:p-8 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-          <p class="text-label-sm text-white/80 uppercase tracking-widest mb-1">Poland</p>
-          <h4 class="text-headline-md font-bold text-white mb-2">Europe's Hidden Gem</h4>
-          <p class="text-body-md text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mb-3">Medieval castles, vibrant culture & incredible value — Kraków, Warsaw & beyond</p>
-          <div class="flex items-center justify-between">
-            <span class="text-label-md text-white/90">From <strong>$720</strong>/trip</span>
-            <span class="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">arrow_forward</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 3: Trending Now (Horizontal Scroll)    -->
-  <!-- ═══════════════════════════════════════════════ -->
-  <section class="py-stack-lg overflow-hidden">
-    <div class="px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto mb-stack-md flex justify-between items-end">
+    <div class="mb-stack-lg flex flex-col md:flex-row md:items-end justify-between gap-4">
       <div>
-        <h3 class="text-headline-sm font-headline-sm text-on-background">Trending Now</h3>
-        <p class="text-label-md text-on-surface-variant">Popular destinations curated by fellow travelers</p>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">travel_explore</span>
+          <h2 class="text-headline-sm font-headline-sm text-on-background">Featured Destinations</h2>
+        </div>
+        <p class="text-label-md text-on-surface-variant">Handpicked iconic spots tailored for your next journey</p>
       </div>
-      <button class="text-primary font-semibold text-label-md hover:underline">View all</button>
     </div>
-    <div class="flex gap-gutter overflow-x-auto px-margin-mobile md:px-margin-desktop hide-scrollbar pb-4">
-      <div class="min-w-[280px] md:min-w-[320px] group cursor-pointer">
-        <div class="relative h-48 md:h-56 rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 transform group-hover:-translate-y-1">
-          <img class="w-full h-full object-cover" alt="A breathtaking cinematic wide shot of the Amalfi Coast at golden hour." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaWkyby5OElt9D0zwD8mQkEIF-vUIcDQjqZyKFAQCIMMDjMKgNLgbuwxareniZ1HSKiFV1Uq02IBw2mdPj8BZb0Zwf0B2qaTyttnl398vIR_L5Mync_YQ1MUaG7M6MxnUDI54Eph5tTmO66vZO7545KHCBnikbC0QNsxE46s8IvEBG9B8god24vC7RxLne2W4eD4TRNLrgIPlETJzSFXVd1HFg8WenuQq8qkNBBTaqUTBWh8vef5svQw"/>
-          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-          <div class="absolute bottom-4 left-4 text-white">
-            <p class="text-label-sm opacity-80 uppercase tracking-widest">Italy</p>
-            <h4 class="text-headline-sm font-bold">Amalfi Coast</h4>
+
+    <!-- Bento Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      @for (dest of featuredDestinations; track dest.id) {
+        <div
+          (click)="navigateToDestination(dest.country)"
+          class="relative group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer flex flex-col justify-end p-6 border border-outline-variant/10"
+          [class]="dest.gridSpanClass"
+        >
+          <!-- Destination Image -->
+          <img
+            [src]="dest.image"
+            [alt]="dest.title + ' in ' + dest.country"
+            class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            loading="lazy"
+          />
+
+          <!-- Gradient Overlay -->
+          <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent"></div>
+
+          <!-- Tag Badge -->
+          @if (dest.tag) {
+            <div class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1 rounded-full text-label-sm font-bold flex items-center gap-1 shadow-md"
+                 [class.text-primary]="dest.tagType === 'hot'"
+                 [class.text-secondary]="dest.tagType === 'luxury'"
+                 [class.text-error]="dest.tagType === 'popular'"
+                 [class.text-emerald-600]="dest.tagType === 'budget'"
+            >
+              @if (dest.tagType === 'hot') { <span class="material-symbols-outlined text-[14px]">local_fire_department</span> }
+              @if (dest.tagType === 'luxury') { <span class="material-symbols-outlined text-[14px]">diamond</span> }
+              @if (dest.tagType === 'popular') { <span class="material-symbols-outlined text-[14px]">favorite</span> }
+              @if (dest.tagType === 'budget') { <span class="material-symbols-outlined text-[14px]">savings</span> }
+              <span>{{ dest.tag }}</span>
+            </div>
+          }
+
+          <!-- Content Info -->
+          <div class="relative z-10 text-white">
+            <p class="text-label-sm text-white/80 uppercase font-semibold tracking-wider mb-1">{{ dest.country }}</p>
+            <h3 class="text-headline-md font-bold text-white mb-1.5">{{ dest.title }}</h3>
+            <p class="text-body-sm text-white/90 mb-4 line-clamp-2">{{ dest.description }}</p>
+
+            <div class="flex items-center justify-between pt-2 border-t border-white/20">
+              <span class="text-label-md text-white/90">From <strong class="text-white text-headline-sm">${{ dest.price }}</strong> /trip</span>
+              <span class="inline-flex items-center gap-1 text-label-md font-semibold group-hover:translate-x-1 transition-transform">
+                Explore
+                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="min-w-[280px] md:min-w-[320px] group cursor-pointer">
-        <div class="relative h-48 md:h-56 rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 transform group-hover:-translate-y-1">
-          <img class="w-full h-full object-cover" alt="A vibrant night scene in Tokyo's Shinjuku district." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDECYyjvqzEQlav3dRYNAAfx1pGt8BcoWc5zwwIw-Qns-bBtlc08fM577hRJCmfIrLtUZMMz84_QpPvptGbFxoq9cTybqSYk8eAPyJPlFQvfqvRNAf66uRxgv38ISyNMjkVpUTQhHR0IQuZQRCfQb-1gM62iQuZO6KDwpcDEvwCtOrbfdbs6P3rua6GBSd7nZjCMgX7dR8hOeDJ14E6FIaF4jro_hFGHDJUsVzHGGcftpaXdmJRuin_-g"/>
-          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-          <div class="absolute bottom-4 left-4 text-white">
-            <p class="text-label-sm opacity-80 uppercase tracking-widest">Japan</p>
-            <h4 class="text-headline-sm font-bold">Tokyo</h4>
-          </div>
-        </div>
-      </div>
-      <div class="min-w-[280px] md:min-w-[320px] group cursor-pointer">
-        <div class="relative h-48 md:h-56 rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 transform group-hover:-translate-y-1">
-          <img class="w-full h-full object-cover" alt="A stunning aerial view of Iceland's Blue Lagoon." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8h2B3kLKVl5yCEMGPeuwdG-S3HWjeRkxEeVb386op0JODP_DtRJt7hkLCF8HEfVPft0fwBileEWcXQk1f5oMB-2UAvI62Eb2dTHoiP6fYYy4MZNT9vrCGdcAI3z5D5RqMOHM42rhajD9HAvPjKegvgl5M8xBQEIKrMACTg6bSP4NIR33KvbRzFMDydYv1cK7mvua-p0II0eqPKGq5ETwniaQqIDeAiRttbOqTs1j9iF4oLv9jg5qeNg"/>
-          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-          <div class="absolute bottom-4 left-4 text-white">
-            <p class="text-label-sm opacity-80 uppercase tracking-widest">Iceland</p>
-            <h4 class="text-headline-sm font-bold">Blue Lagoon</h4>
-          </div>
-        </div>
-      </div>
-      <div class="min-w-[280px] md:min-w-[320px] group cursor-pointer">
-        <div class="relative h-48 md:h-56 rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 transform group-hover:-translate-y-1">
-          <img class="w-full h-full object-cover" alt="A majestic view of the Swiss Alps in winter." src="https://lh3.googleusercontent.com/aida-public/AB6AXuChIhItiwOVpkGXc4hdCP3Vhk341Z3LTdYmPdzis3Qip8ZNVh-L4QNGyLelEtA1Cwj0nfMqVjCA-sb4McdsuZwoV8EuLHaH0lZnwsgw2u2MPK01B2VyJ3TJpPnH7IBmZl_o_snlMPQ7B1BMvsnA4CYbTZv7XIZ92RV9Ukx3TSt5bqQroPmzWZJtDvW8HDMNatKRdQ57_lGXnKGv4E84rLEs0J_vFOZvGO_8UKJgniuKJiwoA7NqfmGrDQ"/>
-          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-          <div class="absolute bottom-4 left-4 text-white">
-            <p class="text-label-sm opacity-80 uppercase tracking-widest">Switzerland</p>
-            <h4 class="text-headline-sm font-bold">Zermatt</h4>
-          </div>
-        </div>
-      </div>
+      }
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 4: AI Recommendations (Bento Grid)     -->
-  <!-- ═══════════════════════════════════════════════ -->
+  <!-- Trending Now Section -->
+  <section class="py-stack-lg overflow-hidden max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
+    <div class="mb-stack-md flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div>
+        <h2 class="text-headline-sm font-headline-sm text-on-background">Trending Now</h2>
+        <p class="text-label-md text-on-surface-variant">Popular choices curated by AI and fellow travelers</p>
+      </div>
+
+      <!-- Filter Chips -->
+      <div class="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
+        @for (category of filterCategories; track category) {
+          <button
+            (click)="setFilter(category)"
+            class="px-4 py-1.5 rounded-full text-label-sm font-semibold transition-all whitespace-nowrap"
+            [class.bg-primary]="selectedFilter === category"
+            [class.text-on-primary]="selectedFilter === category"
+            [class.bg-surface-container]="selectedFilter !== category"
+            [class.text-on-surface-variant]="selectedFilter !== category"
+            [class.hover:bg-surface-container-high]="selectedFilter !== category"
+          >
+            {{ category }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Cards Scroll Container -->
+    <div class="flex gap-5 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-4 -mx-margin-mobile px-margin-mobile md:mx-0 md:px-0">
+      @for (item of filteredTrendingDestinations; track item.id) {
+        <div
+          (click)="navigateToDestination(item.city)"
+          class="min-w-[280px] md:min-w-[320px] max-w-[320px] snap-start group cursor-pointer bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm border border-outline-variant/15 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
+        >
+          <div class="relative h-48 md:h-52 overflow-hidden">
+            <img [src]="item.image" [alt]="item.city" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+            <div class="absolute top-3 left-3 bg-black/60 backdrop-blur text-white px-2.5 py-1 rounded-md text-label-sm font-semibold">
+              {{ item.duration }}
+            </div>
+            <div class="absolute bottom-3 left-3 text-white">
+              <p class="text-label-sm opacity-80 uppercase font-medium tracking-wider">{{ item.country }}</p>
+              <h3 class="text-headline-sm font-bold">{{ item.city }}</h3>
+            </div>
+          </div>
+
+          <div class="p-4 flex flex-col justify-between">
+            <p class="text-body-sm text-on-surface-variant mb-3 flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-primary text-[16px]">trending_up</span>
+              <span>{{ item.trendReason }}</span>
+            </p>
+            <div class="flex items-center justify-between pt-2 border-t border-outline-variant/10">
+              <span class="text-label-sm text-on-surface-variant">Est. <strong class="text-primary text-body-md">${{ item.avgCost }}</strong></span>
+              <span class="text-label-sm font-bold text-primary group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
+                Plan trip <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- AI Recommendations Section -->
   <section class="px-margin-mobile md:px-margin-desktop py-stack-lg max-w-container-max mx-auto">
     <div class="mb-stack-lg">
       <div class="flex items-center gap-2 mb-1">
         <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-        <h3 class="text-headline-sm font-headline-sm text-on-background">Your AI Recommendations</h3>
+        <h2 class="text-headline-sm font-headline-sm text-on-background">AI Recommended Itineraries</h2>
       </div>
-      <p class="text-label-md text-on-surface-variant">Based on your recent interest in culture and architecture</p>
+      <p class="text-label-md text-on-surface-variant">Smart travel plans generated from preferences and travel trends</p>
     </div>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="md:col-span-2 relative group rounded-2xl overflow-hidden shadow-sm bg-surface-container-lowest border border-outline-variant/10">
-        <div class="grid grid-cols-1 md:grid-cols-2">
-          <div class="h-64 md:h-[400px]">
-            <img class="w-full h-full object-cover" alt="A detailed, wide-angle interior shot of a contemporary museum in Kyoto." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwzJeouqB-QGW8xaF3oCU6ggXGNk6FTBcbPHTm7x8kw9EWzM2IMkrq7gELWCzQwqdRWv0szO_l7Kcys-9vgtx3DpSIR2h3C-Hqrmo47dqz59m0nD0WApCUw5P86bsb2CR_VumsRgR-7IM3Bz3gRSKc0sHqlkm1aa3g2pwVdReAeRMCE18DuxzL-YeinmCKxBHd7igjPK7ndTUu7Um_nN81MNEVoeI77gIL0Y-eMG65I19gAv1_c_SNoA"/>
-          </div>
-          <div class="p-8 flex flex-col justify-center">
-            <div class="bg-primary/10 text-primary px-3 py-1 rounded-full text-label-sm w-fit mb-4">Top Match for You</div>
-            <h4 class="text-headline-md font-bold mb-2">Kyoto Modernism</h4>
-            <p class="text-body-md text-on-surface-variant mb-6">Discover the intersection of ancient tradition and contemporary architecture in Japan's cultural heart.</p>
-            <div class="space-y-3 mb-8">
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-on-surface-variant text-[20px]">museum</span>
-                <span class="text-label-md">Curated Museum Pass</span>
+      @for (rec of aiRecommendations; track rec.id; let first = $first) {
+        @if (first) {
+          <div class="md:col-span-2 relative group rounded-2xl overflow-hidden shadow-sm bg-surface-container-lowest border border-outline-variant/15 hover:shadow-md transition-all">
+            <div class="grid grid-cols-1 md:grid-cols-2">
+              <div class="h-60 md:h-full relative overflow-hidden">
+                <img [src]="rec.image" [alt]="rec.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                <div class="absolute top-4 left-4 bg-primary text-on-primary px-3 py-1 rounded-full text-label-sm font-semibold">
+                  {{ rec.subtitle }}
+                </div>
               </div>
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-on-surface-variant text-[20px]">temple_buddhist</span>
-                <span class="text-label-md">Secret Temple Access</span>
+              <div class="p-6 md:p-8 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="text-label-sm bg-surface-container px-2.5 py-1 rounded-md text-on-surface-variant font-medium">
+                      {{ rec.durationDays }} Days
+                    </span>
+                    @for (tag of rec.styleTags; track tag) {
+                      <span class="text-label-sm bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
+                        {{ tag }}
+                      </span>
+                    }
+                  </div>
+                  <h3 class="text-headline-md font-bold text-on-background mb-2">{{ rec.title }}</h3>
+                  <p class="text-body-md text-on-surface-variant mb-6">{{ rec.description }}</p>
+
+                  <div class="space-y-2.5 mb-6">
+                    @for (hl of rec.highlights; track hl) {
+                      <div class="flex items-center gap-2.5 text-on-surface text-label-md">
+                        <span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                        <span>{{ hl }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+                  <div>
+                    <span class="text-label-sm text-on-surface-variant block">Estimated Cost</span>
+                    <span class="text-headline-sm font-bold text-primary">${{ rec.estimatedBudget }}</span>
+                  </div>
+                  <button
+                    (click)="buildRecommendation(rec.title)"
+                    class="bg-primary text-on-primary font-semibold py-2.5 px-6 rounded-xl shadow-sm hover:bg-primary/90 transition-all active:scale-95 flex items-center gap-2"
+                  >
+                    <span>Build this trip</span>
+                    <span class="material-symbols-outlined text-[18px]">map</span>
+                  </button>
+                </div>
               </div>
             </div>
-            <button class="w-full md:w-fit bg-primary text-on-primary font-semibold py-3 px-8 rounded-xl shadow-md hover:bg-primary/90 transition-all active:scale-95">Explore Itinerary</button>
           </div>
-        </div>
-      </div>
-
-      <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/10 shadow-sm flex flex-col group transition-all duration-300 hover:shadow-md">
-        <div class="h-40 rounded-xl overflow-hidden mb-4">
-          <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="A high-angle view of the colorful streets of Lisbon, Portugal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqU7pwfRPO5mu8-6wDyuH7u4ijRV2qyHzDcGh7spwDUVlITEk4AyEEDj5UvkC09H1RHke9zLV6s8gWdnhmm5r5Y_X45-Vbc_bWE4sQh5CPFVjmxvvAP4DPVkb2g_wO-Az29GggTTe-kCHLi0jZF7I8fyuJqAFQqSCFd4pF8QB_HS9HRAkN77ls3oX1-bbryDljr4G-ftK3k2KxJcQ6orG6uCv-1V0fi-BLn56jy_vF6BwWRfop33OJtw"/>
-        </div>
-        <h4 class="text-headline-sm font-bold mb-1">Lisbon Textures</h4>
-        <p class="text-label-md text-on-surface-variant mb-4">Perfect for a 4-day deep dive into tile art and coastal dining.</p>
-        <div class="mt-auto flex justify-between items-center">
-          <span class="text-primary font-bold">$1,240 <span class="text-label-sm font-normal text-on-surface-variant">avg</span></span>
-          <span class="material-symbols-outlined text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
-        </div>
-      </div>
-
-      <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/10 shadow-sm flex flex-col group transition-all duration-300 hover:shadow-md">
-        <div class="h-40 rounded-xl overflow-hidden mb-4">
-          <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="A minimalist architectural shot of Santorini, Greece." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMMyb6UfeIlaXccBIYhVWU2pdy2QXcTFucYI-nJSmIamPXVMBDotTZ2csOa446mC8smElnzlmkJQyQ1cMw9XMdpeL3XB-hEeWBhBQf7_O1_MsKs6egD_rXLwSxXOWmUhTFOclZIc7LI4p-jJC3PXkhJVdEK8DnbqSPTIVI8ESaDWvAGv9GikJLQUC6NMISWN5lg2OsB-F2_vuSa4szJMl5fni7Sjwr57s8gZlDtpwmLwn51YHJuY1i0A"/>
-        </div>
-        <h4 class="text-headline-sm font-bold mb-1">Santorini Escape</h4>
-        <p class="text-label-md text-on-surface-variant mb-4">A curated selection of private villas with caldera views.</p>
-        <div class="mt-auto flex justify-between items-center">
-          <span class="text-primary font-bold">$2,800 <span class="text-label-sm font-normal text-on-surface-variant">avg</span></span>
-          <span class="material-symbols-outlined text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
-        </div>
-      </div>
-
-      <!-- AI CTA Banner -->
-      <div class="md:col-span-2 bg-gradient-to-br from-primary-container to-secondary rounded-2xl p-8 text-white flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-        <div class="relative z-10 text-center md:text-left">
-          <h4 class="text-headline-md font-bold mb-2">Still undecided?</h4>
-          <p class="text-body-md opacity-90 mb-6 max-w-md">Our AI Concierge can build a custom trip based on your personal photos and past travel history.</p>
-          <button routerLink="/concierge" class="bg-white text-primary font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-surface-container-lowest transition-all active:scale-95">Chat with AI</button>
-        </div>
-        <div class="relative z-10 flex-1 flex justify-center">
-          <div class="glass-card p-4 rounded-2xl w-full max-w-xs border border-white/20 shadow-2xl">
-            <div class="flex gap-3 mb-4">
-              <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+        } @else {
+          <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/15 shadow-sm flex flex-col justify-between group transition-all duration-300 hover:shadow-md">
+            <div>
+              <div class="h-44 rounded-xl overflow-hidden mb-4 relative">
+                <img [src]="rec.image" [alt]="rec.title" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                <div class="absolute top-3 right-3 bg-black/60 backdrop-blur text-white px-2.5 py-1 rounded-md text-label-sm font-semibold">
+                  {{ rec.durationDays }} Days
+                </div>
               </div>
-              <div class="flex-1 bg-white/10 rounded-lg p-2 text-label-sm">Suggesting a hidden gem in Tuscany...</div>
+              <h3 class="text-headline-sm font-bold text-on-background mb-1">{{ rec.title }}</h3>
+              <p class="text-label-md text-on-surface-variant mb-4 line-clamp-2">{{ rec.description }}</p>
             </div>
-            <div class="flex gap-3 justify-end">
-              <div class="flex-1 bg-primary text-on-primary rounded-lg p-2 text-label-sm text-right">Show me something rustic but luxury.</div>
-              <div class="w-8 h-8 rounded-full bg-white/20"></div>
+
+            <div class="pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+              <div>
+                <span class="text-label-sm text-on-surface-variant block">Avg Budget</span>
+                <span class="text-headline-sm font-bold text-primary">${{ rec.estimatedBudget }}</span>
+              </div>
+              <button
+                (click)="buildRecommendation(rec.title)"
+                class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors"
+                aria-label="View itinerary"
+              >
+                <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+              </button>
             </div>
           </div>
+        }
+      }
+
+      <!-- AI Handoff Banner -->
+      <div class="md:col-span-3 bg-gradient-to-r from-primary via-primary/90 to-secondary rounded-2xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden shadow-lg">
+        <div class="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+        <div class="relative z-10 text-center md:text-left max-w-xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white text-label-sm font-semibold mb-3">
+            <span class="material-symbols-outlined text-[16px]">lightbulb</span>
+            <span>Personalized AI Trip Planner</span>
+          </div>
+          <h3 class="text-headline-md md:text-headline-lg font-bold mb-2">Ready to create your dream trip?</h3>
+          <p class="text-body-md text-white/90">Tell our AI Concierge your travel dates, budget, or preferred activities and receive a complete tailored day-by-day plan instantly.</p>
+        </div>
+
+        <div class="relative z-10 flex flex-col sm:flex-row items-center gap-3">
+          <button
+            routerLink="/concierge"
+            class="bg-white text-primary font-bold py-3.5 px-8 rounded-xl shadow-md hover:bg-surface-container-lowest transition-all active:scale-95 flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-[20px]">chat</span>
+            <span>Chat with AI Concierge</span>
+          </button>
+          <button
+            routerLink="/planner"
+            class="bg-white/15 text-white border border-white/30 font-semibold py-3.5 px-6 rounded-xl hover:bg-white/25 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-[20px]">event_note</span>
+            <span>Open Planner</span>
+          </button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 5: Newsletter / Community              -->
-  <!-- ═══════════════════════════════════════════════ -->
-  <section class="bg-surface-container-low mt-stack-lg py-20 px-margin-mobile">
-    <div class="max-w-2xl mx-auto text-center">
-      <h3 class="text-headline-md font-bold mb-4">Join the Elite Explorers</h3>
-      <p class="text-body-md text-on-surface-variant mb-8">Get early access to exclusive itineraries and hidden gems found by our AI engine.</p>
-      <form class="flex flex-col md:flex-row gap-3">
-        <input class="flex-1 rounded-xl border-outline-variant/30 focus:ring-primary focus:border-primary px-6 py-3" placeholder="Enter your email" type="email"/>
-        <button class="bg-on-background text-surface-container-lowest font-bold py-3 px-8 rounded-xl hover:opacity-90 transition-opacity">Subscribe</button>
-      </form>
-    </div>
-  </section>
 </main>
 
-<!-- ═══════════════════════════════════════════════ -->
-<!-- Bottom Navigation (Mobile Only)                -->
-<!-- ═══════════════════════════════════════════════ -->
-<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pt-3 pb-safe-bottom bg-surface/80 dark:bg-surface/80 backdrop-blur-xl border-t border-outline-variant/20 z-50 rounded-t-[20px] shadow-[0_-4px_20px_rgba(15,23,42,0.05)]">
+<!-- Bottom Navigation (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pt-3 pb-safe-bottom bg-surface/90 dark:bg-surface/90 backdrop-blur-xl border-t border-outline-variant/20 z-50 rounded-t-[20px] shadow-[0_-4px_20px_rgba(15,23,42,0.05)]" aria-label="Mobile navigation">
   <a routerLink="/" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
      [routerLinkActiveOptions]="{exact: true}"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
     <span class="material-symbols-outlined">explore</span>
     <span class="text-label-sm font-label-sm">Explore</span>
   </a>
   <a routerLink="/planner" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
     <span class="material-symbols-outlined">event_note</span>
     <span class="text-label-sm font-label-sm">Planner</span>
   </a>
   <a routerLink="/bookings" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
     <span class="material-symbols-outlined">confirmation_number</span>
     <span class="text-label-sm font-label-sm">Bookings</span>
   </a>
   <a routerLink="/concierge" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
     <span class="material-symbols-outlined">auto_awesome</span>
     <span class="text-label-sm font-label-sm">Concierge</span>
   </a>
-  <a href="#" class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
+  <a routerLink="/profile" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 hover:bg-surface-container-low transition-colors rounded-xl px-3 py-1">
     <span class="material-symbols-outlined">person</span>
     <span class="text-label-sm font-label-sm">Profile</span>
   </a>
 </nav>
 
-<!-- ═══════════════════════════════════════════════ -->
-<!-- AI Chat Floating Bubble (Desktop)              -->
-<!-- ═══════════════════════════════════════════════ -->
+<!-- AI Chat Floating Bubble (Desktop) -->
 <div class="fixed bottom-6 right-6 z-[60] hidden md:block">
-  <button routerLink="/concierge" class="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full shadow-2xl flex items-center justify-center text-white hover:scale-110 transition-transform active:scale-95 group relative">
+  <button
+    routerLink="/concierge"
+    class="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full shadow-2xl flex items-center justify-center text-white hover:scale-110 transition-transform active:scale-95 group relative"
+    aria-label="Chat with AI Concierge"
+  >
     <span class="material-symbols-outlined text-[32px]">auto_awesome</span>
     <div class="absolute right-full mr-4 bg-surface-container-lowest text-on-background px-4 py-2 rounded-xl text-label-md font-semibold whitespace-nowrap shadow-xl border border-outline-variant/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
       How can I help plan your trip?
@@ -362,21 +350,19 @@
   </button>
 </div>
 
-<!-- ═══════════════════════════════════════════════ -->
-<!-- Footer (Desktop)                               -->
-<!-- ═══════════════════════════════════════════════ -->
+<!-- Footer (Desktop) -->
 <footer class="hidden md:block py-12 px-margin-desktop bg-surface-container-lowest border-t border-outline-variant/10">
   <div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-start gap-12">
     <div class="max-w-xs">
       <div class="flex items-center gap-3 mb-4">
         <span class="material-symbols-outlined text-primary text-headline-md">travel_explore</span>
-        <h1 class="text-headline-md font-bold tracking-tight text-primary">Safarni</h1>
+        <span class="text-headline-md font-bold tracking-tight text-primary">Safarni</span>
       </div>
       <p class="text-label-md text-on-surface-variant">The future of intelligent travel. Experience journeys designed by AI, curated by experts.</p>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-3 gap-12">
       <div>
-        <h5 class="text-label-md font-bold text-on-background mb-4">Platform</h5>
+        <h3 class="text-label-md font-bold text-on-background mb-4">Platform</h3>
         <ul class="space-y-2 text-label-md text-on-surface-variant">
           <li><a class="hover:text-primary transition-colors" routerLink="/">Explore</a></li>
           <li><a class="hover:text-primary transition-colors" routerLink="/concierge">AI Concierge</a></li>
@@ -384,7 +370,7 @@
         </ul>
       </div>
       <div>
-        <h5 class="text-label-md font-bold text-on-background mb-4">Company</h5>
+        <h3 class="text-label-md font-bold text-on-background mb-4">Company</h3>
         <ul class="space-y-2 text-label-md text-on-surface-variant">
           <li><a class="hover:text-primary transition-colors" href="#">About Us</a></li>
           <li><a class="hover:text-primary transition-colors" href="#">Journal</a></li>
@@ -392,7 +378,7 @@
         </ul>
       </div>
       <div>
-        <h5 class="text-label-md font-bold text-on-background mb-4">Legal</h5>
+        <h3 class="text-label-md font-bold text-on-background mb-4">Legal</h3>
         <ul class="space-y-2 text-label-md text-on-surface-variant">
           <li><a class="hover:text-primary transition-colors" href="#">Privacy Policy</a></li>
           <li><a class="hover:text-primary transition-colors" href="#">Terms of Service</a></li>
@@ -402,14 +388,6 @@
     </div>
   </div>
   <div class="max-w-container-max mx-auto mt-12 pt-8 border-t border-outline-variant/10 flex flex-col md:flex-row justify-between items-center gap-4">
-    <p class="text-label-sm text-on-surface-variant/60">© 2024 Safarni AI Travel. All rights reserved.</p>
-    <div class="flex gap-6">
-      <a class="text-on-surface-variant/60 hover:text-primary transition-colors" href="#">
-        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"></path></svg>
-      </a>
-      <a class="text-on-surface-variant/60 hover:text-primary transition-colors" href="#">
-        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"></path></svg>
-      </a>
-    </div>
+    <p class="text-label-sm text-on-surface-variant/60">© 2026 Safarni AI Travel. All rights reserved.</p>
   </div>
 </footer>

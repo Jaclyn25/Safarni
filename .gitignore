@@ -2,6 +2,10 @@
 .DS_Store
 Thumbs.db
 .vscode/
+.opencode/
+.agents/
+_bmad-output/
+_bmad/
 .idea/
 *.swp
 *.swo

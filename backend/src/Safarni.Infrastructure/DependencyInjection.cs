@@ -38,6 +38,7 @@ services.AddSingleton(
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<ITravelProfileRepository, TravelProfileRepository>();
         services.AddScoped<IVisaApplicationRepository, VisaApplicationRepository>();
+        services.AddScoped<ITripRepository, TripRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasherService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));

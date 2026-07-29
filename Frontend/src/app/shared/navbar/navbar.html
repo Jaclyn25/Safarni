@@ -2,17 +2,11 @@
   <div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto">
 
     <!-- Logo -->
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-primary text-headline-md">
-        travel_explore
-      </span>
+    <a routerLink="/" class="flex items-center gap-3 cursor-pointer">
+      <img src="assets/logo.svg" alt="Safarni AI Travel" class="h-10 md:h-11 w-auto" />
+    </a>
 
-      <h1 class="text-headline-md font-headline-md font-bold tracking-tight text-primary">
-        Safarni
-      </h1>
-    </div>
-
-    <!-- Desktop -->
+    <!-- Desktop Nav -->
     <div class="hidden md:flex items-center gap-stack-lg">
 
       <nav class="flex gap-stack-lg">
@@ -29,6 +23,13 @@
           routerLinkActive="text-primary font-semibold"
           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
           Planner
+        </a>
+
+        <a
+          routerLink="/concierge"
+          routerLinkActive="text-primary font-semibold"
+          class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
+          AI Concierge
         </a>
 
         <a

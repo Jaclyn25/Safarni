@@ -13,8 +13,12 @@ body {
 body {
   min-height: 100dvh;
   background-color: #f7f9fb;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: 'Sora', 'Manrope', sans-serif;
 }
 
 /* Prevent default margins from affecting full-screen auth layouts */

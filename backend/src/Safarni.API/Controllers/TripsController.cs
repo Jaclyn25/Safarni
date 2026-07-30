@@ -73,6 +73,7 @@ public sealed class TripsController : ControllerBase
             "Trip updated successfully.",
             StatusCodes.Status200OK));
     }
+  
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

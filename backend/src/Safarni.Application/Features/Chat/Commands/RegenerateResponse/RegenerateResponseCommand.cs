@@ -86,6 +86,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
             .TakeLast(MaxHistoryMessages)
             .Select(m => new ChatMessageDto
             {
+                Id = m.Id,
                 Role = m.Role,
                 Content = m.Content
             })
@@ -234,6 +235,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                 .OrderBy(m => m.CreatedAt)
                 .Select(m => new ChatMessageDto
                 {
+                    Id = m.Id,
                     Role = m.Role,
                     Content = m.Content
                 })

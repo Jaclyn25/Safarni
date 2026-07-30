@@ -89,6 +89,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             .TakeLast(MaxHistoryMessages)
             .Select(m => new ChatMessageDto
             {
+                Id = m.Id,
                 Role = m.Role,
                 Content = m.Content
             })
@@ -206,9 +207,9 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                     // STEP 3: Travel intent, but no live/database data. Fall back to the LLM's general travel knowledge.
                     _logger.LogInformation("No data found in Database or Google Places API. Falling back to general travel knowledge.");
                     systemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), request.Message);
+                }
             }
         }
-    }
 
         var userPrompt = _promptBuilder.BuildUserPrompt(request.Message);
         _logger.LogInformation("Sending prompt to LLM (System Prompt Length: {Len}).", systemPrompt.Length);
@@ -241,6 +242,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                 .OrderBy(m => m.CreatedAt)
                 .Select(m => new ChatMessageDto
                 {
+                    Id = m.Id,
                     Role = m.Role,
                     Content = m.Content
                 })

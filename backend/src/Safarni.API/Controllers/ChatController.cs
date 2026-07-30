@@ -79,6 +79,14 @@ public class ChatController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("edit")]
+    public async Task<IActionResult> EditMessage([FromBody] EditMessageRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ChatBotApi.Application.Features.Chat.Commands.EditMessage.EditMessageCommand(request.ConversationId, CurrentUserId, request.MessageId, request.NewContent);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpDelete("conversations/{id:guid}")]
     public async Task<IActionResult> DeleteConversation(Guid id, CancellationToken cancellationToken)
     {
@@ -91,3 +99,4 @@ public class ChatController : ControllerBase
 public record StartConversationRequest(string? Title);
 public record SendMessageRequest(Guid ConversationId, string Message);
 public record RegenerateRequest(Guid ConversationId);
+public record EditMessageRequest(Guid ConversationId, Guid MessageId, string NewContent);

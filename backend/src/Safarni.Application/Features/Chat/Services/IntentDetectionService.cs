@@ -1,7 +1,11 @@
 using System.Globalization;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Interfaces;
 
 namespace ChatBotApi.Application.Features.Chat.Services;
@@ -134,6 +138,18 @@ public class IntentDetectionService : IIntentDetectionService
         // title, or unrelated topic. Route these messages through semantic scope
         // classification before generating an answer.
         return ChatIntent.Ambiguous;
+    }
+
+    public Task<IntentDetectionResult> DetectIntentAsync(
+        string userMessage,
+        List<ChatMessageDto> history,
+        CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new IntentDetectionResult
+        {
+            Intent = DetectIntent(userMessage),
+            StandaloneQuery = userMessage
+        });
     }
 
     private static bool ContainsAny(string text, string[] keywords)

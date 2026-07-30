@@ -1,148 +1,124 @@
 import {
   AfterViewChecked,
-  ChangeDetectorRef,
   Component,
   ElementRef,
-  NgZone,
-  OnDestroy,
   OnInit,
   ViewChild,
-  inject
+  ChangeDetectorRef
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
+import { ChatService } from '../../services/chat.service';
 import { Subscription } from 'rxjs';
-import { ChatService, Conversation } from '../../services/chat.service';
 
-export interface ItineraryDay {
-  dayNumber: number;
-  title: string;
-  morning?: string;
-  afternoon?: string;
-  evening?: string;
-  budget?: string;
+export interface ChatFolder {
+  id: string;
+  name: string;
 }
 
-export interface ActionChip {
-  label: string;
-  icon: string;
-  promptText: string;
-  actionType?: 'planner' | 'prompt';
+interface ChatMessage {
+  id?: string;
+  text: string;
+  isUser: boolean;
+  time: string;
+  formatted: FormattedMessage;
+  reaction?: 'like' | 'dislike';
 }
 
-export interface MessageLink {
+interface FormattedMessage {
+  direction: 'rtl' | 'ltr';
+  paragraphs: string[];
+  links: MessageLink[];
+  recommendations: RecommendationItem[];
+  suggestions: string[];
+}
+
+interface MessageLink {
   label: string;
   url: string;
   icon: string;
 }
 
-export interface FormattedMessage {
-  direction: 'rtl' | 'ltr';
-  summary?: string;
-  paragraphs: string[];
-  links: MessageLink[];
-  itineraryDays: ItineraryDay[];
-  actionChips: ActionChip[];
-}
-
-export interface ChatMessage {
-  id: string;
-  text: string;
-  isUser: boolean;
-  time: string;
-  kind: 'normal' | 'error';
-  formatted: FormattedMessage;
-  versions?: string[];
-  activeVersionIndex?: number;
-  isEditing?: boolean;
-  editText?: string;
-  copied?: boolean;
-  isRegenerating?: boolean;
-  action?: 'new-chat';
-}
-
-export interface GroupedConversations {
-  today: Conversation[];
-  thisWeek: Conversation[];
-  older: Conversation[];
+interface RecommendationItem {
+  title: string;
+  rating?: string;
+  description: string;
+  link?: MessageLink;
 }
 
 @Component({
   selector: 'app-concierge',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
-  templateUrl: './concierge.component.html',
-  styleUrls: ['./concierge.component.css']
+  imports: [FormsModule, RouterLink, RouterLinkActive, NgTemplateOutlet],
+  templateUrl: './concierge.component.html'
 })
-export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
+export class ConciergeComponent implements OnInit, AfterViewChecked {
   @ViewChild('chatMessages') private chatMessagesRef?: ElementRef<HTMLDivElement>;
-  @ViewChild('messageTextarea') private textareaRef?: ElementRef<HTMLTextAreaElement>;
-
-  private chatService = inject(ChatService);
-  private cdr = inject(ChangeDetectorRef);
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private zone = inject(NgZone);
 
   inputValue = '';
-  searchConvQuery = '';
   isTyping = false;
-  isLoadingConversation = false;
   conversationId: string | null = null;
   messages: ChatMessage[] = [];
-  conversationsList: Conversation[] = [];
-  readonly maxMessageLength = 4000;
+  conversationsList: any[] = [];
 
-  // Empty State Prompt Cards
-  emptyStateCards = [
-    {
-      title: 'Build a 5-day trip',
-      subtitle: 'Day-by-day itinerary with budget & spots',
-      prompt: 'Build a complete 5-day itinerary for a relaxed vacation with estimated budget',
-      icon: 'map'
-    },
-    {
-      title: 'Compare two destinations',
-      subtitle: 'Maldives vs Bali vs Thailand',
-      prompt: 'Compare Maldives vs Thailand for a 7-day beach vacation including cost and vibe',
-      icon: 'compare_arrows'
-    },
-    {
-      title: 'Visa & travel requirements',
-      subtitle: 'Passport, visa info & tips',
-      prompt: 'What are the visa requirements and best time to visit for tourists?',
-      icon: 'verified_user'
-    },
-    {
-      title: 'Find hidden gems',
-      subtitle: 'Secret spots & local dining',
-      prompt: 'Suggest hidden gems and unique local experiences away from crowded tourist spots',
-      icon: 'diamond'
-    }
-  ];
+  editingMessageId: string | null = null;
+  editingMessageContent = '';
+
+  isSidebarOpen = true;
+  searchQuery = '';
+  pinnedChats = new Set<string>();
+
+  // Renaming State
+  customTitles: { [convId: string]: string } = {};
+  renamingChatId: string | null = null;
+  newChatName = '';
+
+  // Sections State
+  isPinnedExpanded = true;
+  isRecentExpanded = true;
+  isFoldersExpanded = true;
+
+  // Folders State
+  folders: ChatFolder[] = [];
+  chatFolderMapping: { [convId: string]: string } = {}; // convId -> folderId
+  expandedFolders: Set<string> = new Set<string>(); // To toggle folders in sidebar
+
+  // Folder Creation Modal
+  showCreateFolderModal = false;
+  newFolderName = '';
 
   private messageSubscription?: Subscription;
   private shouldScroll = false;
   private readonly urlPattern = /https?:\/\/[^\s)\]]+/gi;
 
-  ngOnInit(): void {
-    this.loadOrCreateConversation();
+  constructor(private chatService: ChatService, private cdr: ChangeDetectorRef) {
+    const savedPins = localStorage.getItem('safarni_pinned_chats');
+    if (savedPins) {
+      try { this.pinnedChats = new Set(JSON.parse(savedPins)); } catch (e) { }
+    }
 
-    // Handle incoming query param ?q=... from Explore or Destination pages
-    this.route.queryParams.subscribe(params => {
-      const q = params['q'];
-      if (q && q.trim()) {
-        setTimeout(() => {
-          this.inputValue = q.trim();
-          this.handleSend();
-        }, 400);
-      }
-    });
+    const savedTitles = localStorage.getItem('safarni_custom_titles');
+    if (savedTitles) {
+      try { this.customTitles = JSON.parse(savedTitles); } catch (e) { }
+    }
+
+    const savedFolders = localStorage.getItem('safarni_folders');
+    if (savedFolders) {
+      try { this.folders = JSON.parse(savedFolders); } catch (e) { }
+    }
+
+    const savedMapping = localStorage.getItem('safarni_chat_folders');
+    if (savedMapping) {
+      try { this.chatFolderMapping = JSON.parse(savedMapping); } catch (e) { }
+    }
+
+    // Expand all folders by default
+    this.folders.forEach(f => this.expandedFolders.add(f.id));
   }
 
-  ngOnDestroy(): void {
-    this.stopResponse();
+  ngOnInit(): void {
+    this.loadOrCreateConversation();
   }
 
   ngAfterViewChecked(): void {
@@ -153,11 +129,17 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
+  private nowLabel(): string {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
   loadOrCreateConversation(): void {
     this.chatService.getConversations().subscribe({
       next: (conversations) => {
         this.conversationsList = conversations || [];
         this.cdr.detectChanges();
+
+        // Requirement 1: Open an empty chat on page load
         this.startNewConversation();
       },
       error: (err) => {
@@ -169,7 +151,8 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   startNewConversation(): void {
     this.stopResponse();
-    this.isLoadingConversation = false;
+
+    // Requirement 3: +new chat only opens an empty chat locally
     this.conversationId = null;
     this.messages = [];
     this.shouldScroll = true;
@@ -177,21 +160,13 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   loadConversationMessages(id: string): void {
-    this.isLoadingConversation = true;
-    this.messages = [];
-
     this.chatService.getConversationById(id).subscribe({
       next: (conv) => {
-        this.isLoadingConversation = false;
-        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user', m.id));
         this.shouldScroll = true;
-        this.cdr.detectChanges();
       },
       error: (err) => {
-        this.isLoadingConversation = false;
         console.error('Failed to load conversation messages', err);
-        this.addErrorMessage('Unable to load this conversation. Please try again.');
-        this.cdr.detectChanges();
       }
     });
   }
@@ -204,154 +179,257 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.loadConversationMessages(id);
   }
 
-  openConversation(id: string): void {
-    if (id) {
-      this.selectConversation(id);
-    } else {
-      this.startNewConversation();
-    }
-  }
-
-  // --- Custom Delete Confirmation Modal State & Handlers ---
+  // Delete Modal State
   showDeleteModal = false;
-  deletingConvId: string | null = null;
-  deletingConvTitle: string = '';
-  isDeletingConversation = false;
+  deleteTargetId: string | null = null;
+  deleteType: 'chat' | 'folder' | null = null;
 
-  confirmDeleteConversation(id: string, title: string, event: Event): void {
+  openDeleteChatModal(id: string, event: Event): void {
     event.stopPropagation();
-    this.deletingConvId = id;
-    this.deletingConvTitle = title || 'this trip chat';
+    this.deleteTargetId = id;
+    this.deleteType = 'chat';
     this.showDeleteModal = true;
   }
 
-  cancelDeleteConversation(): void {
+  openDeleteFolderModal(id: string, event: Event): void {
+    event.stopPropagation();
+    this.deleteTargetId = id;
+    this.deleteType = 'folder';
+    this.showDeleteModal = true;
+  }
+
+  deleteConversation(id: string, event: Event): void {
+    event.stopPropagation(); // Prevent selection trigger
+    this.openDeleteChatModal(id, event);
+  }
+
+  closeDeleteModal(): void {
     this.showDeleteModal = false;
-    this.deletingConvId = null;
-    this.deletingConvTitle = '';
+    this.deleteTargetId = null;
+    this.deleteType = null;
   }
 
-  executeDeleteConversation(): void {
-    if (!this.deletingConvId || this.isDeletingConversation) return;
+  confirmDelete(): void {
+    if (!this.deleteTargetId || !this.deleteType) return;
 
-    const id = this.deletingConvId;
-    this.isDeletingConversation = true;
-
-    this.chatService.deleteConversation(id).subscribe({
-      next: () => {
-        this.isDeletingConversation = false;
-        this.showDeleteModal = false;
-        this.conversationsList = this.conversationsList.filter(c => c.id !== id);
-
-        if (this.conversationId === id) {
-          this.startNewConversation();
+    if (this.deleteType === 'chat') {
+      const id = this.deleteTargetId;
+      this.chatService.deleteConversation(id).subscribe({
+        next: () => {
+          this.conversationsList = this.conversationsList.filter(c => c.id !== id);
+          if (this.conversationId === id) {
+            this.startNewConversation();
+          }
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Failed to delete conversation', err);
         }
+      });
+    } else if (this.deleteType === 'folder') {
+      const folderId = this.deleteTargetId;
+      this.folders = this.folders.filter(f => f.id !== folderId);
+      // Remove mapping for this folder
+      Object.keys(this.chatFolderMapping).forEach(convId => {
+        if (this.chatFolderMapping[convId] === folderId) {
+          delete this.chatFolderMapping[convId];
+        }
+      });
+      this.saveFoldersState();
+      this.cdr.detectChanges();
+    }
 
-        this.deletingConvId = null;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.isDeletingConversation = false;
-        this.showDeleteModal = false;
-        console.error('Failed to delete conversation', err);
-        this.addErrorMessage('Could not delete this conversation. Please try again.');
-        this.deletingConvId = null;
-        this.cdr.detectChanges();
-      }
-    });
+    this.closeDeleteModal();
   }
 
-  get groupedConversations(): GroupedConversations {
-    const query = this.searchConvQuery.trim().toLowerCase();
-    const filtered = this.conversationsList.filter(c => !query || c.title.toLowerCase().includes(query));
+  get unpinnedConversations(): any[] {
+    let list = this.conversationsList.filter(c => !this.pinnedChats.has(c.id));
+    if (this.searchQuery.trim()) {
+      const query = this.searchQuery.toLowerCase();
+      list = list.filter(c => this.getChatTitle(c).toLowerCase().includes(query));
+    }
+    return list;
+  }
 
-    const today: Conversation[] = [];
-    const thisWeek: Conversation[] = [];
-    const older: Conversation[] = [];
+  get pinnedConversations(): any[] {
+    let list = this.conversationsList.filter(c => this.pinnedChats.has(c.id));
+    if (this.searchQuery.trim()) {
+      const query = this.searchQuery.toLowerCase();
+      list = list.filter(c => this.getChatTitle(c).toLowerCase().includes(query));
+    }
+    return list;
+  }
 
-    const now = new Date();
-    const oneDay = 24 * 60 * 60 * 1000;
-    const sevenDays = 7 * oneDay;
+  getChatTitle(conv: any): string {
+    return this.customTitles[conv.id] || conv.title || 'Chat';
+  }
 
-    filtered.forEach(conv => {
-      const updatedAt = new Date(conv.createdAt || Date.now());
-      const diff = now.getTime() - updatedAt.getTime();
+  // Renaming Logic
+  startRename(conv: any, event: Event): void {
+    event.stopPropagation();
+    this.renamingChatId = conv.id;
+    this.newChatName = this.getChatTitle(conv);
+  }
 
-      if (diff < oneDay) {
-        today.push(conv);
-      } else if (diff < sevenDays) {
-        thisWeek.push(conv);
-      } else {
-        older.push(conv);
-      }
-    });
+  saveRename(event: Event): void {
+    event.stopPropagation();
+    if (this.renamingChatId && this.newChatName.trim()) {
+      this.customTitles[this.renamingChatId] = this.newChatName.trim();
+      localStorage.setItem('safarni_custom_titles', JSON.stringify(this.customTitles));
+    }
+    this.renamingChatId = null;
+  }
 
-    return { today, thisWeek, older };
+  cancelRename(event: Event): void {
+    event.stopPropagation();
+    this.renamingChatId = null;
+  }
+
+  // Folders Logic
+  openCreateFolderModal(): void {
+    this.showCreateFolderModal = true;
+    this.newFolderName = '';
+  }
+
+  closeCreateFolderModal(): void {
+    this.showCreateFolderModal = false;
+    this.newFolderName = '';
+  }
+
+  confirmCreateFolder(): void {
+    const name = this.newFolderName.trim();
+    if (name) {
+      const newFolder: ChatFolder = {
+        id: 'folder_' + Date.now().toString(),
+        name: name
+      };
+      this.folders.push(newFolder);
+      this.expandedFolders.add(newFolder.id);
+      this.saveFoldersState();
+      this.closeCreateFolderModal();
+    }
+  }
+
+  deleteFolder(folderId: string, event: Event): void {
+    event.stopPropagation();
+    this.openDeleteFolderModal(folderId, event);
+  }
+
+  assignToFolder(convId: string, folderId: string | null, event: Event): void {
+    event.stopPropagation();
+    if (folderId) {
+      this.chatFolderMapping[convId] = folderId;
+    } else {
+      delete this.chatFolderMapping[convId];
+    }
+    this.saveFoldersState();
+  }
+
+  toggleFolderExpand(folderId: string): void {
+    if (this.expandedFolders.has(folderId)) {
+      this.expandedFolders.delete(folderId);
+    } else {
+      this.expandedFolders.add(folderId);
+    }
+  }
+
+  private saveFoldersState(): void {
+    localStorage.setItem('safarni_folders', JSON.stringify(this.folders));
+    localStorage.setItem('safarni_chat_folders', JSON.stringify(this.chatFolderMapping));
+  }
+
+  getFolderChats(folderId: string): any[] {
+    return this.unpinnedConversations.filter(c => this.chatFolderMapping[c.id] === folderId);
+  }
+
+  get uncategorizedChats(): any[] {
+    return this.unpinnedConversations.filter(c => !this.chatFolderMapping[c.id]);
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  togglePin(id: string, event: Event): void {
+    event.stopPropagation();
+    if (this.pinnedChats.has(id)) {
+      this.pinnedChats.delete(id);
+    } else {
+      this.pinnedChats.add(id);
+    }
+    localStorage.setItem('safarni_pinned_chats', JSON.stringify(Array.from(this.pinnedChats)));
+  }
+
+  handleReaction(msg: ChatMessage, type: 'like' | 'dislike'): void {
+    if (msg.reaction === type) {
+      msg.reaction = undefined; // toggle off
+    } else {
+      msg.reaction = type;
+    }
   }
 
   handleSend(): void {
-    if (this.isTyping) return;
-
     const text = this.inputValue.trim();
-    if (!text) return;
-
-    if (text.length > this.maxMessageLength) {
-      this.addErrorMessage(`Message exceeds ${this.maxMessageLength} characters. Please shorten it.`);
+    if (!text) {
       return;
     }
 
+    // Add user message to UI immediately
     this.messages.push(this.toChatMessage(text, true));
     this.inputValue = '';
-    this.resetTextareaHeight();
     this.shouldScroll = true;
-    this.startThinkingAnimation();
-    this.renderNow();
+    this.isTyping = true;
 
     if (!this.conversationId) {
-      const title = text.length > 32 ? `${text.substring(0, 32)}...` : text;
+      // Create a new conversation on the backend first
+      const title = text.length > 30 ? text.substring(0, 30) + '...' : text;
       this.chatService.startConversation(title).subscribe({
         next: (conv) => {
-          this.zone.run(() => {
-            this.conversationId = conv.id;
-            localStorage.setItem('active_conversation_id', conv.id);
-            this.renderNow();
-            this.sendMessage(conv.id, text);
-          });
+          this.conversationId = conv.id;
+          localStorage.setItem('active_conversation_id', conv.id);
+
+          // Now send the actual message
+          this._sendMessage(conv.id, text);
         },
         error: (err) => {
-          this.zone.run(() => {
-            this.stopThinkingAnimation();
-            console.error('Error starting conversation', err);
-            this.addErrorMessage('Unable to start chat. Check connection and try again.');
-            this.renderNow();
-          });
+          this.isTyping = false;
+          this.messages.push(this.toChatMessage('عذراً، حدث خطأ أثناء إنشاء المحادثة.', false));
+          console.error('Error starting conversation', err);
         }
       });
-      return;
-    }
-
-    this.sendMessage(this.conversationId, text);
-  }
-
-  onTextareaInput(event: Event): void {
-    const textarea = event.target as HTMLTextAreaElement;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 140)}px`;
+    } else {
+      // Existing conversation
+      this._sendMessage(this.conversationId, text);
     }
   }
 
-  onKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      this.handleSend();
-    }
-  }
+  private _sendMessage(convId: string, text: string): void {
+    this.messageSubscription = this.chatService.sendMessage(convId, text).subscribe({
+      next: (conv) => {
+        this.isTyping = false;
+        this.messageSubscription = undefined;
 
-  private resetTextareaHeight(): void {
-    if (this.textareaRef) {
-      this.textareaRef.nativeElement.style.height = 'auto';
-    }
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user', m.id));
+        this.shouldScroll = true;
+        this.cdr.detectChanges(); // Update UI immediately
+
+        // Refresh the list to ensure the title is updated or newly created chat is visible
+        this.chatService.getConversations().subscribe({
+          next: (list) => {
+            this.conversationsList = list || [];
+            this.cdr.detectChanges();
+          },
+          error: (err) => console.error('Error fetching conversations', err)
+        });
+      },
+      error: (err) => {
+        this.isTyping = false;
+        this.messageSubscription = undefined;
+        this.messages.push(this.toChatMessage('عذراً، حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى.', false));
+        this.shouldScroll = true;
+        console.error('Error sending message', err);
+      }
+    });
   }
 
   stopResponse(): void {
@@ -359,266 +437,150 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.messageSubscription.unsubscribe();
       this.messageSubscription = undefined;
     }
-    this.stopThinkingAnimation();
+    this.isTyping = false;
   }
 
   handleRefresh(): void {
     this.startNewConversation();
   }
 
-  useSuggestion(text: string): void {
-    if (this.isTyping) return;
-    this.inputValue = text;
-    this.handleSend();
-  }
-
-  executeActionChip(chip: ActionChip): void {
-    if (chip.actionType === 'planner') {
-      this.router.navigate(['/planner'], { queryParams: { trip: chip.promptText } });
-    } else {
-      this.useSuggestion(chip.promptText);
-    }
-  }
-
-  // --- Message Controls & Toolbar Methods ---
-
-  copyMessage(m: ChatMessage): void {
-    if (!m.text) return;
-    navigator.clipboard.writeText(m.text).then(() => {
-      m.copied = true;
-      this.cdr.detectChanges();
-      setTimeout(() => {
-        m.copied = false;
-        this.cdr.detectChanges();
-      }, 2000);
-    }).catch(err => {
-      console.error('Clipboard copy failed', err);
-    });
-  }
-
-  startEdit(m: ChatMessage): void {
-    m.isEditing = true;
-    m.editText = m.text;
-  }
-
-  cancelEdit(m: ChatMessage): void {
-    m.isEditing = false;
-    m.editText = undefined;
-  }
-
-  saveEditAndResend(m: ChatMessage): void {
-    if (!m.editText || !m.editText.trim() || this.isTyping) return;
-
-    const newText = m.editText.trim();
-    m.isEditing = false;
-    m.editText = undefined;
-    this.inputValue = newText;
-    this.handleSend();
-  }
-
-  regenerateAiResponse(m: ChatMessage): void {
-    if (this.isTyping || !this.conversationId || !this.isLatestAssistantMessage(m)) return;
-
-    m.isRegenerating = true;
-    this.startThinkingAnimation();
-
-    this.chatService.regenerateResponse(this.conversationId).subscribe({
-      next: (conv) => {
-        this.zone.run(() => {
-          this.stopThinkingAnimation();
-          m.isRegenerating = false;
-
-          const updatedMessages = conv.messages;
-          const lastAiMsg = updatedMessages[updatedMessages.length - 1];
-
-          if (lastAiMsg && lastAiMsg.role !== 'user') {
-            const newText = lastAiMsg.content;
-
-            m.versions = m.versions || [m.text];
-            m.versions.push(newText);
-            m.activeVersionIndex = m.versions.length - 1;
-
-            m.text = newText;
-            m.formatted = this.formatMessage(newText, false);
-          }
-
-          this.refreshConversations();
-          this.shouldScroll = true;
-          this.renderNow();
-        });
-      },
-      error: (err) => {
-        this.zone.run(() => {
-          this.stopThinkingAnimation();
-          m.isRegenerating = false;
-          console.error('Failed to regenerate response', err);
-          this.addErrorMessage('Unable to regenerate response. Please try again.');
-          this.renderNow();
-        });
-      }
-    });
-  }
-
-  isLatestAssistantMessage(message: ChatMessage): boolean {
-    const latestAssistant = [...this.messages]
-      .reverse()
-      .find(item => !item.isUser && item.kind === 'normal');
-
-    return latestAssistant === message;
-  }
-
-  switchVersion(m: ChatMessage, delta: number): void {
-    if (!m.versions || m.versions.length <= 1) return;
-
-    const currentIdx = m.activeVersionIndex || 0;
-    const newIdx = currentIdx + delta;
-
-    if (newIdx >= 0 && newIdx < m.versions.length) {
-      m.activeVersionIndex = newIdx;
-      m.text = m.versions[newIdx];
-      m.formatted = this.formatMessage(m.text, false);
-      this.cdr.detectChanges();
-    }
-  }
-
-  // --- Private Helpers ---
-
-  private startThinkingAnimation(): void {
+  handleRegenerate(): void {
+    if (!this.conversationId || this.isTyping) return;
     this.isTyping = true;
-    this.renderNow();
-  }
-
-  private stopThinkingAnimation(): void {
-    this.isTyping = false;
-    this.renderNow();
-  }
-
-  private sendMessage(convId: string, text: string): void {
-    this.messageSubscription = this.chatService.sendMessage(convId, text).subscribe({
+    this.shouldScroll = true;
+    this.messageSubscription = this.chatService.regenerateResponse(this.conversationId).subscribe({
       next: (conv) => {
-        this.zone.run(() => {
-          this.stopThinkingAnimation();
-          this.messageSubscription = undefined;
-          this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
-          this.refreshConversations();
-          this.shouldScroll = true;
-          this.renderNow();
+        this.isTyping = false;
+        this.messageSubscription = undefined;
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user', m.id));
+        this.shouldScroll = true;
+        this.cdr.detectChanges();
+
+        // Refresh conversations list to update title if needed
+        this.chatService.getConversations().subscribe({
+          next: (list) => {
+            this.conversationsList = list || [];
+            this.cdr.detectChanges();
+          }
         });
       },
       error: (err) => {
-        this.zone.run(() => {
-          this.stopThinkingAnimation();
-          this.messageSubscription = undefined;
-          console.error('Error sending message', err);
-          const errorDetails = this.getSendErrorDetails(err);
-          this.addErrorMessage(errorDetails.text, errorDetails.action);
-          this.renderNow();
-        });
+        this.isTyping = false;
+        this.messageSubscription = undefined;
+        this.messages.push(this.toChatMessage('عذراً، حدث خطأ أثناء إعادة توليد الرسالة.', false));
+        this.shouldScroll = true;
+        this.cdr.detectChanges();
+        console.error('Error regenerating', err);
       }
     });
   }
 
-  private renderNow(): void {
-    const shouldScrollAfterRender = this.shouldScroll;
-    this.cdr.detectChanges();
-
-    if (shouldScrollAfterRender) {
-      window.setTimeout(() => {
-        this.scrollMessagesToBottom();
-      }, 0);
-    }
+  handleEdit(msg: ChatMessage): void {
+    if (!msg.id || !this.conversationId || this.isTyping) return;
+    this.editingMessageId = msg.id;
+    this.editingMessageContent = msg.text;
   }
 
-  private scrollMessagesToBottom(): void {
-    const el = this.chatMessagesRef?.nativeElement;
-    if (!el) {
+  cancelEdit(): void {
+    this.editingMessageId = null;
+    this.editingMessageContent = '';
+  }
+
+  saveEdit(): void {
+    if (!this.editingMessageId || !this.conversationId || this.isTyping) return;
+    const newContent = this.editingMessageContent.trim();
+    if (!newContent) {
+      this.cancelEdit();
       return;
     }
 
-    el.scrollTop = el.scrollHeight;
-    this.shouldScroll = false;
-  }
+    const msgId = this.editingMessageId;
+    this.cancelEdit();
+    this.isTyping = true;
 
-  private refreshConversations(): void {
-    this.chatService.getConversations().subscribe({
-      next: (list) => {
-        this.conversationsList = list || [];
+    // Optimistically update UI
+    const targetIdx = this.messages.findIndex(m => m.id === msgId);
+    if (targetIdx !== -1) {
+      this.messages = this.messages.slice(0, targetIdx);
+      this.messages.push(this.toChatMessage(newContent, true, msgId));
+    }
+
+    this.shouldScroll = true;
+
+    this.messageSubscription = this.chatService.editMessage(this.conversationId, msgId, newContent).subscribe({
+      next: (conv) => {
+        this.isTyping = false;
+        this.messageSubscription = undefined;
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user', m.id));
+        this.shouldScroll = true;
         this.cdr.detectChanges();
+
+        // Refresh conversations list to update title if needed
+        this.chatService.getConversations().subscribe({
+          next: (list) => {
+            this.conversationsList = list || [];
+            this.cdr.detectChanges();
+          }
+        });
       },
-      error: (err) => console.error('Failed to refresh conversation list', err)
+      error: (err) => {
+        this.isTyping = false;
+        this.messageSubscription = undefined;
+        this.messages.push(this.toChatMessage('عذراً، حدث خطأ أثناء تعديل الرسالة.', false));
+        this.shouldScroll = true;
+        this.cdr.detectChanges();
+        console.error('Error editing', err);
+      }
     });
   }
 
-  private getSendErrorDetails(error: any): { text: string; action?: 'new-chat' } {
-    if (error?.name === 'TimeoutError') {
-      return { text: 'The request took longer than expected. Please try again with a shorter question.' };
-    }
-    if (error?.status === 0) {
-      return { text: 'Unable to connect to the travel service. Please check your connection and try again.' };
-    }
-    if (error?.status === 429) {
-      return {
-        text: 'وصلت هذه المحادثة إلى الحد المتاح حاليًا. ابدأ شات جديد للمتابعة.',
-        action: 'new-chat'
-      };
-    }
-    return { text: 'An unexpected error occurred while preparing your travel plan. Please try again.' };
+  handleCopy(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      // Optional: show a small toast or indicator
+    }).catch(err => {
+      console.error('Failed to copy text', err);
+    });
   }
 
-  private addErrorMessage(text: string, action?: 'new-chat'): void {
-    const message = this.toChatMessage(text, false, 'error');
-    message.action = action;
-    this.messages.push(message);
-    this.shouldScroll = true;
+  sendSuggestion(suggestion: string): void {
+    if (this.isTyping) return;
+    this.inputValue = suggestion;
+    this.handleSend();
   }
 
-  private toChatMessage(text: string, isUser: boolean, kind: 'normal' | 'error' = 'normal'): ChatMessage {
+  private toChatMessage(text: string, isUser: boolean, id?: string): ChatMessage {
     return {
-      id: Math.random().toString(36).substring(2, 9),
+      id,
       text,
       isUser,
       time: this.nowLabel(),
-      kind,
-      formatted: this.formatMessage(text, isUser),
-      versions: isUser ? undefined : [text],
-      activeVersionIndex: isUser ? undefined : 0
+      formatted: this.formatMessage(text)
     };
   }
 
-  private nowLabel(): string {
-    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
+  private formatMessage(text: string): FormattedMessage {
+    const suggestions: string[] = [];
+    let cleanedText = text;
 
-  private formatMessage(text: string, isUser: boolean): FormattedMessage {
-    const normalized = this.normalizeAssistantText(text);
-    const links = this.extractLinks(normalized);
-    const withoutUrls = normalized.replace(this.urlPattern, '').trim();
+    // Parse [SUGGESTION: ...]
+    const suggestionRegex = /\[SUGGESTION:\s*(.*?)\]/gi;
+    let match;
+    while ((match = suggestionRegex.exec(text)) !== null) {
+      if (match[1]) suggestions.push(match[1].trim());
+    }
+    cleanedText = cleanedText.replace(suggestionRegex, '').trim();
+
+    const links = this.extractLinks(cleanedText);
+    const withoutUrls = cleanedText.replace(this.urlPattern, '').trim();
+    const recommendations = this.extractRecommendations(withoutUrls, links);
     const cleaned = this.cleanMarkdown(withoutUrls);
 
-    const direction = this.detectDirection(cleaned);
-    const paragraphs = this.extractParagraphs(cleaned);
-
-    // AI Response specific parsing
-    let summary: string | undefined = undefined;
-    let itineraryDays: ItineraryDay[] = [];
-    let actionChips: ActionChip[] = [];
-
-    if (!isUser) {
-      const hasSubstantialTravelResponse = paragraphs.length >= 3 && cleaned.length >= 280;
-      if (hasSubstantialTravelResponse) {
-        summary = paragraphs[0];
-      }
-      itineraryDays = this.parseItineraryDays(cleaned);
-      actionChips = this.generateActionChips(cleaned, itineraryDays);
-    }
-
     return {
-      direction,
-      summary,
-      paragraphs: summary ? paragraphs.slice(1) : paragraphs,
-      links,
-      itineraryDays,
-      actionChips
+      direction: this.detectDirection(cleaned),
+      paragraphs: this.extractParagraphs(cleaned, recommendations),
+      links: links.filter(link => !recommendations.some(item => item.link?.url === link.url)),
+      recommendations,
+      suggestions
     };
   }
 
@@ -626,142 +588,31 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     return /[\u0600-\u06FF]/.test(text) ? 'rtl' : 'ltr';
   }
 
-  private normalizeAssistantText(text: string): string {
-    return text
-      .replace(/\r\n/g, '\n')
-      .replace(/\\n/g, '\n')
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/li>\s*<li[^>]*>/gi, '\n')
-      .replace(/<\/?(?:ul|ol)[^>]*>/gi, '\n')
-      .replace(/<\/?(?:p|div|span|strong|b|em|i|h[1-6])[^>]*>/gi, ' ')
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/&amp;/gi, '&')
-      .replace(/&lt;/gi, '<')
-      .replace(/&gt;/gi, '>')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-  }
-
   private cleanMarkdown(text: string): string {
     return text
-      .replace(/^#{1,6}\s*/gm, '')
       .replace(/\*\*(.*?)\*\*/g, '$1')
       .replace(/__(.*?)__/g, '$1')
-      .replace(/`{1,3}([^`]+)`{1,3}/g, '$1')
       .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
-      .replace(/^\s*[-*]\s+/gm, '• ')
+      .replace(/^\s*[-*]\s+/gm, '')
       .replace(/[ \t]+/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
   }
 
-  private parseItineraryDays(text: string): ItineraryDay[] {
-    const days: ItineraryDay[] = [];
-    const dayRegex = /(?:Day|اليوم)\s*(\d+)[:\s–-]*(.*?)(?=(?:Day|اليوم)\s*\d+|$)/gsi;
-    let match: RegExpExecArray | null;
-
-    while ((match = dayRegex.exec(text)) !== null) {
-      const dayNumber = parseInt(match[1], 10);
-      const content = match[2].trim();
-
-      if (dayNumber && content) {
-        days.push({
-          dayNumber,
-          title: content.split('\n')[0].substring(0, 60),
-          morning: this.extractTimeSlot(content, ['morning', 'صباحاً', 'صباح']),
-          afternoon: this.extractTimeSlot(content, ['afternoon', 'ظهراً', 'عصراً']),
-          evening: this.extractTimeSlot(content, ['evening', 'night', 'مساءً', 'ليلاً']),
-          budget: this.extractBudgetSlot(content)
-        });
-      }
-    }
-
-    return days.slice(0, 7); // Cap at 7 days max
-  }
-
-  private extractTimeSlot(content: string, keywords: string[]): string | undefined {
-    const lines = content.split('\n');
-    for (const line of lines) {
-      if (keywords.some(kw => line.toLowerCase().includes(kw))) {
-        return line.replace(/^[-•*\s]+/, '').trim();
-      }
-    }
-    return undefined;
-  }
-
-  private extractBudgetSlot(content: string): string | undefined {
-    const match = content.match(/(\$\d+|\d+\s*USD|\d+\s*جنيه|\d+\s*دولار)/i);
-    return match ? match[1] : undefined;
-  }
-
-  private generateActionChips(text: string, itineraryDays: ItineraryDay[]): ActionChip[] {
-    // Strictly exclude fallback, out-of-scope, or error messages
-    if (/(?:خارج نطاق|خارج التخصص|تعذر|حدث خطأ|ليس لدي معلومات)/i.test(text)) {
-      return [];
-    }
-
-    // Require parsed day cards or explicit structured itinerary markers
-    const isExplicitItinerary = itineraryDays.length > 0 ||
-      /(?:Day\s*\d|اليوم\s*\d|خطة الرحلة|جدول الرحلة|البرنامج المقترح|Suggested Itinerary|Day-by-Day Plan)/i.test(text);
-
-    if (!isExplicitItinerary) {
-      return [];
-    }
-
-    const isArabic = this.detectDirection(text) === 'rtl';
-
-    return [
-      {
-        label: isArabic ? 'إنشاء رحلة بالخطط' : 'Create Trip from this',
-        icon: 'map',
-        promptText: isArabic ? 'قم بإنشاء رحلة تفصيلية بناءً على هذا الرد' : 'Create a detailed trip in Planner based on this recommendation',
-        actionType: 'planner'
-      },
-      {
-        label: isArabic ? 'ميزانية أقل' : 'Make it cheaper',
-        icon: 'savings',
-        promptText: isArabic ? 'كيف يمكن تقليل ميزانية هذه الرحلة؟' : 'How can I lower the budget for this itinerary?',
-        actionType: 'prompt'
-      },
-      {
-        label: isArabic ? 'إضافة أنشطة ثقافية' : 'Add more culture',
-        icon: 'museum',
-        promptText: isArabic ? 'أضف المزيد من الأنشطة الثقافية والتاريخية لهذه الخطّة' : 'Add more historical and cultural experiences to this plan',
-        actionType: 'prompt'
-      },
-      {
-        label: isArabic ? 'اختصار لـ 3 أيام' : 'Shorten to 3 days',
-        icon: 'schedule',
-        promptText: isArabic ? 'اختصر هذه الرحلة لتصبح 3 أيام فقط' : 'Shorten this recommendation into a 3-day itinerary',
-        actionType: 'prompt'
-      }
-    ];
-  }
-
   private extractLinks(text: string): MessageLink[] {
     const matches = text.match(this.urlPattern) || [];
-    const isArabic = this.detectDirection(text) === 'rtl';
-    const seen = new Set<string>();
 
-    return matches
-      .map(rawUrl => rawUrl.replace(/[.,،؛]+$/, ''))
-      .filter(url => {
-        if (seen.has(url)) return false;
-        seen.add(url);
-        return true;
-      })
-      .map((url, index) => {
-        const host = this.getHostname(url);
-        const isMap = /maps\.google|google\.com\/maps|place_id/i.test(url);
+    return matches.map((rawUrl, index) => {
+      const url = rawUrl.replace(/[.,،؛]+$/, '');
+      const host = this.getHostname(url);
+      const isMap = /maps\.google|google\.com\/maps|place_id/i.test(url);
 
-        return {
-          url,
-          icon: isMap ? 'map' : 'open_in_new',
-          label: isMap
-            ? (isArabic ? 'افتح على الخريطة' : 'View on map')
-            : (host || (isArabic ? `رابط ${index + 1}` : `Open Link ${index + 1}`))
-        };
-      });
+      return {
+        url,
+        icon: isMap ? 'map' : 'open_in_new',
+        label: isMap ? 'View on map' : (host || `Open link ${index + 1}`)
+      };
+    });
   }
 
   private getHostname(url: string): string {
@@ -772,10 +623,58 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  private extractParagraphs(text: string): string[] {
+  private extractRecommendations(text: string, links: MessageLink[]): RecommendationItem[] {
+    const normalized = this.cleanMarkdown(text).replace(/\s*\n+\s*/g, ' ');
+    const candidatePattern = /(?:^|\s)(?:\d+[.)]\s*)?([^:：.!؟]{3,80})\s*[:：]\s*([^:：]+?)(?=(?:\s+\d+[.)]\s*)?[^:：.!؟]{3,80}\s*[:：]|$)/g;
+    const items: RecommendationItem[] = [];
+    let match: RegExpExecArray | null;
+
+    while ((match = candidatePattern.exec(normalized)) !== null) {
+      const item = this.parseRecommendation(match[1], match[2], links[items.length]);
+      if (item) {
+        items.push(item);
+      }
+    }
+
+    return items.length >= 2 ? items.slice(0, 6) : [];
+  }
+
+  private parseRecommendation(titleText: string, bodyText: string, link?: MessageLink): RecommendationItem | null {
+    const title = titleText.replace(/^[*-]\s*/, '').trim();
+    const body = bodyText.trim();
+    const rating = body.match(/(?:⭐\s*)?([0-5](?:\.\d)?\s*\/\s*5)/)?.[1]?.replace(/\s+/g, '');
+
+    if (!title || title.length > 80 || body.length < 12 || !rating) {
+      return null;
+    }
+
+    return {
+      title,
+      rating,
+      description: this.compactDescription(body.replace(/(?:⭐\s*)?[0-5](?:\.\d)?\s*\/\s*5/g, '')),
+      link
+    };
+  }
+
+  private compactDescription(text: string): string {
     return text
-      .split(/\n{2,}|(?=\n\s*(?:[•*-]|\d+[.)])\s+)|(?<=[.!؟])\s+(?=[\u0600-\u06FFA-Z0-9])/)
-      .map(p => p.replace(/\s+/g, ' ').trim())
-      .filter(Boolean);
+      .replace(/\s*\[.*?\]\s*/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/^[\s,،:：.-]+/, '')
+      .slice(0, 220)
+      .trim();
+  }
+
+  private extractParagraphs(text: string, recommendations: RecommendationItem[]): string[] {
+    if (recommendations.length) {
+      const intro = text.split(/(?:\d+[.)]\s*)?[^:：.!؟]{3,80}\s*[:：]/)[0]?.trim();
+      return intro ? [intro] : [];
+    }
+
+    return text
+      .split(/\n{2,}|(?<=[.!؟])\s+(?=[\u0600-\u06FFA-Z])/)
+      .map(paragraph => paragraph.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .slice(0, 6);
   }
 }

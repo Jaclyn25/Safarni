@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { timeout } from 'rxjs/operators';
 
 export interface ChatMessage {
+  id?: string;
   role: string;
   content: string;
 }
@@ -23,7 +24,7 @@ export class ChatService {
   private readonly requestTimeoutMs = 20000;
   private readonly responseTimeoutMs = 75000;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   private getHeaders(): HttpHeaders {
     const token = localStorage.getItem('access_token');
@@ -64,6 +65,10 @@ export class ChatService {
     return this.http
       .post<Conversation>(`${this.apiUrl}/regenerate`, { conversationId }, { headers: this.getHeaders() })
       .pipe(timeout(this.responseTimeoutMs));
+  }
+
+  editMessage(conversationId: string, messageId: string, newContent: string): Observable<Conversation> {
+    return this.http.post<Conversation>(`${this.apiUrl}/edit`, { conversationId, messageId, newContent }, { headers: this.getHeaders() });
   }
 
   deleteConversation(id: string): Observable<{ success: boolean }> {

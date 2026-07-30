@@ -33,25 +33,296 @@
 </header>
 
 <main class="hero-gradient pb-24 md:pb-0">
-  <!-- Hero Search Section -->
-  <section class="px-margin-mobile md:px-margin-desktop py-stack-lg max-w-4xl mx-auto text-center">
-    <h2 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-background mb-stack-md">Where to next?</h2>
-    <div class="relative group">
-      <div class="absolute inset-0 bg-primary/10 blur-2xl rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500"></div>
-      <div class="relative flex items-center bg-surface-container-lowest rounded-2xl shadow-lg border border-outline-variant/20 h-14 md:h-16 px-6 transition-all duration-300 focus-within:shadow-xl focus-within:ring-2 focus-within:ring-primary/20">
-        <span class="material-symbols-outlined text-primary mr-4">auto_awesome</span>
-        <input class="bg-transparent border-none focus:ring-0 w-full text-body-lg placeholder:text-on-surface-variant/50" placeholder="Ask AI for your perfect itinerary..." type="text"/>
-        <button class="bg-primary text-on-primary rounded-xl px-4 py-2 text-label-md font-semibold hover:bg-primary-container transition-colors active:scale-95 duration-200">
-          Search
+  <section class="mx-auto max-w-5xl px-margin-mobile py-stack-lg md:px-margin-desktop">
+    <div class="mb-8 text-center">
+      <span class="text-label-md uppercase tracking-[0.2em] text-primary">
+        Traveler-controlled planning
+      </span>
+      <h2 class="mt-2 text-display-lg-mobile text-on-background md:text-display-lg">
+        Build your route before AI builds the schedule
+      </h2>
+      <p class="mx-auto mt-3 max-w-3xl text-body-lg text-on-surface-variant">
+        Choose the countries, dates, cities and days yourself. Safarni will
+        plan only inside the route you approve.
+      </p>
+    </div>
+
+    <form
+      (ngSubmit)="createTrip()"
+      class="rounded-[28px] border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-xl md:p-8"
+    >
+      <div class="grid gap-5 md:grid-cols-2">
+        <label class="md:col-span-2">
+          <span class="mb-1.5 block text-label-md font-semibold">
+            Trip name
+          </span>
+          <input
+            [(ngModel)]="tripName"
+            name="tripName"
+            placeholder="Ten days across Turkey"
+            class="w-full rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+          />
+        </label>
+
+        <label>
+          <span class="mb-1.5 block text-label-md font-semibold">
+            Traveling from
+          </span>
+          <select
+            [(ngModel)]="originCountry"
+            name="originCountry"
+            [disabled]="isLoadingCountries"
+            class="w-full rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none focus:border-primary"
+          >
+            <option value="">Choose your country</option>
+            <option
+              *ngFor="let country of countries"
+              [value]="country.name"
+            >
+              {{ country.name }}
+            </option>
+          </select>
+          <span class="mt-1 block text-body-sm text-on-surface-variant">
+            Used to find real departure airports for Google Flights.
+          </span>
+        </label>
+
+        <label>
+          <span class="mb-1.5 block text-label-md font-semibold">
+            Traveling to
+          </span>
+          <select
+            [(ngModel)]="destinationCountry"
+            name="destinationCountry"
+            (ngModelChange)="onDestinationCountryChange()"
+            [disabled]="isLoadingCountries"
+            class="w-full rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none focus:border-primary"
+          >
+            <option value="">Choose destination country</option>
+            <option
+              *ngFor="let country of countries"
+              [value]="country.name"
+            >
+              {{ country.name }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          <span class="mb-1.5 block text-label-md font-semibold">
+            Start date
+          </span>
+          <input
+            type="date"
+            [(ngModel)]="startDate"
+            name="startDate"
+            (ngModelChange)="onDatesChanged()"
+            class="w-full rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none focus:border-primary"
+          />
+        </label>
+
+        <label>
+          <span class="mb-1.5 block text-label-md font-semibold">
+            End date
+          </span>
+          <input
+            type="date"
+            [(ngModel)]="endDate"
+            name="endDate"
+            [min]="startDate"
+            (ngModelChange)="onDatesChanged()"
+            class="w-full rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none focus:border-primary"
+          />
+        </label>
+      </div>
+
+      <section class="mt-6">
+        <div class="mb-2 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h3 class="text-title-md font-semibold">
+              Destination cities
+            </h3>
+            <p class="text-body-sm text-on-surface-variant">
+              Search all available cities in {{ destinationCountry || 'the selected country' }}.
+            </p>
+          </div>
+          <span class="rounded-full bg-primary/10 px-3 py-1.5 text-label-sm font-semibold text-primary">
+            {{ selectedCities.length }}/{{ tripDayCount || 0 }} cities ·
+            {{ tripDayCount || 0 }} trip days
+          </span>
+        </div>
+
+        <div class="relative">
+          <div
+            class="flex min-h-14 flex-wrap items-center gap-2 rounded-2xl border border-outline-variant bg-surface px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15"
+          >
+            <span
+              *ngFor="let city of selectedCities"
+              class="inline-flex items-center gap-1 rounded-full bg-primary-container px-3 py-1.5 text-label-sm font-semibold text-on-primary-container"
+            >
+              {{ city.name }}
+              <button
+                type="button"
+                (click)="removeCity(city.name)"
+                class="flex h-5 w-5 items-center justify-center rounded-full hover:bg-primary/15"
+                [attr.aria-label]="'Remove ' + city.name"
+              >
+                ×
+              </button>
+            </span>
+
+            <input
+              [(ngModel)]="citySearch"
+              name="citySearch"
+              (focus)="cityDropdownOpen = true"
+              [disabled]="!destinationCountry || isLoadingCities"
+              [placeholder]="
+                isLoadingCities
+                  ? 'Loading cities...'
+                  : selectedCities.length
+                    ? 'Search another city'
+                    : 'Search and select cities'
+              "
+              autocomplete="off"
+              class="min-w-48 flex-1 border-0 bg-transparent px-2 py-1 outline-none focus:ring-0"
+            />
+          </div>
+
+          <div
+            *ngIf="
+              cityDropdownOpen &&
+              destinationCountry &&
+              !isLoadingCities
+            "
+            class="absolute z-40 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-outline-variant bg-surface-container-lowest p-2 shadow-xl"
+          >
+            <div class="sticky top-0 z-10 mb-1 flex items-center justify-between rounded-xl bg-surface-container-lowest px-3 py-2">
+              <span class="text-label-sm font-semibold text-on-surface-variant">
+                Choose a city
+              </span>
+              <button
+                type="button"
+                (click)="cityDropdownOpen = false"
+                class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-label-sm font-semibold text-primary hover:bg-primary/5"
+              >
+                Done
+                <span class="material-symbols-outlined text-[18px]">
+                  close
+                </span>
+              </button>
+            </div>
+            <button
+              *ngFor="let city of filteredCities"
+              type="button"
+              (click)="selectCity(city)"
+              class="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left hover:bg-primary/5"
+            >
+              <span>{{ city }}</span>
+              <span class="material-symbols-outlined text-[19px] text-primary">
+                add
+              </span>
+            </button>
+            <p
+              *ngIf="filteredCities.length === 0"
+              class="p-4 text-center text-body-sm text-on-surface-variant"
+            >
+              No matching unselected cities.
+            </p>
+          </div>
+        </div>
+
+        <p
+          *ngIf="cityLimitMessage"
+          class="mt-2 flex items-center gap-2 text-body-sm font-semibold text-error"
+        >
+          <span class="material-symbols-outlined text-[18px]">
+            info
+          </span>
+          {{ cityLimitMessage }}
+        </p>
+      </section>
+
+      <section
+        *ngIf="selectedCities.length"
+        class="mt-6 rounded-2xl bg-surface-container-low p-5"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="text-title-md font-semibold">
+              Days in each city
+            </h3>
+            <p class="text-body-sm text-on-surface-variant">
+              You control the split. Every city needs at least one day.
+            </p>
+          </div>
+          <strong
+            [class.text-error]="remainingDays !== 0"
+            [class.text-emerald-700]="remainingDays === 0"
+          >
+            <ng-container *ngIf="remainingDays > 0">
+              {{ remainingDays }} day{{ remainingDays === 1 ? '' : 's' }} left
+            </ng-container>
+            <ng-container *ngIf="remainingDays < 0">
+              Remove {{ -remainingDays }} allocated day{{ remainingDays === -1 ? '' : 's' }}
+            </ng-container>
+            <ng-container *ngIf="remainingDays === 0">
+              All days allocated
+            </ng-container>
+          </strong>
+        </div>
+
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label
+            *ngFor="let city of selectedCities"
+            class="rounded-xl border border-outline-variant/50 bg-surface p-3"
+          >
+            <span class="block truncate text-label-md font-semibold">
+              {{ city.name }}
+            </span>
+            <span class="mt-2 flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                [max]="tripDayCount"
+                [ngModel]="city.days"
+                [name]="'days-' + city.name"
+                (ngModelChange)="setCityDays(city, $event)"
+                class="w-full rounded-lg border border-outline-variant px-3 py-2"
+              />
+              <span class="text-body-sm text-on-surface-variant">
+                days
+              </span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <p
+        *ngIf="errorMessage"
+        class="mt-5 rounded-xl bg-error-container p-4 text-on-error-container"
+      >
+        {{ errorMessage }}
+      </p>
+
+      <div class="mt-7 flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant/30 pt-6">
+        <p class="max-w-xl text-body-sm text-on-surface-variant">
+          AI will never add destination cities that you did not select.
+        </p>
+        <button
+          type="submit"
+          [disabled]="!canCreateTrip"
+          class="inline-flex min-w-52 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 font-semibold text-on-primary shadow-lg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span
+            class="material-symbols-outlined"
+            [class.animate-spin]="isCreating"
+          >
+            {{ isCreating ? 'progress_activity' : 'arrow_forward' }}
+          </span>
+          {{ isCreating ? 'Creating trip...' : 'Continue to preferences' }}
         </button>
       </div>
-    </div>
-    <div class="flex flex-wrap justify-center gap-2 mt-stack-md">
-      <span class="text-label-sm text-on-surface-variant">Try:</span>
-      <button class="text-label-sm bg-surface-container px-3 py-1 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">"Romantic weekend in Paris"</button>
-      <button class="text-label-sm bg-surface-container px-3 py-1 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">"Family hiking in Swiss Alps"</button>
-      <button class="text-label-sm bg-surface-container px-3 py-1 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">"Best street food in Osaka"</button>
-    </div>
+    </form>
   </section>
 
   <!-- Trending Now (Horizontal Scroll) -->

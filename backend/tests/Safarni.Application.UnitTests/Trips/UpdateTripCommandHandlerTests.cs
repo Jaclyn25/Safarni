@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Safarni.Application.Abstractions.Authentication;
 using Safarni.Application.Abstractions.Persistence;
+using Safarni.Application.Features.Trips;
 using Safarni.Application.Features.Trips.UpdateTrip;
 using Safarni.Domain.Entities;
 using Xunit;
@@ -27,7 +28,14 @@ public class UpdateTripCommandHandlerTests
         // Arrange
         var userId = Guid.NewGuid();
         var tripId = Guid.NewGuid();
-        var command = new UpdateTripCommand(tripId, "Updated Trip", "London", DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(8));
+        var command = new UpdateTripCommand(
+            tripId,
+            "Updated Trip",
+            "United Kingdom",
+            DateTime.UtcNow.AddDays(2),
+            DateTime.UtcNow.AddDays(8),
+            "Egypt",
+            [new TripCitySelection("London", 7)]);
         
         var trip = new Trip { Id = tripId, UserId = userId, Name = "Old", Destination = "Old" };
 
@@ -51,7 +59,14 @@ public class UpdateTripCommandHandlerTests
         // Arrange
         var userId = Guid.NewGuid();
         var tripId = Guid.NewGuid();
-        var command = new UpdateTripCommand(tripId, "Updated Trip", "London", DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(8));
+        var command = new UpdateTripCommand(
+            tripId,
+            "Updated Trip",
+            "United Kingdom",
+            DateTime.UtcNow.AddDays(2),
+            DateTime.UtcNow.AddDays(8),
+            "Egypt",
+            [new TripCitySelection("London", 7)]);
         
         _currentUserServiceMock.Setup(x => x.UserId).Returns(userId);
         _tripRepositoryMock.Setup(x => x.GetByIdAsync(tripId, It.IsAny<CancellationToken>())).ReturnsAsync((Trip?)null);
@@ -71,7 +86,14 @@ public class UpdateTripCommandHandlerTests
         var userId = Guid.NewGuid();
         var ownerId = Guid.NewGuid();
         var tripId = Guid.NewGuid();
-        var command = new UpdateTripCommand(tripId, "Updated Trip", "London", DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(8));
+        var command = new UpdateTripCommand(
+            tripId,
+            "Updated Trip",
+            "United Kingdom",
+            DateTime.UtcNow.AddDays(2),
+            DateTime.UtcNow.AddDays(8),
+            "Egypt",
+            [new TripCitySelection("London", 7)]);
         
         var trip = new Trip { Id = tripId, UserId = ownerId, Name = "Old", Destination = "Old" };
 

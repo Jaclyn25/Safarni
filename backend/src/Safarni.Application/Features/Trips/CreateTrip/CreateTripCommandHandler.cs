@@ -33,6 +33,15 @@ public sealed class CreateTripCommandHandler : IRequestHandler<CreateTripCommand
             UserId = userId,
             Name = request.Name.Trim(),
             Destination = request.Destination.Trim(),
+            OriginCountry = request.OriginCountry.Trim(),
+            SelectedCitiesJson =
+                TripRouteSerializer.Serialize(
+                    request.Cities
+                        .Select(city =>
+                            new TripCitySelection(
+                                city.Name.Trim(),
+                                city.Days))
+                        .ToList()),
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             CreatedAt = DateTime.UtcNow
@@ -46,6 +55,9 @@ public sealed class CreateTripCommandHandler : IRequestHandler<CreateTripCommand
             trip.UserId,
             trip.Name,
             trip.Destination,
+            trip.OriginCountry,
+            TripRouteSerializer.Deserialize(
+                trip.SelectedCitiesJson),
             trip.StartDate,
             trip.EndDate,
             trip.CreatedAt,

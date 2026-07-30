@@ -8,4 +8,7 @@ public sealed record UpdateTripCommand(
     string Name,
     string Destination,
     DateTime StartDate,
-    DateTime EndDate) : IRequest<Result<TripResponse>>;
+    DateTime EndDate,
+    string OriginCountry,
+    IReadOnlyList<TripCitySelection> Cities)
+    : IRequest<Result<TripResponse>>;

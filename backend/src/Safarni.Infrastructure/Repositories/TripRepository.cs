@@ -30,6 +30,10 @@ internal sealed class TripRepository : ITripRepository
         _dbContext.Set<Trip>().Update(trip);
     }
 
+    public void Remove(Trip trip)
+    {
+        _dbContext.Trips.Remove(trip);
+    }
     public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
         await _dbContext.SaveChangesAsync(cancellationToken);

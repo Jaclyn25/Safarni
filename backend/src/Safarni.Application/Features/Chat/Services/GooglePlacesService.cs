@@ -52,7 +52,7 @@ public class GooglePlacesService : IGooglePlacesService
 
             var requestMessage = new HttpRequestMessage(HttpMethod.Post, v1Url);
             requestMessage.Headers.Add("X-Goog-Api-Key", _apiKey);
-            requestMessage.Headers.Add("X-Goog-FieldMask", "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.googleMapsUri,places.photos,places.editorialSummary,places.types");
+            requestMessage.Headers.Add("X-Goog-FieldMask", "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.googleMapsUri,places.photos,places.editorialSummary,places.types,places.location");
 
             var payload = new { textQuery = query, languageCode = NormalizeLanguageCode(languageCode) };
             var jsonPayload = JsonSerializer.Serialize(payload);
@@ -184,7 +184,9 @@ public class GooglePlacesService : IGooglePlacesService
             Description = description,
             GoogleMapsLink = mapsLink,
             PhotoUrl = photoUrl,
-            Types = item.Types ?? new List<string>()
+            Types = item.Types ?? new List<string>(),
+            Latitude = item.Location?.Latitude,
+            Longitude = item.Location?.Longitude
         };
     }
 

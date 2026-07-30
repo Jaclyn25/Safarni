@@ -114,6 +114,193 @@ namespace Safarni.Infrastructure.Migrations
                     b.ToTable("TravelKnowledges");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.Itinerary", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("BudgetAmount")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("GeneratedBy")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Preferences")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("TravelerCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TripId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TripId", "IsActive");
+
+                    b.ToTable("Itineraries");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.ItineraryDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("DayNumber")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ItineraryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItineraryId", "DayNumber")
+                        .IsUnique();
+
+                    b.ToTable("ItineraryDays");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.ItineraryItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("CostSource")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1500)
+                        .HasColumnType("nvarchar(1500)");
+
+                    b.Property<TimeSpan?>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<decimal?>("EstimatedCost")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<string>("ExternalUrl")
+                        .HasMaxLength(1500)
+                        .HasColumnType("nvarchar(1500)");
+
+                    b.Property<string>("GoogleMapsUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("GooglePlaceId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("ItineraryDayId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("float");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("PriceLevel")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PriceSource")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<double?>("Rating")
+                        .HasColumnType("float");
+
+                    b.Property<decimal?>("RatePerNight")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<int?>("RouteDistanceMeters")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RouteDurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RouteTransitDetails")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RouteTravelMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<TimeSpan?>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItineraryDayId", "OrderIndex");
+
+                    b.ToTable("ItineraryItems");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.PassportInfo", b =>
                 {
                     b.Property<Guid>("Id")
@@ -246,6 +433,16 @@ namespace Safarni.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("OriginCountry")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SelectedCitiesJson")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
@@ -454,6 +651,39 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("Conversation");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.Itinerary", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.Trip", "Trip")
+                        .WithMany("Itineraries")
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Trip");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.ItineraryDay", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.Itinerary", "Itinerary")
+                        .WithMany("Days")
+                        .HasForeignKey("ItineraryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Itinerary");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.ItineraryItem", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.ItineraryDay", "ItineraryDay")
+                        .WithMany("Items")
+                        .HasForeignKey("ItineraryDayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ItineraryDay");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.PassportInfo", b =>
                 {
                     b.HasOne("Safarni.Domain.Entities.User", "User")
@@ -523,6 +753,21 @@ namespace Safarni.Infrastructure.Migrations
             modelBuilder.Entity("ChatBotApi.Domain.Entities.Conversation", b =>
                 {
                     b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.Itinerary", b =>
+                {
+                    b.Navigation("Days");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.ItineraryDay", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.Trip", b =>
+                {
+                    b.Navigation("Itineraries");
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.User", b =>

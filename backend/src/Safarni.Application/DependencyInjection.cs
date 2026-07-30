@@ -1,4 +1,5 @@
 using FluentValidation;
+using ChatBotApi.Application.Features.Chat.StreamChatResponse;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Safarni.Application.Abstractions.Security;
@@ -17,6 +18,10 @@ using Safarni.Application.Features.Profile.UpdateMyProfile;
 using Safarni.Application.Features.Profile.UploadMyProfile;
 using Safarni.Application.Features.Profile.UploadProfilePhoto;
 using Safarni.Application.Features.Settings.UpdateMySettings;
+using Safarni.Application.Features.Trips.CreateTrip;
+using Safarni.Application.Features.Trips.GenerateItinerary;
+using Safarni.Application.Features.Trips.UpdateTrip;
+using Safarni.Application.Features.Trips.Itineraries.ManageItems;
 using Safarni.Application.Features.VisaApplications.CreateVisaApplication;
 using Safarni.Application.Features.VisaApplications.SelectVisaType;
 
@@ -28,6 +33,7 @@ public static class DependencyInjection
     {
         services.AddMediatR(typeof(DependencyInjection).Assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
         services.AddTransient<IValidator<RegisterUserCommand>, RegisterUserCommandValidator>();
         services.AddTransient<IValidator<LoginCommand>, LoginCommandValidator>();
         services.AddTransient<IValidator<RefreshTokenCommand>, RefreshTokenCommandValidator>();
@@ -42,14 +48,25 @@ public static class DependencyInjection
         services.AddTransient<IValidator<UploadProfilePhotoCommand>, UploadProfilePhotoCommandValidator>();
         services.AddTransient<IValidator<UpdateMySettingsCommand>, UpdateMySettingsCommandValidator>();
 
-
         services.AddTransient<IValidator<UpsertTravelProfileCommand>, UpsertTravelProfileCommandValidator>();
         services.AddTransient<IValidator<CreateVisaApplicationCommand>, CreateVisaApplicationCommandValidator>();
         services.AddTransient<IValidator<SelectVisaTypeCommand>, SelectVisaTypeCommandValidator>();
 
-        // Chatbot Validators
+        services.AddTransient<IValidator<CreateTripCommand>, CreateTripCommandValidator>();
+        services.AddTransient<IValidator<UpdateTripCommand>, UpdateTripCommandValidator>();
+        services.AddTransient<IValidator<GenerateItineraryCommand>, GenerateItineraryCommandValidator>();
+        services.AddTransient<IValidator<AddItineraryItemCommand>, AddItineraryItemCommandValidator>();
+        services.AddTransient<IValidator<UpdateItineraryItemCommand>, UpdateItineraryItemCommandValidator>();
+        services.AddTransient<
+            IValidator<SelectItineraryVenueCommand>,
+            SelectItineraryVenueCommandValidator>();
+
+        // Chatbot validators
         services.AddTransient<IValidator<ChatBotApi.Application.Features.Chat.Commands.CreateConversation.CreateConversationCommand>, ChatBotApi.Application.Features.Chat.Commands.CreateConversation.CreateConversationCommandValidator>();
         services.AddTransient<IValidator<ChatBotApi.Application.Features.Chat.Commands.SendMessage.SendMessageCommand>, ChatBotApi.Application.Features.Chat.Commands.SendMessage.SendMessageCommandValidator>();
+        services.AddTransient<
+            IValidator<StreamChatResponseCommand>,
+            StreamChatResponseCommandValidator>();
 
         return services;
     }

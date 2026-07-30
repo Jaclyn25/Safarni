@@ -53,6 +53,7 @@ app-root {
   -ms-overflow-style: none;
 }
 
+
 @supports (scrollbar-width: none) {
   .hide-scrollbar {
     scrollbar-width: none;
@@ -130,6 +131,7 @@ app-root {
   white-space: pre-wrap;
   line-height: 1.65;
 }
+
 .assistant-response {
   max-width: min(720px, calc(100vw - 104px));
   background: color-mix(in srgb, #f7f9fb 92%, #2563EB 8%);
@@ -138,18 +140,22 @@ app-root {
   line-height: 1.7;
   overflow-wrap: break-word;
 }
+
 .assistant-response__prose {
   display: grid;
   gap: 0.65rem;
 }
+
 .assistant-response__prose p {
   margin: 0;
 }
+
 .assistant-response__cards {
   display: grid;
   gap: 0.75rem;
   margin-top: 1rem;
 }
+
 .assistant-place-card {
   display: grid;
   gap: 0.65rem;
@@ -158,6 +164,7 @@ app-root {
   border: 1px solid rgba(148, 163, 184, 0.32);
   border-radius: 0.75rem;
 }
+
 .assistant-place-card h3 {
   margin: 0;
   color: #0f172a;
@@ -165,12 +172,14 @@ app-root {
   font-weight: 700;
   line-height: 1.35;
 }
+
 .assistant-place-card p {
   margin: 0;
   color: #475569;
   font-size: 0.9rem;
   line-height: 1.65;
 }
+
 .assistant-rating {
   display: inline-flex;
   align-items: center;
@@ -184,12 +193,14 @@ app-root {
   padding: 0.25rem 0.5rem;
   white-space: nowrap;
 }
+
 .assistant-response__links {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 1rem;
 }
+
 .assistant-link-button {
   display: inline-flex;
   align-items: center;
@@ -207,10 +218,12 @@ app-root {
   text-decoration: none;
   transition: background-color 180ms ease-out, transform 180ms ease-out;
 }
+
 .assistant-link-button:hover {
   background: #1d4ed8;
   transform: translateY(-1px);
 }
+
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -221,6 +234,22 @@ app-root {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
 }
 
 /* Register and login page */
@@ -237,12 +266,13 @@ app-root {
 
 /* ---- Register page ---- */
 .floating-label-input:focus-within label,
-.floating-label-input input:not(:placeholder-shown) + label {
+.floating-label-input input:not(:placeholder-shown)+label {
   transform: translateY(-1.25rem) scale(0.85);
   color: #2563eb;
 }
 
 @keyframes float {
+
   0%,
   100% {
     transform: translateY(0);
@@ -255,6 +285,7 @@ app-root {
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+
 }
 
 /* Recovery and verification links styled as buttons */
@@ -262,4 +293,5 @@ app-root {
 .recovery-primary-button,
 .recovery-secondary-button {
   text-decoration: none;
+
 }

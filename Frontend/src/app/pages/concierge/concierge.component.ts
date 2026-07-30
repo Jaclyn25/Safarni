@@ -8,14 +8,22 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
 import { ChatService } from '../../services/chat.service';
 import { Subscription } from 'rxjs';
 
+export interface ChatFolder {
+  id: string;
+  name: string;
+}
+
 interface ChatMessage {
+  id?: string;
   text: string;
   isUser: boolean;
   time: string;
   formatted: FormattedMessage;
+  reaction?: 'like' | 'dislike';
 }
 
 interface FormattedMessage {
@@ -23,6 +31,7 @@ interface FormattedMessage {
   paragraphs: string[];
   links: MessageLink[];
   recommendations: RecommendationItem[];
+  suggestions: string[];
 }
 
 interface MessageLink {
@@ -41,7 +50,7 @@ interface RecommendationItem {
 @Component({
   selector: 'app-concierge',
   standalone: true,
-  imports: [FormsModule, RouterLink, RouterLinkActive],
+  imports: [FormsModule, RouterLink, RouterLinkActive, NgTemplateOutlet],
   templateUrl: './concierge.component.html'
 })
 export class ConciergeComponent implements OnInit, AfterViewChecked {
@@ -53,11 +62,60 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
   messages: ChatMessage[] = [];
   conversationsList: any[] = [];
 
+  editingMessageId: string | null = null;
+  editingMessageContent = '';
+
+  isSidebarOpen = true;
+  searchQuery = '';
+  pinnedChats = new Set<string>();
+
+  // Renaming State
+  customTitles: { [convId: string]: string } = {};
+  renamingChatId: string | null = null;
+  newChatName = '';
+
+  // Sections State
+  isPinnedExpanded = true;
+  isRecentExpanded = true;
+  isFoldersExpanded = true;
+
+  // Folders State
+  folders: ChatFolder[] = [];
+  chatFolderMapping: { [convId: string]: string } = {}; // convId -> folderId
+  expandedFolders: Set<string> = new Set<string>(); // To toggle folders in sidebar
+
+  // Folder Creation Modal
+  showCreateFolderModal = false;
+  newFolderName = '';
+
   private messageSubscription?: Subscription;
   private shouldScroll = false;
   private readonly urlPattern = /https?:\/\/[^\s)\]]+/gi;
 
-  constructor(private chatService: ChatService, private cdr: ChangeDetectorRef) { }
+  constructor(private chatService: ChatService, private cdr: ChangeDetectorRef) {
+    const savedPins = localStorage.getItem('safarni_pinned_chats');
+    if (savedPins) {
+      try { this.pinnedChats = new Set(JSON.parse(savedPins)); } catch (e) { }
+    }
+
+    const savedTitles = localStorage.getItem('safarni_custom_titles');
+    if (savedTitles) {
+      try { this.customTitles = JSON.parse(savedTitles); } catch (e) { }
+    }
+
+    const savedFolders = localStorage.getItem('safarni_folders');
+    if (savedFolders) {
+      try { this.folders = JSON.parse(savedFolders); } catch (e) { }
+    }
+
+    const savedMapping = localStorage.getItem('safarni_chat_folders');
+    if (savedMapping) {
+      try { this.chatFolderMapping = JSON.parse(savedMapping); } catch (e) { }
+    }
+
+    // Expand all folders by default
+    this.folders.forEach(f => this.expandedFolders.add(f.id));
+  }
 
   ngOnInit(): void {
     this.loadOrCreateConversation();
@@ -104,7 +162,7 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
   loadConversationMessages(id: string): void {
     this.chatService.getConversationById(id).subscribe({
       next: (conv) => {
-        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user', m.id));
         this.shouldScroll = true;
       },
       error: (err) => {
@@ -121,22 +179,192 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
     this.loadConversationMessages(id);
   }
 
+  // Delete Modal State
+  showDeleteModal = false;
+  deleteTargetId: string | null = null;
+  deleteType: 'chat' | 'folder' | null = null;
+
+  openDeleteChatModal(id: string, event: Event): void {
+    event.stopPropagation();
+    this.deleteTargetId = id;
+    this.deleteType = 'chat';
+    this.showDeleteModal = true;
+  }
+
+  openDeleteFolderModal(id: string, event: Event): void {
+    event.stopPropagation();
+    this.deleteTargetId = id;
+    this.deleteType = 'folder';
+    this.showDeleteModal = true;
+  }
+
   deleteConversation(id: string, event: Event): void {
     event.stopPropagation(); // Prevent selection trigger
+    this.openDeleteChatModal(id, event);
+  }
 
-    if (confirm('هل أنت متأكد من رغبتك في حذف هذه المحادثة؟')) {
+  closeDeleteModal(): void {
+    this.showDeleteModal = false;
+    this.deleteTargetId = null;
+    this.deleteType = null;
+  }
+
+  confirmDelete(): void {
+    if (!this.deleteTargetId || !this.deleteType) return;
+
+    if (this.deleteType === 'chat') {
+      const id = this.deleteTargetId;
       this.chatService.deleteConversation(id).subscribe({
         next: () => {
           this.conversationsList = this.conversationsList.filter(c => c.id !== id);
-
           if (this.conversationId === id) {
             this.startNewConversation();
           }
+          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error('Failed to delete conversation', err);
         }
       });
+    } else if (this.deleteType === 'folder') {
+      const folderId = this.deleteTargetId;
+      this.folders = this.folders.filter(f => f.id !== folderId);
+      // Remove mapping for this folder
+      Object.keys(this.chatFolderMapping).forEach(convId => {
+        if (this.chatFolderMapping[convId] === folderId) {
+          delete this.chatFolderMapping[convId];
+        }
+      });
+      this.saveFoldersState();
+      this.cdr.detectChanges();
+    }
+    
+    this.closeDeleteModal();
+  }
+
+  get unpinnedConversations(): any[] {
+    let list = this.conversationsList.filter(c => !this.pinnedChats.has(c.id));
+    if (this.searchQuery.trim()) {
+      const query = this.searchQuery.toLowerCase();
+      list = list.filter(c => this.getChatTitle(c).toLowerCase().includes(query));
+    }
+    return list;
+  }
+
+  get pinnedConversations(): any[] {
+    let list = this.conversationsList.filter(c => this.pinnedChats.has(c.id));
+    if (this.searchQuery.trim()) {
+      const query = this.searchQuery.toLowerCase();
+      list = list.filter(c => this.getChatTitle(c).toLowerCase().includes(query));
+    }
+    return list;
+  }
+
+  getChatTitle(conv: any): string {
+    return this.customTitles[conv.id] || conv.title || 'Chat';
+  }
+
+  // Renaming Logic
+  startRename(conv: any, event: Event): void {
+    event.stopPropagation();
+    this.renamingChatId = conv.id;
+    this.newChatName = this.getChatTitle(conv);
+  }
+
+  saveRename(event: Event): void {
+    event.stopPropagation();
+    if (this.renamingChatId && this.newChatName.trim()) {
+      this.customTitles[this.renamingChatId] = this.newChatName.trim();
+      localStorage.setItem('safarni_custom_titles', JSON.stringify(this.customTitles));
+    }
+    this.renamingChatId = null;
+  }
+
+  cancelRename(event: Event): void {
+    event.stopPropagation();
+    this.renamingChatId = null;
+  }
+
+  // Folders Logic
+  openCreateFolderModal(): void {
+    this.showCreateFolderModal = true;
+    this.newFolderName = '';
+  }
+
+  closeCreateFolderModal(): void {
+    this.showCreateFolderModal = false;
+    this.newFolderName = '';
+  }
+
+  confirmCreateFolder(): void {
+    const name = this.newFolderName.trim();
+    if (name) {
+      const newFolder: ChatFolder = {
+        id: 'folder_' + Date.now().toString(),
+        name: name
+      };
+      this.folders.push(newFolder);
+      this.expandedFolders.add(newFolder.id);
+      this.saveFoldersState();
+      this.closeCreateFolderModal();
+    }
+  }
+
+  deleteFolder(folderId: string, event: Event): void {
+    event.stopPropagation();
+    this.openDeleteFolderModal(folderId, event);
+  }
+
+  assignToFolder(convId: string, folderId: string | null, event: Event): void {
+    event.stopPropagation();
+    if (folderId) {
+      this.chatFolderMapping[convId] = folderId;
+    } else {
+      delete this.chatFolderMapping[convId];
+    }
+    this.saveFoldersState();
+  }
+
+  toggleFolderExpand(folderId: string): void {
+    if (this.expandedFolders.has(folderId)) {
+      this.expandedFolders.delete(folderId);
+    } else {
+      this.expandedFolders.add(folderId);
+    }
+  }
+
+  private saveFoldersState(): void {
+    localStorage.setItem('safarni_folders', JSON.stringify(this.folders));
+    localStorage.setItem('safarni_chat_folders', JSON.stringify(this.chatFolderMapping));
+  }
+
+  getFolderChats(folderId: string): any[] {
+    return this.unpinnedConversations.filter(c => this.chatFolderMapping[c.id] === folderId);
+  }
+
+  get uncategorizedChats(): any[] {
+    return this.unpinnedConversations.filter(c => !this.chatFolderMapping[c.id]);
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  togglePin(id: string, event: Event): void {
+    event.stopPropagation();
+    if (this.pinnedChats.has(id)) {
+      this.pinnedChats.delete(id);
+    } else {
+      this.pinnedChats.add(id);
+    }
+    localStorage.setItem('safarni_pinned_chats', JSON.stringify(Array.from(this.pinnedChats)));
+  }
+
+  handleReaction(msg: ChatMessage, type: 'like' | 'dislike'): void {
+    if (msg.reaction === type) {
+      msg.reaction = undefined; // toggle off
+    } else {
+      msg.reaction = type;
     }
   }
 
@@ -181,15 +409,18 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
         this.isTyping = false;
         this.messageSubscription = undefined;
 
-        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user', m.id));
+        this.shouldScroll = true;
+        this.cdr.detectChanges(); // Update UI immediately
 
         // Refresh the list to ensure the title is updated or newly created chat is visible
-        this.chatService.getConversations().subscribe(list => {
-          this.conversationsList = list || [];
-          this.cdr.detectChanges();
+        this.chatService.getConversations().subscribe({
+          next: (list) => {
+            this.conversationsList = list || [];
+            this.cdr.detectChanges();
+          },
+          error: (err) => console.error('Error fetching conversations', err)
         });
-
-        this.shouldScroll = true;
       },
       error: (err) => {
         this.isTyping = false;
@@ -213,8 +444,113 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
     this.startNewConversation();
   }
 
-  private toChatMessage(text: string, isUser: boolean): ChatMessage {
+  handleRegenerate(): void {
+    if (!this.conversationId || this.isTyping) return;
+    this.isTyping = true;
+    this.shouldScroll = true;
+    this.messageSubscription = this.chatService.regenerateResponse(this.conversationId).subscribe({
+      next: (conv) => {
+        this.isTyping = false;
+        this.messageSubscription = undefined;
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user', m.id));
+        this.shouldScroll = true;
+        this.cdr.detectChanges();
+
+        // Refresh conversations list to update title if needed
+        this.chatService.getConversations().subscribe({
+          next: (list) => {
+            this.conversationsList = list || [];
+            this.cdr.detectChanges();
+          }
+        });
+      },
+      error: (err) => {
+        this.isTyping = false;
+        this.messageSubscription = undefined;
+        this.messages.push(this.toChatMessage('عذراً، حدث خطأ أثناء إعادة توليد الرسالة.', false));
+        this.shouldScroll = true;
+        this.cdr.detectChanges();
+        console.error('Error regenerating', err);
+      }
+    });
+  }
+
+  handleEdit(msg: ChatMessage): void {
+    if (!msg.id || !this.conversationId || this.isTyping) return;
+    this.editingMessageId = msg.id;
+    this.editingMessageContent = msg.text;
+  }
+
+  cancelEdit(): void {
+    this.editingMessageId = null;
+    this.editingMessageContent = '';
+  }
+
+  saveEdit(): void {
+    if (!this.editingMessageId || !this.conversationId || this.isTyping) return;
+    const newContent = this.editingMessageContent.trim();
+    if (!newContent) {
+      this.cancelEdit();
+      return;
+    }
+
+    const msgId = this.editingMessageId;
+    this.cancelEdit();
+    this.isTyping = true;
+
+    // Optimistically update UI
+    const targetIdx = this.messages.findIndex(m => m.id === msgId);
+    if (targetIdx !== -1) {
+      this.messages = this.messages.slice(0, targetIdx);
+      this.messages.push(this.toChatMessage(newContent, true, msgId));
+    }
+
+    this.shouldScroll = true;
+
+    this.messageSubscription = this.chatService.editMessage(this.conversationId, msgId, newContent).subscribe({
+      next: (conv) => {
+        this.isTyping = false;
+        this.messageSubscription = undefined;
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user', m.id));
+        this.shouldScroll = true;
+        this.cdr.detectChanges();
+
+        // Refresh conversations list to update title if needed
+        this.chatService.getConversations().subscribe({
+          next: (list) => {
+            this.conversationsList = list || [];
+            this.cdr.detectChanges();
+          }
+        });
+      },
+      error: (err) => {
+        this.isTyping = false;
+        this.messageSubscription = undefined;
+        this.messages.push(this.toChatMessage('عذراً، حدث خطأ أثناء تعديل الرسالة.', false));
+        this.shouldScroll = true;
+        this.cdr.detectChanges();
+        console.error('Error editing', err);
+      }
+    });
+  }
+
+  handleCopy(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      // Optional: show a small toast or indicator
+    }).catch(err => {
+      console.error('Failed to copy text', err);
+    });
+  }
+
+  sendSuggestion(suggestion: string): void {
+    if (this.isTyping) return;
+    this.inputValue = suggestion;
+    this.handleSend();
+  }
+
+  private toChatMessage(text: string, isUser: boolean, id?: string): ChatMessage {
     return {
+      id,
       text,
       isUser,
       time: this.nowLabel(),
@@ -223,8 +559,19 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
   }
 
   private formatMessage(text: string): FormattedMessage {
-    const links = this.extractLinks(text);
-    const withoutUrls = text.replace(this.urlPattern, '').trim();
+    const suggestions: string[] = [];
+    let cleanedText = text;
+
+    // Parse [SUGGESTION: ...]
+    const suggestionRegex = /\[SUGGESTION:\s*(.*?)\]/gi;
+    let match;
+    while ((match = suggestionRegex.exec(text)) !== null) {
+      if (match[1]) suggestions.push(match[1].trim());
+    }
+    cleanedText = cleanedText.replace(suggestionRegex, '').trim();
+
+    const links = this.extractLinks(cleanedText);
+    const withoutUrls = cleanedText.replace(this.urlPattern, '').trim();
     const recommendations = this.extractRecommendations(withoutUrls, links);
     const cleaned = this.cleanMarkdown(withoutUrls);
 
@@ -232,7 +579,8 @@ export class ConciergeComponent implements OnInit, AfterViewChecked {
       direction: this.detectDirection(cleaned),
       paragraphs: this.extractParagraphs(cleaned, recommendations),
       links: links.filter(link => !recommendations.some(item => item.link?.url === link.url)),
-      recommendations
+      recommendations,
+      suggestions
     };
   }
 

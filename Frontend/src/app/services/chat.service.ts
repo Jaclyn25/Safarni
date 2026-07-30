@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface ChatMessage {
+  id?: string;
   role: string;
   content: string;
 }
@@ -20,7 +21,7 @@ export interface Conversation {
 export class ChatService {
   private apiUrl = 'http://localhost:5110/api/Chat';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   private getHeaders(): HttpHeaders {
     const token = localStorage.getItem('access_token');
@@ -51,6 +52,10 @@ export class ChatService {
 
   regenerateResponse(conversationId: string): Observable<Conversation> {
     return this.http.post<Conversation>(`${this.apiUrl}/regenerate`, { conversationId }, { headers: this.getHeaders() });
+  }
+
+  editMessage(conversationId: string, messageId: string, newContent: string): Observable<Conversation> {
+    return this.http.post<Conversation>(`${this.apiUrl}/edit`, { conversationId, messageId, newContent }, { headers: this.getHeaders() });
   }
 
   deleteConversation(id: string): Observable<{ success: boolean }> {

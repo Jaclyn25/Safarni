@@ -86,22 +86,58 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             .TakeLast(MaxHistoryMessages)
             .Select(m => new ChatMessageDto
             {
+                Id = m.Id,
                 Role = m.Role,
                 Content = m.Content
             })
             .ToList();
 
-        var intent = _intentDetectionService.DetectIntent(request.Message);
-        _logger.LogInformation("Detected Chat Intent: {Intent}", intent);
+        var intentResult = await _intentDetectionService.DetectIntentAsync(request.Message, history, cancellationToken);
+        var intent = intentResult.Intent;
+        var standaloneQuery = intentResult.StandaloneQuery;
+
+        _logger.LogInformation("Detected Chat Intent: {Intent}, Standalone Query: {Query}", intent, standaloneQuery);
+
+        if (intent == ChatIntent.OutOfDomain)
+        {
+            var outOfDomainText = _configuration["Groq:RefusalMessage"] ?? "أنا مساعد ذكي متخصص في السياحة والسفر لمنصة سافرني. للأسف لا يمكنني الإجابة على أسئلة خارج هذا التخصص.";
+            var outOfDomainMsg = new ConversationMessage
+            {
+                Id = Guid.NewGuid(),
+                ConversationId = conversation.Id,
+                Role = "assistant",
+                Content = outOfDomainText,
+                CreatedAt = DateTime.UtcNow
+            };
+            conversation.Messages.Add(outOfDomainMsg);
+            await _repository.AddMessageAsync(outOfDomainMsg, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return new ConversationDto
+            {
+                Id = conversation.Id,
+                Title = conversation.Title,
+                CreatedAt = conversation.CreatedAt,
+                Messages = conversation.Messages
+                    .OrderBy(m => m.CreatedAt)
+                    .Select(m => new ChatMessageDto
+                    {
+                        Id = m.Id,
+                        Role = m.Role,
+                        Content = m.Content
+                    })
+                    .ToList()
+            };
+        }
 
         // STEP 1: Search Database FIRST (RAG)
-        _logger.LogInformation("Step 1: Searching RAG Database for message context: {Message}", request.Message);
+        _logger.LogInformation("Step 1: Searching RAG Database for message context: {Message}", standaloneQuery);
         List<DocumentChunk>? contextChunks = null;
         try
         {
             if (await _qdrantService.IsHealthyAsync())
             {
-                var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(request.Message);
+                var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(standaloneQuery);
                 var topK = int.TryParse(_configuration["RAG:TopK"], out var k) ? k : MaxContextChunks;
                 contextChunks = await _qdrantService.SearchSimilarChunksAsync(queryEmbedding, Math.Min(topK, MaxContextChunks));
             }
@@ -113,7 +149,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
 
         if (contextChunks == null || contextChunks.Count == 0)
         {
-            contextChunks = await GetSqlFallbackChunksAsync(request.Message, cancellationToken);
+            contextChunks = await GetSqlFallbackChunksAsync(standaloneQuery, cancellationToken);
         }
 
         if (contextChunks.Count > MaxContextChunks)
@@ -140,14 +176,14 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             else
             {
                 // STEP 2: If NOT in Database -> Check Google Places API
-                _logger.LogInformation("Step 2: No data in Database. Searching Google Places API for message: {Message}", request.Message);
+                _logger.LogInformation("Step 2: No data in Database. Searching Google Places API for message: {Message}", standaloneQuery);
                 List<PlaceDetails>? places = null;
                 try
                 {
                     places = await _googlePlacesService.TextSearchAsync(
-                        request.Message,
+                        standaloneQuery,
                         cancellationToken,
-                        _promptBuilder.GetGooglePlacesLanguageCode(request.Message));
+                        _promptBuilder.GetGooglePlacesLanguageCode(standaloneQuery));
                 }
                 catch (Exception ex)
                 {
@@ -163,39 +199,40 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                 }
                 else
                 {
-                // STEP 3: NEITHER DB NOR GOOGLE PLACES HAS IT -> Refuse to answer from external AI knowledge!
-                _logger.LogInformation("No data found in Database or Google Places API. Returning refusal message.");
-                var refusalText = _promptBuilder.BuildKnowledgeNotFoundMessage(request.Message);
+                    // STEP 3: NEITHER DB NOR GOOGLE PLACES HAS IT -> Refuse to answer from external AI knowledge!
+                    _logger.LogInformation("No data found in Database or Google Places API. Returning refusal message.");
+                    var refusalText = _promptBuilder.BuildKnowledgeNotFoundMessage(request.Message);
 
-                var refusalMsg = new ConversationMessage
-                {
-                    Id = Guid.NewGuid(),
-                    ConversationId = conversation.Id,
-                    Role = "assistant",
-                    Content = refusalText,
-                    CreatedAt = DateTime.UtcNow
-                };
-                conversation.Messages.Add(refusalMsg);
-                await _repository.AddMessageAsync(refusalMsg, cancellationToken);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    var refusalMsg = new ConversationMessage
+                    {
+                        Id = Guid.NewGuid(),
+                        ConversationId = conversation.Id,
+                        Role = "assistant",
+                        Content = refusalText,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    conversation.Messages.Add(refusalMsg);
+                    await _repository.AddMessageAsync(refusalMsg, cancellationToken);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                return new ConversationDto
-                {
-                    Id = conversation.Id,
-                    Title = conversation.Title,
-                    CreatedAt = conversation.CreatedAt,
-                    Messages = conversation.Messages
-                        .OrderBy(m => m.CreatedAt)
-                        .Select(m => new ChatMessageDto
-                        {
-                            Role = m.Role,
-                            Content = m.Content
-                        })
-                        .ToList()
-                };
+                    return new ConversationDto
+                    {
+                        Id = conversation.Id,
+                        Title = conversation.Title,
+                        CreatedAt = conversation.CreatedAt,
+                        Messages = conversation.Messages
+                            .OrderBy(m => m.CreatedAt)
+                            .Select(m => new ChatMessageDto
+                            {
+                                Id = m.Id,
+                                Role = m.Role,
+                                Content = m.Content
+                            })
+                            .ToList()
+                    };
+                }
             }
         }
-    }
 
         var userPrompt = _promptBuilder.BuildUserPrompt(request.Message);
         _logger.LogInformation("Sending prompt to LLM (System Prompt Length: {Len}).", systemPrompt.Length);
@@ -223,6 +260,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                 .OrderBy(m => m.CreatedAt)
                 .Select(m => new ChatMessageDto
                 {
+                    Id = m.Id,
                     Role = m.Role,
                     Content = m.Content
                 })

@@ -46,11 +46,19 @@ export interface FormattedMessage {
 }
 
 export interface ChatMessage {
+  id: string;
   text: string;
   isUser: boolean;
   time: string;
   kind: 'normal' | 'error';
   formatted: FormattedMessage;
+  versions?: string[];
+  activeVersionIndex?: number;
+  isEditing?: boolean;
+  editText?: string;
+  copied?: boolean;
+  isRegenerating?: boolean;
+  isSaved?: boolean;
 }
 
 export interface GroupedConversations {
@@ -93,14 +101,6 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   ];
   currentThinkingIndex = 0;
   private thinkingTimer?: any;
-
-  // Context Prompt Chips
-  contextPrompts = [
-    { label: '📍 Destination', prompt: 'Where is the best place for a 5-day vacation in ' },
-    { label: '📅 5-Day Trip', prompt: 'Build a detailed 5-day itinerary for ' },
-    { label: '💰 Budget Tips', prompt: 'How much budget do I need for a 7-day trip to ' },
-    { label: '🛂 Visa Requirement', prompt: 'What are the visa requirements for traveling to ' }
-  ];
 
   // Empty State Prompt Cards
   emptyStateCards = [
@@ -349,13 +349,6 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.handleSend();
   }
 
-  appendPrompt(promptPrefix: string): void {
-    this.inputValue = promptPrefix;
-    if (this.textareaRef) {
-      this.textareaRef.nativeElement.focus();
-    }
-  }
-
   executeActionChip(chip: ActionChip): void {
     if (chip.actionType === 'planner') {
       this.router.navigate(['/planner'], { queryParams: { trip: chip.promptText } });
@@ -363,6 +356,114 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.useSuggestion(chip.promptText);
     }
   }
+
+  // --- Message Controls & Toolbar Methods ---
+
+  copyMessage(m: ChatMessage): void {
+    if (!m.text) return;
+    navigator.clipboard.writeText(m.text).then(() => {
+      m.copied = true;
+      this.cdr.detectChanges();
+      setTimeout(() => {
+        m.copied = false;
+        this.cdr.detectChanges();
+      }, 2000);
+    }).catch(err => {
+      console.error('Clipboard copy failed', err);
+    });
+  }
+
+  startEdit(m: ChatMessage): void {
+    m.isEditing = true;
+    m.editText = m.text;
+  }
+
+  cancelEdit(m: ChatMessage): void {
+    m.isEditing = false;
+    m.editText = undefined;
+  }
+
+  saveEditAndResend(m: ChatMessage): void {
+    if (!m.editText || !m.editText.trim() || this.isTyping) return;
+
+    const newText = m.editText.trim();
+    const index = this.messages.indexOf(m);
+    if (index === -1) return;
+
+    // Truncate message history after this user message
+    this.messages = this.messages.slice(0, index + 1);
+
+    m.text = newText;
+    m.isEditing = false;
+    m.editText = undefined;
+    m.formatted = this.formatMessage(newText, true);
+
+    this.shouldScroll = true;
+    this.startThinkingAnimation();
+
+    if (this.conversationId) {
+      this.sendMessage(this.conversationId, newText);
+    }
+  }
+
+  regenerateAiResponse(m: ChatMessage): void {
+    if (this.isTyping || !this.conversationId) return;
+
+    m.isRegenerating = true;
+    this.startThinkingAnimation();
+
+    this.chatService.regenerateResponse(this.conversationId).subscribe({
+      next: (conv) => {
+        this.stopThinkingAnimation();
+        m.isRegenerating = false;
+
+        const updatedMessages = conv.messages;
+        const lastAiMsg = updatedMessages[updatedMessages.length - 1];
+
+        if (lastAiMsg && lastAiMsg.role !== 'user') {
+          const newText = lastAiMsg.content;
+
+          m.versions = m.versions || [m.text];
+          m.versions.push(newText);
+          m.activeVersionIndex = m.versions.length - 1;
+
+          m.text = newText;
+          m.formatted = this.formatMessage(newText, false);
+        }
+
+        this.refreshConversations();
+        this.shouldScroll = true;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.stopThinkingAnimation();
+        m.isRegenerating = false;
+        console.error('Failed to regenerate response', err);
+        this.addErrorMessage('Unable to regenerate response. Please try again.');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  switchVersion(m: ChatMessage, delta: number): void {
+    if (!m.versions || m.versions.length <= 1) return;
+
+    const currentIdx = m.activeVersionIndex || 0;
+    const newIdx = currentIdx + delta;
+
+    if (newIdx >= 0 && newIdx < m.versions.length) {
+      m.activeVersionIndex = newIdx;
+      m.text = m.versions[newIdx];
+      m.formatted = this.formatMessage(m.text, false);
+      this.cdr.detectChanges();
+    }
+  }
+
+  toggleSaveMessage(m: ChatMessage): void {
+    m.isSaved = !m.isSaved;
+  }
+
+  // --- Private Helpers ---
 
   private startThinkingAnimation(): void {
     this.isTyping = true;
@@ -435,11 +536,14 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private toChatMessage(text: string, isUser: boolean, kind: 'normal' | 'error' = 'normal'): ChatMessage {
     return {
+      id: Math.random().toString(36).substring(2, 9),
       text,
       isUser,
       time: this.nowLabel(),
       kind,
-      formatted: this.formatMessage(text, isUser)
+      formatted: this.formatMessage(text, isUser),
+      versions: isUser ? undefined : [text],
+      activeVersionIndex: isUser ? undefined : 0
     };
   }
 
@@ -636,5 +740,3 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
       .filter(Boolean);
   }
 }
-// Refreshed ConciergeComponent for Angular Language Server
-

@@ -164,7 +164,7 @@
     }
 
     <!-- Messages Canvas -->
-    <div class="flex-grow overflow-y-auto custom-scrollbar space-y-6 pb-40" #chatMessages>
+    <div class="flex-grow overflow-y-auto custom-scrollbar space-y-6 pb-32" #chatMessages>
 
       <!-- Empty State Workspace -->
       @if (!messages.length && !isTyping && !isLoadingConversation) {
@@ -209,22 +209,76 @@
       }
 
       <!-- Render Messages -->
-      @for (m of messages; track $index) {
+      @for (m of messages; track m.id || $index) {
 
-        <!-- User Message Bubble (Compact) -->
+        <!-- User Message Bubble (Compact + Inline Edit + Toolbar) -->
         @if (m.isUser) {
-          <div class="flex items-start gap-3 max-w-2xl ml-auto flex-row-reverse message-entrance">
+          <div class="flex items-start gap-3 max-w-2xl ml-auto flex-row-reverse message-entrance group">
             <div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center flex-shrink-0 text-label-sm font-bold shadow-sm">
               <span class="material-symbols-outlined text-[16px]">person</span>
             </div>
-            <div class="space-y-1 text-right max-w-full">
-              <div
-                class="bg-primary text-on-primary px-4 py-2.5 rounded-2xl rounded-tr-none text-body-md shadow-sm text-right"
-                [dir]="m.formatted.direction"
-              >
-                {{ m.text }}
-              </div>
-              <span class="text-label-sm text-on-surface-variant opacity-50 block mr-1">{{ m.time }}</span>
+
+            <div class="space-y-1.5 text-right max-w-full min-w-0">
+
+              <!-- User Inline Edit Container -->
+              @if (m.isEditing) {
+                <div class="bg-surface-container-lowest border border-primary/40 rounded-2xl p-3 shadow-md text-right space-y-2">
+                  <textarea
+                    [(ngModel)]="m.editText"
+                    rows="3"
+                    class="w-full bg-transparent border border-outline-variant/30 rounded-xl p-2.5 text-body-md text-on-surface outline-none focus:border-primary concierge-textarea"
+                    placeholder="Edit your travel request..."
+                  ></textarea>
+
+                  <div class="flex items-center justify-end gap-2">
+                    <button
+                      (click)="cancelEdit(m)"
+                      class="px-3 py-1.5 rounded-lg text-label-sm text-on-surface-variant hover:bg-surface-container font-semibold transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      (click)="saveEditAndResend(m)"
+                      [disabled]="!m.editText?.trim() || isTyping"
+                      class="px-3 py-1.5 rounded-lg text-label-sm bg-primary text-on-primary font-bold shadow-sm hover:bg-primary/90 disabled:opacity-40 transition-all"
+                    >
+                      Save & Resend
+                    </button>
+                  </div>
+                </div>
+
+              <!-- Standard User Bubble -->
+              } @else {
+                <div
+                  class="bg-primary text-on-primary px-4 py-2.5 rounded-2xl rounded-tr-none text-body-md shadow-sm text-right inline-block"
+                  [dir]="m.formatted.direction"
+                >
+                  {{ m.text }}
+                </div>
+
+                <!-- User Message Hover Toolbar -->
+                <div class="flex items-center justify-end gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span class="text-label-sm text-on-surface-variant opacity-50 mr-1">{{ m.time }}</span>
+
+                  <button
+                    (click)="copyMessage(m)"
+                    [class]="'msg-toolbar-btn ' + (m.copied ? 'copied' : '')"
+                    [title]="m.copied ? 'Copied!' : 'Copy message'"
+                  >
+                    <span class="material-symbols-outlined text-[16px]">
+                      {{ m.copied ? 'check' : 'content_copy' }}
+                    </span>
+                  </button>
+
+                  <button
+                    (click)="startEdit(m)"
+                    class="msg-toolbar-btn"
+                    title="Edit request"
+                  >
+                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                  </button>
+                </div>
+              }
             </div>
           </div>
 
@@ -245,18 +299,55 @@
             </div>
           </div>
 
-        <!-- AI Assistant Travel Card Response -->
+        <!-- AI Assistant Travel Card Response + Version Switcher + Toolbar -->
         } @else {
-          <div class="flex items-start gap-3.5 max-w-3xl message-entrance">
+          <div class="flex items-start gap-3.5 max-w-3xl message-entrance group">
             <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center shadow-md flex-shrink-0 mt-0.5">
               <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
             </div>
 
-            <div class="space-y-3 min-w-0 flex-1">
+            <div class="space-y-2 min-w-0 flex-1">
+
+              <!-- Version Switcher Header (when multiple versions exist) -->
+              @if (m.versions && m.versions.length > 1) {
+                <div class="flex items-center gap-2 mb-1">
+                  <div class="version-switcher">
+                    <button
+                      (click)="switchVersion(m, -1)"
+                      [disabled]="(m.activeVersionIndex || 0) <= 0"
+                      class="hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Previous version"
+                    >
+                      <span class="material-symbols-outlined text-[14px]">chevron_left</span>
+                    </button>
+
+                    <span>{{ (m.activeVersionIndex || 0) + 1 }} / {{ m.versions.length }}</span>
+
+                    <button
+                      (click)="switchVersion(m, 1)"
+                      [disabled]="(m.activeVersionIndex || 0) >= m.versions.length - 1"
+                      class="hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Next version"
+                    >
+                      <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                    </button>
+                  </div>
+                </div>
+              }
+
+              <!-- Main AI Response Card -->
               <div
-                class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl rounded-tl-none p-5 shadow-sm text-body-md text-on-surface space-y-4"
+                class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl rounded-tl-none p-5 shadow-sm text-body-md text-on-surface space-y-4 relative"
                 [dir]="m.formatted.direction"
               >
+                <!-- Inline Regeneration Loader -->
+                @if (m.isRegenerating) {
+                  <div class="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl flex items-center justify-center gap-2 text-primary font-bold text-label-md z-10">
+                    <span class="material-symbols-outlined animate-spin text-[20px]">sync</span>
+                    <span>Generating new response...</span>
+                  </div>
+                }
+
                 <!-- Response Summary Header -->
                 @if (m.formatted.summary) {
                   <div class="bg-primary/5 p-4 rounded-xl border-l-4 border-primary text-on-surface font-medium text-body-md">
@@ -335,7 +426,7 @@
                 }
               </div>
 
-              <!-- Post-Response Interactive Action Chips -->
+              <!-- Post-Response Interactive Action Chips (for trip plans) -->
               @if (m.formatted.actionChips.length) {
                 <div class="flex flex-wrap gap-2 pt-1">
                   @for (chip of m.formatted.actionChips; track chip.label) {
@@ -347,7 +438,46 @@
                 </div>
               }
 
-              <span class="text-label-sm text-on-surface-variant opacity-50 block ml-1">{{ m.time }}</span>
+              <!-- AI Message Toolbar & Timestamp -->
+              <div class="flex items-center justify-between pt-1">
+                <span class="text-label-sm text-on-surface-variant opacity-50 ml-1">{{ m.time }}</span>
+
+                <!-- Action Toolbar Icons -->
+                <div class="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                  <!-- Copy Button -->
+                  <button
+                    (click)="copyMessage(m)"
+                    [class]="'msg-toolbar-btn ' + (m.copied ? 'copied' : '')"
+                    [title]="m.copied ? 'Copied!' : 'Copy response'"
+                  >
+                    <span class="material-symbols-outlined text-[16px]">
+                      {{ m.copied ? 'check' : 'content_copy' }}
+                    </span>
+                  </button>
+
+                  <!-- Regenerate Button -->
+                  <button
+                    (click)="regenerateAiResponse(m)"
+                    [disabled]="isTyping"
+                    class="msg-toolbar-btn disabled:opacity-40"
+                    title="Regenerate response"
+                  >
+                    <span class="material-symbols-outlined text-[16px]">refresh</span>
+                  </button>
+
+                  <!-- Bookmark / Save Button -->
+                  <button
+                    (click)="toggleSaveMessage(m)"
+                    [class]="'msg-toolbar-btn ' + (m.isSaved ? 'text-primary' : '')"
+                    [title]="m.isSaved ? 'Saved to trip ideas' : 'Save response'"
+                  >
+                    <span class="material-symbols-outlined text-[16px]" [style.font-variation-settings]="m.isSaved ? '\'FILL\' 1' : '\'FILL\' 0'">
+                      bookmark
+                    </span>
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         }
@@ -368,7 +498,7 @@
 
     <!-- Stop Response Control -->
     @if (isTyping) {
-      <div class="absolute bottom-28 left-1/2 -translate-x-1/2 z-50">
+      <div class="absolute bottom-24 left-1/2 -translate-x-1/2 z-50">
         <button
           (click)="stopResponse()"
           class="flex items-center gap-2 bg-surface-container-lowest border border-error/30 text-error py-2 px-5 rounded-full shadow-md hover:bg-error/5 transition-all text-label-md font-bold"
@@ -381,8 +511,6 @@
 
     <!-- Smart Input Bar -->
     <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%_-_32px)] max-w-3xl z-50">
-
-      <!-- Main Textarea Container -->
       <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-[0_8px_32px_rgba(15,23,42,0.08)] p-2.5 flex items-end gap-3 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
         <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mb-0.5">
           <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>

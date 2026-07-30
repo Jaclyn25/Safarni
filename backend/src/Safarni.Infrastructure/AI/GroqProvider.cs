@@ -1,14 +1,10 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -18,13 +14,16 @@ namespace ChatBotApi.Infrastructure.AI;
 
 public class GroqProvider : IAIProvider
 {
+    private const string CompletionsUrl =
+        "https://api.groq.com/openai/v1/chat/completions";
+
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly ILogger<GroqProvider> _logger;
 
     public GroqProvider(
-        IHttpClientFactory httpClientFactory, 
-        IConfiguration configuration, 
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration,
         ILogger<GroqProvider> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -32,149 +31,544 @@ public class GroqProvider : IAIProvider
         _logger = logger;
     }
 
-    public async Task<string> GetChatCompletionAsync(
-        string systemPrompt, 
-        List<ChatMessageDto> history, 
-        string userMessage, 
+    public Task<string> GetChatCompletionAsync(
+        string systemPrompt,
+        List<ChatMessageDto> history,
+        string userMessage,
         CancellationToken cancellationToken = default)
     {
-        var apiKey = _configuration["Groq:ApiKey"] ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
-        var model = _configuration["Groq:Model"] ?? "llama-3.3-70b-versatile";
-        var temperature = double.TryParse(_configuration["Groq:Temperature"], out var temp) ? temp : 0.7;
-        var maxTokens = int.TryParse(_configuration["Groq:MaxTokens"], out var tokens) ? tokens : 1200;
-        var topP = double.TryParse(_configuration["Groq:TopP"], out var p) ? p : 0.9;
-        var timeoutSeconds = int.TryParse(_configuration["Groq:TimeoutSeconds"], out var sec) ? sec : 30;
+        return GetChatCompletionCoreAsync(
+            systemPrompt,
+            history,
+            userMessage,
+            options: null,
+            cancellationToken);
+    }
 
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            _logger.LogError("Groq API Key is not configured.");
-            throw new InvalidOperationException("إعدادات المزود غير صحيحة: مفتاح API غير متوفر.");
-        }
+    public async Task<string> GetChatCompletionAsync(
+        string systemPrompt,
+        List<ChatMessageDto> history,
+        string userMessage,
+        AICompletionOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        return await GetChatCompletionCoreAsync(
+            systemPrompt,
+            history,
+            userMessage,
+            options,
+            cancellationToken);
+    }
 
-        var messages = new List<object>
-        {
-            new { role = "system", content = systemPrompt }
-        };
+    private async Task<string> GetChatCompletionCoreAsync(
+        string systemPrompt,
+        List<ChatMessageDto> history,
+        string userMessage,
+        AICompletionOptions? options,
+        CancellationToken cancellationToken)
+    {
+        var settings = GetSettings();
 
-        foreach (var msg in history)
-        {
-            messages.Add(new { role = msg.Role, content = msg.Content });
-        }
+        var requestBody = CreateRequestBody(
+            settings,
+            systemPrompt,
+            history,
+            userMessage,
+            stream: false,
+            options);
 
-        messages.Add(new { role = "user", content = userMessage });
+        using var client = CreateClient(
+            settings.TimeoutSeconds);
 
-        var requestBody = new
-        {
-            model = model,
-            messages = messages,
-            temperature = temperature,
-            max_tokens = maxTokens,
-            top_p = topP
-        };
-
-        var jsonRequestBody = JsonSerializer.Serialize(requestBody);
-        var promptSize = jsonRequestBody.Length;
-        _logger.LogInformation("Sending chat completion request. Prompt size: {PromptSize} characters. Model: {Model}.", promptSize, model);
-
-        using var client = _httpClientFactory.CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-
-        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        request.Content = new StringContent(jsonRequestBody, Encoding.UTF8, "application/json");
+        using var request = CreateRequest(
+            settings.ApiKey,
+            requestBody);
 
         var stopwatch = Stopwatch.StartNew();
-        HttpResponseMessage response;
 
-        try
-        {
-            response = await client.SendAsync(request, cancellationToken);
-        }
-        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
-        {
-            _logger.LogError(ex, "Request to Groq API timed out after {Timeout} seconds.", timeoutSeconds);
-            throw new TimeoutException("انتهت مهلة الاتصال بمزود الذكاء الاصطناعي. الرجاء المحاولة لاحقاً.", ex);
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "Network error occurred when contacting Groq API.");
-            throw new HttpRequestException("فشل الاتصال بالإنترنت أثناء التواصل مع خادم الذكاء الاصطناعي.", ex);
-        }
+        using var response = await SendAsync(
+            client,
+            request,
+            HttpCompletionOption.ResponseContentRead,
+            settings.TimeoutSeconds,
+            cancellationToken);
 
         stopwatch.Stop();
-        var elapsedMs = stopwatch.ElapsedMilliseconds;
 
-        _logger.LogInformation("Received Groq response in {ElapsedMs} ms. Status code: {StatusCode}", elapsedMs, response.StatusCode);
+        _logger.LogInformation(
+            "Received Groq response in {ElapsedMs} ms. Status code: {StatusCode}",
+            stopwatch.ElapsedMilliseconds,
+            response.StatusCode);
 
-        if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
-        {
-            _logger.LogError("Groq API Key is unauthorized. Status: {StatusCode}", response.StatusCode);
-            throw new UnauthorizedAccessException("مفتاح API الخاص بمزود الذكاء الاصطناعي غير صالح أو غير مصرح به.");
-        }
+        await EnsureSuccessAsync(
+            response,
+            cancellationToken);
 
-        if (response.StatusCode == (HttpStatusCode)429)
-        {
-            _logger.LogWarning("Groq API rate limit exceeded.");
-            throw new HttpRequestException("تجاوزت حد الطلبات المسموح به لمزود الذكاء الاصطناعي (Rate Limit). يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.");
-        }
+        var responseContent =
+            await response.Content.ReadAsStringAsync(
+                cancellationToken);
 
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogError("Groq API returned failure status code: {StatusCode}. Body: {Body}", response.StatusCode, errorContent);
-            throw new HttpRequestException("حدث خطأ في خدمة الذكاء الاصطناعي. يرجى المحاولة لاحقاً.");
-        }
+        var result =
+            JsonSerializer.Deserialize<GroqResponseJson>(
+                responseContent,
+                JsonOptions);
 
-        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-        
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        var deserialized = JsonSerializer.Deserialize<GroqResponseJson>(responseContent, options);
+        var reply =
+            result?.Choices?[0]?.Message?.Content;
 
-        var reply = deserialized?.Choices?[0]?.Message?.Content;
         if (string.IsNullOrWhiteSpace(reply))
         {
-            _logger.LogError("Groq response does not contain choices message content. Body: {Body}", responseContent);
-            throw new InvalidOperationException("تلقينا رداً فارغاً من مزود الذكاء الاصطناعي.");
+            _logger.LogError(
+                "Groq response did not contain message content. Body: {Body}",
+                responseContent);
+
+            throw new InvalidOperationException(
+                "The AI provider returned an empty response.");
         }
 
-        if (deserialized?.Usage != null)
+        if (result?.Usage is not null)
         {
             _logger.LogInformation(
-                "Token usage: Prompt: {PromptTokens}, Completion: {CompletionTokens}, Total: {TotalTokens}",
-                deserialized.Usage.PromptTokens,
-                deserialized.Usage.CompletionTokens,
-                deserialized.Usage.TotalTokens
-            );
+                "Token usage. Prompt: {PromptTokens}, Completion: {CompletionTokens}, Total: {TotalTokens}",
+                result.Usage.PromptTokens,
+                result.Usage.CompletionTokens,
+                result.Usage.TotalTokens);
         }
 
         return reply;
     }
 
-    private class GroqResponseJson
+    public async IAsyncEnumerable<string>
+        StreamChatCompletionAsync(
+            string systemPrompt,
+            List<ChatMessageDto> history,
+            string userMessage,
+            [EnumeratorCancellation]
+            CancellationToken cancellationToken = default)
     {
-        public List<GroqChoiceJson>? Choices { get; set; }
-        public GroqUsageJson? Usage { get; set; }
+        var settings = GetSettings();
+
+        var requestBody = CreateRequestBody(
+            settings,
+            systemPrompt,
+            history,
+            userMessage,
+            stream: true,
+            options: null);
+
+        using var client = CreateClient(
+            settings.TimeoutSeconds);
+
+        using var request = CreateRequest(
+            settings.ApiKey,
+            requestBody);
+
+        using var response = await SendAsync(
+            client,
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            settings.TimeoutSeconds,
+            cancellationToken);
+
+        await EnsureSuccessAsync(
+            response,
+            cancellationToken);
+
+        await using var responseStream =
+            await response.Content.ReadAsStreamAsync(
+                cancellationToken);
+
+        using var reader =
+            new StreamReader(responseStream);
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var line = await reader.ReadLineAsync(
+                cancellationToken);
+
+            if (line is null)
+            {
+                yield break;
+            }
+
+            if (string.IsNullOrWhiteSpace(line) ||
+                !line.StartsWith(
+                    "data:",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var data = line[5..].Trim();
+
+            if (data == "[DONE]")
+            {
+                yield break;
+            }
+
+            GroqStreamResponseJson? streamResponse;
+
+            try
+            {
+                streamResponse =
+                    JsonSerializer.Deserialize
+                        <GroqStreamResponseJson>(
+                            data,
+                            JsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Could not parse one Groq streaming event: {EventData}",
+                    data);
+
+                continue;
+            }
+
+            var content =
+                streamResponse?
+                    .Choices?[0]?
+                    .Delta?
+                    .Content;
+
+            if (!string.IsNullOrEmpty(content))
+            {
+                yield return content;
+            }
+        }
     }
 
-    private class GroqChoiceJson
+    private GroqSettings GetSettings()
     {
-        public GroqMessageJson? Message { get; set; }
+        var apiKey =
+            _configuration["Groq:ApiKey"] ??
+            Environment.GetEnvironmentVariable(
+                "GROQ_API_KEY");
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            _logger.LogError(
+                "Groq API key is not configured.");
+
+            throw new InvalidOperationException(
+                "Groq API key is not configured.");
+        }
+
+        return new GroqSettings(
+            apiKey,
+            _configuration["Groq:Model"]
+                ?? "llama-3.3-70b-versatile",
+
+            double.TryParse(
+                _configuration["Groq:Temperature"],
+                out var temperature)
+                    ? temperature
+                    : 0.7,
+
+            int.TryParse(
+                _configuration["Groq:MaxTokens"],
+                out var maxTokens)
+                    ? maxTokens
+                    : 1200,
+
+            double.TryParse(
+                _configuration["Groq:TopP"],
+                out var topP)
+                    ? topP
+                    : 0.9,
+
+            int.TryParse(
+                _configuration["Groq:TimeoutSeconds"],
+                out var timeoutSeconds)
+                    ? timeoutSeconds
+                    : 30);
     }
 
-    private class GroqMessageJson
+    private static object CreateRequestBody(
+        GroqSettings settings,
+        string systemPrompt,
+        IEnumerable<ChatMessageDto> history,
+        string userMessage,
+        bool stream,
+        AICompletionOptions? options)
     {
-        public string? Content { get; set; }
+        var messages = new List<object>
+        {
+            new
+            {
+                role = "system",
+                content = systemPrompt
+            }
+        };
+
+        messages.AddRange(
+            history.Select(message => new
+            {
+                role = message.Role,
+                content = message.Content
+            }));
+
+        messages.Add(new
+        {
+            role = "user",
+            content = userMessage
+        });
+
+        var requestBody = new Dictionary<string, object?>
+        {
+            ["model"] = settings.Model,
+            ["messages"] = messages,
+            ["temperature"] = settings.Temperature,
+            ["max_tokens"] =
+                options?.MaxTokens is > 0
+                    ? Math.Min(
+                        options.MaxTokens.Value,
+                        settings.MaxTokens)
+                    : settings.MaxTokens,
+            ["top_p"] = settings.TopP,
+            ["stream"] = stream
+        };
+
+        if (!string.IsNullOrWhiteSpace(
+                options?.ReasoningEffort))
+        {
+            requestBody["reasoning_effort"] =
+                options.ReasoningEffort;
+        }
+
+        return requestBody;
     }
 
-    private class GroqUsageJson
+    private HttpClient CreateClient(
+        int timeoutSeconds)
+    {
+        var client =
+            _httpClientFactory.CreateClient();
+
+        client.Timeout =
+            TimeSpan.FromSeconds(
+                timeoutSeconds);
+
+        return client;
+    }
+
+    private static HttpRequestMessage CreateRequest(
+        string apiKey,
+        object requestBody)
+    {
+        var request =
+            new HttpRequestMessage(
+                HttpMethod.Post,
+                CompletionsUrl);
+
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue(
+                "Bearer",
+                apiKey);
+
+        request.Content =
+            new StringContent(
+                JsonSerializer.Serialize(
+                    requestBody),
+                Encoding.UTF8,
+                "application/json");
+
+        return request;
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(
+        HttpClient client,
+        HttpRequestMessage request,
+        HttpCompletionOption completionOption,
+        int timeoutSeconds,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await client.SendAsync(
+                request,
+                completionOption,
+                cancellationToken);
+        }
+        catch (TaskCanceledException ex)
+            when (!cancellationToken
+                .IsCancellationRequested)
+        {
+            _logger.LogError(
+                ex,
+                "Groq request timed out after {TimeoutSeconds} seconds.",
+                timeoutSeconds);
+
+            throw new TimeoutException(
+                "The AI provider request timed out.",
+                ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(
+                ex,
+                "Could not connect to the Groq API.");
+
+            throw new HttpRequestException(
+                "Could not connect to the AI provider.",
+                ex);
+        }
+    }
+
+    private async Task EnsureSuccessAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var body =
+            await response.Content.ReadAsStringAsync(
+                cancellationToken);
+
+        if (response.StatusCode is
+            HttpStatusCode.Unauthorized or
+            HttpStatusCode.Forbidden)
+        {
+            _logger.LogError(
+                "Groq rejected the API key. Status: {StatusCode}",
+                response.StatusCode);
+
+            throw new UnauthorizedAccessException(
+                "The AI provider API key is invalid or unauthorized.");
+        }
+
+        if (response.StatusCode ==
+            HttpStatusCode.RequestEntityTooLarge)
+        {
+            _logger.LogWarning(
+                "Groq rejected an oversized request. Body: {Body}",
+                body);
+
+            throw new HttpRequestException(
+                "The AI request is too large. Reduce the number of places or the requested output size.");
+        }
+
+        if (response.StatusCode ==
+            HttpStatusCode.TooManyRequests)
+        {
+            _logger.LogWarning(
+                "Groq rate limit was exceeded. Body: {Body}",
+                body);
+
+            throw new HttpRequestException(
+                "The AI provider rate limit was exceeded. Please try again shortly.");
+        }
+
+        _logger.LogError(
+            "Groq returned {StatusCode}. Body: {Body}",
+            response.StatusCode,
+            body);
+
+        throw new HttpRequestException(
+            "The AI provider returned an error.");
+    }
+
+    private static readonly JsonSerializerOptions
+        JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+    private sealed record GroqSettings(
+        string ApiKey,
+        string Model,
+        double Temperature,
+        int MaxTokens,
+        double TopP,
+        int TimeoutSeconds);
+
+    private sealed class GroqResponseJson
+    {
+        public List<GroqChoiceJson>? Choices
+        {
+            get;
+            set;
+        }
+
+        public GroqUsageJson? Usage
+        {
+            get;
+            set;
+        }
+    }
+
+    private sealed class GroqChoiceJson
+    {
+        public GroqMessageJson? Message
+        {
+            get;
+            set;
+        }
+    }
+
+    private sealed class GroqMessageJson
+    {
+        public string? Content
+        {
+            get;
+            set;
+        }
+    }
+
+    private sealed class GroqStreamResponseJson
+    {
+        public List<GroqStreamChoiceJson>? Choices
+        {
+            get;
+            set;
+        }
+    }
+
+    private sealed class GroqStreamChoiceJson
+    {
+        public GroqDeltaJson? Delta
+        {
+            get;
+            set;
+        }
+    }
+
+    private sealed class GroqDeltaJson
+    {
+        public string? Content
+        {
+            get;
+            set;
+        }
+    }
+
+    private sealed class GroqUsageJson
     {
         [JsonPropertyName("prompt_tokens")]
-        public int PromptTokens { get; set; }
+        public int PromptTokens
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("completion_tokens")]
-        public int CompletionTokens { get; set; }
+        public int CompletionTokens
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("total_tokens")]
-        public int TotalTokens { get; set; }
+        public int TotalTokens
+        {
+            get;
+            set;
+        }
     }
 }

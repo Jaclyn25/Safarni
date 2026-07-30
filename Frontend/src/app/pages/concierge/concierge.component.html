@@ -68,7 +68,14 @@
     </div>
 
     <!-- Messages Area -->
-    <div class="flex-grow overflow-y-auto custom-scrollbar space-y-6 pb-32" #chatMessages>
+    <div
+      class="flex-grow overflow-y-auto custom-scrollbar space-y-6 pb-32"
+      #chatMessages
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions text"
+      [attr.aria-busy]="isTyping"
+    >
       <!-- Dynamically added messages -->
       @for (m of messages; track $index) {
         @if (m.isUser) {
@@ -95,7 +102,7 @@
                 @if (m.formatted.paragraphs.length) {
                   <div class="assistant-response__prose">
                     @for (paragraph of m.formatted.paragraphs; track $index) {
-                      <p>{{ paragraph }}</p>
+                      <p class="whitespace-pre-wrap">{{ paragraph }}</p>
                     }
                   </div>
                 }
@@ -178,17 +185,24 @@
           <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
         </div>
         <input
-          class="flex-grow bg-transparent border-none focus:ring-0 text-body-md text-on-surface placeholder:text-on-surface-variant/50 py-3"
           placeholder="Ask anything about your trip..."
           type="text"
           [(ngModel)]="inputValue"
           (keyup.enter)="handleSend()"
+          [disabled]="isTyping"
+          aria-label="Chat message"
+          class="flex-grow bg-transparent border-none focus:ring-0 text-body-md text-on-surface placeholder:text-on-surface-variant/50 py-3 disabled:cursor-not-allowed disabled:opacity-60"
         />
         <div class="flex items-center gap-2">
           <button class="p-2 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">
             <span class="material-symbols-outlined">mic</span>
           </button>
-          <button class="ai-gradient text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform" (click)="handleSend()">
+          <button
+            class="ai-gradient text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform disabled:cursor-not-allowed disabled:opacity-50"
+            (click)="handleSend()"
+            [disabled]="isTyping || !inputValue.trim()"
+            aria-label="Send message"
+          >
             <span class="material-symbols-outlined text-[20px]">send</span>
           </button>
         </div>

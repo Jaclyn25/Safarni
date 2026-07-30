@@ -1,0 +1,56 @@
+<app-password-recovery-shell [visualSrc]="visualSrc" visualAlt="Passport and email illustration">
+  <a class="recovery-brand" routerLink="/">
+    Safarni
+  </a>
+
+  <h1 class="recovery-title">
+    Check Your Email
+  </h1>
+
+  <p class="recovery-copy">
+    We've sent a password reset link to<br />
+
+    @if (email) {
+    <strong>{{ email }}</strong>
+    } @else {
+    <strong>your email address</strong>
+    }
+  </p>
+
+  <img class="recovery-email-art" [src]="emailArtSrc" alt="Blue envelope with a confirmation check" />
+
+  <p class="recovery-resend-label">
+    Didn't receive it?
+  </p>
+
+  <button class="recovery-secondary-button" type="button" (click)="resend()" [disabled]="isResending()">
+    @if (isResending()) {
+    <span class="recovery-button-spinner" aria-hidden="true"></span>
+
+    Resending...
+    } @else {
+    Resend Email
+    }
+  </button>
+
+  @if (successMessage()) {
+  <div class="recovery-alert recovery-alert--success" role="status" aria-live="polite">
+    {{ successMessage() }}
+  </div>
+  }
+
+  @if (errorMessage()) {
+  <div class="recovery-alert" role="alert" aria-live="assertive">
+    {{ errorMessage() }}
+  </div>
+  }
+
+  <a class="recovery-back-link" routerLink="/login">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M19 12H5m6-6-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+        stroke-linejoin="round" />
+    </svg>
+
+    Back to Login
+  </a>
+</app-password-recovery-shell>

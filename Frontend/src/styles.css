@@ -4,23 +4,45 @@ html {
   scroll-behavior: smooth;
 }
 
+html,
 body {
-  min-height: max(884px, 100dvh);
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100dvh;
   background-color: #f7f9fb;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: 'Sora', 'Manrope', sans-serif;
+}
+
+/* Prevent default margins from affecting full-screen auth layouts */
+app-root {
+  display: block;
+  min-height: 100dvh;
+}
+
 .material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+
   vertical-align: middle;
 }
 
-/* Page 1 (Explore) */
+/* Page 1: Explore */
+
 .glass-card {
   background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .hide-scrollbar::-webkit-scrollbar {
@@ -29,14 +51,26 @@ body {
 
 .hide-scrollbar {
   -ms-overflow-style: none;
-  scrollbar-width: none;
+}
+
+
+@supports (scrollbar-width: none) {
+  .hide-scrollbar {
+    scrollbar-width: none;
+  }
 }
 
 .hero-gradient {
-  background: radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.05) 0%, transparent 70%);
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(37, 99, 235, 0.05) 0%,
+      transparent 70%
+    );
 }
 
-/* Page 2 (Planner) */
+/* Page 2: Planner */
+
 .timeline-line::before {
   content: '';
   position: absolute;
@@ -44,22 +78,35 @@ body {
   top: 40px;
   bottom: 0;
   width: 2px;
-  background: repeating-linear-gradient(to bottom, #c3c6d7 0, #c3c6d7 8px, transparent 8px, transparent 16px);
+
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      #c3c6d7 0,
+      #c3c6d7 8px,
+      transparent 8px,
+      transparent 16px
+    );
 }
 
 .glass-blur {
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
-/* Page 4 (Concierge) */
+/* Page 4: Concierge */
+
 .glass-effect {
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .ai-gradient {
-  background: linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);
+  background: linear-gradient(
+    135deg,
+    #2563eb 0%,
+    #06b6d4 100%
+  );
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -221,7 +268,7 @@ body {
 .floating-label-input:focus-within label,
 .floating-label-input input:not(:placeholder-shown)+label {
   transform: translateY(-1.25rem) scale(0.85);
-  color: #2563EB;
+  color: #2563eb;
 }
 
 @keyframes float {
@@ -238,4 +285,13 @@ body {
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+
+}
+
+/* Recovery and verification links styled as buttons */
+
+.recovery-primary-button,
+.recovery-secondary-button {
+  text-decoration: none;
+
 }

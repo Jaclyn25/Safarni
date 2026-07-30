@@ -7,10 +7,11 @@ using Safarni.Application.Abstractions.Storage;
 using Safarni.Infrastructure.Authentication;
 using Safarni.Infrastructure.Email;
 using Safarni.Infrastructure.Persistence;
+using Safarni.Infrastructure.Links;
 using Safarni.Infrastructure.Repositories;
 using Safarni.Infrastructure.Security;
 using Safarni.Infrastructure.Storage;
-
+using Safarni.Application.Features.Auth.GoogleLogin;
 namespace Safarni.Infrastructure;
 
 public static class DependencyInjection
@@ -21,6 +22,17 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is missing.");
 
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
+
+	var googleClientId =
+    configuration["GoogleSettings:ClientId"];
+
+if (string.IsNullOrWhiteSpace(googleClientId))
+{
+    throw new InvalidOperationException(
+        "GoogleSettings:ClientId is missing.");
+}
+services.AddSingleton(
+    new GoogleAuthOptions(googleClientId));
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
@@ -30,7 +42,10 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, PasswordHasherService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+        services.Configure<FrontendSettings>(configuration.GetSection("Frontend"));
         services.AddScoped<IEmailService, EmailService>();
+        services.AddSingleton<IPasswordResetLinkFactory, PasswordResetLinkFactory>();
+        services.AddSingleton<IEmailVerificationLinkFactory, EmailVerificationLinkFactory>();
         services.AddScoped<IProfilePhotoStorage, LocalProfilePhotoStorage>();
         services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
 

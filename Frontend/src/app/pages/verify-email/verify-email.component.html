@@ -1,0 +1,64 @@
+<app-password-recovery-shell
+  [visualSrc]="visualSrc"
+  visualAlt="Successful email verification illustration"
+>
+  <a class="recovery-brand" routerLink="/">Safarni</a>
+
+  <div class="recovery-verification-content" aria-live="polite">
+    @switch (state()) {
+      @case ('verifying') {
+        <div class="recovery-status-icon recovery-status-icon--loading" aria-hidden="true">
+          <span class="recovery-large-spinner"></span>
+        </div>
+
+        <h1 class="recovery-title">Verifying Your Email</h1>
+        <p class="recovery-copy">{{ message() }}</p>
+      }
+
+      @case ('success') {
+        <div class="recovery-status-icon recovery-status-icon--success" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="m5 12.5 4.3 4.3L19 7.2"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
+
+        <h1 class="recovery-title">Email Verified!</h1>
+        <p class="recovery-copy">{{ message() }}</p>
+
+        <a class="recovery-primary-button recovery-action-link" routerLink="/login">
+          Continue to Login
+        </a>
+      }
+
+      @case ('error') {
+        <div class="recovery-status-icon recovery-status-icon--error" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 8v5m0 3h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+              stroke="currentColor"
+              stroke-width="1.9"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
+
+        <h1 class="recovery-title">Verification Failed</h1>
+        <p class="recovery-copy">{{ message() }}</p>
+
+        <a class="recovery-secondary-button recovery-action-link" routerLink="/register">
+          Return to Registration
+        </a>
+        <a class="recovery-back-link recovery-back-link--compact" routerLink="/login">
+          Back to Login
+        </a>
+      }
+    }
+  </div>
+</app-password-recovery-shell>

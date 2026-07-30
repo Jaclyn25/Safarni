@@ -1,211 +1,430 @@
 <main class="min-h-screen flex flex-col md:flex-row">
-  <!-- Left Side: Illustration & Brand Atmosphere -->
-  <section class="hidden md:flex flex-1 relative bg-surface-container-lowest overflow-hidden items-center justify-center p-stack-lg">
+  <!-- Left Side: Illustration and Brand Atmosphere -->
+  <section
+    class="hidden md:flex flex-1 relative bg-surface-container-lowest overflow-hidden items-center justify-center p-stack-lg">
     <!-- Background Soft Gradients -->
-    <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary-container/10 rounded-full blur-[100px]"></div>
-    <div class="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] bg-secondary-container/20 rounded-full blur-[80px]"></div>
+    <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary-container/10 rounded-full blur-[100px]">
+    </div>
+
+    <div
+      class="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] bg-secondary-container/20 rounded-full blur-[80px]">
+    </div>
+
     <div class="relative z-10 w-full max-w-lg text-center">
       <div class="mb-stack-lg animate-float">
-        <img alt="Safarni Passport and Compass Illustration" class="w-full h-auto drop-shadow-2xl"
-             src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSgMdlTli39xnonq5GqU3c5D4ETn6VSkFzz-Z6A3kkCHTDtllFwVLQoyLz0wRHozNCby3BsUj31z3HZIvRbRrGhHpvolPiuglpIfzRBBh-lEHhNXox-crvtgoel5dQMLzMUS5eCW938lh9AVmPEEnhCvPzTOJeW3NfQ5x72v2JgjXeox8L1nSIgbNzggHXvUH34uLH5hPDjPH0bde0mTA2FgeVLTS8hxFKtsxTO0uYlA4woaYixToOCQ" />
+        <img class="w-full h-auto drop-shadow-2xl"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSgMdlTli39xnonq5GqU3c5D4ETn6VSkFzz-Z6A3kkCHTDtllFwVLQoyLz0wRHozNCby3BsUj31z3HZIvRbRrGhHpvolPiuglpIfzRBBh-lEHhNXox-crvtgoel5dQMLzMUS5eCW938lh9AVmPEEnhCvPzTOJeW3NfQ5x72v2JgjXeox8L1nSIgbNzggHXvUH34uLH5hPDjPH0bde0mTA2FgeVLTS8hxFKtsxTO0uYlA4woaYixToOCQ"
+          alt="Safarni Passport and Compass Illustration" />
       </div>
-      <h2 class="font-display-lg text-display-lg text-on-surface mb-stack-sm">The World Awaits.</h2>
-      <p class="font-body-lg text-body-lg text-on-surface-variant px-stack-lg opacity-80">Join Safarni and unlock personalized travel experiences powered by intelligent discovery.</p>
+
+      <h2 class="font-display-lg text-display-lg text-on-surface mb-stack-sm">
+        The World Awaits.
+      </h2>
+
+      <p class="font-body-lg text-body-lg text-on-surface-variant px-stack-lg opacity-80">
+        Join Safarni and unlock personalized travel experiences powered by
+        intelligent discovery.
+      </p>
     </div>
   </section>
 
-  <!-- Right Side: Registration Form -->
-  <section class="flex-1 flex flex-col items-center justify-center bg-surface px-margin-mobile md:px-margin-desktop py-stack-lg min-h-screen">
-    <!-- Mobile Logo -->
-    <div class="md:hidden mb-stack-lg text-center">
-      <h1 routerLink="/" class="font-headline-md text-headline-md font-bold text-primary cursor-pointer">Safarni</h1>
+  <!-- Right Side: Registration and Login Form -->
+  <section
+    class="flex-1 flex flex-col items-center justify-center bg-surface px-margin-mobile md:px-margin-desktop py-stack-lg min-h-screen">
+    <!-- Brand Form Logo -->
+    <div class="mb-stack-lg text-center">
+      <a routerLink="/" class="inline-block cursor-pointer">
+        <img src="assets/logo.svg" alt="Safarni AI Travel" class="h-12 w-auto mx-auto" />
+      </a>
     </div>
+
     <div class="w-full max-w-md space-y-stack-lg">
       <!-- Header -->
       <div class="text-left">
-        <h1 routerLink="/" class="hidden md:block font-headline-md text-headline-md font-bold text-primary mb-2 cursor-pointer w-fit">Safarni</h1>
+        <a routerLink="/"
+          class="hidden md:block font-headline-md text-headline-md font-bold text-primary mb-2 cursor-pointer w-fit">
+          Safarni
+        </a>
+
         @if (!isLogin) {
-          <h2 class="font-display-lg-mobile md:font-headline-md text-display-lg-mobile md:text-headline-md text-on-surface">Start your journey</h2>
-          <p class="font-body-md text-body-md text-on-surface-variant mt-1">Please enter your details to create an account.</p>
+        <h2
+          class="font-display-lg-mobile md:font-headline-md text-display-lg-mobile md:text-headline-md text-on-surface">
+          Start your journey
+        </h2>
+
+        <p class="font-body-md text-body-md text-on-surface-variant mt-1">
+          Please enter your details to create an account.
+        </p>
         } @else {
-          <h2 class="font-display-lg-mobile md:font-headline-md text-display-lg-mobile md:text-headline-md text-on-surface">Welcome back</h2>
-          <p class="font-body-md text-body-md text-on-surface-variant mt-1">Please enter your details to sign in.</p>
+        <h2
+          class="font-display-lg-mobile md:font-headline-md text-display-lg-mobile md:text-headline-md text-on-surface">
+          Welcome back
+        </h2>
+
+        <p class="font-body-md text-body-md text-on-surface-variant mt-1">
+          Please enter your details to sign in.
+        </p>
         }
       </div>
 
-      <!-- Social Logins -->
-      <div class="grid grid-cols-2 gap-stack-md">
-        <button class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-outline-variant hover:bg-surface-container-low transition-all duration-200 group active:scale-95">
-          <svg class="w-5 h-5" viewBox="0 0 24 24">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+      <!-- Google Authentication -->
+      <div class="google-auth-wrapper" [class.google-auth-wrapper--loading]="isGoogleLoading()">
+        <!--
+          Google Identity Services renders its official
+          button inside this container.
+        -->
+        <div #googleButton class="google-auth-button" aria-label="Continue with Google"></div>
+
+        @if (isGoogleLoading()) {
+        <div class="google-auth-loading-overlay" role="status" aria-live="polite"
+          aria-label="Completing Google authentication">
+          <svg class="google-auth-spinner" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle class="google-auth-spinner-track" cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3">
+            </circle>
+
+            <path class="google-auth-spinner-path" d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3"
+              stroke-linecap="round"></path>
           </svg>
-          <span class="font-label-md text-label-md text-on-surface">Google</span>
-        </button>
-        <button class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-outline-variant hover:bg-surface-container-low transition-all duration-200 group active:scale-95">
-          <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">hub</span>
-          <span class="font-label-md text-label-md text-on-surface">Social</span>
-        </button>
+
+          <span>Completing sign-in...</span>
+        </div>
+        }
       </div>
 
       <!-- Separator -->
       <div class="relative flex py-2 items-center">
         <div class="flex-grow border-t border-outline-variant"></div>
+
         <span class="flex-shrink mx-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">
-          @if (!isLogin) { Or create an account } @else { Or sign in with email }
+          @if (!isLogin) {
+          Or create an account
+          } @else {
+          Or sign in with email
+          }
         </span>
+
         <div class="flex-grow border-t border-outline-variant"></div>
       </div>
 
-      <!-- Registration Form -->
-      <form class="space-y-stack-md" (submit)="$event.preventDefault(); onSubmit()">
-        @if (errorMessage) {
-          <div class="p-4 text-sm text-error bg-error-container/10 border border-error/20 rounded-xl flex items-center gap-2 animate-fade-in">
-            <span class="material-symbols-outlined text-[20px]">error</span>
-            <span>{{ errorMessage }}</span>
+      <!-- Authentication Form -->
+      <form class="space-y-stack-md" (ngSubmit)="onSubmit()" novalidate>
+        <!-- Error Message -->
+        @if (errorMessage()) {
+        <div id="auth-error-message" class="auth-alert auth-alert--error" role="alert" aria-live="assertive">
+          <span class="auth-alert__icon material-symbols-outlined" aria-hidden="true">
+            error
+          </span>
+
+          <div class="auth-alert__content">
+            <p class="auth-alert__title">
+              @if (isLogin) {
+              Sign-in unsuccessful
+              } @else {
+              Account could not be created
+              }
+            </p>
+
+            <p class="auth-alert__message">
+              {{ errorMessage() }}
+            </p>
           </div>
+
+          <button class="auth-alert__dismiss" type="button" aria-label="Dismiss error message" (click)="dismissError()">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">
+              close
+            </span>
+          </button>
+        </div>
         }
-        @if (successMessage) {
-          <div class="p-4 text-sm text-tertiary bg-tertiary-container/10 border border-tertiary/20 rounded-xl flex items-center gap-2 animate-fade-in">
-            <span class="material-symbols-outlined text-[20px]">check_circle</span>
-            <span>{{ successMessage }}</span>
+
+        <!-- Success Message -->
+        @if (successMessage()) {
+        <div class="auth-alert auth-alert--success" role="status" aria-live="polite">
+          <span class="auth-alert__icon material-symbols-outlined" aria-hidden="true">
+            check_circle
+          </span>
+
+          <div class="auth-alert__content">
+            <p class="auth-alert__title">
+              Success
+            </p>
+
+            <p class="auth-alert__message">
+              {{ successMessage() }}
+            </p>
           </div>
+        </div>
         }
 
         <!-- Full Name -->
         @if (!isLogin) {
-          <div class="relative floating-label-input">
-            <input class="block w-full px-4 pt-6 pb-2 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer" id="name" placeholder=" " type="text" [(ngModel)]="fullName" name="fullName" required />
-            <label class="absolute left-4 top-4 font-label-md text-label-md text-on-surface-variant transition-all pointer-events-none origin-top-left" for="name">Full Name</label>
-          </div>
+        <div class="relative floating-label-input">
+          <input id="full-name"
+            class="block w-full px-4 pt-6 pb-2 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer"
+            type="text" placeholder=" " [(ngModel)]="fullName" name="fullName" autocomplete="name"
+            (input)="dismissError()" required />
+
+          <label
+            class="absolute left-4 top-4 font-label-md text-label-md text-on-surface-variant transition-all pointer-events-none origin-top-left"
+            for="full-name">
+            Full Name
+          </label>
+        </div>
         }
 
         <!-- Email -->
         <div class="relative floating-label-input">
-          <input class="block w-full px-4 pt-6 pb-2 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer" id="email" placeholder=" " type="email" [(ngModel)]="email" name="email" required />
-          <label class="absolute left-4 top-4 font-label-md text-label-md text-on-surface-variant transition-all pointer-events-none origin-top-left" for="email">Email Address</label>
+          <input id="email"
+            class="block w-full px-4 pt-6 pb-2 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer"
+            type="email" placeholder=" " [(ngModel)]="email" name="email" autocomplete="email" inputmode="email"
+            (input)="dismissError()" required />
+
+          <label
+            class="absolute left-4 top-4 font-label-md text-label-md text-on-surface-variant transition-all pointer-events-none origin-top-left"
+            for="email">
+            Email Address
+          </label>
         </div>
 
         <!-- Password -->
         <div class="space-y-2">
           <div class="relative floating-label-input">
-            <input
-              class="block w-full px-4 pt-6 pb-2 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer"
-              id="password"
-              [type]="showPassword ? 'text' : 'password'"
-              [(ngModel)]="password"
-              name="password"
-              (ngModelChange)="onPasswordInput($event)"
-              placeholder=" "
-              required
-            />
-            <label class="absolute left-4 top-4 font-label-md text-label-md text-on-surface-variant transition-all pointer-events-none origin-top-left" for="password">Password</label>
-            <button class="absolute right-4 top-5 text-on-surface-variant" (click)="togglePassword()" type="button">
-              <span class="material-symbols-outlined">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+            <input id="password"
+              class="block w-full px-4 pt-6 pb-2 pr-14 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer"
+              [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password" name="password" [attr.autocomplete]="
+                isLogin ? 'current-password' : 'new-password'
+              " (ngModelChange)="onPasswordInput($event)" placeholder=" " required />
+
+            <label
+              class="absolute left-4 top-4 font-label-md text-label-md text-on-surface-variant transition-all pointer-events-none origin-top-left"
+              for="password">
+              Password
+            </label>
+
+            <button class="absolute right-4 top-5 text-on-surface-variant hover:text-primary transition-colors"
+              type="button" [attr.title]="
+                showPassword ? 'Hide password' : 'Show password'
+              " [attr.aria-label]="
+                showPassword ? 'Hide password' : 'Show password'
+              " (click)="togglePassword()">
+              <span class="material-symbols-outlined" aria-hidden="true">
+                {{
+                showPassword
+                ? 'visibility_off'
+                : 'visibility'
+                }}
+              </span>
+              <!-- Visible text for assistive tech to ensure button has discernible text -->
+              <span class="sr-only">{{ showPassword ? 'Hide password' : 'Show password' }}</span>
             </button>
           </div>
 
+          <!-- Forgot Password -->
+          @if (isLogin) {
+          <div class="flex justify-end">
+            <a routerLink="/forgot-password" class="text-sm font-semibold text-primary hover:underline">
+              Forgot your password?
+            </a>
+          </div>
+          }
+
+          <!-- Password Requirements -->
           @if (!isLogin) {
-            <!-- Password Strength Bar -->
-            <div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
-              <div [class]="strengthBarClass" [style.width.%]="strengthScore * 25"></div>
+          <!-- Password Strength Bar -->
+          <div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden" aria-hidden="true">
+            <div [class]="strengthBarClass" [style.width.%]="strengthScore * 25"></div>
+          </div>
+
+          <!-- Validation Checklist -->
+          <div class="grid grid-cols-2 gap-y-1">
+            <div id="check-length" [class]="checkClass(checks.length)">
+              <span class="material-symbols-outlined text-[16px]" aria-hidden="true">
+                check_circle
+              </span>
+
+              <span class="font-label-sm text-label-sm">
+                8+ characters
+              </span>
             </div>
 
-            <!-- Validation Checklist -->
-            <div class="grid grid-cols-2 gap-y-1">
-              <div [class]="checkClass(checks.length)" id="check-length">
-                <span class="material-symbols-outlined text-[16px]">check_circle</span>
-                <span class="font-label-sm text-label-sm">8+ characters</span>
-              </div>
-              <div [class]="checkClass(checks.symbol)" id="check-symbol">
-                <span class="material-symbols-outlined text-[16px]">check_circle</span>
-                <span class="font-label-sm text-label-sm">Special symbol</span>
-              </div>
-              <div [class]="checkClass(checks.upper)" id="check-upper">
-                <span class="material-symbols-outlined text-[16px]">check_circle</span>
-                <span class="font-label-sm text-label-sm">Uppercase letter</span>
-              </div>
-              <div [class]="checkClass(checks.number)" id="check-number">
-                <span class="material-symbols-outlined text-[16px]">check_circle</span>
-                <span class="font-label-sm text-label-sm">A number</span>
-              </div>
+            <div id="check-symbol" [class]="checkClass(checks.symbol)">
+              <span class="material-symbols-outlined text-[16px]" aria-hidden="true">
+                check_circle
+              </span>
+
+              <span class="font-label-sm text-label-sm">
+                Special symbol
+              </span>
             </div>
+
+            <div id="check-upper" [class]="checkClass(checks.upper)">
+              <span class="material-symbols-outlined text-[16px]" aria-hidden="true">
+                check_circle
+              </span>
+
+              <span class="font-label-sm text-label-sm">
+                Uppercase letter
+              </span>
+            </div>
+
+            <div id="check-number" [class]="checkClass(checks.number)">
+              <span class="material-symbols-outlined text-[16px]" aria-hidden="true">
+                check_circle
+              </span>
+
+              <span class="font-label-sm text-label-sm">
+                A number
+              </span>
+            </div>
+          </div>
           }
         </div>
 
         <!-- Confirm Password -->
         @if (!isLogin) {
-          <div class="space-y-2 mt-4">
-            <div class="relative floating-label-input">
-              <input
-                class="block w-full px-4 pt-6 pb-2 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer"
-                id="confirm-password"
-                [type]="showConfirmPassword ? 'text' : 'password'"
-                [(ngModel)]="confirmPassword"
-                name="confirmPassword"
-                (ngModelChange)="onConfirmInput($event)"
-                placeholder=" "
-                required
-              />
-              <label class="absolute left-4 top-4 font-label-md text-label-md text-on-surface-variant transition-all pointer-events-none origin-top-left" for="confirm-password">Confirm Password</label>
-              <button class="absolute right-4 top-5 text-on-surface-variant" (click)="toggleConfirmPassword()" type="button">
-                <span class="material-symbols-outlined">{{ showConfirmPassword ? 'visibility_off' : 'visibility' }}</span>
-              </button>
-            </div>
-            <div class="flex items-center gap-2" [class.hidden]="matchState === null" id="password-match-feedback">
-              <span class="material-symbols-outlined text-[16px]" [class.text-tertiary]="matchState === 'match'" [class.text-error]="matchState === 'mismatch'" id="match-icon">{{ matchState === 'match' ? 'check_circle' : 'cancel' }}</span>
-              <span class="font-label-sm text-label-sm" [class.text-tertiary]="matchState === 'match'" [class.text-error]="matchState === 'mismatch'" id="match-text">{{ matchState === 'match' ? 'Passwords match' : 'Passwords do not match' }}</span>
-            </div>
-          </div>
+        <div class="space-y-2 mt-4">
+          <div class="relative floating-label-input">
+            <input id="confirm-password"
+              class="block w-full px-4 pt-6 pb-2 pr-14 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer"
+              [type]="
+                  showConfirmPassword ? 'text' : 'password'
+                " [(ngModel)]="confirmPassword" name="confirmPassword" autocomplete="new-password"
+              (ngModelChange)="onConfirmInput($event)" placeholder=" " required />
 
-          <!-- Terms -->
-          <div class="flex items-start gap-3 mt-4">
-            <div class="flex items-center h-5">
-              <input class="w-4 h-4 text-primary border-outline-variant rounded focus:ring-primary focus:ring-offset-0 bg-surface" id="terms" type="checkbox" [(ngModel)]="agreeToTerms" name="agreeToTerms" required />
-            </div>
-            <label class="font-label-sm text-label-sm text-on-surface-variant leading-tight" for="terms">
-              I agree to Safarni's <a class="text-primary font-bold hover:underline" href="#">Terms &amp; Conditions</a> and <a class="text-primary font-bold hover:underline" href="#">Privacy Policy</a>.
+            <label
+              class="absolute left-4 top-4 font-label-md text-label-md text-on-surface-variant transition-all pointer-events-none origin-top-left"
+              for="confirm-password">
+              Confirm Password
             </label>
+
+            <button class="absolute right-4 top-5 text-on-surface-variant hover:text-primary transition-colors"
+              type="button" [attr.aria-label]="
+                  showConfirmPassword
+                    ? 'Hide confirmation password'
+                    : 'Show confirmation password'
+                " [attr.title]="
+                  showConfirmPassword
+                    ? 'Hide confirmation password'
+                    : 'Show confirmation password'
+                " (click)="toggleConfirmPassword()">
+              <span class="sr-only">
+                {{
+                showConfirmPassword
+                ? 'Hide confirmation password'
+                : 'Show confirmation password'
+                }}
+              </span>
+
+              <span class="material-symbols-outlined" aria-hidden="true">
+                {{
+                showConfirmPassword
+                ? 'visibility_off'
+                : 'visibility'
+                }}
+              </span>
+            </button>
           </div>
+
+          <!-- Password Match Feedback -->
+          <div id="password-match-feedback" class="flex items-center gap-2" [class.hidden]="matchState === null"
+            aria-live="polite">
+            <span id="match-icon" class="material-symbols-outlined text-[16px]"
+              [class.text-tertiary]="matchState === 'match'" [class.text-error]="matchState === 'mismatch'"
+              aria-hidden="true">
+              {{
+              matchState === 'match'
+              ? 'check_circle'
+              : 'cancel'
+              }}
+            </span>
+
+            <span id="match-text" class="font-label-sm text-label-sm" [class.text-tertiary]="matchState === 'match'"
+              [class.text-error]="matchState === 'mismatch'">
+              {{
+              matchState === 'match'
+              ? 'Passwords match'
+              : 'Passwords do not match'
+              }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Terms and Privacy -->
+        <div class="flex items-start gap-3 mt-4">
+          <div class="flex items-center h-5">
+            <input id="terms"
+              class="w-4 h-4 text-primary border-outline-variant rounded focus:ring-primary focus:ring-offset-0 bg-surface"
+              type="checkbox" [(ngModel)]="agreeToTerms" name="agreeToTerms" (ngModelChange)="dismissError()"
+              required />
+          </div>
+
+          <label class="font-label-sm text-label-sm text-on-surface-variant leading-tight" for="terms">
+            I agree to Safarni's
+
+            <a class="text-primary font-bold hover:underline" href="#">
+              Terms &amp; Conditions
+            </a>
+
+            and
+
+            <a class="text-primary font-bold hover:underline" href="#">
+              Privacy Policy
+            </a>.
+          </label>
+        </div>
         }
 
-        <!-- CTA -->
-        @if (!isLogin) {
-          <button class="w-full bg-primary text-white font-headline-sm py-4 px-6 rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 transform active:scale-[0.98] mt-4 flex justify-center items-center gap-2" type="submit" [disabled]="isLoading">
-            @if (isLoading) {
-              <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Creating Account...
+        <!-- Email and Password Submit Button -->
+        <button
+          class="auth-submit-button w-full bg-primary text-white font-headline-sm py-4 px-6 rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 transform active:scale-[0.98] mt-4 flex justify-center items-center gap-2"
+          type="submit" [disabled]="isBusy()" [attr.aria-busy]="isBusy()" [attr.aria-describedby]="
+            errorMessage()
+              ? 'auth-error-message'
+              : null
+          ">
+          @if (isLoading()) {
+          <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
+
+          <span>
+            @if (isLogin) {
+            Signing In...
             } @else {
-              Create Account
+            Creating Account...
             }
-          </button>
-        } @else {
-          <button class="w-full bg-primary text-white font-headline-sm py-4 px-6 rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 transform active:scale-[0.98] mt-4 flex justify-center items-center gap-2" type="submit" [disabled]="isLoading">
-            @if (isLoading) {
-              <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Signing In...
+          </span>
+          } @else {
+          <span>
+            @if (isLogin) {
+            Sign In
             } @else {
-              Sign In
+            Create Account
             }
-          </button>
-        }
+          </span>
+          }
+        </button>
       </form>
 
       <!-- Footer Links -->
       <div class="text-center pt-stack-md">
         <p class="font-body-md text-body-md text-on-surface-variant">
           @if (!isLogin) {
-            Already have an account? <a class="text-primary font-bold hover:underline cursor-pointer" (click)="toggleMode()">Log in</a>
+          Already have an account?
+
+          <button class="text-primary font-bold hover:underline cursor-pointer" type="button" (click)="toggleMode()">
+            Log in
+          </button>
           } @else {
-            Don't have an account yet? <a class="text-primary font-bold hover:underline cursor-pointer" (click)="toggleMode()">Sign up</a>
+          Don't have an account yet?
+
+          <button class="text-primary font-bold hover:underline cursor-pointer" type="button" (click)="toggleMode()">
+            Sign up
+          </button>
           }
         </p>
       </div>
@@ -213,12 +432,23 @@
       <!-- Trust Badges -->
       <div class="flex items-center justify-center gap-stack-lg pt-stack-lg border-t border-outline-variant opacity-50">
         <div class="flex items-center gap-1">
-          <span class="material-symbols-outlined text-[20px]">verified_user</span>
-          <span class="font-label-sm text-label-sm">SSL Secured</span>
+          <span class="material-symbols-outlined text-[20px]" aria-hidden="true">
+            verified_user
+          </span>
+
+          <span class="font-label-sm text-label-sm">
+            SSL Secured
+          </span>
         </div>
+
         <div class="flex items-center gap-1">
-          <span class="material-symbols-outlined text-[20px]">shield_person</span>
-          <span class="font-label-sm text-label-sm">Privacy First</span>
+          <span class="material-symbols-outlined text-[20px]" aria-hidden="true">
+            shield_person
+          </span>
+
+          <span class="font-label-sm text-label-sm">
+            Privacy First
+          </span>
         </div>
       </div>
     </div>

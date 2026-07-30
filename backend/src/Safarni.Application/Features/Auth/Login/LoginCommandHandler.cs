@@ -43,6 +43,11 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<L
             return Result<LoginResponse>.Failure(AuthenticationErrors.InactiveAccount);
         }
 
+        if (!user.IsEmailVerified)
+        {
+            return Result<LoginResponse>.Failure(AuthenticationErrors.EmailNotVerified);
+        }
+
         var accessToken = _tokenService.GenerateAccessToken(user);
         var refreshTokenValue = _tokenService.GenerateRefreshToken();
         var refreshToken = new RefreshToken

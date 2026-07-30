@@ -1,0 +1,105 @@
+/* AI Travel Workspace Scoped Styles */
+
+.concierge-workspace {
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.concierge-textarea {
+  resize: none;
+  min-height: 44px;
+  max-height: 140px;
+  line-height: 1.5;
+  scrollbar-width: thin;
+}
+
+.concierge-textarea::-webkit-scrollbar {
+  width: 4px;
+}
+
+.concierge-textarea::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.4);
+  border-radius: 4px;
+}
+
+/* Day-by-Day Itinerary Card */
+.itinerary-day-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  transition: all 0.25s ease;
+}
+
+.itinerary-day-card:hover {
+  border-color: rgba(37, 99, 235, 0.3);
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.08);
+}
+
+/* Context Prompt Pill */
+.context-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(241, 245, 249, 0.8);
+  color: #475569;
+  border: 1px solid rgba(203, 213, 225, 0.5);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.context-pill:hover {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+/* Action Chips */
+.action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.action-chip:hover {
+  background: #2563eb;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* Message Entrance Animation */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-entrance {
+  animation: slideUpFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Thinking Pulse */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.thinking-pulse {
+  animation: pulseGlow 1.8s infinite ease-in-out;
+}

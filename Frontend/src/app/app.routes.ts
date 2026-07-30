@@ -8,10 +8,16 @@ export const routes: Routes = [
     title: 'Safarni - Discover Your Next Journey'
   },
   {
+    path: 'planner/:tripId',
+    loadComponent: () =>
+      import('./pages/planner/planner.component').then((m) => m.PlannerComponent),
+    title: 'Safarni | AI Trip Planner'
+  },
+  {
     path: 'planner',
     loadComponent: () =>
       import('./pages/planner/planner.component').then((m) => m.PlannerComponent),
-    title: 'Safarni - 7-Day Tokyo Adventure'
+    title: 'Safarni | AI Trip Planner'
   },
   {
     path: 'bookings',

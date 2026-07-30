@@ -84,6 +84,10 @@ public class GooglePlacesService : IGooglePlacesService
                 _logger.LogWarning("Places API (New) v1 returned status code {StatusCode}: {Response}", response.StatusCode, errContent);
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Places API (New) v1 call encountered exception. Falling back to Legacy Places API.");
@@ -122,6 +126,10 @@ public class GooglePlacesService : IGooglePlacesService
             }
 
             return results;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

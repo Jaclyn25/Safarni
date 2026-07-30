@@ -43,7 +43,7 @@
                   <span class="truncate text-label-md text-left">{{ conv.title }}</span>
                 </div>
                 <button
-                  (click)="deleteConversation(conv.id, $event)"
+                  (click)="confirmDeleteConversation(conv.id, conv.title, $event)"
                   [attr.aria-label]="'Delete chat: ' + conv.title"
                   class="p-1 rounded-lg hover:bg-error/15 text-on-surface-variant/40 hover:text-error transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
                 >
@@ -72,7 +72,7 @@
                   <span class="truncate text-label-md text-left">{{ conv.title }}</span>
                 </div>
                 <button
-                  (click)="deleteConversation(conv.id, $event)"
+                  (click)="confirmDeleteConversation(conv.id, conv.title, $event)"
                   [attr.aria-label]="'Delete chat: ' + conv.title"
                   class="p-1 rounded-lg hover:bg-error/15 text-on-surface-variant/40 hover:text-error transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
                 >
@@ -101,7 +101,7 @@
                   <span class="truncate text-label-md text-left">{{ conv.title }}</span>
                 </div>
                 <button
-                  (click)="deleteConversation(conv.id, $event)"
+                  (click)="confirmDeleteConversation(conv.id, conv.title, $event)"
                   [attr.aria-label]="'Delete chat: ' + conv.title"
                   class="p-1 rounded-lg hover:bg-error/15 text-on-surface-variant/40 hover:text-error transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
                 >
@@ -200,14 +200,6 @@
         </section>
       }
 
-      <!-- Loading Conversation Skeleton -->
-      @if (isLoadingConversation) {
-        <div class="flex items-center justify-center py-12 gap-2 text-primary font-semibold text-label-md">
-          <span class="material-symbols-outlined animate-spin text-[24px]">sync</span>
-          <span>Loading trip conversation...</span>
-        </div>
-      }
-
       <!-- Render Messages -->
       @for (m of messages; track m.id || $index) {
 
@@ -242,7 +234,7 @@
                       [disabled]="!m.editText?.trim() || isTyping"
                       class="px-3 py-1.5 rounded-lg text-label-sm bg-primary text-on-primary font-bold shadow-sm hover:bg-primary/90 disabled:opacity-40 transition-all"
                     >
-                      Save & Resend
+                      Send revised message
                     </button>
                   </div>
                 </div>
@@ -294,6 +286,16 @@
                 @for (paragraph of m.formatted.paragraphs; track $index) {
                   <p>{{ paragraph }}</p>
                 }
+                @if (m.action === 'new-chat') {
+                  <button
+                    type="button"
+                    (click)="startNewConversation()"
+                    class="mt-3 inline-flex items-center gap-2 rounded-xl bg-error px-4 py-2 text-label-md font-bold text-on-error transition-colors hover:bg-error/90"
+                  >
+                    <span class="material-symbols-outlined text-[18px]">add_comment</span>
+                    <span>ابدأ شات جديد</span>
+                  </button>
+                }
               </div>
               <span class="text-label-sm text-on-surface-variant opacity-50 block ml-1">{{ m.time }}</span>
             </div>
@@ -340,17 +342,9 @@
                 class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl rounded-tl-none p-5 shadow-sm text-body-md text-on-surface space-y-4 relative"
                 [dir]="m.formatted.direction"
               >
-                <!-- Inline Regeneration Loader -->
-                @if (m.isRegenerating) {
-                  <div class="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl flex items-center justify-center gap-2 text-primary font-bold text-label-md z-10">
-                    <span class="material-symbols-outlined animate-spin text-[20px]">sync</span>
-                    <span>Generating new response...</span>
-                  </div>
-                }
-
                 <!-- Response Summary Header -->
                 @if (m.formatted.summary) {
-                  <div class="bg-primary/5 p-4 rounded-xl border-l-4 border-primary text-on-surface font-medium text-body-md">
+                  <div class="bg-primary/5 p-4 rounded-xl border border-primary/15 text-on-surface font-medium text-body-md">
                     {{ m.formatted.summary }}
                   </div>
                 }
@@ -455,26 +449,16 @@
                     </span>
                   </button>
 
-                  <!-- Regenerate Button -->
-                  <button
-                    (click)="regenerateAiResponse(m)"
-                    [disabled]="isTyping"
-                    class="msg-toolbar-btn disabled:opacity-40"
-                    title="Regenerate response"
-                  >
-                    <span class="material-symbols-outlined text-[16px]">refresh</span>
-                  </button>
-
-                  <!-- Bookmark / Save Button -->
-                  <button
-                    (click)="toggleSaveMessage(m)"
-                    [class]="'msg-toolbar-btn ' + (m.isSaved ? 'text-primary' : '')"
-                    [title]="m.isSaved ? 'Saved to trip ideas' : 'Save response'"
-                  >
-                    <span class="material-symbols-outlined text-[16px]" [style.font-variation-settings]="m.isSaved ? '\'FILL\' 1' : '\'FILL\' 0'">
-                      bookmark
-                    </span>
-                  </button>
+                  @if (isLatestAssistantMessage(m)) {
+                    <button
+                      (click)="regenerateAiResponse(m)"
+                      [disabled]="isTyping"
+                      class="msg-toolbar-btn disabled:opacity-40"
+                      title="Regenerate latest response"
+                    >
+                      <span class="material-symbols-outlined text-[16px]">refresh</span>
+                    </button>
+                  }
                 </div>
               </div>
 
@@ -483,31 +467,7 @@
         }
       }
 
-      <!-- Thinking Indicator Banner -->
-      @if (isTyping) {
-        <div class="flex items-center gap-3 bg-surface-container-lowest p-4 rounded-2xl border border-primary/20 shadow-sm max-w-md message-entrance">
-          <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-            <span class="material-symbols-outlined text-[18px] animate-spin">sync</span>
-          </div>
-          <div class="text-body-sm font-semibold text-primary thinking-pulse">
-            {{ thinkingSteps[currentThinkingIndex] }}
-          </div>
-        </div>
-      }
     </div>
-
-    <!-- Stop Response Control -->
-    @if (isTyping) {
-      <div class="absolute bottom-24 left-1/2 -translate-x-1/2 z-50">
-        <button
-          (click)="stopResponse()"
-          class="flex items-center gap-2 bg-surface-container-lowest border border-error/30 text-error py-2 px-5 rounded-full shadow-md hover:bg-error/5 transition-all text-label-md font-bold"
-        >
-          <span class="material-symbols-outlined text-[18px]">stop_circle</span>
-          <span>Stop Response</span>
-        </button>
-      </div>
-    }
 
     <!-- Smart Input Bar -->
     <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%_-_32px)] max-w-3xl z-50">
@@ -570,3 +530,53 @@
     <span class="text-label-sm font-label-sm">Profile</span>
   </a>
 </nav>
+
+<!-- Custom Delete Confirmation Modal Overlay -->
+@if (showDeleteModal) {
+  <div
+    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md message-entrance"
+    (click)="cancelDeleteConversation()"
+  >
+    <div
+      class="bg-surface-container-lowest border border-outline-variant/30 rounded-3xl p-6 max-w-md w-full shadow-2xl text-center space-y-4 relative overflow-hidden"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Top Decorative Accent -->
+      <div class="w-14 h-14 rounded-2xl bg-error/10 text-error flex items-center justify-center mx-auto shadow-inner">
+        <span class="material-symbols-outlined text-[30px]">delete_forever</span>
+      </div>
+
+      <div class="space-y-1.5">
+        <h3 class="text-headline-sm font-bold text-on-surface">Delete Trip Chat?</h3>
+        <p class="text-body-md text-on-surface-variant leading-relaxed">
+          Are you sure you want to delete <span class="font-bold text-on-surface">"{{ deletingConvTitle }}"</span>? This action cannot be undone.
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-3 pt-2">
+        <button
+          (click)="cancelDeleteConversation()"
+          [disabled]="isDeletingConversation"
+          class="flex-1 py-2.5 px-4 rounded-xl border border-outline-variant/40 bg-surface-container-low hover:bg-surface-container text-on-surface font-semibold text-label-md transition-all active:scale-95 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+
+        <button
+          (click)="executeDeleteConversation()"
+          [disabled]="isDeletingConversation"
+          class="flex-1 py-2.5 px-4 rounded-xl bg-error text-on-error font-bold shadow-md hover:bg-error/90 transition-all active:scale-95 flex items-center justify-center gap-2 text-label-md disabled:opacity-50"
+        >
+          @if (isDeletingConversation) {
+            <span class="material-symbols-outlined animate-spin text-[18px]">sync</span>
+            <span>Deleting...</span>
+          } @else {
+            <span class="material-symbols-outlined text-[18px]">delete</span>
+            <span>Delete Chat</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

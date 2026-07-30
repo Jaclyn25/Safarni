@@ -19,7 +19,7 @@ export interface Conversation {
   providedIn: 'root'
 })
 export class ChatService {
-  private apiUrl = 'http://localhost:5110/api/Chat';
+  private readonly apiUrl = '/api/Chat';
   private readonly requestTimeoutMs = 20000;
   private readonly responseTimeoutMs = 75000;
 

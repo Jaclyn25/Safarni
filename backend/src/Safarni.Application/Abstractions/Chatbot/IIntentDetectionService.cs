@@ -2,6 +2,7 @@ namespace ChatBotApi.Application.Common.Interfaces;
 
 public enum ChatIntent
 {
+    Ambiguous,
     Social,
     OutOfScope,
     RagOnly,

@@ -113,11 +113,37 @@ public class PromptBuilder : IPromptBuilder
         return sb.ToString();
     }
 
-    public string BuildKnowledgeNotFoundMessage(string userMessage)
+    public string BuildDirectSystemPrompt(ChatIntent intent, string userMessage)
     {
-        return IsMostlyEnglish(userMessage)
-            ? "I could not find live place data for that, but I can still help with a general travel overview if you tell me the city, country, or type of place you want."
-            : "لم أجد بيانات مباشرة كافية عن ذلك، لكن أقدر أساعدك بنظرة سياحية عامة إذا قلت لي المدينة أو الدولة أو نوع المكان الذي تبحث عنه.";
+        if (intent is not ChatIntent.Social and not ChatIntent.OutOfScope)
+        {
+            throw new System.ArgumentOutOfRangeException(
+                nameof(intent),
+                intent,
+                "Direct prompts are only valid for social or out-of-scope messages.");
+        }
+
+        var sb = new StringBuilder();
+        AppendBaseRules(sb, userMessage);
+        sb.AppendLine();
+
+        if (intent == ChatIntent.Social)
+        {
+            sb.AppendLine("FINAL ROUTING DECISION: This message is allowed SOCIAL CONVERSATION.");
+            sb.AppendLine("Do not reclassify it and do not apply the out-of-scope response rule.");
+            sb.AppendLine("Reply directly and naturally to the exact greeting, thanks, identity question, goodbye, or feedback the user wrote.");
+            sb.AppendLine("Do not mention scope, specialization, travel boundaries, policies, or routing.");
+            sb.AppendLine("Do not force a travel question into every social reply. A brief warm response is enough unless the conversation calls for more.");
+        }
+        else
+        {
+            sb.AppendLine("FINAL ROUTING DECISION: This request is OUT OF SCOPE for the travel concierge.");
+            sb.AppendLine("Do not answer its factual or instructional content.");
+            sb.AppendLine("Generate a brief, friendly redirection toward travel without sounding punitive, repetitive, or scripted.");
+        }
+
+        sb.AppendLine("Compose the response yourself from these instructions and the chat history. No fixed answer text is provided.");
+        return sb.ToString();
     }
 
     public string GetGooglePlacesLanguageCode(string userMessage)
@@ -131,6 +157,7 @@ public class PromptBuilder : IPromptBuilder
         sb.AppendLine("SCOPE GATE: Before answering, silently decide whether the request is useful to a traveler.");
         sb.AppendLine("In scope: trip planning, destinations, tourism, places, accommodation, restaurants and local food, visas and entry rules, flights, local transportation, weather for travel, geography, local culture, heritage, events, destination history, budgets, accessibility, and travel safety.");
         sb.AppendLine("A culture, public-figure, music, film, sports, health, or current-events question is in scope only when the user clearly connects it to a destination, local experience, event, or travel decision.");
+        sb.AppendLine("A standalone name of a person, artist, song, film, team, company, or public figure is out of scope. Never provide a biography or general profile unless the user explicitly connects it to travel.");
         sb.AppendLine("Out of scope: programming, homework, standalone math or science, diagnosis or treatment, investing, political debate, general news, general sports, and unrelated factual questions.");
         sb.AppendLine("Normal conversation is allowed: greetings, thanks, asking who you are, and feedback or frustration about a previous answer. Reply to these naturally and never show an out-of-scope disclaimer.");
         sb.AppendLine("If the user insults you, do not lecture, retaliate, or repeat a policy. Acknowledge that the answer frustrated them, invite a correction, and keep the tone calm.");
@@ -164,8 +191,11 @@ public class PromptBuilder : IPromptBuilder
             return false;
         }
 
-        var arabicCount = text.Count(c => c >= '\u0600' && c <= '\u06FF');
-        var latinCount = text.Count(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z');
+        var words = text.Split(
+            (char[]?)null,
+            System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
+        var arabicCount = words.Count(word => word.Any(c => c >= '\u0600' && c <= '\u06FF'));
+        var latinCount = words.Count(word => word.Any(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z'));
 
         return latinCount > arabicCount;
     }

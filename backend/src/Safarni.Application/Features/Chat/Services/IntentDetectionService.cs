@@ -13,21 +13,27 @@ public class IntentDetectionService : IIntentDetectionService
         "restaurant", "restaurants", "hotel", "hotels", "cafe", "cafes", "coffee shop",
         "attraction", "attractions", "museum", "museums", "park", "parks", "shopping", "mall",
         "airport", "hospital", "pharmacy", "tourist place", "places near me", "where to eat",
-        "where to stay", "lodging", "resort", "near me", "recommend",
+        "where to stay", "lodging", "resort", "near me",
         "مطعم", "مطاعم", "فندق", "فنادق", "كافيه", "مقهى", "متحف", "متاحف",
         "حديقة", "مول", "تسوق", "مطار", "مستشفى", "صيدلية", "اماكن", "أماكن",
-        "مكان", "اقترح", "افضل", "أفضل", "فين اخرج", "اين اقيم"
+        "مكان", "فين اخرج", "اين اقيم"
     };
 
-    private static readonly string[] TravelKeywords =
+    private static readonly string[] StrongTravelKeywords =
     {
         "travel", "trip", "tourism", "tourist", "destination", "visit", "visa", "flight",
-        "itinerary", "guide", "weather", "currency", "budget", "transportation", "customs",
-        "culture", "history", "capital", "country", "city", "safety", "climate",
+        "itinerary", "weather", "currency", "budget", "transportation", "customs",
         "سفر", "رحلة", "رحلات", "سياحة", "سياحي", "سياحية", "زيارة", "ازور",
-        "فيزا", "تأشيرة", "طيران", "مواصلات", "برنامج", "جدول", "خطة", "دليل",
-        "طقس", "مناخ", "عملة", "تكلفة", "ميزانية", "ثقافة", "تاريخ", "عادات",
-        "عاصمة", "دولة", "مدينة", "امان", "أمان"
+        "وجهة", "وجهات", "فيزا", "تأشيرة", "طيران", "مواصلات", "جدول", "خطة",
+        "طقس", "عملة", "تكلفة", "ميزانية"
+    };
+
+    private static readonly string[] ContextDependentTravelKeywords =
+    {
+        "guide", "culture", "history", "capital", "country", "city", "safety", "climate",
+        "event", "festival", "music", "film", "sports",
+        "برنامج", "دليل", "مناخ", "ثقافة", "تاريخ", "عادات", "عاصمة", "دولة",
+        "مدينة", "امان", "أمان", "فعالية", "مهرجان", "موسيقى", "فيلم", "رياضة"
     };
 
     private static readonly string[] DestinationKeywords =
@@ -59,11 +65,12 @@ public class IntentDetectionService : IIntentDetectionService
         "programming", "software", "source code", "javascript", "typescript", "python", "c#",
         "java", "sql query", "algorithm", "debug", "compiler", "homework", "solve equation",
         "algebra", "calculus", "physics", "chemistry", "medical diagnosis", "prescription",
-        "stock trading", "crypto trading", "football score", "match score", "sports score",
+        "stock trading", "crypto trading", "football", "match score", "sports score",
         "political news", "breaking news",
         "برمجة", "كود", "شفرة", "جافاسكريبت", "بايثون", "خوارزمية", "واجب",
         "معادلة", "جبر", "تفاضل", "فيزياء", "كيمياء", "تشخيص طبي", "روشتة",
-        "بورصة", "تداول", "نتيجة المباراة", "اخبار سياسية", "أخبار سياسية"
+        "بورصة", "تداول", "مباراة", "كرة القدم", "نتيجة المباراة", "نتيجة مباراة",
+        "اخبار سياسية", "أخبار سياسية"
     };
 
     private static readonly Regex StandaloneMathExpression = new(
@@ -80,11 +87,23 @@ public class IntentDetectionService : IIntentDetectionService
         var text = Normalize(userMessage);
 
         var hasPlacesIntent = ContainsAny(text, PlacesKeywords);
-        var hasTravelIntent = ContainsAny(text, TravelKeywords);
+        var hasTravelIntent = ContainsAny(text, StrongTravelKeywords);
+        var hasContextDependentIntent = ContainsAny(text, ContextDependentTravelKeywords);
         var hasDestination = ContainsAny(text, DestinationKeywords);
         var hasSocialIntent = ContainsAny(text, SocialKeywords);
         var isClearlyOutOfScope = ContainsAny(text, ExplicitOutOfScopeKeywords)
             || StandaloneMathExpression.IsMatch(text);
+
+        if (isClearlyOutOfScope &&
+            (hasPlacesIntent || hasTravelIntent || hasContextDependentIntent || hasDestination))
+        {
+            return ChatIntent.Ambiguous;
+        }
+
+        if (isClearlyOutOfScope)
+        {
+            return ChatIntent.OutOfScope;
+        }
 
         if (hasPlacesIntent && (hasTravelIntent || hasDestination))
         {
@@ -96,7 +115,7 @@ public class IntentDetectionService : IIntentDetectionService
             return ChatIntent.GooglePlacesOnly;
         }
 
-        if (hasTravelIntent || hasDestination)
+        if (hasTravelIntent)
         {
             return ChatIntent.RagOnly;
         }
@@ -106,15 +125,15 @@ public class IntentDetectionService : IIntentDetectionService
             return ChatIntent.Social;
         }
 
-        if (isClearlyOutOfScope)
+        if (hasContextDependentIntent || hasDestination)
         {
-            return ChatIntent.OutOfScope;
+            return ChatIntent.Ambiguous;
         }
 
-        // Unknown destination names and short conversational follow-ups cannot be
-        // identified safely from keywords alone. Let the travel-only system prompt
-        // make the final scope decision instead of rejecting a valid travel question.
-        return ChatIntent.RagOnly;
+        // Keywords cannot safely distinguish an unknown destination from a person,
+        // title, or unrelated topic. Route these messages through semantic scope
+        // classification before generating an answer.
+        return ChatIntent.Ambiguous;
     }
 
     private static bool ContainsAny(string text, string[] keywords)

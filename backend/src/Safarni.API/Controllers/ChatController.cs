@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ChatBotApi.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class ChatController : ControllerBase
 {
@@ -30,9 +31,9 @@ public class ChatController : ControllerBase
         get
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-            if (string.IsNullOrEmpty(userId))
+            if (string.IsNullOrWhiteSpace(userId))
             {
-                return "default-traveler-id";
+                throw new UnauthorizedAccessException("لا توجد هوية مستخدم صالحة لهذه الجلسة.");
             }
             return userId;
         }

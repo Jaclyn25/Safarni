@@ -3,6 +3,7 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
+  NgZone,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -58,7 +59,7 @@ export interface ChatMessage {
   editText?: string;
   copied?: boolean;
   isRegenerating?: boolean;
-  isSaved?: boolean;
+  action?: 'new-chat';
 }
 
 export interface GroupedConversations {
@@ -82,6 +83,7 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private zone = inject(NgZone);
 
   inputValue = '';
   searchConvQuery = '';
@@ -91,16 +93,6 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   messages: ChatMessage[] = [];
   conversationsList: Conversation[] = [];
   readonly maxMessageLength = 4000;
-
-  // AI Thinking Steps State
-  thinkingSteps: string[] = [
-    'Analyzing your travel request...',
-    'Checking destinations & climate...',
-    'Building day-by-day route ideas...',
-    'Estimating budget & travel tips...'
-  ];
-  currentThinkingIndex = 0;
-  private thinkingTimer?: any;
 
   // Empty State Prompt Cards
   emptyStateCards = [
@@ -151,7 +143,6 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ngOnDestroy(): void {
     this.stopResponse();
-    this.clearThinkingTimer();
   }
 
   ngAfterViewChecked(): void {
@@ -221,27 +212,53 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  deleteConversation(id: string, event: Event): void {
+  // --- Custom Delete Confirmation Modal State & Handlers ---
+  showDeleteModal = false;
+  deletingConvId: string | null = null;
+  deletingConvTitle: string = '';
+  isDeletingConversation = false;
+
+  confirmDeleteConversation(id: string, title: string, event: Event): void {
     event.stopPropagation();
+    this.deletingConvId = id;
+    this.deletingConvTitle = title || 'this trip chat';
+    this.showDeleteModal = true;
+  }
 
-    if (confirm('Are you sure you want to delete this trip chat?')) {
-      this.chatService.deleteConversation(id).subscribe({
-        next: () => {
-          this.conversationsList = this.conversationsList.filter(c => c.id !== id);
+  cancelDeleteConversation(): void {
+    this.showDeleteModal = false;
+    this.deletingConvId = null;
+    this.deletingConvTitle = '';
+  }
 
-          if (this.conversationId === id) {
-            this.startNewConversation();
-          }
+  executeDeleteConversation(): void {
+    if (!this.deletingConvId || this.isDeletingConversation) return;
 
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Failed to delete conversation', err);
-          this.addErrorMessage('Could not delete this conversation. Please try again.');
-          this.cdr.detectChanges();
+    const id = this.deletingConvId;
+    this.isDeletingConversation = true;
+
+    this.chatService.deleteConversation(id).subscribe({
+      next: () => {
+        this.isDeletingConversation = false;
+        this.showDeleteModal = false;
+        this.conversationsList = this.conversationsList.filter(c => c.id !== id);
+
+        if (this.conversationId === id) {
+          this.startNewConversation();
         }
-      });
-    }
+
+        this.deletingConvId = null;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.isDeletingConversation = false;
+        this.showDeleteModal = false;
+        console.error('Failed to delete conversation', err);
+        this.addErrorMessage('Could not delete this conversation. Please try again.');
+        this.deletingConvId = null;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   get groupedConversations(): GroupedConversations {
@@ -288,20 +305,26 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.resetTextareaHeight();
     this.shouldScroll = true;
     this.startThinkingAnimation();
+    this.renderNow();
 
     if (!this.conversationId) {
       const title = text.length > 32 ? `${text.substring(0, 32)}...` : text;
       this.chatService.startConversation(title).subscribe({
         next: (conv) => {
-          this.conversationId = conv.id;
-          localStorage.setItem('active_conversation_id', conv.id);
-          this.sendMessage(conv.id, text);
+          this.zone.run(() => {
+            this.conversationId = conv.id;
+            localStorage.setItem('active_conversation_id', conv.id);
+            this.renderNow();
+            this.sendMessage(conv.id, text);
+          });
         },
         error: (err) => {
-          this.stopThinkingAnimation();
-          console.error('Error starting conversation', err);
-          this.addErrorMessage('Unable to start chat. Check connection and try again.');
-          this.cdr.detectChanges();
+          this.zone.run(() => {
+            this.stopThinkingAnimation();
+            console.error('Error starting conversation', err);
+            this.addErrorMessage('Unable to start chat. Check connection and try again.');
+            this.renderNow();
+          });
         }
       });
       return;
@@ -387,62 +410,61 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (!m.editText || !m.editText.trim() || this.isTyping) return;
 
     const newText = m.editText.trim();
-    const index = this.messages.indexOf(m);
-    if (index === -1) return;
-
-    // Truncate message history after this user message
-    this.messages = this.messages.slice(0, index + 1);
-
-    m.text = newText;
     m.isEditing = false;
     m.editText = undefined;
-    m.formatted = this.formatMessage(newText, true);
-
-    this.shouldScroll = true;
-    this.startThinkingAnimation();
-
-    if (this.conversationId) {
-      this.sendMessage(this.conversationId, newText);
-    }
+    this.inputValue = newText;
+    this.handleSend();
   }
 
   regenerateAiResponse(m: ChatMessage): void {
-    if (this.isTyping || !this.conversationId) return;
+    if (this.isTyping || !this.conversationId || !this.isLatestAssistantMessage(m)) return;
 
     m.isRegenerating = true;
     this.startThinkingAnimation();
 
     this.chatService.regenerateResponse(this.conversationId).subscribe({
       next: (conv) => {
-        this.stopThinkingAnimation();
-        m.isRegenerating = false;
+        this.zone.run(() => {
+          this.stopThinkingAnimation();
+          m.isRegenerating = false;
 
-        const updatedMessages = conv.messages;
-        const lastAiMsg = updatedMessages[updatedMessages.length - 1];
+          const updatedMessages = conv.messages;
+          const lastAiMsg = updatedMessages[updatedMessages.length - 1];
 
-        if (lastAiMsg && lastAiMsg.role !== 'user') {
-          const newText = lastAiMsg.content;
+          if (lastAiMsg && lastAiMsg.role !== 'user') {
+            const newText = lastAiMsg.content;
 
-          m.versions = m.versions || [m.text];
-          m.versions.push(newText);
-          m.activeVersionIndex = m.versions.length - 1;
+            m.versions = m.versions || [m.text];
+            m.versions.push(newText);
+            m.activeVersionIndex = m.versions.length - 1;
 
-          m.text = newText;
-          m.formatted = this.formatMessage(newText, false);
-        }
+            m.text = newText;
+            m.formatted = this.formatMessage(newText, false);
+          }
 
-        this.refreshConversations();
-        this.shouldScroll = true;
-        this.cdr.detectChanges();
+          this.refreshConversations();
+          this.shouldScroll = true;
+          this.renderNow();
+        });
       },
       error: (err) => {
-        this.stopThinkingAnimation();
-        m.isRegenerating = false;
-        console.error('Failed to regenerate response', err);
-        this.addErrorMessage('Unable to regenerate response. Please try again.');
-        this.cdr.detectChanges();
+        this.zone.run(() => {
+          this.stopThinkingAnimation();
+          m.isRegenerating = false;
+          console.error('Failed to regenerate response', err);
+          this.addErrorMessage('Unable to regenerate response. Please try again.');
+          this.renderNow();
+        });
       }
     });
+  }
+
+  isLatestAssistantMessage(message: ChatMessage): boolean {
+    const latestAssistant = [...this.messages]
+      .reverse()
+      .find(item => !item.isUser && item.kind === 'normal');
+
+    return latestAssistant === message;
   }
 
   switchVersion(m: ChatMessage, delta: number): void {
@@ -459,51 +481,62 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  toggleSaveMessage(m: ChatMessage): void {
-    m.isSaved = !m.isSaved;
-  }
-
   // --- Private Helpers ---
 
   private startThinkingAnimation(): void {
     this.isTyping = true;
-    this.currentThinkingIndex = 0;
-    this.clearThinkingTimer();
-
-    this.thinkingTimer = setInterval(() => {
-      this.currentThinkingIndex = (this.currentThinkingIndex + 1) % this.thinkingSteps.length;
-      this.cdr.detectChanges();
-    }, 1800);
+    this.renderNow();
   }
 
   private stopThinkingAnimation(): void {
     this.isTyping = false;
-    this.clearThinkingTimer();
-  }
-
-  private clearThinkingTimer(): void {
-    if (this.thinkingTimer) {
-      clearInterval(this.thinkingTimer);
-      this.thinkingTimer = undefined;
-    }
+    this.renderNow();
   }
 
   private sendMessage(convId: string, text: string): void {
     this.messageSubscription = this.chatService.sendMessage(convId, text).subscribe({
       next: (conv) => {
-        this.stopThinkingAnimation();
-        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
-        this.refreshConversations();
-        this.shouldScroll = true;
-        this.cdr.detectChanges();
+        this.zone.run(() => {
+          this.stopThinkingAnimation();
+          this.messageSubscription = undefined;
+          this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
+          this.refreshConversations();
+          this.shouldScroll = true;
+          this.renderNow();
+        });
       },
       error: (err) => {
-        this.stopThinkingAnimation();
-        console.error('Error sending message', err);
-        this.addErrorMessage(this.getSendErrorMessage(err));
-        this.cdr.detectChanges();
+        this.zone.run(() => {
+          this.stopThinkingAnimation();
+          this.messageSubscription = undefined;
+          console.error('Error sending message', err);
+          const errorDetails = this.getSendErrorDetails(err);
+          this.addErrorMessage(errorDetails.text, errorDetails.action);
+          this.renderNow();
+        });
       }
     });
+  }
+
+  private renderNow(): void {
+    const shouldScrollAfterRender = this.shouldScroll;
+    this.cdr.detectChanges();
+
+    if (shouldScrollAfterRender) {
+      window.setTimeout(() => {
+        this.scrollMessagesToBottom();
+      }, 0);
+    }
+  }
+
+  private scrollMessagesToBottom(): void {
+    const el = this.chatMessagesRef?.nativeElement;
+    if (!el) {
+      return;
+    }
+
+    el.scrollTop = el.scrollHeight;
+    this.shouldScroll = false;
   }
 
   private refreshConversations(): void {
@@ -516,21 +549,26 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
-  private getSendErrorMessage(error: any): string {
+  private getSendErrorDetails(error: any): { text: string; action?: 'new-chat' } {
     if (error?.name === 'TimeoutError') {
-      return 'The request took longer than expected. Please try again with a shorter question.';
+      return { text: 'The request took longer than expected. Please try again with a shorter question.' };
     }
     if (error?.status === 0) {
-      return 'Unable to connect to the travel service. Please check your connection and try again.';
+      return { text: 'Unable to connect to the travel service. Please check your connection and try again.' };
     }
     if (error?.status === 429) {
-      return 'Too many requests right now. Please wait a moment and try again.';
+      return {
+        text: 'وصلت هذه المحادثة إلى الحد المتاح حاليًا. ابدأ شات جديد للمتابعة.',
+        action: 'new-chat'
+      };
     }
-    return 'An unexpected error occurred while preparing your travel plan. Please try again.';
+    return { text: 'An unexpected error occurred while preparing your travel plan. Please try again.' };
   }
 
-  private addErrorMessage(text: string): void {
-    this.messages.push(this.toChatMessage(text, false, 'error'));
+  private addErrorMessage(text: string, action?: 'new-chat'): void {
+    const message = this.toChatMessage(text, false, 'error');
+    message.action = action;
+    this.messages.push(message);
     this.shouldScroll = true;
   }
 
@@ -566,7 +604,8 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     let actionChips: ActionChip[] = [];
 
     if (!isUser) {
-      if (paragraphs.length > 0) {
+      const hasSubstantialTravelResponse = paragraphs.length >= 3 && cleaned.length >= 280;
+      if (hasSubstantialTravelResponse) {
         summary = paragraphs[0];
       }
       itineraryDays = this.parseItineraryDays(cleaned);

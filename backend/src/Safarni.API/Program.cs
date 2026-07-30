@@ -149,6 +149,7 @@ builder.Services.AddScoped<ChatDbSeeder>();
 
 // Intent Detection
 builder.Services.AddScoped<IIntentDetectionService, IntentDetectionService>();
+builder.Services.AddScoped<IChatScopeClassifier, ChatScopeClassifier>();
 
 
 // Google Places API

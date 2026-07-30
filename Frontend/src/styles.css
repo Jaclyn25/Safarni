@@ -278,44 +278,6 @@ app-root {
   font: inherit;
   font-weight: 600;
 }
-.conversation-loading {
-  width: min(520px, calc(100% - 4rem));
-  display: grid;
-  gap: 0.55rem;
-  margin: 2rem 0 0 3.5rem;
-}
-.conversation-loading div {
-  height: 0.8rem;
-  border-radius: 999px;
-  background: oklch(0.9 0.012 250);
-  animation: concierge-pulse 1.4s ease-in-out infinite;
-}
-.conversation-loading div:nth-child(2) {
-  width: 84%;
-}
-.conversation-loading div:nth-child(3) {
-  width: 62%;
-}
-.typing-dot {
-  animation: typing-dot 1.1s ease-in-out infinite;
-}
-@keyframes typing-dot {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: translateY(0);
-  }
-
-  45% {
-    opacity: 1;
-    transform: translateY(-2px);
-  }
-}
-@keyframes concierge-pulse {
-  50% {
-    opacity: 0.42;
-  }
-}
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -345,9 +307,7 @@ app-root {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .message-entrance,
-  .conversation-loading div,
-  .typing-dot {
+  .message-entrance {
     animation: none;
   }
 

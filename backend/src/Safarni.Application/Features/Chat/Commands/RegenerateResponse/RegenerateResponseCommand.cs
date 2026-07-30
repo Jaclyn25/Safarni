@@ -28,6 +28,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
     private readonly IQdrantService _qdrantService;
     private readonly IPromptBuilder _promptBuilder;
     private readonly IIntentDetectionService _intentDetectionService;
+    private readonly IChatScopeClassifier _scopeClassifier;
     private readonly IGooglePlacesService _googlePlacesService;
     private readonly ILogger<RegenerateResponseCommandHandler> _logger;
 
@@ -40,6 +41,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
         IQdrantService qdrantService,
         IPromptBuilder promptBuilder,
         IIntentDetectionService intentDetectionService,
+        IChatScopeClassifier scopeClassifier,
         IGooglePlacesService googlePlacesService,
         ILogger<RegenerateResponseCommandHandler> logger)
     {
@@ -51,6 +53,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
         _qdrantService = qdrantService;
         _promptBuilder = promptBuilder;
         _intentDetectionService = intentDetectionService;
+        _scopeClassifier = scopeClassifier;
         _googlePlacesService = googlePlacesService;
         _logger = logger;
     }
@@ -88,7 +91,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
             })
             .ToList();
 
-        var intent = _intentDetectionService.DetectIntent(lastUserMsg.Content);
+        var intent = await ResolveIntentAsync(lastUserMsg.Content, history, cancellationToken);
         _logger.LogInformation("Regeneration - Detected Chat Intent: {Intent}", intent);
 
         if (intent is ChatIntent.Social or ChatIntent.OutOfScope)
@@ -96,7 +99,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
             _logger.LogInformation(
                 "Regeneration is sending {Intent} intent directly to the model without RAG or Places lookup.",
                 intent);
-            var directSystemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), lastUserMsg.Content);
+            var directSystemPrompt = _promptBuilder.BuildDirectSystemPrompt(intent, lastUserMsg.Content);
             var directUserPrompt = _promptBuilder.BuildUserPrompt(lastUserMsg.Content);
             var generatedResponse = await _aiProvider.GetChatCompletionAsync(
                 directSystemPrompt,
@@ -131,6 +134,10 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                 var topK = int.TryParse(_configuration["RAG:TopK"], out var k) ? k : MaxContextChunks;
                 contextChunks = await _qdrantService.SearchSimilarChunksAsync(queryEmbedding, Math.Min(topK, MaxContextChunks));
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -173,6 +180,10 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                         lastUserMsg.Content,
                         cancellationToken,
                         _promptBuilder.GetGooglePlacesLanguageCode(lastUserMsg.Content));
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -227,6 +238,35 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                     Content = m.Content
                 })
                 .ToList()
+        };
+    }
+
+    private async Task<ChatIntent> ResolveIntentAsync(
+        string message,
+        List<ChatMessageDto> history,
+        CancellationToken cancellationToken)
+    {
+        var keywordIntent = _intentDetectionService.DetectIntent(message);
+        if (keywordIntent == ChatIntent.OutOfScope)
+        {
+            return ChatIntent.OutOfScope;
+        }
+
+        var semanticIntent = await _scopeClassifier.ClassifyAsync(
+            message,
+            history,
+            cancellationToken);
+
+        if (semanticIntent is ChatIntent.OutOfScope or ChatIntent.Social)
+        {
+            return semanticIntent;
+        }
+
+        return keywordIntent switch
+        {
+            ChatIntent.GooglePlacesOnly => ChatIntent.GooglePlacesOnly,
+            ChatIntent.Hybrid => ChatIntent.Hybrid,
+            _ => ChatIntent.RagOnly
         };
     }
 

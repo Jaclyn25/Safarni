@@ -36,7 +36,7 @@ public class CreateConversationCommandHandler : IRequestHandler<CreateConversati
             Id = Guid.NewGuid(),
             ConversationId = conversation.Id,
             Role = "assistant",
-            Content = "مرحباً بك في سفارني! ✈️ أنا مستشارك السياحي الذكي ومساعدك لتخطيط السفر والرحلات. كيف يمكنني مساعدتك اليوم؟",
+            Content = "مرحباً بك في سفارني! أنا مستشارك السياحي الذكي ومساعدك لتخطيط السفر والرحلات. كيف يمكنني مساعدتك اليوم؟",
             CreatedAt = DateTime.UtcNow
         };
         conversation.Messages.Add(welcomeMessage);

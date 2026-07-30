@@ -94,6 +94,35 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
         var intent = _intentDetectionService.DetectIntent(request.Message);
         _logger.LogInformation("Detected Chat Intent: {Intent}", intent);
 
+        if (intent is ChatIntent.Social or ChatIntent.OutOfScope)
+        {
+            _logger.LogInformation(
+                "Sending {Intent} intent directly to the model without RAG or Places lookup.",
+                intent);
+            var directSystemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), request.Message);
+            var directUserPrompt = _promptBuilder.BuildUserPrompt(request.Message);
+            var generatedResponse = await _aiProvider.GetChatCompletionAsync(
+                directSystemPrompt,
+                history,
+                directUserPrompt,
+                cancellationToken);
+
+            var directResponseMessage = new ConversationMessage
+            {
+                Id = Guid.NewGuid(),
+                ConversationId = conversation.Id,
+                Role = "assistant",
+                Content = generatedResponse,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            conversation.Messages.Add(directResponseMessage);
+            await _repository.AddMessageAsync(directResponseMessage, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return ToConversationDto(conversation);
+        }
+
         // STEP 1: Search Database FIRST (RAG)
         _logger.LogInformation("Step 1: Searching RAG Database for message context: {Message}", request.Message);
         List<DocumentChunk>? contextChunks = null;
@@ -163,36 +192,9 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                 }
                 else
                 {
-                // STEP 3: NEITHER DB NOR GOOGLE PLACES HAS IT -> Refuse to answer from external AI knowledge!
-                _logger.LogInformation("No data found in Database or Google Places API. Returning refusal message.");
-                var refusalText = _promptBuilder.BuildKnowledgeNotFoundMessage(request.Message);
-
-                var refusalMsg = new ConversationMessage
-                {
-                    Id = Guid.NewGuid(),
-                    ConversationId = conversation.Id,
-                    Role = "assistant",
-                    Content = refusalText,
-                    CreatedAt = DateTime.UtcNow
-                };
-                conversation.Messages.Add(refusalMsg);
-                await _repository.AddMessageAsync(refusalMsg, cancellationToken);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                return new ConversationDto
-                {
-                    Id = conversation.Id,
-                    Title = conversation.Title,
-                    CreatedAt = conversation.CreatedAt,
-                    Messages = conversation.Messages
-                        .OrderBy(m => m.CreatedAt)
-                        .Select(m => new ChatMessageDto
-                        {
-                            Role = m.Role,
-                            Content = m.Content
-                        })
-                        .ToList()
-                };
+                    // STEP 3: Travel intent, but no live/database data. Fall back to the LLM's general travel knowledge.
+                    _logger.LogInformation("No data found in Database or Google Places API. Falling back to general travel knowledge.");
+                    systemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), request.Message);
             }
         }
     }
@@ -214,6 +216,11 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        return ToConversationDto(conversation);
+    }
+
+    private static ConversationDto ToConversationDto(Conversation conversation)
+    {
         return new ConversationDto
         {
             Id = conversation.Id,

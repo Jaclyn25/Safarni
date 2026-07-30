@@ -2,6 +2,8 @@ namespace ChatBotApi.Application.Common.Interfaces;
 
 public enum ChatIntent
 {
+    Social,
+    OutOfScope,
     RagOnly,
     GooglePlacesOnly,
     Hybrid

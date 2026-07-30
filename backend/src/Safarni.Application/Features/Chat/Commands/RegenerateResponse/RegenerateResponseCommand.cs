@@ -71,6 +71,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
         }
 
         var messagesToRemove = messages.Where(m => m.CreatedAt > lastUserMsg.CreatedAt).ToList();
+        _repository.DeleteMessages(messagesToRemove);
         foreach (var msg in messagesToRemove)
         {
             conversation.Messages.Remove(msg);
@@ -89,6 +90,35 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
 
         var intent = _intentDetectionService.DetectIntent(lastUserMsg.Content);
         _logger.LogInformation("Regeneration - Detected Chat Intent: {Intent}", intent);
+
+        if (intent is ChatIntent.Social or ChatIntent.OutOfScope)
+        {
+            _logger.LogInformation(
+                "Regeneration is sending {Intent} intent directly to the model without RAG or Places lookup.",
+                intent);
+            var directSystemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), lastUserMsg.Content);
+            var directUserPrompt = _promptBuilder.BuildUserPrompt(lastUserMsg.Content);
+            var generatedResponse = await _aiProvider.GetChatCompletionAsync(
+                directSystemPrompt,
+                history,
+                directUserPrompt,
+                cancellationToken);
+
+            var directResponseMessage = new ConversationMessage
+            {
+                Id = Guid.NewGuid(),
+                ConversationId = conversation.Id,
+                Role = "assistant",
+                Content = generatedResponse,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            conversation.Messages.Add(directResponseMessage);
+            await _repository.AddMessageAsync(directResponseMessage, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return ToConversationDto(conversation);
+        }
 
         // STEP 1: Search Database FIRST (RAG)
         _logger.LogInformation("Step 1: Searching RAG Database for message regeneration: {Message}", lastUserMsg.Content);
@@ -157,34 +187,8 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                 }
                 else
                 {
-                    // STEP 3: Refuse if neither DB nor Google Places has it
-                    var refusalText = _promptBuilder.BuildKnowledgeNotFoundMessage(lastUserMsg.Content);
-                    var newAssistantRefusalMsg = new ConversationMessage
-                    {
-                        Id = Guid.NewGuid(),
-                        ConversationId = conversation.Id,
-                        Role = "assistant",
-                        Content = refusalText,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    conversation.Messages.Add(newAssistantRefusalMsg);
-                    await _repository.AddMessageAsync(newAssistantRefusalMsg, cancellationToken);
-                    await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                    return new ConversationDto
-                    {
-                        Id = conversation.Id,
-                        Title = conversation.Title,
-                        CreatedAt = conversation.CreatedAt,
-                        Messages = conversation.Messages
-                            .OrderBy(m => m.CreatedAt)
-                            .Select(m => new ChatMessageDto
-                            {
-                                Role = m.Role,
-                                Content = m.Content
-                            })
-                            .ToList()
-                    };
+                    // Travel intent, but no live/database data. Fall back to the LLM's general travel knowledge.
+                    systemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), lastUserMsg.Content);
                 }
             }
         }
@@ -205,6 +209,11 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        return ToConversationDto(conversation);
+    }
+
+    private static ConversationDto ToConversationDto(Conversation conversation)
+    {
         return new ConversationDto
         {
             Id = conversation.Id,

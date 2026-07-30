@@ -40,8 +40,8 @@ public class GroqProvider : IAIProvider
     {
         var apiKey = _configuration["Groq:ApiKey"] ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
         var model = _configuration["Groq:Model"] ?? "llama-3.3-70b-versatile";
-        var temperature = double.TryParse(_configuration["Groq:Temperature"], out var temp) ? temp : 0.7;
-        var maxTokens = int.TryParse(_configuration["Groq:MaxTokens"], out var tokens) ? tokens : 1200;
+        var temperature = double.TryParse(_configuration["Groq:Temperature"], out var temp) ? temp : 0.65;
+        var maxTokens = int.TryParse(_configuration["Groq:MaxTokens"], out var tokens) ? tokens : 1400;
         var topP = double.TryParse(_configuration["Groq:TopP"], out var p) ? p : 0.9;
         var timeoutSeconds = int.TryParse(_configuration["Groq:TimeoutSeconds"], out var sec) ? sec : 30;
 

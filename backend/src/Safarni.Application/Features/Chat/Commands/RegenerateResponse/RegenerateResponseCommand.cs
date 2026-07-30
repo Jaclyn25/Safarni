@@ -82,22 +82,58 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
             .TakeLast(MaxHistoryMessages)
             .Select(m => new ChatMessageDto
             {
+                Id = m.Id,
                 Role = m.Role,
                 Content = m.Content
             })
             .ToList();
 
-        var intent = _intentDetectionService.DetectIntent(lastUserMsg.Content);
-        _logger.LogInformation("Regeneration - Detected Chat Intent: {Intent}", intent);
+        var intentResult = await _intentDetectionService.DetectIntentAsync(lastUserMsg.Content, history, cancellationToken);
+        var intent = intentResult.Intent;
+        var standaloneQuery = intentResult.StandaloneQuery;
+
+        _logger.LogInformation("Regeneration - Detected Chat Intent: {Intent}, Standalone Query: {Query}", intent, standaloneQuery);
+
+        if (intent == ChatIntent.OutOfDomain)
+        {
+            var outOfDomainText = _configuration["Groq:RefusalMessage"] ?? "أنا مساعد ذكي متخصص في السياحة والسفر لمنصة سافرني. للأسف لا يمكنني الإجابة على أسئلة خارج هذا التخصص.";
+            var outOfDomainMsg = new ConversationMessage
+            {
+                Id = Guid.NewGuid(),
+                ConversationId = conversation.Id,
+                Role = "assistant",
+                Content = outOfDomainText,
+                CreatedAt = DateTime.UtcNow
+            };
+            conversation.Messages.Add(outOfDomainMsg);
+            await _repository.AddMessageAsync(outOfDomainMsg, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return new ConversationDto
+            {
+                Id = conversation.Id,
+                Title = conversation.Title,
+                CreatedAt = conversation.CreatedAt,
+                Messages = conversation.Messages
+                    .OrderBy(m => m.CreatedAt)
+                    .Select(m => new ChatMessageDto
+                    {
+                        Id = m.Id,
+                        Role = m.Role,
+                        Content = m.Content
+                    })
+                    .ToList()
+            };
+        }
 
         // STEP 1: Search Database FIRST (RAG)
-        _logger.LogInformation("Step 1: Searching RAG Database for message regeneration: {Message}", lastUserMsg.Content);
+        _logger.LogInformation("Step 1: Searching RAG Database for message regeneration: {Message}", standaloneQuery);
         List<DocumentChunk>? contextChunks = null;
         try
         {
             if (await _qdrantService.IsHealthyAsync())
             {
-                var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(lastUserMsg.Content);
+                var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(standaloneQuery);
                 var topK = int.TryParse(_configuration["RAG:TopK"], out var k) ? k : MaxContextChunks;
                 contextChunks = await _qdrantService.SearchSimilarChunksAsync(queryEmbedding, Math.Min(topK, MaxContextChunks));
             }
@@ -109,7 +145,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
 
         if (contextChunks == null || contextChunks.Count == 0)
         {
-            contextChunks = await GetSqlFallbackChunksAsync(lastUserMsg.Content, cancellationToken);
+            contextChunks = await GetSqlFallbackChunksAsync(standaloneQuery, cancellationToken);
         }
 
         if (contextChunks.Count > MaxContextChunks)
@@ -135,14 +171,14 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
             else
             {
                 // STEP 2: If NOT in Database -> Check Google Places API
-                _logger.LogInformation("Step 2: Searching Google Places API for message regeneration: {Message}", lastUserMsg.Content);
+                _logger.LogInformation("Step 2: Searching Google Places API for message regeneration: {Message}", standaloneQuery);
                 List<PlaceDetails>? places = null;
                 try
                 {
                     places = await _googlePlacesService.TextSearchAsync(
-                        lastUserMsg.Content,
+                        standaloneQuery,
                         cancellationToken,
-                        _promptBuilder.GetGooglePlacesLanguageCode(lastUserMsg.Content));
+                        _promptBuilder.GetGooglePlacesLanguageCode(standaloneQuery));
                 }
                 catch (Exception ex)
                 {
@@ -180,6 +216,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                             .OrderBy(m => m.CreatedAt)
                             .Select(m => new ChatMessageDto
                             {
+                                Id = m.Id,
                                 Role = m.Role,
                                 Content = m.Content
                             })
@@ -214,6 +251,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                 .OrderBy(m => m.CreatedAt)
                 .Select(m => new ChatMessageDto
                 {
+                    Id = m.Id,
                     Role = m.Role,
                     Content = m.Content
                 })

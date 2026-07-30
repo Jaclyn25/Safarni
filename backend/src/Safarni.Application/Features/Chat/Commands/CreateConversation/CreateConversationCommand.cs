@@ -49,7 +49,7 @@ public class CreateConversationCommandHandler : IRequestHandler<CreateConversati
             Id = conversation.Id,
             Title = conversation.Title,
             CreatedAt = conversation.CreatedAt,
-            Messages = new() { new ChatMessageDto { Role = welcomeMessage.Role, Content = welcomeMessage.Content } }
+            Messages = new() { new ChatMessageDto { Id = welcomeMessage.Id, Role = welcomeMessage.Role, Content = welcomeMessage.Content } }
         };
     }
 }

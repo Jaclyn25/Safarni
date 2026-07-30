@@ -1,203 +1,582 @@
-<!-- Main Chat Canvas -->
-<main class="max-w-container-max mx-auto h-[calc(100vh-160px)] md:h-[calc(100vh-80px)] flex w-full overflow-hidden">
-  <!-- Sidebar -->
-  <aside class="hidden md:flex flex-col w-72 bg-surface-container-low border-r border-outline-variant/30 px-4 pt-6 pb-2 h-full flex-shrink-0">
-    <button (click)="startNewConversation()" class="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full border border-primary/20 hover:bg-primary/5 text-primary font-semibold mb-6 transition-colors shadow-sm flex-shrink-0">
+<!-- Main Concierge AI Travel Workspace Component -->
+<main class="max-w-container-max mx-auto h-[calc(100vh-160px)] md:h-[calc(100vh-80px)] flex w-full overflow-hidden concierge-workspace">
+
+  <!-- Sidebar (Desktop) -->
+  <aside class="hidden md:flex flex-col w-72 bg-surface-container-low border-r border-outline-variant/30 px-4 pt-6 pb-4 h-full flex-shrink-0">
+
+    <!-- New Trip Chat CTA -->
+    <button
+      (click)="startNewConversation()"
+      class="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-primary text-on-primary font-bold shadow-md hover:bg-primary/90 transition-all active:scale-95 mb-4 flex-shrink-0 text-label-md"
+    >
       <span class="material-symbols-outlined text-[20px]">add</span>
-      New Chat
+      <span>New Trip Chat</span>
     </button>
-    <div class="flex flex-col flex-grow overflow-hidden">
-      <h3 class="text-label-sm text-on-surface-variant font-bold px-3 opacity-60 tracking-wider mb-2 flex-shrink-0">CHATS</h3>
-      <div class="flex-grow overflow-y-auto space-y-1.5 custom-scrollbar pb-4 pr-1">
-        @for (conv of conversationsList; track conv.id) {
-          <div (click)="selectConversation(conv.id)" 
-               [class]="'flex items-center justify-between w-full px-3 py-3 rounded-xl cursor-pointer transition-colors group ' + (conversationId === conv.id ? 'bg-primary/10 text-primary font-medium' : 'text-on-surface-variant hover:bg-surface-container-high')">
-            <span class="truncate flex-grow text-body-md text-left">{{ conv.title }}</span>
-            <button (click)="deleteConversation(conv.id, $event)" 
-                    class="p-1 rounded-full hover:bg-error/15 text-on-surface-variant/40 hover:text-error transition-colors opacity-0 group-hover:opacity-100 ml-2">
-              <span class="material-symbols-outlined text-[18px]">delete</span>
-            </button>
+
+    <!-- Search Conversations -->
+    <div class="relative mb-4 flex-shrink-0">
+      <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant/50 text-[18px]">search</span>
+      <input
+        [(ngModel)]="searchConvQuery"
+        placeholder="Search trip chats..."
+        class="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl pl-9 pr-3 py-2 text-label-sm text-on-surface placeholder:text-on-surface-variant/50 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+      />
+    </div>
+
+    <!-- Conversations Grouped List -->
+    <div class="flex-grow overflow-y-auto custom-scrollbar space-y-4 pr-1">
+
+      <!-- Today -->
+      @if (groupedConversations.today.length) {
+        <div>
+          <h3 class="text-label-sm text-on-surface-variant font-bold px-2 opacity-60 tracking-wider mb-1">TODAY</h3>
+          <div class="space-y-1">
+            @for (conv of groupedConversations.today; track conv.id) {
+              <div
+                (click)="selectConversation(conv.id)"
+                role="button"
+                tabindex="0"
+                [class]="'flex items-center justify-between w-full px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ' + (conversationId === conv.id ? 'bg-primary/10 text-primary font-bold border border-primary/20' : 'text-on-surface-variant hover:bg-surface-container-high')"
+              >
+                <div class="flex items-center gap-2 truncate flex-grow">
+                  <span class="material-symbols-outlined text-[16px] opacity-70">chat_bubble_outline</span>
+                  <span class="truncate text-label-md text-left">{{ conv.title }}</span>
+                </div>
+                <button
+                  (click)="confirmDeleteConversation(conv.id, conv.title, $event)"
+                  [attr.aria-label]="'Delete chat: ' + conv.title"
+                  class="p-1 rounded-lg hover:bg-error/15 text-on-surface-variant/40 hover:text-error transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                >
+                  <span class="material-symbols-outlined text-[16px]">delete</span>
+                </button>
+              </div>
+            }
           </div>
-        }
-      </div>
+        </div>
+      }
+
+      <!-- This Week -->
+      @if (groupedConversations.thisWeek.length) {
+        <div>
+          <h3 class="text-label-sm text-on-surface-variant font-bold px-2 opacity-60 tracking-wider mb-1">THIS WEEK</h3>
+          <div class="space-y-1">
+            @for (conv of groupedConversations.thisWeek; track conv.id) {
+              <div
+                (click)="selectConversation(conv.id)"
+                role="button"
+                tabindex="0"
+                [class]="'flex items-center justify-between w-full px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ' + (conversationId === conv.id ? 'bg-primary/10 text-primary font-bold border border-primary/20' : 'text-on-surface-variant hover:bg-surface-container-high')"
+              >
+                <div class="flex items-center gap-2 truncate flex-grow">
+                  <span class="material-symbols-outlined text-[16px] opacity-70">chat_bubble_outline</span>
+                  <span class="truncate text-label-md text-left">{{ conv.title }}</span>
+                </div>
+                <button
+                  (click)="confirmDeleteConversation(conv.id, conv.title, $event)"
+                  [attr.aria-label]="'Delete chat: ' + conv.title"
+                  class="p-1 rounded-lg hover:bg-error/15 text-on-surface-variant/40 hover:text-error transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                >
+                  <span class="material-symbols-outlined text-[16px]">delete</span>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Older -->
+      @if (groupedConversations.older.length) {
+        <div>
+          <h3 class="text-label-sm text-on-surface-variant font-bold px-2 opacity-60 tracking-wider mb-1">OLDER</h3>
+          <div class="space-y-1">
+            @for (conv of groupedConversations.older; track conv.id) {
+              <div
+                (click)="selectConversation(conv.id)"
+                role="button"
+                tabindex="0"
+                [class]="'flex items-center justify-between w-full px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ' + (conversationId === conv.id ? 'bg-primary/10 text-primary font-bold border border-primary/20' : 'text-on-surface-variant hover:bg-surface-container-high')"
+              >
+                <div class="flex items-center gap-2 truncate flex-grow">
+                  <span class="material-symbols-outlined text-[16px] opacity-70">chat_bubble_outline</span>
+                  <span class="truncate text-label-md text-left">{{ conv.title }}</span>
+                </div>
+                <button
+                  (click)="confirmDeleteConversation(conv.id, conv.title, $event)"
+                  [attr.aria-label]="'Delete chat: ' + conv.title"
+                  class="p-1 rounded-lg hover:bg-error/15 text-on-surface-variant/40 hover:text-error transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                >
+                  <span class="material-symbols-outlined text-[16px]">delete</span>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (!conversationsList.length) {
+        <div class="text-center py-8 text-on-surface-variant/60 text-label-sm">
+          No previous trip chats
+        </div>
+      }
+
     </div>
   </aside>
 
   <!-- Chat Main Area -->
-  <div class="flex-grow flex flex-col h-full overflow-hidden px-4 md:px-margin-desktop py-6 relative">
-    <!-- Chat Interface Header -->
-    <div class="flex items-center justify-between mb-8">
+  <div class="flex-grow flex flex-col h-full overflow-hidden px-4 md:px-margin-desktop py-4 md:py-6 relative">
+
+    <!-- Workspace Header -->
+    <div class="flex items-center justify-between mb-4 flex-shrink-0">
       <div>
-        <h2 class="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
+        <h1 class="text-headline-sm md:text-headline-md font-bold text-on-surface flex items-center gap-2">
           <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-          AI Concierge
-        </h2>
-        <p class="text-label-md font-label-md text-on-surface-variant opacity-70">Your personal travel assistant is ready to help.</p>
+          <span>AI Travel Workspace</span>
+        </h1>
+        <p class="text-label-md text-on-surface-variant opacity-75">Instant AI itineraries, visa requirements & local recommendations</p>
       </div>
-      <div class="flex gap-2">
-        <button class="p-2 rounded-xl hover:bg-surface-container-high transition-colors" (click)="handleRefresh()">
-          <span class="material-symbols-outlined text-on-surface-variant">refresh</span>
-        </button>
-        <button class="p-2 rounded-xl hover:bg-surface-container-high transition-colors">
-          <span class="material-symbols-outlined text-on-surface-variant">settings</span>
+
+      <div class="flex items-center gap-2">
+        <button
+          (click)="handleRefresh()"
+          class="p-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors flex items-center gap-1.5 text-label-sm font-semibold"
+          title="New trip chat"
+        >
+          <span class="material-symbols-outlined text-[20px]">refresh</span>
+          <span class="hidden sm:inline">Reset</span>
         </button>
       </div>
     </div>
 
-    <!-- Messages Area -->
+    <!-- Mobile Conversation Switcher -->
+    @if (conversationsList.length) {
+      <div class="md:hidden mb-3 flex-shrink-0">
+        <select
+          [ngModel]="conversationId || ''"
+          (ngModelChange)="openConversation($event)"
+          class="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-3 py-2 text-label-sm text-on-surface"
+        >
+          <option value="">+ Start new trip chat</option>
+          @for (conv of conversationsList; track conv.id) {
+            <option [value]="conv.id">{{ conv.title }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    <!-- Messages Canvas -->
     <div class="flex-grow overflow-y-auto custom-scrollbar space-y-6 pb-32" #chatMessages>
-      <!-- Dynamically added messages -->
-      @for (m of messages; track $index) {
+
+      <!-- Empty State Workspace -->
+      @if (!messages.length && !isTyping && !isLoadingConversation) {
+        <section class="max-w-2xl mx-auto py-8 text-center" aria-labelledby="workspace-title">
+          <div class="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4 shadow-inner">
+            <span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 1;">travel_explore</span>
+          </div>
+
+          <h2 id="workspace-title" class="text-headline-md font-bold text-on-surface mb-2">
+            Plan anything, from visas to full trips
+          </h2>
+          <p class="text-body-md text-on-surface-variant mb-8 max-w-lg mx-auto">
+            Ask about destinations, budget estimates, visa requirements, secret local spots, or build custom itineraries.
+          </p>
+
+          <!-- 4 Interactive Prompt Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+            @for (card of emptyStateCards; track card.title) {
+              <button
+                (click)="useSuggestion(card.prompt)"
+                class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-primary/40 hover:shadow-md transition-all group flex items-start gap-4 text-left cursor-pointer active:scale-95"
+              >
+                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-colors">
+                  <span class="material-symbols-outlined text-[20px]">{{ card.icon }}</span>
+                </div>
+                <div>
+                  <h3 class="text-label-lg font-bold text-on-surface mb-0.5 group-hover:text-primary transition-colors">{{ card.title }}</h3>
+                  <p class="text-label-sm text-on-surface-variant opacity-80">{{ card.subtitle }}</p>
+                </div>
+              </button>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Render Messages -->
+      @for (m of messages; track m.id || $index) {
+
+        <!-- User Message Bubble (Compact + Inline Edit + Toolbar) -->
         @if (m.isUser) {
-          <div class="flex items-start gap-4 max-w-3xl ml-auto flex-row-reverse message-entrance">
-            <div class="w-10 h-10 rounded-xl bg-surface-container-highest flex items-center justify-center flex-shrink-0">
-              <span class="material-symbols-outlined text-on-surface-variant">person</span>
+          <div class="flex items-start gap-3 max-w-2xl ml-auto flex-row-reverse message-entrance group">
+            <div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center flex-shrink-0 text-label-sm font-bold shadow-sm">
+              <span class="material-symbols-outlined text-[16px]">person</span>
             </div>
-            <div class="space-y-2 text-right max-w-full">
-              <div class="bg-surface-container-lowest text-on-surface p-5 rounded-2xl rounded-tr-none border border-outline-variant/30 shadow-[0_4px_20px_rgba(15,23,42,0.05)] text-body-md chat-message-text">
-                {{ m.text }}
-              </div>
-              <span class="text-label-sm font-label-sm text-on-surface-variant opacity-50 mr-1">{{ m.time }}</span>
+
+            <div class="space-y-1.5 text-right max-w-full min-w-0">
+
+              <!-- User Inline Edit Container -->
+              @if (m.isEditing) {
+                <div class="bg-surface-container-lowest border border-primary/40 rounded-2xl p-3 shadow-md text-right space-y-2">
+                  <textarea
+                    [(ngModel)]="m.editText"
+                    rows="3"
+                    class="w-full bg-transparent border border-outline-variant/30 rounded-xl p-2.5 text-body-md text-on-surface outline-none focus:border-primary concierge-textarea"
+                    placeholder="Edit your travel request..."
+                  ></textarea>
+
+                  <div class="flex items-center justify-end gap-2">
+                    <button
+                      (click)="cancelEdit(m)"
+                      class="px-3 py-1.5 rounded-lg text-label-sm text-on-surface-variant hover:bg-surface-container font-semibold transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      (click)="saveEditAndResend(m)"
+                      [disabled]="!m.editText?.trim() || isTyping"
+                      class="px-3 py-1.5 rounded-lg text-label-sm bg-primary text-on-primary font-bold shadow-sm hover:bg-primary/90 disabled:opacity-40 transition-all"
+                    >
+                      Send revised message
+                    </button>
+                  </div>
+                </div>
+
+              <!-- Standard User Bubble -->
+              } @else {
+                <div
+                  class="bg-primary text-on-primary px-4 py-2.5 rounded-2xl rounded-tr-none text-body-md shadow-sm text-right inline-block"
+                  [dir]="m.formatted.direction"
+                >
+                  {{ m.text }}
+                </div>
+
+                <!-- User Message Hover Toolbar -->
+                <div class="flex items-center justify-end gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span class="text-label-sm text-on-surface-variant opacity-50 mr-1">{{ m.time }}</span>
+
+                  <button
+                    (click)="copyMessage(m)"
+                    [class]="'msg-toolbar-btn ' + (m.copied ? 'copied' : '')"
+                    [title]="m.copied ? 'Copied!' : 'Copy message'"
+                  >
+                    <span class="material-symbols-outlined text-[16px]">
+                      {{ m.copied ? 'check' : 'content_copy' }}
+                    </span>
+                  </button>
+
+                  <button
+                    (click)="startEdit(m)"
+                    class="msg-toolbar-btn"
+                    title="Edit request"
+                  >
+                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                  </button>
+                </div>
+              }
             </div>
           </div>
-        } @else {
-          <div class="flex items-start gap-4 max-w-3xl message-entrance">
-            <div class="w-10 h-10 rounded-xl ai-gradient flex items-center justify-center shadow-lg flex-shrink-0">
-              <span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+
+        <!-- Assistant Error Message -->
+        } @else if (m.kind === 'error') {
+          <div class="flex items-start gap-3 max-w-3xl message-entrance">
+            <div class="w-8 h-8 rounded-full bg-error/10 text-error flex items-center justify-center flex-shrink-0">
+              <span class="material-symbols-outlined text-[18px]">error</span>
             </div>
+            <div class="space-y-1 min-w-0 flex-1">
+              <div class="bg-error/10 text-error rounded-2xl rounded-tl-none p-4 text-body-md border border-error/20">
+                <div class="font-bold mb-1">Unable to complete request</div>
+                @for (paragraph of m.formatted.paragraphs; track $index) {
+                  <p>{{ paragraph }}</p>
+                }
+                @if (m.action === 'new-chat') {
+                  <button
+                    type="button"
+                    (click)="startNewConversation()"
+                    class="mt-3 inline-flex items-center gap-2 rounded-xl bg-error px-4 py-2 text-label-md font-bold text-on-error transition-colors hover:bg-error/90"
+                  >
+                    <span class="material-symbols-outlined text-[18px]">add_comment</span>
+                    <span>ابدأ شات جديد</span>
+                  </button>
+                }
+              </div>
+              <span class="text-label-sm text-on-surface-variant opacity-50 block ml-1">{{ m.time }}</span>
+            </div>
+          </div>
+
+        <!-- AI Assistant Travel Card Response + Version Switcher + Toolbar -->
+        } @else {
+          <div class="flex items-start gap-3.5 max-w-3xl message-entrance group">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center shadow-md flex-shrink-0 mt-0.5">
+              <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+            </div>
+
             <div class="space-y-2 min-w-0 flex-1">
-              <div class="assistant-response rounded-2xl rounded-tl-none p-5 shadow-sm text-body-md"
-                   [dir]="m.formatted.direction"
-                   [class.text-right]="m.formatted.direction === 'rtl'">
+
+              <!-- Version Switcher Header (when multiple versions exist) -->
+              @if (m.versions && m.versions.length > 1) {
+                <div class="flex items-center gap-2 mb-1">
+                  <div class="version-switcher">
+                    <button
+                      (click)="switchVersion(m, -1)"
+                      [disabled]="(m.activeVersionIndex || 0) <= 0"
+                      class="hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Previous version"
+                    >
+                      <span class="material-symbols-outlined text-[14px]">chevron_left</span>
+                    </button>
+
+                    <span>{{ (m.activeVersionIndex || 0) + 1 }} / {{ m.versions.length }}</span>
+
+                    <button
+                      (click)="switchVersion(m, 1)"
+                      [disabled]="(m.activeVersionIndex || 0) >= m.versions.length - 1"
+                      class="hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Next version"
+                    >
+                      <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                    </button>
+                  </div>
+                </div>
+              }
+
+              <!-- Main AI Response Card -->
+              <div
+                class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl rounded-tl-none p-5 shadow-sm text-body-md text-on-surface space-y-4 relative"
+                [dir]="m.formatted.direction"
+              >
+                <!-- Response Summary Header -->
+                @if (m.formatted.summary) {
+                  <div class="bg-primary/5 p-4 rounded-xl border border-primary/15 text-on-surface font-medium text-body-md">
+                    {{ m.formatted.summary }}
+                  </div>
+                }
+
+                <!-- Paragraph Sections -->
                 @if (m.formatted.paragraphs.length) {
-                  <div class="assistant-response__prose">
+                  <div class="space-y-2 text-on-surface-variant">
                     @for (paragraph of m.formatted.paragraphs; track $index) {
-                      <p>{{ paragraph }}</p>
+                      <p class="leading-relaxed">{{ paragraph }}</p>
                     }
                   </div>
                 }
 
-                @if (m.formatted.recommendations.length) {
-                  <div class="assistant-response__cards">
-                    @for (item of m.formatted.recommendations; track $index) {
-                      <article class="assistant-place-card">
-                        <div class="flex items-start justify-between gap-3">
-                          <h3>{{ item.title }}</h3>
-                          @if (item.rating) {
-                            <span class="assistant-rating">
-                              <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                              {{ item.rating }}
+                <!-- Day-by-Day Itinerary Cards -->
+                @if (m.formatted.itineraryDays.length) {
+                  <div class="space-y-3 pt-2">
+                    <h3 class="text-label-lg font-bold text-primary flex items-center gap-1.5">
+                      <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+                      <span>Day-by-Day Plan</span>
+                    </h3>
+
+                    <div class="grid grid-cols-1 gap-3">
+                      @for (day of m.formatted.itineraryDays; track day.dayNumber) {
+                        <div class="itinerary-day-card">
+                          <div class="flex items-center justify-between mb-2">
+                            <span class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-label-sm">
+                              Day {{ day.dayNumber }}
                             </span>
-                          }
+                            @if (day.budget) {
+                              <span class="text-label-sm text-on-surface-variant font-semibold">
+                                Est. {{ day.budget }}
+                              </span>
+                            }
+                          </div>
+                          <h4 class="text-body-md font-bold text-on-surface mb-2">{{ day.title }}</h4>
+
+                          <div class="space-y-1 text-body-sm text-on-surface-variant">
+                            @if (day.morning) {
+                              <div class="flex items-start gap-1.5">
+                                <span class="text-primary font-bold text-label-sm">Morning:</span>
+                                <span>{{ day.morning }}</span>
+                              </div>
+                            }
+                            @if (day.afternoon) {
+                              <div class="flex items-start gap-1.5">
+                                <span class="text-primary font-bold text-label-sm">Afternoon:</span>
+                                <span>{{ day.afternoon }}</span>
+                              </div>
+                            }
+                            @if (day.evening) {
+                              <div class="flex items-start gap-1.5">
+                                <span class="text-primary font-bold text-label-sm">Evening:</span>
+                                <span>{{ day.evening }}</span>
+                              </div>
+                            }
+                          </div>
                         </div>
-                        <p>{{ item.description }}</p>
-                        @if (item.link) {
-                          <a class="assistant-link-button" [href]="item.link.url" target="_blank" rel="noopener noreferrer">
-                            <span class="material-symbols-outlined text-[18px]">{{ item.link.icon }}</span>
-                            {{ item.link.label }}
-                          </a>
-                        }
-                      </article>
-                    }
+                      }
+                    </div>
                   </div>
                 }
 
+                <!-- Extracted Web Links -->
                 @if (m.formatted.links.length) {
-                  <div class="assistant-response__links">
+                  <div class="flex flex-wrap gap-2 pt-2">
                     @for (link of m.formatted.links; track link.url) {
-                      <a class="assistant-link-button" [href]="link.url" target="_blank" rel="noopener noreferrer">
-                        <span class="material-symbols-outlined text-[18px]">{{ link.icon }}</span>
-                        {{ link.label }}
+                      <a [href]="link.url" target="_blank" rel="noopener noreferrer" class="action-chip">
+                        <span class="material-symbols-outlined text-[16px]">{{ link.icon }}</span>
+                        <span>{{ link.label }}</span>
                       </a>
                     }
                   </div>
                 }
-
-                @if (!m.formatted.paragraphs.length && !m.formatted.recommendations.length && !m.formatted.links.length) {
-                  <p class="chat-message-text">{{ m.text }}</p>
-                }
               </div>
-              <span class="text-label-sm font-label-sm text-on-surface-variant opacity-50 ml-1">{{ m.time }}</span>
+
+              <!-- Post-Response Interactive Action Chips (for trip plans) -->
+              @if (m.formatted.actionChips.length) {
+                <div class="flex flex-wrap gap-2 pt-1">
+                  @for (chip of m.formatted.actionChips; track chip.label) {
+                    <button (click)="executeActionChip(chip)" class="action-chip">
+                      <span class="material-symbols-outlined text-[16px]">{{ chip.icon }}</span>
+                      <span>{{ chip.label }}</span>
+                    </button>
+                  }
+                </div>
+              }
+
+              <!-- AI Message Toolbar & Timestamp -->
+              <div class="flex items-center justify-between pt-1">
+                <span class="text-label-sm text-on-surface-variant opacity-50 ml-1">{{ m.time }}</span>
+
+                <!-- Action Toolbar Icons -->
+                <div class="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                  <!-- Copy Button -->
+                  <button
+                    (click)="copyMessage(m)"
+                    [class]="'msg-toolbar-btn ' + (m.copied ? 'copied' : '')"
+                    [title]="m.copied ? 'Copied!' : 'Copy response'"
+                  >
+                    <span class="material-symbols-outlined text-[16px]">
+                      {{ m.copied ? 'check' : 'content_copy' }}
+                    </span>
+                  </button>
+
+                  @if (isLatestAssistantMessage(m)) {
+                    <button
+                      (click)="regenerateAiResponse(m)"
+                      [disabled]="isTyping"
+                      class="msg-toolbar-btn disabled:opacity-40"
+                      title="Regenerate latest response"
+                    >
+                      <span class="material-symbols-outlined text-[16px]">refresh</span>
+                    </button>
+                  }
+                </div>
+              </div>
+
             </div>
           </div>
         }
       }
 
-      <!-- Typing indicator -->
-      @if (isTyping) {
-        <div class="flex items-start gap-4 max-w-3xl message-entrance">
-          <div class="w-10 h-10 rounded-xl ai-gradient flex items-center justify-center shadow-lg flex-shrink-0">
-            <span class="material-symbols-outlined text-white text-[20px] animate-pulse" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-          </div>
-          <div class="ai-gradient/10 p-4 rounded-2xl rounded-tl-none flex gap-1">
-            <div class="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></div>
-            <div class="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></div>
-            <div class="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></div>
-          </div>
-        </div>
-      }
     </div>
 
-    <!-- Stop Response Button -->
-    @if (isTyping) {
-      <div class="absolute bottom-24 left-1/2 -translate-x-1/2 z-50">
-        <button (click)="stopResponse()" class="flex items-center gap-2 bg-surface-container-highest/95 border border-outline-variant/60 text-on-surface py-2 px-4 rounded-full shadow-md hover:bg-surface-container-high transition-colors text-body-md font-medium">
-          <span class="material-symbols-outlined text-error animate-pulse text-[20px]">stop_circle</span>
-          Stop Response
+    <!-- Smart Input Bar -->
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%_-_32px)] max-w-3xl z-50">
+      <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-[0_8px_32px_rgba(15,23,42,0.08)] p-2.5 flex items-end gap-3 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+        <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mb-0.5">
+          <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+        </div>
+
+        <textarea
+          #messageTextarea
+          [(ngModel)]="inputValue"
+          (input)="onTextareaInput($event)"
+          (keydown)="onKeydown($event)"
+          rows="1"
+          placeholder="Ask about Maldives, visas, hotels, or build a trip..."
+          class="flex-grow bg-transparent border-none focus:ring-0 text-body-md text-on-surface placeholder:text-on-surface-variant/50 outline-none concierge-textarea py-1.5"
+          [attr.maxlength]="maxMessageLength"
+          aria-label="Ask Safarni AI Travel Workspace"
+        ></textarea>
+
+        <button
+          (click)="handleSend()"
+          [disabled]="isTyping || !inputValue.trim()"
+          class="bg-primary text-on-primary w-10 h-10 rounded-xl flex items-center justify-center shadow-md hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 mb-0.5"
+          aria-label="Send message"
+        >
+          <span class="material-symbols-outlined text-[20px]">send</span>
         </button>
       </div>
-    }
-
-    <!-- Chat Input Bar -->
-    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-3xl z-50">
-      <div class="bg-surface-container-lowest/80 glass-effect border border-outline-variant/40 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-2 pr-4 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full flex items-center justify-center text-primary ml-1">
-          <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-        </div>
-        <input
-          class="flex-grow bg-transparent border-none focus:ring-0 text-body-md text-on-surface placeholder:text-on-surface-variant/50 py-3"
-          placeholder="Ask anything about your trip..."
-          type="text"
-          [(ngModel)]="inputValue"
-          (keyup.enter)="handleSend()"
-        />
-        <div class="flex items-center gap-2">
-          <button class="p-2 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">
-            <span class="material-symbols-outlined">mic</span>
-          </button>
-          <button class="ai-gradient text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform" (click)="handleSend()">
-            <span class="material-symbols-outlined text-[20px]">send</span>
-          </button>
-        </div>
-      </div>
     </div>
+
   </div>
 </main>
 
 <!-- Bottom Navigation (Mobile Only) -->
-<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pt-3 pb-8 bg-surface/80 backdrop-blur-xl border-t border-outline-variant/20 z-50 shadow-[0_-4px_20px_rgba(15,23,42,0.05)]">
-  <a routerLink="/" routerLinkActive="text-primary font-semibold bg-primary-container/20 rounded-xl scale-90" [routerLinkActiveOptions]="{exact: true}"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pt-3 pb-safe-bottom bg-surface/90 backdrop-blur-xl border-t border-outline-variant/20 z-50 shadow-[0_-4px_20px_rgba(15,23,42,0.05)]">
+  <a routerLink="/" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90" [routerLinkActiveOptions]="{exact: true}"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
     <span class="material-symbols-outlined">explore</span>
     <span class="text-label-sm font-label-sm">Explore</span>
   </a>
-  <a routerLink="/planner" routerLinkActive="text-primary font-semibold bg-primary-container/20 rounded-xl scale-90"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
+  <a routerLink="/planner" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
     <span class="material-symbols-outlined">event_note</span>
     <span class="text-label-sm font-label-sm">Planner</span>
   </a>
-  <a routerLink="/bookings" routerLinkActive="text-primary font-semibold bg-primary-container/20 rounded-xl scale-90"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
+  <a routerLink="/bookings" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
     <span class="material-symbols-outlined">confirmation_number</span>
     <span class="text-label-sm font-label-sm">Bookings</span>
   </a>
-  <a routerLink="/concierge" routerLinkActive="text-primary font-semibold bg-primary-container/20 rounded-xl scale-90"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
+  <a routerLink="/concierge" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
     <span class="material-symbols-outlined">auto_awesome</span>
     <span class="text-label-sm font-label-sm">Concierge</span>
   </a>
-  <a href="#" class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
+  <a routerLink="/profile" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
     <span class="material-symbols-outlined">person</span>
     <span class="text-label-sm font-label-sm">Profile</span>
   </a>
 </nav>
+
+<!-- Custom Delete Confirmation Modal Overlay -->
+@if (showDeleteModal) {
+  <div
+    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md message-entrance"
+    (click)="cancelDeleteConversation()"
+  >
+    <div
+      class="bg-surface-container-lowest border border-outline-variant/30 rounded-3xl p-6 max-w-md w-full shadow-2xl text-center space-y-4 relative overflow-hidden"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Top Decorative Accent -->
+      <div class="w-14 h-14 rounded-2xl bg-error/10 text-error flex items-center justify-center mx-auto shadow-inner">
+        <span class="material-symbols-outlined text-[30px]">delete_forever</span>
+      </div>
+
+      <div class="space-y-1.5">
+        <h3 class="text-headline-sm font-bold text-on-surface">Delete Trip Chat?</h3>
+        <p class="text-body-md text-on-surface-variant leading-relaxed">
+          Are you sure you want to delete <span class="font-bold text-on-surface">"{{ deletingConvTitle }}"</span>? This action cannot be undone.
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-3 pt-2">
+        <button
+          (click)="cancelDeleteConversation()"
+          [disabled]="isDeletingConversation"
+          class="flex-1 py-2.5 px-4 rounded-xl border border-outline-variant/40 bg-surface-container-low hover:bg-surface-container text-on-surface font-semibold text-label-md transition-all active:scale-95 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+
+        <button
+          (click)="executeDeleteConversation()"
+          [disabled]="isDeletingConversation"
+          class="flex-1 py-2.5 px-4 rounded-xl bg-error text-on-error font-bold shadow-md hover:bg-error/90 transition-all active:scale-95 flex items-center justify-center gap-2 text-label-md disabled:opacity-50"
+        >
+          @if (isDeletingConversation) {
+            <span class="material-symbols-outlined animate-spin text-[18px]">sync</span>
+            <span>Deleting...</span>
+          } @else {
+            <span class="material-symbols-outlined text-[18px]">delete</span>
+            <span>Delete Chat</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

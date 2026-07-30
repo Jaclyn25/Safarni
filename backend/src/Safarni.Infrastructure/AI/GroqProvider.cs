@@ -10,7 +10,9 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using ChatBotApi.Application.Common.DTOs;
+using ChatBotApi.Application.Common.Exceptions;
 using ChatBotApi.Application.Common.Interfaces;
+using ChatBotApi.Application.Common.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -36,13 +38,17 @@ public class GroqProvider : IAIProvider
         string systemPrompt, 
         List<ChatMessageDto> history, 
         string userMessage, 
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        AICompletionOptions? options = null)
     {
         var apiKey = _configuration["Groq:ApiKey"] ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
         var model = _configuration["Groq:Model"] ?? "llama-3.3-70b-versatile";
-        var temperature = double.TryParse(_configuration["Groq:Temperature"], out var temp) ? temp : 0.7;
-        var maxTokens = int.TryParse(_configuration["Groq:MaxTokens"], out var tokens) ? tokens : 1200;
-        var topP = double.TryParse(_configuration["Groq:TopP"], out var p) ? p : 0.9;
+        var configuredTemperature = double.TryParse(_configuration["Groq:Temperature"], out var temp) ? temp : 0.65;
+        var configuredMaxTokens = int.TryParse(_configuration["Groq:MaxTokens"], out var tokens) ? tokens : 1400;
+        var configuredTopP = double.TryParse(_configuration["Groq:TopP"], out var p) ? p : 0.9;
+        var temperature = options?.Temperature ?? configuredTemperature;
+        var maxTokens = options?.MaxTokens ?? configuredMaxTokens;
+        var topP = options?.TopP ?? configuredTopP;
         var timeoutSeconds = int.TryParse(_configuration["Groq:TimeoutSeconds"], out var sec) ? sec : 30;
 
         if (string.IsNullOrWhiteSpace(apiKey))
@@ -115,7 +121,8 @@ public class GroqProvider : IAIProvider
         if (response.StatusCode == (HttpStatusCode)429)
         {
             _logger.LogWarning("Groq API rate limit exceeded.");
-            throw new HttpRequestException("تجاوزت حد الطلبات المسموح به لمزود الذكاء الاصطناعي (Rate Limit). يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.");
+            throw new AIProviderRateLimitException(
+                "وصلت المحادثة إلى الحد المتاح حاليًا. ابدأ محادثة جديدة للمتابعة.");
         }
 
         if (!response.IsSuccessStatusCode)
@@ -127,8 +134,8 @@ public class GroqProvider : IAIProvider
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
         
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        var deserialized = JsonSerializer.Deserialize<GroqResponseJson>(responseContent, options);
+        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var deserialized = JsonSerializer.Deserialize<GroqResponseJson>(responseContent, jsonOptions);
 
         var reply = deserialized?.Choices?[0]?.Message?.Content;
         if (string.IsNullOrWhiteSpace(reply))

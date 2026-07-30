@@ -1,4 +1,5 @@
 using FluentValidation;
+using ChatBotApi.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Safarni.API.Common;
 
@@ -28,6 +29,20 @@ public sealed class ExceptionHandlingMiddleware
                 exception.Errors.Select(error => new ApiError(error.ErrorCode, error.ErrorMessage)),
                 "Validation failed.",
                 StatusCodes.Status400BadRequest);
+
+            await context.Response.WriteAsJsonAsync(response);
+        }
+        catch (AIProviderRateLimitException)
+        {
+            context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            context.Response.ContentType = "application/json";
+
+            var response = ApiResponse<object>.FailureResponse(
+                [new ApiError(
+                    "Chat.SessionLimitReached",
+                    "وصلت هذه المحادثة إلى الحد المتاح حاليًا. ابدأ شات جديد للمتابعة.")],
+                "Start a new chat to continue.",
+                StatusCodes.Status429TooManyRequests);
 
             await context.Response.WriteAsJsonAsync(response);
         }

@@ -28,6 +28,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
     private readonly IQdrantService _qdrantService;
     private readonly IPromptBuilder _promptBuilder;
     private readonly IIntentDetectionService _intentDetectionService;
+    private readonly IChatScopeClassifier _scopeClassifier;
     private readonly IGooglePlacesService _googlePlacesService;
     private readonly ILogger<SendMessageCommandHandler> _logger;
 
@@ -40,6 +41,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
         IQdrantService qdrantService,
         IPromptBuilder promptBuilder,
         IIntentDetectionService intentDetectionService,
+        IChatScopeClassifier scopeClassifier,
         IGooglePlacesService googlePlacesService,
         ILogger<SendMessageCommandHandler> logger)
     {
@@ -51,6 +53,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
         _qdrantService = qdrantService;
         _promptBuilder = promptBuilder;
         _intentDetectionService = intentDetectionService;
+        _scopeClassifier = scopeClassifier;
         _googlePlacesService = googlePlacesService;
         _logger = logger;
     }
@@ -92,55 +95,53 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             })
             .ToList();
 
-        var intentResult = await _intentDetectionService.DetectIntentAsync(request.Message, history, cancellationToken);
-        var intent = intentResult.Intent;
-        var standaloneQuery = intentResult.StandaloneQuery;
+        var intent = await ResolveIntentAsync(request.Message, history, cancellationToken);
+        _logger.LogInformation("Detected Chat Intent: {Intent}", intent);
 
-        _logger.LogInformation("Detected Chat Intent: {Intent}, Standalone Query: {Query}", intent, standaloneQuery);
-
-        if (intent == ChatIntent.OutOfDomain)
+        if (intent is ChatIntent.Social or ChatIntent.OutOfScope)
         {
-            var outOfDomainText = _configuration["Groq:RefusalMessage"] ?? "أنا مساعد ذكي متخصص في السياحة والسفر لمنصة سافرني. للأسف لا يمكنني الإجابة على أسئلة خارج هذا التخصص.";
-            var outOfDomainMsg = new ConversationMessage
+            _logger.LogInformation(
+                "Sending {Intent} intent directly to the model without RAG or Places lookup.",
+                intent);
+            var directSystemPrompt = _promptBuilder.BuildDirectSystemPrompt(intent, request.Message);
+            var directUserPrompt = _promptBuilder.BuildUserPrompt(request.Message);
+            var generatedResponse = await _aiProvider.GetChatCompletionAsync(
+                directSystemPrompt,
+                history,
+                directUserPrompt,
+                cancellationToken);
+
+            var directResponseMessage = new ConversationMessage
             {
                 Id = Guid.NewGuid(),
                 ConversationId = conversation.Id,
                 Role = "assistant",
-                Content = outOfDomainText,
+                Content = generatedResponse,
                 CreatedAt = DateTime.UtcNow
             };
-            conversation.Messages.Add(outOfDomainMsg);
-            await _repository.AddMessageAsync(outOfDomainMsg, cancellationToken);
+
+            conversation.Messages.Add(directResponseMessage);
+            await _repository.AddMessageAsync(directResponseMessage, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            return new ConversationDto
-            {
-                Id = conversation.Id,
-                Title = conversation.Title,
-                CreatedAt = conversation.CreatedAt,
-                Messages = conversation.Messages
-                    .OrderBy(m => m.CreatedAt)
-                    .Select(m => new ChatMessageDto
-                    {
-                        Id = m.Id,
-                        Role = m.Role,
-                        Content = m.Content
-                    })
-                    .ToList()
-            };
+            return ToConversationDto(conversation);
         }
 
         // STEP 1: Search Database FIRST (RAG)
-        _logger.LogInformation("Step 1: Searching RAG Database for message context: {Message}", standaloneQuery);
+        _logger.LogInformation("Step 1: Searching RAG Database for message context: {Message}", request.Message);
         List<DocumentChunk>? contextChunks = null;
         try
         {
             if (await _qdrantService.IsHealthyAsync())
             {
-                var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(standaloneQuery);
+                var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(request.Message);
                 var topK = int.TryParse(_configuration["RAG:TopK"], out var k) ? k : MaxContextChunks;
                 contextChunks = await _qdrantService.SearchSimilarChunksAsync(queryEmbedding, Math.Min(topK, MaxContextChunks));
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -149,7 +150,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
 
         if (contextChunks == null || contextChunks.Count == 0)
         {
-            contextChunks = await GetSqlFallbackChunksAsync(standaloneQuery, cancellationToken);
+            contextChunks = await GetSqlFallbackChunksAsync(request.Message, cancellationToken);
         }
 
         if (contextChunks.Count > MaxContextChunks)
@@ -176,14 +177,18 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             else
             {
                 // STEP 2: If NOT in Database -> Check Google Places API
-                _logger.LogInformation("Step 2: No data in Database. Searching Google Places API for message: {Message}", standaloneQuery);
+                _logger.LogInformation("Step 2: No data in Database. Searching Google Places API for message: {Message}", request.Message);
                 List<PlaceDetails>? places = null;
                 try
                 {
                     places = await _googlePlacesService.TextSearchAsync(
-                        standaloneQuery,
+                        request.Message,
                         cancellationToken,
-                        _promptBuilder.GetGooglePlacesLanguageCode(standaloneQuery));
+                        _promptBuilder.GetGooglePlacesLanguageCode(request.Message));
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -199,37 +204,9 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                 }
                 else
                 {
-                    // STEP 3: NEITHER DB NOR GOOGLE PLACES HAS IT -> Refuse to answer from external AI knowledge!
-                    _logger.LogInformation("No data found in Database or Google Places API. Returning refusal message.");
-                    var refusalText = _promptBuilder.BuildKnowledgeNotFoundMessage(request.Message);
-
-                    var refusalMsg = new ConversationMessage
-                    {
-                        Id = Guid.NewGuid(),
-                        ConversationId = conversation.Id,
-                        Role = "assistant",
-                        Content = refusalText,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    conversation.Messages.Add(refusalMsg);
-                    await _repository.AddMessageAsync(refusalMsg, cancellationToken);
-                    await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                    return new ConversationDto
-                    {
-                        Id = conversation.Id,
-                        Title = conversation.Title,
-                        CreatedAt = conversation.CreatedAt,
-                        Messages = conversation.Messages
-                            .OrderBy(m => m.CreatedAt)
-                            .Select(m => new ChatMessageDto
-                            {
-                                Id = m.Id,
-                                Role = m.Role,
-                                Content = m.Content
-                            })
-                            .ToList()
-                    };
+                    // STEP 3: Travel intent, but no live/database data. Fall back to the LLM's general travel knowledge.
+                    _logger.LogInformation("No data found in Database or Google Places API. Falling back to general travel knowledge.");
+                    systemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), request.Message);
                 }
             }
         }
@@ -251,6 +228,11 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        return ToConversationDto(conversation);
+    }
+
+    private static ConversationDto ToConversationDto(Conversation conversation)
+    {
         return new ConversationDto
         {
             Id = conversation.Id,
@@ -265,6 +247,35 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                     Content = m.Content
                 })
                 .ToList()
+        };
+    }
+
+    private async Task<ChatIntent> ResolveIntentAsync(
+        string message,
+        List<ChatMessageDto> history,
+        CancellationToken cancellationToken)
+    {
+        var keywordIntent = _intentDetectionService.DetectIntent(message);
+        if (keywordIntent == ChatIntent.OutOfScope)
+        {
+            return ChatIntent.OutOfScope;
+        }
+
+        var semanticIntent = await _scopeClassifier.ClassifyAsync(
+            message,
+            history,
+            cancellationToken);
+
+        if (semanticIntent is ChatIntent.OutOfScope or ChatIntent.Social)
+        {
+            return semanticIntent;
+        }
+
+        return keywordIntent switch
+        {
+            ChatIntent.GooglePlacesOnly => ChatIntent.GooglePlacesOnly,
+            ChatIntent.Hybrid => ChatIntent.Hybrid,
+            _ => ChatIntent.RagOnly
         };
     }
 

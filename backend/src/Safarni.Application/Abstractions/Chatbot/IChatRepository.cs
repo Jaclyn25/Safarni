@@ -12,6 +12,7 @@ public interface IChatRepository
     Task<List<Conversation>> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default);
     Task AddAsync(Conversation conversation, CancellationToken cancellationToken = default);
     Task AddMessageAsync(ConversationMessage message, CancellationToken cancellationToken = default);
+    void DeleteMessages(IEnumerable<ConversationMessage> messages);
     void Delete(Conversation conversation);
     Task<List<TravelKnowledge>> GetTravelKnowledgesAsync(CancellationToken cancellationToken = default);
 }

@@ -53,7 +53,6 @@ app-root {
   -ms-overflow-style: none;
 }
 
-
 @supports (scrollbar-width: none) {
   .hide-scrollbar {
     scrollbar-width: none;
@@ -131,76 +130,52 @@ app-root {
   white-space: pre-wrap;
   line-height: 1.65;
 }
-
 .assistant-response {
   max-width: min(720px, calc(100vw - 104px));
   background: color-mix(in srgb, #f7f9fb 92%, #2563EB 8%);
   border: 1px solid rgba(37, 99, 235, 0.14);
   color: #172033;
   line-height: 1.7;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
-
 .assistant-response__prose {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.8rem;
 }
-
 .assistant-response__prose p {
   margin: 0;
+  max-width: 72ch;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
-
-.assistant-response__cards {
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.assistant-place-card {
-  display: grid;
-  gap: 0.65rem;
-  padding: 0.9rem;
-  background: rgba(247, 249, 251, 0.78);
-  border: 1px solid rgba(148, 163, 184, 0.32);
-  border-radius: 0.75rem;
-}
-
-.assistant-place-card h3 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.assistant-place-card p {
-  margin: 0;
-  color: #475569;
-  font-size: 0.9rem;
+.assistant-error {
+  max-width: min(680px, calc(100vw - 104px));
+  background: oklch(0.975 0.018 65);
+  border: 1px solid oklch(0.66 0.16 48 / 0.25);
+  color: oklch(0.37 0.105 43);
   line-height: 1.65;
+  box-shadow: 0 6px 20px oklch(0.37 0.105 43 / 0.06);
 }
-
-.assistant-rating {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background: rgba(234, 179, 8, 0.12);
-  color: #854d0e;
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 0.25rem 0.5rem;
-  white-space: nowrap;
+.assistant-error p {
+  margin: 0;
 }
-
+.assistant-error__title {
+  margin-bottom: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: oklch(0.46 0.14 43);
+}
+.assistant-error-icon {
+  background: oklch(0.94 0.045 66);
+  border: 1px solid oklch(0.66 0.16 48 / 0.26);
+  color: oklch(0.59 0.18 45);
+}
 .assistant-response__links {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 1rem;
 }
-
 .assistant-link-button {
   display: inline-flex;
   align-items: center;
@@ -218,12 +193,91 @@ app-root {
   text-decoration: none;
   transition: background-color 180ms ease-out, transform 180ms ease-out;
 }
-
 .assistant-link-button:hover {
   background: #1d4ed8;
   transform: translateY(-1px);
 }
-
+.concierge-empty-state {
+  width: min(680px, 100%);
+  margin: clamp(1.5rem, 8vh, 5rem) auto 0;
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+  padding: 0 1rem;
+  text-align: center;
+}
+.concierge-empty-state__icon {
+  display: grid;
+  place-items: center;
+  width: 3.75rem;
+  height: 3.75rem;
+  border-radius: 1.25rem;
+  background: oklch(0.94 0.045 245);
+  color: oklch(0.52 0.18 255);
+}
+.concierge-empty-state__icon .material-symbols-outlined {
+  font-size: 1.8rem;
+}
+.concierge-empty-state h3 {
+  margin: 0;
+  color: oklch(0.27 0.035 255);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.concierge-empty-state p {
+  max-width: 56ch;
+  margin: 0.45rem auto 0;
+  color: oklch(0.49 0.035 255);
+  line-height: 1.6;
+}
+.concierge-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+}
+.concierge-suggestions button {
+  border: 1px solid oklch(0.75 0.04 250 / 0.58);
+  border-radius: 999px;
+  background: oklch(0.985 0.006 250);
+  color: oklch(0.4 0.08 255);
+  padding: 0.65rem 0.9rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 180ms ease-out, border-color 180ms ease-out;
+}
+.concierge-suggestions button:hover {
+  border-color: oklch(0.61 0.15 255 / 0.7);
+  background: oklch(0.96 0.025 250);
+}
+.concierge-character-count {
+  color: oklch(0.52 0.08 45);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.mobile-chat-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: -0.85rem 0 1rem;
+  color: oklch(0.48 0.035 255);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.mobile-chat-switcher select {
+  min-width: 0;
+  flex: 1;
+  border: 1px solid oklch(0.75 0.035 250 / 0.58);
+  border-radius: 0.75rem;
+  background: oklch(0.985 0.006 250);
+  color: oklch(0.32 0.04 255);
+  padding: 0.55rem 2rem 0.55rem 0.7rem;
+  font: inherit;
+  font-weight: 600;
+}
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -236,43 +290,41 @@ app-root {
   }
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.4s ease-out forwards;
-}
-
 /* Register and login page */
 
 @media (max-width: 640px) {
-  .assistant-response {
+  .assistant-response,
+  .assistant-error {
     max-width: calc(100vw - 88px);
   }
 
-  .assistant-place-card {
-    padding: 0.8rem;
+}
+
+@media (min-width: 768px) {
+  .mobile-chat-switcher {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-entrance {
+    animation: none;
+  }
+
+  .assistant-link-button,
+  .concierge-suggestions button {
+    transition: none;
   }
 }
 
 /* ---- Register page ---- */
 .floating-label-input:focus-within label,
-.floating-label-input input:not(:placeholder-shown)+label {
+.floating-label-input input:not(:placeholder-shown) + label {
   transform: translateY(-1.25rem) scale(0.85);
   color: #2563eb;
 }
 
 @keyframes float {
-
   0%,
   100% {
     transform: translateY(0);
@@ -285,7 +337,6 @@ app-root {
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
-
 }
 
 /* Recovery and verification links styled as buttons */
@@ -293,5 +344,4 @@ app-root {
 .recovery-primary-button,
 .recovery-secondary-button {
   text-decoration: none;
-
 }

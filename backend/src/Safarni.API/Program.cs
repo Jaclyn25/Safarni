@@ -28,6 +28,8 @@ using FluentValidation;
 
 
 
+LoadDotEnv();
+
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -147,12 +149,16 @@ builder.Services.AddScoped<ChatDbSeeder>();
 
 // Intent Detection
 builder.Services.AddScoped<IIntentDetectionService, IntentDetectionService>();
+builder.Services.AddScoped<IChatScopeClassifier, ChatScopeClassifier>();
 
 
 // Google Places API
 builder.Services.AddHttpClient<
     IGooglePlacesService,
-    GooglePlacesService>();
+    GooglePlacesService>(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(8);
+    });
 
 
 
@@ -268,3 +274,41 @@ using (var scope = app.Services.CreateScope())
 
 
 app.Run();
+
+static void LoadDotEnv()
+{
+    var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+
+    while (directory != null)
+    {
+        var envPath = Path.Combine(directory.FullName, ".env");
+        if (File.Exists(envPath))
+        {
+            foreach (var line in File.ReadLines(envPath))
+            {
+                var trimmed = line.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith('#'))
+                {
+                    continue;
+                }
+
+                var separatorIndex = trimmed.IndexOf('=');
+                if (separatorIndex <= 0)
+                {
+                    continue;
+                }
+
+                var key = trimmed[..separatorIndex].Trim();
+                var value = trimmed[(separatorIndex + 1)..].Trim().Trim('"');
+                if (!string.IsNullOrWhiteSpace(key) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+                {
+                    Environment.SetEnvironmentVariable(key, value);
+                }
+            }
+
+            return;
+        }
+
+        directory = directory.Parent;
+    }
+}

@@ -7,6 +7,9 @@ namespace ChatBotApi.Application.Common.Interfaces;
 
 public enum ChatIntent
 {
+    Ambiguous,
+    Social,
+    OutOfScope,
     RagOnly,
     GooglePlacesOnly,
     Hybrid,
@@ -21,6 +24,7 @@ public class IntentDetectionResult
 
 public interface IIntentDetectionService
 {
+    ChatIntent DetectIntent(string userMessage);
     Task<IntentDetectionResult> DetectIntentAsync(string userMessage, List<ChatMessageDto> history, CancellationToken cancellationToken);
 }
 

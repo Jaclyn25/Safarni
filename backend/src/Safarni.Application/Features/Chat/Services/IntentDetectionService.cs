@@ -1,130 +1,190 @@
-using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Interfaces;
-using Microsoft.Extensions.Logging;
 
 namespace ChatBotApi.Application.Features.Chat.Services;
 
 public class IntentDetectionService : IIntentDetectionService
 {
-    private readonly IAIProvider _aiProvider;
-    private readonly ILogger<IntentDetectionService> _logger;
-
-    private static readonly string[] PlaceKeywords = { 
-        "فندق", "فنادق", "مطعم", "مطاعم", "كافيه", "مقهى", "اماكن", "أماكن", "سياحية", "سياحيه", 
-        "مزار", "مزارات", "نشاط", "انشطة", "أنشطة", "حديقة", "حديقه", "مول", "سوق", "اسواق", "أسواق", "شاطئ", "شواطئ" 
+    private static readonly string[] PlacesKeywords =
+    {
+        "restaurant", "restaurants", "hotel", "hotels", "cafe", "cafes", "coffee shop",
+        "attraction", "attractions", "museum", "museums", "park", "parks", "shopping", "mall",
+        "airport", "hospital", "pharmacy", "tourist place", "places near me", "where to eat",
+        "where to stay", "lodging", "resort", "near me",
+        "مطعم", "مطاعم", "فندق", "فنادق", "كافيه", "مقهى", "متحف", "متاحف",
+        "حديقة", "مول", "تسوق", "مطار", "مستشفى", "صيدلية", "اماكن", "أماكن",
+        "مكان", "فين اخرج", "اين اقيم"
     };
 
-    private static readonly string[] NonTravelKeywords = {
-        "برمجة", "برمجه", "كود", "رياضيات", "طب", "فيزياء", "سيارات", "جوال", "لابتوب", "شاشة", "كمبيوتر", "سياسة", "اقتصاد"
+    private static readonly string[] StrongTravelKeywords =
+    {
+        "travel", "trip", "tourism", "tourist", "destination", "visit", "visa", "flight",
+        "itinerary", "weather", "currency", "budget", "transportation", "customs",
+        "سفر", "رحلة", "رحلات", "سياحة", "سياحي", "سياحية", "زيارة", "ازور",
+        "وجهة", "وجهات", "فيزا", "تأشيرة", "طيران", "مواصلات", "جدول", "خطة",
+        "طقس", "عملة", "تكلفة", "ميزانية"
     };
 
-    public IntentDetectionService(IAIProvider aiProvider, ILogger<IntentDetectionService> logger)
+    private static readonly string[] ContextDependentTravelKeywords =
     {
-        _aiProvider = aiProvider;
-        _logger = logger;
-    }
+        "guide", "culture", "history", "capital", "country", "city", "safety", "climate",
+        "event", "festival", "music", "film", "sports",
+        "برنامج", "دليل", "مناخ", "ثقافة", "تاريخ", "عادات", "عاصمة", "دولة",
+        "مدينة", "امان", "أمان", "فعالية", "مهرجان", "موسيقى", "فيلم", "رياضة"
+    };
 
-    public async Task<IntentDetectionResult> DetectIntentAsync(string userMessage, List<ChatMessageDto> history, CancellationToken cancellationToken)
+    private static readonly string[] DestinationKeywords =
     {
-        var historyContext = string.Join("\n", history.TakeLast(6).Select(h => $"{h.Role}: {h.Content}"));
-        var systemPrompt = @"أنت محلل نصوص سياحي خبير. مهمتك قراءة رسالة المستخدم وتاريخ المحادثة واستخراج شيئين:
-1. 'Intent': تصنيف نية المستخدم إلى إحدى الفئات التالية:
-   - 'OutOfDomain': إذا كان السؤال خارج نطاق السفر والسياحة تماماً (مثل البرمجة، الطب، الرياضيات، التكنولوجيا، إلخ).
-   - 'Hybrid': إذا كان يبحث عن أماكن محددة على الخريطة (فنادق، مطاعم، مزارات، كافيهات) أو تفاصيلها (عناوين، تقييمات، أسعار).
-   - 'RagOnly': للأسئلة السياحية العامة، النصائح، الطقس، الميزانية، التأشيرات (الفيزا)، خطط الرحلات (Itineraries)، وتفاصيل الوجهات، أو الأسئلة العامة.
+        "egypt", "cairo", "giza", "luxor", "aswan", "alexandria", "usa", "america",
+        "united states", "new york", "los angeles", "california", "turkey", "istanbul",
+        "ankara", "uae", "dubai", "abu dhabi", "france", "paris", "italy", "rome",
+        "spain", "barcelona", "london", "uk", "greece", "japan", "thailand", "maldives",
+        "مصر", "القاهرة", "الجيزة", "اسوان", "الاقصر", "اسكندرية", "امريكا",
+        "أمريكا", "الولايات", "نيويورك", "تركيا", "اسطنبول", "انقرة", "الامارات",
+        "دبي", "ابوظبي", "فرنسا", "باريس", "ايطاليا", "روما", "اسبانيا",
+        "برشلونة", "لندن", "اليونان", "اليابان", "تايلاند", "المالديف"
+    };
 
-2. 'StandaloneQuery': قم بإعادة صياغة سؤال المستخدم الحالي ليصبح سؤالاً مستقلاً بذاته (Standalone) يحمل كل السياق من المحادثة السابقة.
-   مثال:
-   - المستخدم: 'أرشح لي فندقاً في باريس.'
-   - المستخدم: 'يكون قريب من المترو.' -> StandaloneQuery: 'فنادق في باريس قريبة من المترو.'
-   - المستخدم: 'وهل يوجد إفطار؟' -> StandaloneQuery: 'فنادق في باريس قريبة من المترو مع إفطار.'
-
-يجب أن تعيد الإجابة بتنسيق JSON فقط وبدون أي نصوص إضافية، هكذا:
-{
-    ""intent"": ""Hybrid"",
-    ""standaloneQuery"": ""...""
-}
-";
-
-        var userPrompt = $"تاريخ المحادثة:\n{historyContext}\n\nالرسالة الحالية:\n{userMessage}";
-
-        try
-        {
-            var response = await _aiProvider.GetChatCompletionAsync(systemPrompt, new List<ChatMessageDto>(), userPrompt, cancellationToken);
-            
-            // Clean markdown if present
-            var jsonStr = response.Trim();
-            if (jsonStr.StartsWith("```json"))
-            {
-                jsonStr = jsonStr.Substring(7);
-                if (jsonStr.EndsWith("```"))
-                {
-                    jsonStr = jsonStr.Substring(0, jsonStr.Length - 3);
-                }
-            }
-            jsonStr = jsonStr.Trim();
-
-            var resultDocument = JsonDocument.Parse(jsonStr);
-            var root = resultDocument.RootElement;
-            
-            var intentStr = root.GetProperty("intent").GetString();
-            var standaloneQuery = root.GetProperty("standaloneQuery").GetString();
-
-            if (!Enum.TryParse<ChatIntent>(intentStr, true, out var intent))
-            {
-                intent = FallbackHeuristicDetection(standaloneQuery ?? userMessage);
-            }
-
-            return new IntentDetectionResult
-            {
-                Intent = intent,
-                StandaloneQuery = string.IsNullOrWhiteSpace(standaloneQuery) ? userMessage : standaloneQuery
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to use LLM for intent detection. Falling back to heuristic.");
-            var fallbackIntent = FallbackHeuristicDetection(userMessage);
-            return new IntentDetectionResult
-            {
-                Intent = fallbackIntent,
-                StandaloneQuery = userMessage
-            };
-        }
-    }
-
-    private ChatIntent FallbackHeuristicDetection(string userMessage)
+    private static readonly string[] SocialKeywords =
     {
-        var lowerMsg = userMessage.ToLower();
+        "hi", "hello", "hey", "good morning", "good evening", "how are you", "how are things",
+        "thank you", "thanks", "who are you", "what are you", "bye", "goodbye",
+        "you are stupid", "bad answer", "wrong answer", "not helpful",
+        "اهلا", "أهلا", "مرحبا", "هاي", "هلا", "ازيك", "السلام عليكم",
+        "صباح الخير", "مساء الخير", "عامل اي", "عامل ايه", "اخبارك", "كيفك",
+        "شلونك", "شكرا", "تسلم", "ميرسي", "انت مين", "مين انت", "باي",
+        "مع السلامه", "انت غبي", "غبي", "ردك وحش", "مش فاهم", "مش فاهمك",
+        "كلامك غلط", "انت مبتفهمش"
+    };
 
-        // 1. Check for OutOfDomain explicitly
-        if (NonTravelKeywords.Any(kw => lowerMsg.Contains(kw)))
+    private static readonly string[] ExplicitOutOfScopeKeywords =
+    {
+        "programming", "software", "source code", "javascript", "typescript", "python", "c#",
+        "java", "sql query", "algorithm", "debug", "compiler", "homework", "solve equation",
+        "algebra", "calculus", "physics", "chemistry", "medical diagnosis", "prescription",
+        "stock trading", "crypto trading", "football", "match score", "sports score",
+        "political news", "breaking news",
+        "برمجة", "كود", "شفرة", "جافاسكريبت", "بايثون", "خوارزمية", "واجب",
+        "معادلة", "جبر", "تفاضل", "فيزياء", "كيمياء", "تشخيص طبي", "روشتة",
+        "بورصة", "تداول", "مباراة", "كرة القدم", "نتيجة المباراة", "نتيجة مباراة",
+        "اخبار سياسية", "أخبار سياسية"
+    };
+
+    private static readonly Regex StandaloneMathExpression = new(
+        @"^\s*(?:what is|calculate|solve|احسب|حل)?\s*\d+(?:\s*[-+*/=×÷]\s*\d+)+\s*[?؟]?\s*$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    public ChatIntent DetectIntent(string userMessage)
+    {
+        if (string.IsNullOrWhiteSpace(userMessage))
         {
-            return ChatIntent.OutOfDomain;
+            return ChatIntent.OutOfScope;
         }
 
-        // 2. Check for Places intent
-        if (PlaceKeywords.Any(kw => lowerMsg.Contains(kw)))
+        var text = Normalize(userMessage);
+
+        var hasPlacesIntent = ContainsAny(text, PlacesKeywords);
+        var hasTravelIntent = ContainsAny(text, StrongTravelKeywords);
+        var hasContextDependentIntent = ContainsAny(text, ContextDependentTravelKeywords);
+        var hasDestination = ContainsAny(text, DestinationKeywords);
+        var hasSocialIntent = ContainsAny(text, SocialKeywords);
+        var isClearlyOutOfScope = ContainsAny(text, ExplicitOutOfScopeKeywords)
+            || StandaloneMathExpression.IsMatch(text);
+
+        if (isClearlyOutOfScope &&
+            (hasPlacesIntent || hasTravelIntent || hasContextDependentIntent || hasDestination))
         {
-            return ChatIntent.Hybrid; // We use hybrid to check RAG first, then Google Places
+            return ChatIntent.Ambiguous;
         }
 
-        // 3. Check for specific commands or RAG-heavy topics
-        if (lowerMsg.Contains("فيزا") || lowerMsg.Contains("تاشيرة") || lowerMsg.Contains("تأشيرة") ||
-            lowerMsg.Contains("سعر") || lowerMsg.Contains("تكلفة") || lowerMsg.Contains("تكلفه") ||
-            lowerMsg.Contains("تذكرة") || lowerMsg.Contains("طيران") || lowerMsg.Contains("طقس") ||
-            lowerMsg.Contains("جو") || lowerMsg.Contains("امان") || lowerMsg.Contains("أمان"))
+        if (isClearlyOutOfScope)
+        {
+            return ChatIntent.OutOfScope;
+        }
+
+        if (hasPlacesIntent && (hasTravelIntent || hasDestination))
+        {
+            return ChatIntent.Hybrid;
+        }
+
+        if (hasPlacesIntent)
+        {
+            return ChatIntent.GooglePlacesOnly;
+        }
+
+        if (hasTravelIntent)
         {
             return ChatIntent.RagOnly;
         }
 
-        // 4. Default to RagOnly for general conversations (greetings, general advice, etc.)
-        return ChatIntent.RagOnly;
+        if (hasSocialIntent)
+        {
+            return ChatIntent.Social;
+        }
+
+        if (hasContextDependentIntent || hasDestination)
+        {
+            return ChatIntent.Ambiguous;
+        }
+
+        // Keywords cannot safely distinguish an unknown destination from a person,
+        // title, or unrelated topic. Route these messages through semantic scope
+        // classification before generating an answer.
+        return ChatIntent.Ambiguous;
+    }
+
+    public Task<IntentDetectionResult> DetectIntentAsync(
+        string userMessage,
+        List<ChatMessageDto> history,
+        CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new IntentDetectionResult
+        {
+            Intent = DetectIntent(userMessage),
+            StandaloneQuery = userMessage
+        });
+    }
+
+    private static bool ContainsAny(string text, string[] keywords)
+    {
+        return keywords.Any(keyword =>
+        {
+            var normalizedKeyword = Normalize(keyword);
+            var pattern = $@"(?<![\p{{L}}\p{{N}}]){Regex.Escape(normalizedKeyword)}(?![\p{{L}}\p{{N}}])";
+            return Regex.IsMatch(text, pattern, RegexOptions.CultureInvariant);
+        });
+    }
+
+    private static string Normalize(string text)
+    {
+        var normalized = text.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(normalized.Length);
+
+        foreach (var c in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            builder.Append(c switch
+            {
+                'أ' or 'إ' or 'آ' => 'ا',
+                'ى' => 'ي',
+                'ة' => 'ه',
+                'ؤ' => 'و',
+                'ئ' => 'ي',
+                _ => c
+            });
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 }

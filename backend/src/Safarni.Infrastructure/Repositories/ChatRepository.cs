@@ -44,6 +44,11 @@ public class ChatRepository : IChatRepository
         await _context.ConversationMessages.AddAsync(message, cancellationToken);
     }
 
+    public void DeleteMessages(IEnumerable<ConversationMessage> messages)
+    {
+        _context.ConversationMessages.RemoveRange(messages);
+    }
+
     public void Delete(Conversation conversation)
     {
         _context.Conversations.Remove(conversation);

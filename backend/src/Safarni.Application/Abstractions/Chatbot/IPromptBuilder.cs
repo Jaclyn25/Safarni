@@ -8,7 +8,7 @@ public interface IPromptBuilder
 {
     string BuildSystemPrompt(List<DocumentChunk> contextChunks, string userMessage);
     string BuildSystemPromptWithPlaces(List<DocumentChunk>? contextChunks, List<PlaceDetails>? places, ChatIntent intent, string userMessage);
+    string BuildDirectSystemPrompt(ChatIntent intent, string userMessage);
     string BuildUserPrompt(string question);
-    string BuildKnowledgeNotFoundMessage(string userMessage);
     string GetGooglePlacesLanguageCode(string userMessage);
 }

@@ -136,16 +136,14 @@ export class AuthService {
     const accessToken = localStorage.getItem('access_token');
     const refreshToken = localStorage.getItem('refresh_token');
 
+    // Clear session IMMEDIATELY so UI updates instantly
+    this.clearSession();
+
     if (accessToken && refreshToken) {
       const headers = new HttpHeaders({ Authorization: `Bearer ${accessToken}` });
-      this.http.post(`${this.apiUrl}/logout`, { refreshToken }, { headers }).subscribe({
-        next: () => this.clearSession(),
-        error: () => this.clearSession()
-      });
-      return;
+      // Fire-and-forget: notify backend but don't block UI
+      this.http.post(`${this.apiUrl}/logout`, { refreshToken }, { headers }).subscribe();
     }
-
-    this.clearSession();
   }
 
   isAuthenticated(): boolean {

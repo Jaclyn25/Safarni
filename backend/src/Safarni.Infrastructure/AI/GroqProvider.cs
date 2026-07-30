@@ -6,7 +6,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ChatBotApi.Application.Common.DTOs;
+using ChatBotApi.Application.Common.Exceptions;
 using ChatBotApi.Application.Common.Interfaces;
+using ChatBotApi.Application.Common.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 

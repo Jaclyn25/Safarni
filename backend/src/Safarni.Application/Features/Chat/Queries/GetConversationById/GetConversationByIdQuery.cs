@@ -37,6 +37,7 @@ public class GetConversationByIdQueryHandler : IRequestHandler<GetConversationBy
                 .OrderBy(m => m.CreatedAt)
                 .Select(m => new ChatMessageDto
                 {
+                    Id = m.Id,
                     Role = m.Role,
                     Content = m.Content
                 })

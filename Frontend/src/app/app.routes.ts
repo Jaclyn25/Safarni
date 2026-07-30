@@ -91,5 +91,21 @@ export const routes: Routes = [
       ),
     title: 'Safarni | Email Verification'
   },
+  {
+    path: 'profile',
+    loadComponent: () =>
+      import('./pages/profile/profile.component').then(
+        (m) => m.ProfileComponent
+      ),
+    title: 'Safarni | My Profile'
+  },
+  {
+    path: 'destination/:id',
+    loadComponent: () =>
+      import('./pages/destination/destination.component').then(
+        (m) => m.DestinationComponent
+      ),
+    title: 'Safarni | Destination Guide'
+  },
   { path: '**', redirectTo: '' }
 ];

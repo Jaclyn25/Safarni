@@ -27,7 +27,8 @@ using MediatR;
 using FluentValidation;
 
 
-LoadLocalEnvironmentFile();
+
+LoadDotEnv();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -148,12 +149,16 @@ builder.Services.AddScoped<ChatDbSeeder>();
 
 // Intent Detection
 builder.Services.AddScoped<IIntentDetectionService, IntentDetectionService>();
+builder.Services.AddScoped<IChatScopeClassifier, ChatScopeClassifier>();
 
 
 // Google Places API
 builder.Services.AddHttpClient<
     IGooglePlacesService,
-    GooglePlacesService>();
+    GooglePlacesService>(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(8);
+    });
 
 
 
@@ -270,36 +275,32 @@ using (var scope = app.Services.CreateScope())
 
 app.Run();
 
-static void LoadLocalEnvironmentFile()
+static void LoadDotEnv()
 {
     var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
 
-    while (directory is not null)
+    while (directory != null)
     {
         var envPath = Path.Combine(directory.FullName, ".env");
-
         if (File.Exists(envPath))
         {
-            foreach (var rawLine in File.ReadAllLines(envPath))
+            foreach (var line in File.ReadLines(envPath))
             {
-                var line = rawLine.Trim();
-
-                if (line.Length == 0 || line.StartsWith('#'))
+                var trimmed = line.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith('#'))
                 {
                     continue;
                 }
 
-                var separatorIndex = line.IndexOf('=');
-
+                var separatorIndex = trimmed.IndexOf('=');
                 if (separatorIndex <= 0)
                 {
                     continue;
                 }
 
-                var key = line[..separatorIndex].Trim();
-                var value = line[(separatorIndex + 1)..].Trim().Trim('"');
-
-                if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(key)))
+                var key = trimmed[..separatorIndex].Trim();
+                var value = trimmed[(separatorIndex + 1)..].Trim().Trim('"');
+                if (!string.IsNullOrWhiteSpace(key) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
                 {
                     Environment.SetEnvironmentVariable(key, value);
                 }

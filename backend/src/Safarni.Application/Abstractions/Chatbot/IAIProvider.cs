@@ -1,19 +1,7 @@
 using ChatBotApi.Application.Common.DTOs;
+using ChatBotApi.Application.Common.Models;
 
 namespace ChatBotApi.Application.Common.Interfaces;
-
-public sealed record AICompletionOptions(
-    string? ReasoningEffort = null,
-    int? MaxTokens = null)
-{
-    public static AICompletionOptions LowReasoning { get; } =
-        new("low");
-
-    public static AICompletionOptions ItineraryPlanning { get; } =
-        new(
-            ReasoningEffort: "low",
-            MaxTokens: 2400);
-}
 
 public interface IAIProvider
 {

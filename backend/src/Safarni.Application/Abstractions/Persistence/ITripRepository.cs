@@ -7,5 +7,6 @@ public interface ITripRepository
     Task<Trip?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task AddAsync(Trip trip, CancellationToken cancellationToken = default);
     void Update(Trip trip);
+    void Remove(Trip trip);
     Task SaveAsync(CancellationToken cancellationToken = default);
 }

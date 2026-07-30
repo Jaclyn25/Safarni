@@ -272,10 +272,10 @@ public sealed class StreamChatResponseCommandHandler
             }
             else
             {
-                immediateResponse =
-                    _promptBuilder
-                        .BuildKnowledgeNotFoundMessage(
-                            message);
+                systemPrompt =
+                    _promptBuilder.BuildSystemPrompt(
+                        new List<DocumentChunk>(),
+                        message);
             }
         }
 

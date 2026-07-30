@@ -1,5 +1,6 @@
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Interfaces;
+using ChatBotApi.Application.Common.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Safarni.Application.Abstractions.Authentication;

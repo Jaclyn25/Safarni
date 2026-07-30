@@ -8,5 +8,8 @@ public class CreateConversationCommandValidator : AbstractValidator<CreateConver
     {
         RuleFor(x => x.UserId)
             .NotEmpty().WithMessage("معرّف المستخدم مطلوب.");
+
+        RuleFor(x => x.Title)
+            .MaximumLength(200).WithMessage("عنوان المحادثة طويل جداً، الحد الأقصى هو 200 حرف.");
     }
 }

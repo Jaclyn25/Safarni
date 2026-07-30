@@ -28,6 +28,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
     private readonly IQdrantService _qdrantService;
     private readonly IPromptBuilder _promptBuilder;
     private readonly IIntentDetectionService _intentDetectionService;
+    private readonly IChatScopeClassifier _scopeClassifier;
     private readonly IGooglePlacesService _googlePlacesService;
     private readonly ILogger<RegenerateResponseCommandHandler> _logger;
 
@@ -40,6 +41,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
         IQdrantService qdrantService,
         IPromptBuilder promptBuilder,
         IIntentDetectionService intentDetectionService,
+        IChatScopeClassifier scopeClassifier,
         IGooglePlacesService googlePlacesService,
         ILogger<RegenerateResponseCommandHandler> logger)
     {
@@ -51,6 +53,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
         _qdrantService = qdrantService;
         _promptBuilder = promptBuilder;
         _intentDetectionService = intentDetectionService;
+        _scopeClassifier = scopeClassifier;
         _googlePlacesService = googlePlacesService;
         _logger = logger;
     }
@@ -71,6 +74,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
         }
 
         var messagesToRemove = messages.Where(m => m.CreatedAt > lastUserMsg.CreatedAt).ToList();
+        _repository.DeleteMessages(messagesToRemove);
         foreach (var msg in messagesToRemove)
         {
             conversation.Messages.Remove(msg);
@@ -82,13 +86,43 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
             .TakeLast(MaxHistoryMessages)
             .Select(m => new ChatMessageDto
             {
+                Id = m.Id,
                 Role = m.Role,
                 Content = m.Content
             })
             .ToList();
 
-        var intent = _intentDetectionService.DetectIntent(lastUserMsg.Content);
+        var intent = await ResolveIntentAsync(lastUserMsg.Content, history, cancellationToken);
         _logger.LogInformation("Regeneration - Detected Chat Intent: {Intent}", intent);
+
+        if (intent is ChatIntent.Social or ChatIntent.OutOfScope)
+        {
+            _logger.LogInformation(
+                "Regeneration is sending {Intent} intent directly to the model without RAG or Places lookup.",
+                intent);
+            var directSystemPrompt = _promptBuilder.BuildDirectSystemPrompt(intent, lastUserMsg.Content);
+            var directUserPrompt = _promptBuilder.BuildUserPrompt(lastUserMsg.Content);
+            var generatedResponse = await _aiProvider.GetChatCompletionAsync(
+                directSystemPrompt,
+                history,
+                directUserPrompt,
+                cancellationToken);
+
+            var directResponseMessage = new ConversationMessage
+            {
+                Id = Guid.NewGuid(),
+                ConversationId = conversation.Id,
+                Role = "assistant",
+                Content = generatedResponse,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            conversation.Messages.Add(directResponseMessage);
+            await _repository.AddMessageAsync(directResponseMessage, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return ToConversationDto(conversation);
+        }
 
         // STEP 1: Search Database FIRST (RAG)
         _logger.LogInformation("Step 1: Searching RAG Database for message regeneration: {Message}", lastUserMsg.Content);
@@ -101,6 +135,10 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                 var topK = int.TryParse(_configuration["RAG:TopK"], out var k) ? k : MaxContextChunks;
                 contextChunks = await _qdrantService.SearchSimilarChunksAsync(queryEmbedding, Math.Min(topK, MaxContextChunks));
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -144,6 +182,10 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                         cancellationToken,
                         _promptBuilder.GetGooglePlacesLanguageCode(lastUserMsg.Content));
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Failed to call Google Places API during regeneration.");
@@ -157,34 +199,8 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                 }
                 else
                 {
-                    // STEP 3: Refuse if neither DB nor Google Places has it
-                    var refusalText = _promptBuilder.BuildKnowledgeNotFoundMessage(lastUserMsg.Content);
-                    var newAssistantRefusalMsg = new ConversationMessage
-                    {
-                        Id = Guid.NewGuid(),
-                        ConversationId = conversation.Id,
-                        Role = "assistant",
-                        Content = refusalText,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    conversation.Messages.Add(newAssistantRefusalMsg);
-                    await _repository.AddMessageAsync(newAssistantRefusalMsg, cancellationToken);
-                    await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                    return new ConversationDto
-                    {
-                        Id = conversation.Id,
-                        Title = conversation.Title,
-                        CreatedAt = conversation.CreatedAt,
-                        Messages = conversation.Messages
-                            .OrderBy(m => m.CreatedAt)
-                            .Select(m => new ChatMessageDto
-                            {
-                                Role = m.Role,
-                                Content = m.Content
-                            })
-                            .ToList()
-                    };
+                    // Travel intent, but no live/database data. Fall back to the LLM's general travel knowledge.
+                    systemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), lastUserMsg.Content);
                 }
             }
         }
@@ -205,6 +221,11 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        return ToConversationDto(conversation);
+    }
+
+    private static ConversationDto ToConversationDto(Conversation conversation)
+    {
         return new ConversationDto
         {
             Id = conversation.Id,
@@ -214,10 +235,40 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                 .OrderBy(m => m.CreatedAt)
                 .Select(m => new ChatMessageDto
                 {
+                    Id = m.Id,
                     Role = m.Role,
                     Content = m.Content
                 })
                 .ToList()
+        };
+    }
+
+    private async Task<ChatIntent> ResolveIntentAsync(
+        string message,
+        List<ChatMessageDto> history,
+        CancellationToken cancellationToken)
+    {
+        var keywordIntent = _intentDetectionService.DetectIntent(message);
+        if (keywordIntent == ChatIntent.OutOfScope)
+        {
+            return ChatIntent.OutOfScope;
+        }
+
+        var semanticIntent = await _scopeClassifier.ClassifyAsync(
+            message,
+            history,
+            cancellationToken);
+
+        if (semanticIntent is ChatIntent.OutOfScope or ChatIntent.Social)
+        {
+            return semanticIntent;
+        }
+
+        return keywordIntent switch
+        {
+            ChatIntent.GooglePlacesOnly => ChatIntent.GooglePlacesOnly,
+            ChatIntent.Hybrid => ChatIntent.Hybrid,
+            _ => ChatIntent.RagOnly
         };
     }
 

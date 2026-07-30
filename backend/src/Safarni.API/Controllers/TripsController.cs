@@ -5,6 +5,7 @@ using Safarni.API.Common;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Features.Trips;
 using Safarni.Application.Features.Trips.CreateTrip;
+using Safarni.Application.Features.Trips.DeleteTrip;
 using Safarni.Application.Features.Trips.UpdateTrip;
 
 namespace Safarni.API.Controllers;
@@ -72,7 +73,26 @@ public sealed class TripsController : ControllerBase
             "Trip updated successfully.",
             StatusCodes.Status200OK));
     }
+    [HttpDelete("{id:guid}")]
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteTrip(
+    Guid id,
+    CancellationToken cancellationToken)
+    {
+        var command = new DeleteTripCommand(id);
 
+        var result = await _sender.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<object>(result.Error, "Failed to delete trip.");
+        }
+
+        return NoContent();
+    }
     private ObjectResult Failure<T>(Error error, string message)
     {
         var statusCode = MapStatusCode(error.Type);

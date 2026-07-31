@@ -2,118 +2,191 @@
   <!-- Header Section -->
   <section class="mb-stack-lg">
     <h2 class="text-display-lg-mobile md:text-display-lg font-display-lg text-on-surface mb-2">My Bookings</h2>
-    <p class="text-body-lg text-on-surface-variant">Manage your upcoming journeys and rediscover past adventures.</p>
+    <p class="text-body-lg text-on-surface-variant">Manage your visa applications and keep your travel documents on track.</p>
   </section>
 
-  <!-- Upcoming Trips Section -->
+  <!-- Error banner -->
+  @if (error(); as errorMessage) {
+    <div class="mb-6 bg-error-container/30 border border-error/20 rounded-2xl px-4 py-3 flex items-center gap-3">
+      <span class="material-symbols-outlined text-error">error_outline</span>
+      <p class="text-body-md text-on-surface flex-1">{{ errorMessage }}</p>
+      <button (click)="loadApplications()" class="text-label-md font-label-md text-primary underline underline-offset-2">
+        Retry
+      </button>
+    </div>
+  }
+
+  <!-- Visa Applications Section -->
   <section class="mb-16">
     <div class="flex items-center justify-between mb-stack-md">
       <h3 class="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
-        <span class="material-symbols-outlined text-primary">upcoming</span>
-        Upcoming Trips
+        <span class="material-symbols-outlined text-primary">badge</span>
+        Visa Applications
       </h3>
+      @if (!loading()) {
+        <button (click)="showForm() ? closeForm() : openForm()"
+                class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-full text-label-md font-label-md transition-all active:scale-95">
+          <span class="material-symbols-outlined text-lg">{{ showForm() ? 'close' : 'add' }}</span>
+          {{ showForm() ? 'Cancel' : 'New Application' }}
+        </button>
+      }
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
-      <!-- Flight to Paris Card -->
-      <div class="group relative bg-surface-container-lowest rounded-[20px] shadow-[0_4px_20px_rgba(15,23,42,0.05)] overflow-hidden border border-outline-variant hover:-translate-y-1 transition-all duration-300">
-        <div class="h-48 w-full relative">
-          <img class="w-full h-full object-cover" alt="A breathtaking view of the Eiffel Tower seen from a Parisian balcony at sunrise." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEk7QW1NbPNOOsVAXkoWz90-ZILNrLTN3M6k7h9WX5hdw7j2KU6Q3WDm_m4zIQqEsBDJzxKfoNNONw8knGaWTN_bb98OU1bGg71C7_jhAhpnfuhFD_-D_CS--5kcsxe9HQnbvz05Cp6QjCvKfN-Pq2edRuNAbNfih2f5lHMEUkx3hgEW9HY6c6vUykp27XBzcGwWuOl9gOjMj8w7qGVWs7ZQOiiG_kZINzHMrqif8SUhfQ5R4DphqvJg"/>
-          <div class="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm border border-outline-variant/30">
-            <span class="w-2 h-2 rounded-full bg-green-500"></span>
-            <span class="text-label-sm font-label-sm text-on-surface">Confirmed</span>
+
+    <!-- New application form -->
+    @if (showForm()) {
+      <form [formGroup]="form" (ngSubmit)="submitApplication()"
+            class="mb-8 bg-surface-container-lowest rounded-[20px] border border-outline-variant shadow-[0_4px_20px_rgba(15,23,42,0.05)] p-6 space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div>
+            <label for="visa-destination" class="block text-label-md font-label-md text-on-surface-variant mb-1.5">Destination country</label>
+            <select id="visa-destination" formControlName="destinationCountry"
+                    class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-2.5 text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="">{{ loadingCountries() ? 'Loading countries…' : 'Select country' }}</option>
+              @for (country of countries(); track country.iso2) {
+                <option [value]="country.name">{{ country.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label for="visa-purpose" class="block text-label-md font-label-md text-on-surface-variant mb-1.5">Travel purpose</label>
+            <select id="visa-purpose" formControlName="travelPurpose"
+                    class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-2.5 text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="Tourism">Tourism</option>
+              <option value="Business">Business</option>
+              <option value="Study">Study</option>
+              <option value="Work">Work</option>
+              <option value="Family Visit">Family Visit</option>
+              <option value="Medical">Medical</option>
+              <option value="Transit">Transit</option>
+            </select>
+          </div>
+          <div>
+            <label for="visa-date" class="block text-label-md font-label-md text-on-surface-variant mb-1.5">Planned travel date</label>
+            <input id="visa-date" type="date" formControlName="plannedTravelDate"
+                   [min]="today"
+                   class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-2.5 text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
         </div>
-        <div class="p-6">
-          <div class="flex justify-between items-start mb-4">
-            <div>
-              <h4 class="text-headline-sm font-headline-sm mb-1">Flight to Paris</h4>
-              <p class="text-label-md font-label-md text-on-surface-variant">Air France • AF1234</p>
-            </div>
-            <span class="material-symbols-outlined text-primary text-3xl">flight_takeoff</span>
-          </div>
-          <div class="flex items-center gap-4 py-4 border-y border-outline-variant/30 mb-4">
-            <div class="flex-1 text-center">
-              <p class="text-label-sm font-label-sm text-outline uppercase tracking-wider">LHR</p>
-              <p class="text-headline-sm font-bold">10:45</p>
-            </div>
-            <div class="flex flex-col items-center flex-1 opacity-40">
-              <span class="material-symbols-outlined">trending_flat</span>
-              <p class="text-[10px] font-bold">1h 15m</p>
-            </div>
-            <div class="flex-1 text-center">
-              <p class="text-label-sm font-label-sm text-outline uppercase tracking-wider">CDG</p>
-              <p class="text-headline-sm font-bold">13:00</p>
-            </div>
-          </div>
-          <div class="flex justify-between items-center">
-            <div class="flex items-center gap-2 text-on-surface-variant">
-              <span class="material-symbols-outlined text-sm">calendar_today</span>
-              <span class="text-label-md font-label-md">Oct 24, 2024</span>
-            </div>
-            <button class="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-xl text-label-md font-label-md transition-colors">
-              View Boarding Pass
-            </button>
+
+        @if (formError(); as formError) {
+          <p class="text-body-sm text-error">{{ formError }}</p>
+        }
+
+        <div class="flex justify-end gap-3">
+          <button type="button" (click)="closeForm()"
+                  class="px-5 py-2.5 rounded-xl text-label-md font-label-md text-on-surface-variant hover:bg-surface-container-low transition-colors">
+            Cancel
+          </button>
+          <button type="submit" [disabled]="saving()"
+                  class="flex items-center gap-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl text-label-md font-label-md transition-all active:scale-95">
+            @if (saving()) {
+              <span class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+              Creating…
+            } @else {
+              <span class="material-symbols-outlined text-lg">travel_explore</span>
+              Create Application
+            }
+          </button>
+        </div>
+      </form>
+    }
+
+    <!-- Loading state -->
+    @if (loading()) {
+      <div class="flex flex-col items-center justify-center py-20 text-center">
+        <div class="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+        <p class="text-body-md text-on-surface-variant">Loading your visa applications…</p>
+      </div>
+    }
+
+    <!-- Empty state -->
+    @if (!loading() && error() === null && applications().length === 0) {
+      <div class="bg-surface-container-low border-2 border-dashed border-outline-variant rounded-[32px] p-12 flex flex-col items-center justify-center text-center">
+        <div class="w-64 h-64 mb-8">
+          <div class="relative w-full h-full flex items-center justify-center">
+            <div class="absolute inset-0 opacity-10 blur-3xl bg-primary-container rounded-full"></div>
+            <span class="material-symbols-outlined text-[120px] text-primary/20" style="font-variation-settings: 'FILL' 1;">travel_explore</span>
           </div>
         </div>
+        <h4 class="text-headline-md font-headline-md text-on-surface-variant mb-2">No visa applications yet</h4>
+        <p class="text-body-md text-outline max-w-md mx-auto mb-8">Start a visa application for your next destination and track it here.</p>
+        <button (click)="openForm()" class="flex items-center gap-2 bg-white border border-outline-variant hover:bg-surface-container-lowest text-primary px-8 py-3 rounded-full font-label-md shadow-sm transition-all active:scale-95">
+          <span class="material-symbols-outlined text-lg">add</span>
+          Start a Visa Application
+        </button>
+      </div>
+    }
+
+    <!-- Application cards -->
+    @if (!loading() && applications().length > 0) {
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+        @for (application of applications(); track application.id) {
+          <div class="group relative bg-surface-container-lowest rounded-[20px] shadow-[0_4px_20px_rgba(15,23,42,0.05)] overflow-hidden border border-outline-variant transition-all duration-300">
+            <div class="h-2 bg-gradient-to-r from-primary to-secondary"></div>
+            <div class="p-6">
+              <div class="flex justify-between items-start mb-4">
+                <div>
+                  <h4 class="text-headline-sm font-headline-sm mb-1">{{ application.destinationCountry }}</h4>
+                  <p class="text-label-md font-label-md text-on-surface-variant">{{ application.travelPurpose }}</p>
+                </div>
+                <span class="material-symbols-outlined text-primary text-3xl">badge</span>
+              </div>
+
+              <div class="flex items-center justify-between bg-surface-container-low p-4 rounded-xl mb-4">
+                <div class="flex items-center gap-2 text-on-surface-variant">
+                  <span class="material-symbols-outlined text-sm">calendar_today</span>
+                  <span class="text-label-md font-label-md">{{ formatDate(application.plannedTravelDate) }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-outline-variant/30 shadow-sm">
+                  <span class="w-2 h-2 rounded-full" [ngClass]="statusBadge(application.status).classes"></span>
+                  <span class="text-label-sm font-label-sm text-on-surface">{{ statusBadge(application.status).label }}</span>
+                </div>
+              </div>
+
+              <div class="mb-2">
+                <p class="text-label-sm font-label-sm text-on-surface-variant mb-2">Visa type</p>
+                @if (application.visaType) {
+                  <div class="flex flex-wrap items-center gap-2 mb-3">
+                    <span class="bg-primary-container/40 text-on-surface px-3 py-1.5 rounded-full text-label-md font-label-md flex items-center gap-1.5">
+                      <span class="material-symbols-outlined text-sm">verified</span>
+                      {{ application.visaType }}
+                    </span>
+                    <span class="text-label-sm font-label-sm text-on-surface-variant">— tap below to change</span>
+                  </div>
+                } @else {
+                  <p class="text-body-sm text-on-surface-variant mb-3">Choose a visa type to move the application forward:</p>
+                }
+                <div class="flex flex-wrap gap-2">
+                  @for (type of commonVisaTypes; track type) {
+                    <button (click)="selectVisaType(application, type)"
+                            [disabled]="selectingId() === application.id"
+                            class="px-3 py-1.5 rounded-full text-label-md font-label-md border transition-colors active:scale-95 disabled:opacity-50"
+                            [ngClass]="application.visaType === type
+                              ? 'bg-primary text-white border-primary'
+                              : 'border-outline-variant text-on-surface-variant hover:bg-surface-container-low'">
+                      {{ type }}
+                    </button>
+                  }
+                </div>
+                @if (selectingId() === application.id) {
+                  <p class="text-body-sm text-on-surface-variant mt-2 flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></span>
+                    Saving…
+                  </p>
+                }
+              </div>
+            </div>
+          </div>
+        }
       </div>
 
-      <!-- Hotel in Seoul Card -->
-      <div class="group relative bg-surface-container-lowest rounded-[20px] shadow-[0_4px_20px_rgba(15,23,42,0.05)] overflow-hidden border border-outline-variant hover:-translate-y-1 transition-all duration-300">
-        <div class="h-48 w-full relative">
-          <img class="w-full h-full object-cover" alt="An ultra-modern luxury hotel room interior in Seoul." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlOuMRhaX7WyijbndRrhvIe3E0GxoS0mvb6bf_-IFUpyuX3VMAAAO37CfseX2zIZJykwxmmg5UE_DgDEXj1w1uT8T1uw6rzsfPY_AyjUw_sHaUWT1pIbcS5Qqunv34_qjts0meido-ODQ1cigiIdYf2eXQqgL2cxf4algw8tU3Skn_P_NyI-G2J_91TOJWkUXQpgWqfl_bewjLPR8xwi9N4C_EHIizqhHlSNPZVqXlo4Yc1YimmZ3NUg"/>
-          <div class="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm border border-outline-variant/30">
-            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-            <span class="text-label-sm font-label-sm text-on-surface">Pending</span>
-          </div>
-        </div>
-        <div class="p-6">
-          <div class="flex justify-between items-start mb-4">
-            <div>
-              <h4 class="text-headline-sm font-headline-sm mb-1">Grand Josun Seoul</h4>
-              <p class="text-label-md font-label-md text-on-surface-variant">Gangnam-gu • 5 Nights</p>
-            </div>
-            <span class="material-symbols-outlined text-secondary text-3xl">hotel</span>
-          </div>
-          <div class="bg-surface-container-low p-4 rounded-xl mb-4 flex items-center gap-4">
-            <span class="material-symbols-outlined text-on-surface-variant">info</span>
-            <p class="text-label-md font-label-md text-on-surface-variant">Waiting for hotel confirmation. We'll notify you shortly.</p>
-          </div>
-          <div class="flex justify-between items-center">
-            <div class="flex items-center gap-2 text-on-surface-variant">
-              <span class="material-symbols-outlined text-sm">calendar_today</span>
-              <span class="text-label-md font-label-md">Nov 12 - Nov 17</span>
-            </div>
-            <button class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface px-6 py-2 rounded-xl text-label-md font-label-md transition-colors">
-              Edit Details
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Past Trips Section (Empty State) -->
-  <section>
-    <div class="flex items-center justify-between mb-stack-md">
-      <h3 class="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
-        <span class="material-symbols-outlined text-outline">history</span>
-        Past Trips
-      </h3>
-    </div>
-    <div class="bg-surface-container-low border-2 border-dashed border-outline-variant rounded-[32px] p-12 flex flex-col items-center justify-center text-center">
-      <div class="w-64 h-64 mb-8">
-        <div class="relative w-full h-full flex items-center justify-center">
-          <div class="absolute inset-0 opacity-10 blur-3xl bg-primary-container rounded-full"></div>
-          <span class="material-symbols-outlined text-[120px] text-primary/20" style="font-variation-settings: 'FILL' 1;">travel_explore</span>
-        </div>
-      </div>
-      <h4 class="text-headline-md font-headline-md text-on-surface-variant mb-2">No past trips yet</h4>
-      <p class="text-body-md text-outline max-w-md mx-auto mb-8">Every great explorer starts somewhere. Your completed adventures will appear here once you've returned home.</p>
-      <button routerLink="/" class="flex items-center gap-2 bg-white border border-outline-variant hover:bg-surface-container-lowest text-primary px-8 py-3 rounded-full font-label-md shadow-sm transition-all active:scale-95">
-        <span class="material-symbols-outlined text-lg">add</span>
-        Start Planning a Trip
-      </button>
-    </div>
+      @if (selectError(); as selectError) {
+        <p class="mt-4 text-body-sm text-error flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm">error_outline</span>
+          {{ selectError }}
+        </p>
+      }
+    }
   </section>
 </main>
 
@@ -140,7 +213,8 @@
     <span class="material-symbols-outlined">auto_awesome</span>
     <span class="text-label-sm font-label-sm">Concierge</span>
   </a>
-  <a href="#" class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors">
+  <a routerLink="/profile" routerLinkActive="text-primary dark:text-primary-fixed-dim font-semibold bg-primary-container/20 dark:bg-primary-container/10 rounded-xl scale-90"
+     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors">
     <span class="material-symbols-outlined">person</span>
     <span class="text-label-sm font-label-sm">Profile</span>
   </a>

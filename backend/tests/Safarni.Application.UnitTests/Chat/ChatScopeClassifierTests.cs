@@ -4,6 +4,7 @@ using ChatBotApi.Application.Common.Models;
 using ChatBotApi.Application.Features.Chat.Services;
 using FluentAssertions;
 using Moq;
+using System.Runtime.CompilerServices;
 
 namespace Safarni.Application.UnitTests.Chat;
 
@@ -115,7 +116,7 @@ public class ChatScopeClassifierTests
                 string systemPrompt,
                 List<ChatMessageDto> history,
                 string userMessage,
-                CancellationToken cancellationToken = default)
+                [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             await Task.CompletedTask;
             yield return _response;

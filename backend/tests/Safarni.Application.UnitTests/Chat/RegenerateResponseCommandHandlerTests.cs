@@ -39,8 +39,7 @@ public class RegenerateResponseCommandHandlerTests
                 It.IsAny<string>(),
                 It.IsAny<List<ChatMessageDto>>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>(),
-                It.IsAny<AICompletionOptions?>()))
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync("new generated response");
     }
 
@@ -51,8 +50,11 @@ public class RegenerateResponseCommandHandlerTests
         var oldResponse = conversation.Messages.Last();
         SetupConversation(conversation);
         _intentDetection
-            .Setup(x => x.DetectIntent("شكراً"))
-            .Returns(ChatIntent.Social);
+            .Setup(x => x.DetectIntentAsync(
+                "شكراً",
+                It.IsAny<List<ChatMessageDto>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentDetectionResult { Intent = ChatIntent.Social, StandaloneQuery = "شكراً" });
         _scopeClassifier
             .Setup(x => x.ClassifyAsync(
                 "شكراً",
@@ -95,8 +97,11 @@ public class RegenerateResponseCommandHandlerTests
         conversation.Messages[^2].Content = "عبد الحليم";
         SetupConversation(conversation);
         _intentDetection
-            .Setup(x => x.DetectIntent("عبد الحليم"))
-            .Returns(ChatIntent.Ambiguous);
+            .Setup(x => x.DetectIntentAsync(
+                "عبد الحليم",
+                It.IsAny<List<ChatMessageDto>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentDetectionResult { Intent = ChatIntent.Ambiguous, StandaloneQuery = "عبد الحليم" });
         _scopeClassifier
             .Setup(x => x.ClassifyAsync(
                 "عبد الحليم",
@@ -140,8 +145,7 @@ public class RegenerateResponseCommandHandlerTests
                 It.IsAny<string>(),
                 It.IsAny<List<ChatMessageDto>>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>(),
-                It.IsAny<AICompletionOptions?>()),
+                It.IsAny<CancellationToken>()),
             Times.Never);
     }
 

@@ -45,8 +45,7 @@ public class SendMessageCommandHandlerTests
                 It.IsAny<string>(),
                 It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>(),
-                It.IsAny<AICompletionOptions?>()))
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync("generated response");
     }
 
@@ -56,8 +55,11 @@ public class SendMessageCommandHandlerTests
         var conversation = CreateConversation();
         SetupConversation(conversation);
         _intentDetection
-            .Setup(x => x.DetectIntent("عامل إيه؟"))
-            .Returns(ChatIntent.Social);
+            .Setup(x => x.DetectIntentAsync(
+                "عامل إيه؟",
+                It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentDetectionResult { Intent = ChatIntent.Social, StandaloneQuery = "عامل إيه؟" });
         _scopeClassifier
             .Setup(x => x.ClassifyAsync(
                 "عامل إيه؟",
@@ -87,8 +89,11 @@ public class SendMessageCommandHandlerTests
         var conversation = CreateConversation();
         SetupConversation(conversation);
         _intentDetection
-            .Setup(x => x.DetectIntent("عبد الحليم"))
-            .Returns(ChatIntent.Ambiguous);
+            .Setup(x => x.DetectIntentAsync(
+                "عبد الحليم",
+                It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentDetectionResult { Intent = ChatIntent.Ambiguous, StandaloneQuery = "عبد الحليم" });
         _scopeClassifier
             .Setup(x => x.ClassifyAsync(
                 "عبد الحليم",
@@ -111,8 +116,11 @@ public class SendMessageCommandHandlerTests
         var conversation = CreateConversation();
         SetupConversation(conversation);
         _intentDetection
-            .Setup(x => x.DetectIntent("Kotor"))
-            .Returns(ChatIntent.Ambiguous);
+            .Setup(x => x.DetectIntentAsync(
+                "Kotor",
+                It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentDetectionResult { Intent = ChatIntent.Ambiguous, StandaloneQuery = "Kotor" });
         _scopeClassifier
             .Setup(x => x.ClassifyAsync(
                 "Kotor",
@@ -145,32 +153,33 @@ public class SendMessageCommandHandlerTests
         SetupConversation(conversation);
         const string message = "hello, tell me about a singer who loves travel";
         _intentDetection
-            .Setup(x => x.DetectIntent(message))
-            .Returns(ChatIntent.RagOnly);
+            .Setup(x => x.DetectIntentAsync(
+                message,
+                It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentDetectionResult { Intent = ChatIntent.RagOnly, StandaloneQuery = message });
         _scopeClassifier
             .Setup(x => x.ClassifyAsync(
                 message,
                 It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ChatIntent.OutOfScope);
-        string? capturedSystemPrompt = null;
-        _aiProvider
-            .Setup(x => x.GetChatCompletionAsync(
-                It.IsAny<string>(),
-                It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>(),
-                It.IsAny<AICompletionOptions?>()))
-            .Callback<string, List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>, string, CancellationToken, AICompletionOptions?>(
-                (systemPrompt, _, _, _, _) => capturedSystemPrompt = systemPrompt)
-            .ReturnsAsync("redirect");
 
-        await CreateHandler().Handle(
+        var result = await CreateHandler().Handle(
             new SendMessageCommand(conversation.Id, conversation.UserId, message),
             CancellationToken.None);
 
-        capturedSystemPrompt.Should().Contain("FINAL ROUTING DECISION: This request is OUT OF SCOPE");
+        result.Messages.Last().Content.Should().Be(
+            "عذراً، أنا مساعد Safarni السياحي، ويمكنني مساعدتك فقط في كل ما يتعلق بالسفر والسياحة. يرجى طرح سؤال متعلق بالسياحة.");
+        _aiProvider.Verify(
+            x => x.GetChatCompletionAsync(
+                It.IsAny<string>(),
+                It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
         VerifyTravelLookupsWereSkipped();
+        VerifySuccessfulPersistence();
     }
 
     [Fact]
@@ -180,8 +189,11 @@ public class SendMessageCommandHandlerTests
         SetupConversation(conversation);
         const string message = "recommend hotels in Kotor";
         _intentDetection
-            .Setup(x => x.DetectIntent(message))
-            .Returns(ChatIntent.GooglePlacesOnly);
+            .Setup(x => x.DetectIntentAsync(
+                message,
+                It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentDetectionResult { Intent = ChatIntent.GooglePlacesOnly, StandaloneQuery = message });
         _scopeClassifier
             .Setup(x => x.ClassifyAsync(
                 message,
@@ -214,8 +226,11 @@ public class SendMessageCommandHandlerTests
         SetupConversation(conversation);
         const string message = "اكتب لي كود بايثون";
         _intentDetection
-            .Setup(x => x.DetectIntent(message))
-            .Returns(ChatIntent.OutOfScope);
+            .Setup(x => x.DetectIntentAsync(
+                message,
+                It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentDetectionResult { Intent = ChatIntent.OutOfScope, StandaloneQuery = message });
 
         await CreateHandler().Handle(
             new SendMessageCommand(conversation.Id, conversation.UserId, message),
@@ -237,8 +252,11 @@ public class SendMessageCommandHandlerTests
         SetupConversation(conversation);
         const string message = "خطط لي رحلة إلى باريس";
         _intentDetection
-            .Setup(x => x.DetectIntent(message))
-            .Returns(ChatIntent.RagOnly);
+            .Setup(x => x.DetectIntentAsync(
+                message,
+                It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentDetectionResult { Intent = ChatIntent.RagOnly, StandaloneQuery = message });
         _scopeClassifier
             .Setup(x => x.ClassifyAsync(
                 message,
@@ -264,8 +282,7 @@ public class SendMessageCommandHandlerTests
                 It.IsAny<string>(),
                 It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>(),
-                It.IsAny<AICompletionOptions?>()),
+                It.IsAny<CancellationToken>()),
             Times.Never);
         _unitOfWork.Verify(
             x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
@@ -293,8 +310,7 @@ public class SendMessageCommandHandlerTests
                 It.IsAny<string>(),
                 It.IsAny<List<ChatBotApi.Application.Common.DTOs.ChatMessageDto>>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>(),
-                It.IsAny<AICompletionOptions?>()),
+                It.IsAny<CancellationToken>()),
             Times.Never);
         _unitOfWork.Verify(
             x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),

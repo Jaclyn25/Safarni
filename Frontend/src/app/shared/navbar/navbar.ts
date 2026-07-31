@@ -15,6 +15,7 @@ export class NavbarComponent implements OnInit {
   isScrolled = false;
   isExplorePage = false;
   navbarBgClass = 'bg-surface/80 dark:bg-surface/80';
+  isLogoutModalOpen = false;
 
   constructor(
     public authService: AuthService, 
@@ -55,8 +56,24 @@ export class NavbarComponent implements OnInit {
     return this.authService.getCurrentUser();
   }
 
-  logout() {
+  logout(): void {
+    this.isLogoutModalOpen = true;
+  }
+
+  cancelLogout(): void {
+    this.isLogoutModalOpen = false;
+  }
+
+  confirmLogout(): void {
+    this.isLogoutModalOpen = false;
     this.authService.logout();
     this.router.navigate(['/']);
+  }
+
+  @HostListener('document:keydown.escape')
+  handleEscape(): void {
+    if (this.isLogoutModalOpen) {
+      this.isLogoutModalOpen = false;
+    }
   }
 }

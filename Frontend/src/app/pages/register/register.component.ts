@@ -57,6 +57,12 @@ export class RegisterComponent
 
   isLogin = false;
 
+  /**
+   * Page the user was trying to reach before being
+   * redirected to the login screen (set by authGuard).
+   */
+  private returnUrl: string | null = null;
+
   showPassword = false;
   showConfirmPassword = false;
 
@@ -104,6 +110,22 @@ export class RegisterComponent
       this.isLogin = data['isLogin'] ?? false;
       this.clearMessages();
     });
+
+    // Remember where the user wanted to go (set by authGuard).
+    this.route.queryParams.subscribe((params) => {
+      const candidate = params['returnUrl'];
+      this.returnUrl =
+        typeof candidate === 'string' &&
+        candidate.startsWith('/') &&
+        !candidate.startsWith('//')
+          ? candidate
+          : null;
+    });
+
+    // Already signed in? Send the user where they wanted to go.
+    if (this.authService.isAuthenticated()) {
+      void this.router.navigate([this.returnUrl ?? '/']);
+    }
   }
 
   ngAfterViewInit(): void {
@@ -177,7 +199,7 @@ export class RegisterComponent
           );
 
           window.setTimeout(() => {
-            void this.router.navigate(['/']);
+            void this.router.navigate([this.returnUrl ?? '/']);
           }, 700);
         },
 
@@ -393,7 +415,7 @@ export class RegisterComponent
            * - Refresh token
            * - Current user
            */
-          void this.router.navigate(['/']);
+          void this.router.navigate([this.returnUrl ?? '/']);
         },
 
         error: (error: unknown) => {

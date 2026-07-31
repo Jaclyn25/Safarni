@@ -1,36 +1,11 @@
-<!-- Top Navigation -->
-<nav class="topnav">
-  <div class="topnav__inner">
-    <div class="topnav__left">
-      <span class="topnav__brand">Voyage Elite</span>
-      <div class="topnav__links">
-        <a href="#">Explore</a>
-        <a href="#">Bookings</a>
-        <a href="#">Concierge</a>
-      </div>
-    </div>
-    <div class="topnav__right">
-      <button class="icon-btn" aria-label="Notifications">
-        <span class="material-symbols-outlined">notifications</span>
-      </button>
-      <button class="icon-btn" aria-label="Help">
-        <span class="material-symbols-outlined">help</span>
-      </button>
-      <div class="avatar-btn">
-        <img [src]="profile?.avatarUrl || 'https://placehold.co/64x64'" alt="Profile photo" />
-      </div>
-    </div>
-  </div>
-</nav>
-
 <main class="layout">
   <!-- Side Navigation -->
   <aside class="sidenav">
     <div class="sidenav__profile">
       <div class="sidenav__avatar">{{ (profile?.fullName || 'JW').charAt(0) }}{{ (profile?.fullName || ' W').split(' ')[1]?.charAt(0) }}</div>
       <div>
-        <h3>{{ profile?.fullName || 'Julian Walters' }}</h3>
-        <p>{{ profile?.membershipTier || 'Premium Member' }}</p>
+        <h3>{{ profile?.fullName || 'Traveler' }}</h3>
+        <p>{{ profile?.email || 'Premium Member' }}</p>
       </div>
     </div>
 
@@ -96,7 +71,8 @@
 
             <div class="field">
               <label for="email">Email Address</label>
-              <input id="email" type="email" formControlName="email" />
+              <input id="email" type="email" formControlName="email" readonly />
+              <p class="field__hint">Your email address cannot be changed here.</p>
               <p class="field__error" *ngIf="f['email'].touched && f['email'].errors?.['email']">
                 Enter a valid email address.
               </p>
@@ -159,6 +135,34 @@
 
           <div class="fields fields--two">
             <div class="field">
+              <label for="preferredDestinationCountry">Preferred Destination</label>
+              <input id="preferredDestinationCountry" type="text" [(ngModel)]="preferredDestinationCountry" [ngModelOptions]="{ standalone: true }" placeholder="e.g. Italy" />
+            </div>
+            <div class="field">
+              <label for="travelPurpose">Travel Purpose</label>
+              <input id="travelPurpose" type="text" [(ngModel)]="travelPurpose" [ngModelOptions]="{ standalone: true }" placeholder="e.g. leisure, business, family" />
+            </div>
+            <div class="field">
+              <label for="passportNumber">Passport Number</label>
+              <input id="passportNumber" type="text" [(ngModel)]="passportNumber" [ngModelOptions]="{ standalone: true }" placeholder="e.g. A12345678" />
+            </div>
+            <div class="field">
+              <label for="nationality">Nationality</label>
+              <input id="nationality" type="text" [(ngModel)]="nationality" [ngModelOptions]="{ standalone: true }" placeholder="e.g. Egyptian" />
+            </div>
+            <div class="field">
+              <label for="passportExpiryDate">Passport Expiry Date</label>
+              <input id="passportExpiryDate" type="date" [(ngModel)]="passportExpiryDate" [ngModelOptions]="{ standalone: true }" />
+            </div>
+            <div class="field">
+              <label for="minBudget">Min Budget (USD)</label>
+              <input id="minBudget" type="number" min="0" [(ngModel)]="minBudget" [ngModelOptions]="{ standalone: true }" placeholder="e.g. 1000" />
+            </div>
+            <div class="field">
+              <label for="maxBudget">Max Budget (USD)</label>
+              <input id="maxBudget" type="number" min="0" [(ngModel)]="maxBudget" [ngModelOptions]="{ standalone: true }" placeholder="e.g. 5000" />
+            </div>
+            <div class="field">
               <label for="dietary">Dietary Requirements</label>
               <select id="dietary" [(ngModel)]="dietaryRequirement" [ngModelOptions]="{ standalone: true }">
                 <option *ngFor="let opt of dietaryOptions" [value]="opt">{{ opt }}</option>
@@ -171,7 +175,108 @@
               </select>
             </div>
           </div>
+
+          <p class="field__error" *ngIf="preferencesError()">{{ preferencesError() }}</p>
+          <p class="field__hint" *ngIf="preferencesSuccess()">Travel preferences saved.</p>
+          <button type="button" class="btn btn--primary" [disabled]="isSavingPreferences()" (click)="saveTravelPreferences()">
+            {{ isSavingPreferences() ? 'Saving…' : 'Save Travel Preferences' }}
+          </button>
         </div>
+      </section>
+
+      <!-- Change Password -->
+      <section class="card" id="password">
+        <h2><span class="material-symbols-outlined">lock</span> Change Password</h2>
+
+        <div class="stack">
+          <div class="field">
+            <label for="currentPassword">Current Password</label>
+            <input id="currentPassword" type="password" [(ngModel)]="currentPassword" [ngModelOptions]="{ standalone: true }" autocomplete="current-password" (keydown.enter)="$event.preventDefault()" />
+          </div>
+
+          <div class="field">
+            <label for="newPassword">New Password</label>
+            <input id="newPassword" type="password" [(ngModel)]="newPassword" [ngModelOptions]="{ standalone: true }" autocomplete="new-password" (ngModelChange)="onNewPasswordInput($event)" (keydown.enter)="$event.preventDefault()" />
+            <ul class="password-checks">
+              <li [class.password-checks__ok]="passwordChecks.length">8+ characters</li>
+              <li [class.password-checks__ok]="passwordChecks.upper">Uppercase letter</li>
+              <li [class.password-checks__ok]="passwordChecks.number">Number</li>
+              <li [class.password-checks__ok]="passwordChecks.symbol">Special character</li>
+            </ul>
+          </div>
+
+          <div class="field">
+            <label for="confirmPassword">Confirm New Password</label>
+            <input id="confirmPassword" type="password" [(ngModel)]="confirmPassword" [ngModelOptions]="{ standalone: true }" autocomplete="new-password" (ngModelChange)="onConfirmPasswordInput($event)" (keydown.enter)="$event.preventDefault()" />
+            <p class="field__error" *ngIf="passwordMatchState === 'mismatch'">Passwords do not match.</p>
+          </div>
+
+          <p class="field__error" *ngIf="passwordError()">{{ passwordError() }}</p>
+          <p class="field__hint" *ngIf="passwordSuccess()">Password changed successfully.</p>
+          <button type="button" class="btn btn--primary" [disabled]="isChangingPassword()" (click)="changePassword()">
+            {{ isChangingPassword() ? 'Updating…' : 'Update Password' }}
+          </button>
+        </div>
+      </section>
+
+      <!-- Notifications & Privacy -->
+      <section class="card" id="notifications">
+        <h2><span class="material-symbols-outlined">notifications</span> Notifications &amp; Privacy</h2>
+
+        <div class="stack" *ngIf="settings; else settingsEmpty">
+          <div class="toggle-row">
+            <div>
+              <p class="toggle-row__label">Email Notifications</p>
+              <p class="toggle-row__hint">Receive trip updates and recommendations by email.</p>
+            </div>
+            <input type="checkbox" [(ngModel)]="settings.emailNotificationsEnabled" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="toggle-row">
+            <div>
+              <p class="toggle-row__label">Push Notifications</p>
+              <p class="toggle-row__hint">Receive real-time alerts in your browser.</p>
+            </div>
+            <input type="checkbox" [(ngModel)]="settings.pushNotificationsEnabled" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="toggle-row">
+            <div>
+              <p class="toggle-row__label">Private Profile</p>
+              <p class="toggle-row__hint">Only you can see your profile.</p>
+            </div>
+            <input type="checkbox" [(ngModel)]="settings.profileIsPrivate" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="toggle-row">
+            <div>
+              <p class="toggle-row__label">Show Last Seen</p>
+              <p class="toggle-row__hint">Let others see when you were last active.</p>
+            </div>
+            <input type="checkbox" [(ngModel)]="settings.showLastSeen" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="toggle-row">
+            <div>
+              <p class="toggle-row__label">Show Email</p>
+              <p class="toggle-row__hint">Display your email on your public profile.</p>
+            </div>
+            <input type="checkbox" [(ngModel)]="settings.showEmail" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="toggle-row">
+            <div>
+              <p class="toggle-row__label">Show Phone Number</p>
+              <p class="toggle-row__hint">Display your phone number on your public profile.</p>
+            </div>
+            <input type="checkbox" [(ngModel)]="settings.showPhoneNumber" [ngModelOptions]="{ standalone: true }" />
+          </div>
+
+          <p class="field__error" *ngIf="settingsError()">{{ settingsError() }}</p>
+          <p class="field__hint" *ngIf="settingsSuccess()">Notification settings saved.</p>
+          <button type="button" class="btn btn--primary" [disabled]="isSavingSettings()" (click)="saveSettings()">
+            {{ isSavingSettings() ? 'Saving…' : 'Save Settings' }}
+          </button>
+        </div>
+
+        <ng-template #settingsEmpty>
+          <p class="field__hint">Could not load your notification settings.</p>
+        </ng-template>
       </section>
 
       <!-- Appearance -->
@@ -217,6 +322,16 @@
             </div>
             <span>System Default</span>
           </button>
+        </div>
+      </section>
+
+      <!-- Language -->
+      <section class="card" id="language">
+        <h2><span class="material-symbols-outlined">language</span> Language</h2>
+        <p class="card__hint">Choose the app language. Arabic switches the whole interface to right-to-left.</p>
+        <div class="chip-row">
+          <button type="button" class="chip" [class.chip--active]="languageChoice === 'en'" (click)="selectLanguage('en')">English</button>
+          <button type="button" class="chip" [class.chip--active]="languageChoice === 'ar'" (click)="selectLanguage('ar')">العربية</button>
         </div>
       </section>
 

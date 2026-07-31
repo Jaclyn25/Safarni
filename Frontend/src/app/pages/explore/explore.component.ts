@@ -65,6 +65,9 @@ export interface AiRecommendation {
   styleUrl: './explore.component.css'
 })
 export class ExploreComponent implements OnInit, OnDestroy {
+  private static readonly TRIP_DRAFT_KEY =
+    'safarni_trip_draft';
+
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private tripService = inject(TripService);
@@ -372,6 +375,16 @@ export class ExploreComponent implements OnInit, OnDestroy {
     suggestedName = '',
     suggestedDestination = ''
   ): Promise<void> {
+    if (!this.authService.isAuthenticated()) {
+      this.persistTripDraft();
+      this.setPageScrollLocked(false);
+      void this.router.navigate(['/login'], {
+        queryParams: { returnUrl: '/?createTrip=1' }
+      });
+      return;
+    }
+
+    this.restoreTripDraft();
     this.createTripError = '';
     this.tripDraft.name =
       suggestedName || this.tripDraft.name;
@@ -554,6 +567,57 @@ export class ExploreComponent implements OnInit, OnDestroy {
     );
   }
 
+  /**
+   * Persists the in-progress trip draft so it survives
+   * the round trip to /login when sign-in is required.
+   */
+  private persistTripDraft(): void {
+    sessionStorage.setItem(
+      ExploreComponent.TRIP_DRAFT_KEY,
+      JSON.stringify({
+        draft: this.tripDraft,
+        selectedCities: this.selectedCities
+      })
+    );
+  }
+
+  /**
+   * Restores a previously persisted draft (and clears it).
+   */
+  private restoreTripDraft(): void {
+    const raw = sessionStorage.getItem(
+      ExploreComponent.TRIP_DRAFT_KEY
+    );
+
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        draft?: Partial<CreateTripRequest>;
+        selectedCities?: TripCitySelection[];
+      };
+
+      if (parsed?.draft) {
+        this.tripDraft = {
+          ...this.tripDraft,
+          ...parsed.draft
+        };
+      }
+
+      if (Array.isArray(parsed?.selectedCities)) {
+        this.selectedCities = parsed.selectedCities;
+      }
+    } catch {
+      // Ignore corrupt drafts.
+    } finally {
+      sessionStorage.removeItem(
+        ExploreComponent.TRIP_DRAFT_KEY
+      );
+    }
+  }
+
   async createTrip(): Promise<void> {
     this.createTripError = '';
 
@@ -566,8 +630,11 @@ export class ExploreComponent implements OnInit, OnDestroy {
     }
 
     if (!this.authService.isAuthenticated()) {
-      this.createTripError =
-        'Please sign in before creating your trip. Your details will stay here.';
+      this.persistTripDraft();
+      this.setPageScrollLocked(false);
+      void this.router.navigate(['/login'], {
+        queryParams: { returnUrl: '/?createTrip=1' }
+      });
       return;
     }
 

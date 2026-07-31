@@ -1,5 +1,6 @@
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Interfaces;
+using ChatBotApi.Application.Common.Models;
 using ChatBotApi.Application.Common.Models.GooglePlaces;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -158,8 +159,19 @@ public class GenerateItineraryCommandHandlerTests
                         "orderIndex": 3
                       },
                       {
-                        "startTime": "10:00",
-                        "endTime": "11:00",
+                        "startTime": "09:30",
+                        "endTime": "10:30",
+                        "title": "Morning walk around the Colosseum",
+                        "description": "Enjoy a final look at the historic amphitheater.",
+                        "location": "Colosseum",
+                        "placeReference": "P1",
+                        "category": "activity",
+                        "estimatedCost": 25,
+                        "orderIndex": 5
+                      },
+                      {
+                        "startTime": "11:00",
+                        "endTime": "12:00",
                         "title": "Transfer to the airport",
                         "description": "Allow enough time for the airport transfer.",
                         "location": "Rome",
@@ -203,7 +215,7 @@ public class GenerateItineraryCommandHandlerTests
             .Items.Should().HaveCount(2);
 
         result.Value.EstimatedTotalCost
-            .Should().Be(65m);
+            .Should().Be(90m);
 
         result.Value.Preferences.Interests
             .Should().BeEquivalentTo(

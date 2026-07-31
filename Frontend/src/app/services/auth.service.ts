@@ -111,6 +111,27 @@ export class AuthService {
     );
 }
 
+  /**
+   * Exchanges the stored refresh token for a new access/refresh pair.
+   * The backend rotates tokens, so both values are replaced.
+   * The `user` blob is preserved because the refresh response does not
+   * include profile data.
+   */
+  refreshSession(): Observable<ApiResponse<LoginResponse>> {
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    return this.http.post<ApiResponse<LoginResponse>>(
+      `${this.apiUrl}/refresh-token`,
+      { refreshToken }
+    ).pipe(
+      tap((response) => {
+        if (response.success && response.data) {
+          this.saveSession(response.data);
+        }
+      })
+    );
+  }
+
   forgotPassword(command: ForgotPasswordRequest): Observable<ApiResponse<PasswordRecoveryResponse>> {
     return this.http.post<ApiResponse<PasswordRecoveryResponse>>(
       `${this.apiUrl}/forgot-password`,
@@ -128,6 +149,22 @@ export class AuthService {
   verifyEmail(command: VerifyEmailRequest): Observable<ApiResponse<VerifyEmailResponse>> {
     return this.http.post<ApiResponse<VerifyEmailResponse>>(
       `${this.apiUrl}/verify-email`,
+      command
+    );
+  }
+
+  /**
+   * Changes the signed-in user's password.
+   * NOTE: unlike the other auth endpoints, the backend returns the
+   * raw ChangePasswordResponse here (no ApiResponse<T> envelope).
+   */
+  changePassword(command: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/change-password`,
       command
     );
   }

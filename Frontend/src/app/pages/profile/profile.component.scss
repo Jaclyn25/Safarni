@@ -39,94 +39,13 @@
   color: var(--color-on-surface);
 }
 
-// ---------- Top Nav ----------
-.topnav {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  background: rgba(247, 249, 251, 0.85);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
-
-  &__inner {
-    max-width: var(--container-max);
-    margin: 0 auto;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 var(--margin-desktop);
-  }
-
-  &__left {
-    display: flex;
-    align-items: center;
-    gap: var(--space-lg);
-  }
-
-  &__brand {
-    font-weight: 700;
-    font-size: 24px;
-    color: var(--color-primary);
-  }
-
-  &__links {
-    display: flex;
-    gap: var(--space-md);
-
-    a {
-      color: var(--color-on-surface-variant);
-      font-weight: 500;
-      text-decoration: none;
-      transition: color 0.2s;
-
-      &:hover {
-        color: var(--color-primary);
-      }
-    }
-  }
-
-  &__right {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-  }
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  color: var(--color-on-surface-variant);
-  cursor: pointer;
-  display: flex;
-  transition: color 0.2s;
-
-  &:hover {
-    color: var(--color-primary);
-  }
-}
-
-.avatar-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  border: 1px solid var(--color-outline-variant);
-  cursor: pointer;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-}
-
 // ---------- Layout ----------
+// Offsets account for the shared app navbar (~80px on desktop).
 .layout {
   max-width: var(--container-max);
   margin: 0 auto;
   display: flex;
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 80px);
 }
 
 // ---------- Side Nav ----------
@@ -134,9 +53,9 @@
   display: none;
   flex-direction: column;
   width: 288px;
-  height: calc(100vh - 64px);
+  height: calc(100vh - 80px);
   position: sticky;
-  top: 64px;
+  top: 80px;
   background: var(--color-surface-container-low);
   padding: var(--space-md);
   border-right: 1px solid rgba(195, 198, 215, 0.3);
@@ -314,6 +233,13 @@
   }
 }
 
+.card__hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-on-surface-variant);
+  margin: -8px 0 var(--space-md) 0;
+}
+
 // ---------- Account profile ----------
 .profile-grid {
   display: flex;
@@ -440,6 +366,68 @@
     color: var(--color-on-surface-variant);
     margin: 0;
     text-align: right;
+  }
+}
+
+// ---------- Password strength checks ----------
+.password-checks {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+
+  li {
+    font-size: 12px;
+    color: var(--color-on-surface-variant);
+
+    &::before {
+      content: '\2022\00a0';
+    }
+
+    &.password-checks__ok {
+      color: var(--color-primary);
+      font-weight: 600;
+
+      &::before {
+        content: '\2713\00a0';
+      }
+    }
+  }
+}
+
+// ---------- Settings toggles ----------
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-outline-variant);
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+
+  &__label {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 2px 0;
+  }
+
+  &__hint {
+    font-size: 12px;
+    color: var(--color-on-surface-variant);
+    margin: 0;
+  }
+
+  input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--color-primary);
+    flex-shrink: 0;
+    cursor: pointer;
   }
 }
 

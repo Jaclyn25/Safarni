@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -11,24 +12,28 @@ export const routes: Routes = [
     path: 'planner/:tripId',
     loadComponent: () =>
       import('./pages/planner/planner.component').then((m) => m.PlannerComponent),
+    canActivate: [authGuard],
     title: 'Safarni | Trip Planner'
   },
   {
     path: 'planner',
     loadComponent: () =>
       import('./pages/planner/planner.component').then((m) => m.PlannerComponent),
+    canActivate: [authGuard],
     title: 'Safarni | Trip Planner'
   },
   {
     path: 'bookings',
     loadComponent: () =>
       import('./pages/bookings/bookings.component').then((m) => m.BookingsComponent),
+    canActivate: [authGuard],
     title: 'Safarni | Your Bookings'
   },
   {
     path: 'concierge',
     loadComponent: () =>
       import('./pages/concierge/concierge.component').then((m) => m.ConciergeComponent),
+    canActivate: [authGuard],
     title: 'Safarni | Travel Concierge'
   },
   {
@@ -97,6 +102,7 @@ export const routes: Routes = [
       import('./pages/profile/profile.component').then(
         (m) => m.ProfileComponent
       ),
+    canActivate: [authGuard],
     title: 'Safarni | My Profile'
   },
   {

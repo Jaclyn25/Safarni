@@ -17,7 +17,7 @@ public record SendMessageCommand(Guid ConversationId, string UserId, string Mess
 
 public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, ConversationDto>
 {
-    private const int MaxHistoryMessages = 8;
+    private const int MaxHistoryMessages = 20;
     private const int MaxContextChunks = 3;
 
     private readonly IChatRepository _repository;
@@ -95,14 +95,37 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             })
             .ToList();
 
-        var intent = await ResolveIntentAsync(request.Message, history, cancellationToken);
-        _logger.LogInformation("Detected Chat Intent: {Intent}", intent);
+        var intentResult = await ResolveIntentAsync(request.Message, history, cancellationToken);
+        var intent = intentResult.Intent;
+        var queryToSearch = intentResult.StandaloneQuery;
+        
+        _logger.LogInformation("Detected Chat Intent: {Intent}, Standalone Query: {Query}", intent, queryToSearch);
 
-        if (intent is ChatIntent.Social or ChatIntent.OutOfScope)
+        if (intent == ChatIntent.OutOfScope)
+        {
+            var outOfScopeMessage = _configuration["ChatBot:OutOfScopeMessage"] 
+                ?? "عذراً، أنا مساعد Safarni السياحي، ويمكنني مساعدتك فقط في كل ما يتعلق بالسفر والسياحة. يرجى طرح سؤال متعلق بالسياحة.";
+            
+            var directResponseMessage = new ConversationMessage
+            {
+                Id = Guid.NewGuid(),
+                ConversationId = conversation.Id,
+                Role = "assistant",
+                Content = outOfScopeMessage,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            conversation.Messages.Add(directResponseMessage);
+            await _repository.AddMessageAsync(directResponseMessage, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return ToConversationDto(conversation);
+        }
+
+        if (intent == ChatIntent.Social)
         {
             _logger.LogInformation(
-                "Sending {Intent} intent directly to the model without RAG or Places lookup.",
-                intent);
+                "Sending Social intent directly to the model without RAG or Places lookup.");
             var directSystemPrompt = _promptBuilder.BuildDirectSystemPrompt(intent, request.Message);
             var directUserPrompt = _promptBuilder.BuildUserPrompt(request.Message);
             var generatedResponse = await _aiProvider.GetChatCompletionAsync(
@@ -128,13 +151,13 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
         }
 
         // STEP 1: Search Database FIRST (RAG)
-        _logger.LogInformation("Step 1: Searching RAG Database for message context: {Message}", request.Message);
+        _logger.LogInformation("Step 1: Searching RAG Database for message context: {Message}", queryToSearch);
         List<DocumentChunk>? contextChunks = null;
         try
         {
             if (await _qdrantService.IsHealthyAsync())
             {
-                var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(request.Message);
+                var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(queryToSearch);
                 var topK = int.TryParse(_configuration["RAG:TopK"], out var k) ? k : MaxContextChunks;
                 contextChunks = await _qdrantService.SearchSimilarChunksAsync(queryEmbedding, Math.Min(topK, MaxContextChunks));
             }
@@ -150,7 +173,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
 
         if (contextChunks == null || contextChunks.Count == 0)
         {
-            contextChunks = await GetSqlFallbackChunksAsync(request.Message, cancellationToken);
+            contextChunks = await GetSqlFallbackChunksAsync(queryToSearch, cancellationToken);
         }
 
         if (contextChunks.Count > MaxContextChunks)
@@ -177,14 +200,14 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             else
             {
                 // STEP 2: If NOT in Database -> Check Google Places API
-                _logger.LogInformation("Step 2: No data in Database. Searching Google Places API for message: {Message}", request.Message);
+                _logger.LogInformation("Step 2: No data in Database. Searching Google Places API for message: {Message}", queryToSearch);
                 List<PlaceDetails>? places = null;
                 try
                 {
                     places = await _googlePlacesService.TextSearchAsync(
-                        request.Message,
+                        queryToSearch,
                         cancellationToken,
-                        _promptBuilder.GetGooglePlacesLanguageCode(request.Message));
+                        _promptBuilder.GetGooglePlacesLanguageCode(queryToSearch));
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -238,6 +261,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             Id = conversation.Id,
             Title = conversation.Title,
             CreatedAt = conversation.CreatedAt,
+            IsPinned = conversation.IsPinned,
             Messages = conversation.Messages
                 .OrderBy(m => m.CreatedAt)
                 .Select(m => new ChatMessageDto
@@ -250,15 +274,16 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
         };
     }
 
-    private async Task<ChatIntent> ResolveIntentAsync(
+    private async Task<IntentDetectionResult> ResolveIntentAsync(
         string message,
         List<ChatMessageDto> history,
         CancellationToken cancellationToken)
     {
-        var keywordIntent = _intentDetectionService.DetectIntent(message);
-        if (keywordIntent == ChatIntent.OutOfScope)
+        var result = await _intentDetectionService.DetectIntentAsync(message, history, cancellationToken);
+        
+        if (result.Intent == ChatIntent.OutOfScope)
         {
-            return ChatIntent.OutOfScope;
+            return result;
         }
 
         var semanticIntent = await _scopeClassifier.ClassifyAsync(
@@ -268,15 +293,18 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
 
         if (semanticIntent is ChatIntent.OutOfScope or ChatIntent.Social)
         {
-            return semanticIntent;
+            result.Intent = semanticIntent;
+            return result;
         }
 
-        return keywordIntent switch
+        result.Intent = result.Intent switch
         {
             ChatIntent.GooglePlacesOnly => ChatIntent.GooglePlacesOnly,
             ChatIntent.Hybrid => ChatIntent.Hybrid,
             _ => ChatIntent.RagOnly
         };
+
+        return result;
     }
 
     private async Task<List<DocumentChunk>> GetSqlFallbackChunksAsync(string userMessage, CancellationToken cancellationToken)

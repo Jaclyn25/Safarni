@@ -33,6 +33,8 @@ public class GetConversationByIdQueryHandler : IRequestHandler<GetConversationBy
             Id = conversation.Id,
             Title = conversation.Title,
             CreatedAt = conversation.CreatedAt,
+            IsPinned = conversation.IsPinned,
+            FolderId = conversation.FolderId,
             Messages = conversation.Messages
                 .OrderBy(m => m.CreatedAt)
                 .Select(m => new ChatMessageDto

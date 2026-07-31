@@ -171,8 +171,11 @@ public class PromptBuilder : IPromptBuilder
         sb.AppendLine("Vary openings, sentence rhythm, and structure naturally. Do not reuse a fixed intro, closing line, or the same list shape in every answer.");
         sb.AppendLine("Use short paragraphs by default. Use bullets or numbered steps only when they make choices or an itinerary easier to scan.");
         sb.AppendLine("Keep simple answers brief, but do not omit useful details or stop at an arbitrary paragraph count.");
+        sb.AppendLine("Memory Rule: Maintain a memory of the user's budget, preferred city, group size, and travel style from the chat history and apply them to subsequent answers.");
+        sb.AppendLine("Diversity Rule: Do not repeat identical phrases or exactly the same structure as your previous answers in the chat history. Provide diverse and varied responses.");
         sb.AppendLine("If a fact may be uncertain or time-sensitive, say so briefly instead of inventing details.");
         sb.AppendLine("Formatting rule: use clean plain text. Do not use markdown headings, bold markers, tables, HTML, or <br>. Markdown links are allowed for real place links.");
+        sb.AppendLine("Suggestions Rule: At the very end of your response, ALWAYS provide 2 to 4 short, relevant follow-up questions the user could ask next. You MUST format this exactly with `---SUGGESTIONS---` on its own line, followed by a newline for each question starting with `- `. Example:\n---SUGGESTIONS---\n- Question 1\n- Question 2");
 
         if (IsMostlyEnglish(userMessage))
         {

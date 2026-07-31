@@ -6,7 +6,7 @@ namespace Safarni.Application.UnitTests.Chat;
 
 public class IntentDetectionServiceTests
 {
-    private readonly IntentDetectionService _service = new();
+    private readonly IntentDetectionService _service = new(null!);
 
     [Theory]
     [InlineData("اكتب لي كود بايثون")]

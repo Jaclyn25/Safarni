@@ -22,6 +22,30 @@ namespace Safarni.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("ChatBotApi.Domain.Entities.ChatFolder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ChatFolders");
+                });
+
             modelBuilder.Entity("ChatBotApi.Domain.Entities.Conversation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -30,6 +54,12 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("FolderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -42,6 +72,8 @@ namespace Safarni.Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FolderId");
 
                     b.ToTable("Conversations");
                 });
@@ -443,6 +475,16 @@ namespace Safarni.Infrastructure.Migrations
                     b.ToTable("VisaApplications", (string)null);
                 });
 
+            modelBuilder.Entity("ChatBotApi.Domain.Entities.Conversation", b =>
+                {
+                    b.HasOne("ChatBotApi.Domain.Entities.ChatFolder", "Folder")
+                        .WithMany("Conversations")
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Folder");
+                });
+
             modelBuilder.Entity("ChatBotApi.Domain.Entities.ConversationMessage", b =>
                 {
                     b.HasOne("ChatBotApi.Domain.Entities.Conversation", "Conversation")
@@ -518,6 +560,11 @@ namespace Safarni.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ChatBotApi.Domain.Entities.ChatFolder", b =>
+                {
+                    b.Navigation("Conversations");
                 });
 
             modelBuilder.Entity("ChatBotApi.Domain.Entities.Conversation", b =>

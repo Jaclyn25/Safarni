@@ -1,211 +1,1514 @@
-<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 pb-32">
-  <!-- Header Section -->
-  <section class="mb-stack-lg">
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <div>
-        <span class="text-label-md font-label-md text-primary uppercase tracking-widest mb-2 block">AI Powered Itinerary</span>
-        <h2 class="text-display-lg-mobile md:text-display-lg font-display-lg text-on-surface">7-day Tokyo Adventure</h2>
-        <p class="text-body-lg font-body-lg text-on-surface-variant mt-2 max-w-2xl">A curated blend of futuristic art, traditional markets, and hidden urban escapes, optimized for seamless travel.</p>
+<main class="planner-shell min-h-screen px-margin-mobile py-8 md:px-margin-desktop md:py-12">
+  <section
+    *ngIf="!itinerary || isEditingPreferences"
+    class="mx-auto max-w-5xl"
+  >
+    <span class="text-label-md font-bold uppercase tracking-[0.2em] text-primary">
+      Make it yours
+    </span>
+    <h2 class="mt-2 text-display-lg-mobile text-on-surface md:text-display-lg">
+      Build a trip that feels like you
+    </h2>
+    <p class="mt-3 max-w-3xl text-body-lg text-on-surface-variant">
+      Choose what matters to you. Your destination cities and dates stay
+      exactly as you selected them.
+    </p>
+
+    <div
+      *ngIf="trip"
+      class="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-primary/15 bg-white p-4 shadow-sm"
+    >
+      <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <span class="material-symbols-outlined">luggage</span>
+      </span>
+      <div class="mr-auto">
+        <strong class="block text-on-surface">{{ trip.name }}</strong>
+        <span class="text-body-sm text-on-surface-variant">
+          {{ trip.originCountry }} → {{ trip.destination }} · {{ tripDateRange }}
+        </span>
       </div>
-      <div class="flex gap-3">
-        <button class="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant px-5 py-2.5 rounded-xl text-label-md font-label-md hover:bg-surface-container-low transition-colors shadow-sm">
-          <span class="material-symbols-outlined text-[20px]">share</span>
-          Share
-        </button>
-        <button class="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl text-label-md font-label-md hover:opacity-90 transition-opacity shadow-lg">
-          <span class="material-symbols-outlined text-[20px]">download</span>
-          Export PDF
-        </button>
+      <div class="flex flex-wrap gap-2">
+        <span
+          *ngFor="let city of trip.cities"
+          class="rounded-full bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface-variant"
+        >
+          {{ city.name }} · {{ city.days }} {{ city.days === 1 ? 'day' : 'days' }}
+        </span>
       </div>
     </div>
   </section>
 
-  <!-- Stats Grid -->
-  <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-stack-lg">
-    <div class="bg-surface-container-lowest p-5 rounded-[20px] shadow-sm border border-outline-variant/10">
-      <span class="text-label-sm font-label-sm text-outline block mb-1">Duration</span>
-      <span class="text-headline-sm font-headline-sm text-on-surface">7 Days</span>
+  <section
+    id="preferences"
+    *ngIf="!itinerary || isEditingPreferences"
+    class="mx-auto mt-8 max-w-5xl scroll-mt-28 overflow-hidden rounded-[28px] border border-outline-variant/20 bg-surface-container-lowest shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
+  >
+    <div class="border-b border-outline-variant/20 bg-gradient-to-r from-primary/10 via-primary-container/40 to-secondary-container/30 px-6 py-5 md:px-8">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-on-primary">
+          <span class="material-symbols-outlined">tune</span>
+        </span>
+        <div>
+          <h3 class="text-headline-sm text-on-surface">
+            Personalize your itinerary
+          </h3>
+          <p class="text-body-sm text-on-surface-variant">
+            A few thoughtful choices will shape the pace and feel of every day.
+          </p>
+        </div>
+      </div>
     </div>
-    <div class="bg-surface-container-lowest p-5 rounded-[20px] shadow-sm border border-outline-variant/10">
-      <span class="text-label-sm font-label-sm text-outline block mb-1">Vibe</span>
-      <span class="text-headline-sm font-headline-sm text-on-surface">Urban Tech</span>
-    </div>
-    <div class="bg-surface-container-lowest p-5 rounded-[20px] shadow-sm border border-outline-variant/10">
-      <span class="text-label-sm font-label-sm text-outline block mb-1">Est. Budget</span>
-      <span class="text-headline-sm font-headline-sm text-on-surface">$2,400</span>
-    </div>
-    <div class="bg-surface-container-lowest p-5 rounded-[20px] shadow-sm border border-outline-variant/10">
-      <span class="text-label-sm font-label-sm text-outline block mb-1">Weather</span>
-      <span class="text-headline-sm font-headline-sm text-on-surface">18°C Sunny</span>
+
+    <div class="space-y-9 p-6 md:p-8">
+      <div
+        *ngIf="!tripId"
+        class="flex gap-3 rounded-2xl bg-error-container p-4 text-on-error-container"
+      >
+        <span class="material-symbols-outlined">error</span>
+        <p>
+          No trip is selected. Open the Planner from one of your saved trips.
+        </p>
+      </div>
+
+      <section>
+        <div class="mb-4 flex items-end justify-between gap-4">
+          <div>
+            <span class="text-label-sm font-semibold uppercase tracking-wider text-primary">
+              Step 1
+            </span>
+            <h4 class="mt-1 text-title-lg text-on-surface">
+              What are you interested in?
+            </h4>
+          </div>
+          <span class="text-label-sm text-on-surface-variant">
+            {{ selectedInterests.length }}/5 selected
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <button
+            *ngFor="let option of interestOptions"
+            type="button"
+            (click)="toggleInterest(option.value)"
+            [disabled]="isGenerating"
+            [attr.aria-pressed]="isSelected(selectedInterests, option.value)"
+            [ngClass]="
+              isSelected(selectedInterests, option.value)
+                ? 'border-primary bg-primary-container text-on-primary-container shadow-sm'
+                : 'border-outline-variant/50 bg-surface text-on-surface-variant hover:border-primary/60 hover:bg-primary/5'
+            "
+            class="flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center transition disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span class="material-symbols-outlined text-[26px]">
+              {{ option.icon }}
+            </span>
+            <span class="text-label-md font-semibold">{{ option.label }}</span>
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <span class="text-label-sm font-semibold uppercase tracking-wider text-primary">
+          Step 2
+        </span>
+        <h4 class="mb-4 mt-1 text-title-lg text-on-surface">
+          Choose your travel pace
+        </h4>
+
+        <div class="grid gap-3 md:grid-cols-3">
+          <button
+            *ngFor="let option of paceOptions"
+            type="button"
+            (click)="selectedPace = option.value"
+            [disabled]="isGenerating"
+            [attr.aria-pressed]="selectedPace === option.value"
+            [ngClass]="
+              selectedPace === option.value
+                ? 'border-primary bg-primary-container text-on-primary-container shadow-sm'
+                : 'border-outline-variant/50 bg-surface text-on-surface hover:border-primary/60'
+            "
+            class="flex items-start gap-3 rounded-2xl border p-4 text-left transition disabled:opacity-60"
+          >
+            <span class="material-symbols-outlined mt-0.5 text-primary">
+              {{ option.icon }}
+            </span>
+            <span>
+              <span class="block font-semibold">{{ option.label }}</span>
+              <span class="mt-1 block text-body-sm opacity-70">
+                {{ option.description }}
+              </span>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <div class="mb-4 flex items-end justify-between gap-4">
+          <div>
+            <span class="text-label-sm font-semibold uppercase tracking-wider text-primary">
+              Step 3
+            </span>
+            <h4 class="mt-1 text-title-lg text-on-surface">
+              How would you like to get around?
+            </h4>
+          </div>
+          <span class="text-label-sm text-on-surface-variant">
+            Up to 3
+          </span>
+        </div>
+
+        <div class="flex flex-wrap gap-2.5">
+          <button
+            *ngFor="let option of transportationOptions"
+            type="button"
+            (click)="toggleTransportation(option.value)"
+            [disabled]="isGenerating"
+            [attr.aria-pressed]="isSelected(selectedTransportation, option.value)"
+            [ngClass]="
+              isSelected(selectedTransportation, option.value)
+                ? 'border-primary bg-primary text-on-primary'
+                : 'border-outline-variant/50 bg-surface text-on-surface-variant hover:border-primary/60'
+            "
+            class="flex items-center gap-2 rounded-full border px-4 py-2.5 text-label-md transition disabled:opacity-60"
+          >
+            <span class="material-symbols-outlined text-[20px]">
+              {{ option.icon }}
+            </span>
+            {{ option.label }}
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <span class="text-label-sm font-semibold uppercase tracking-wider text-primary">
+          Step 4
+        </span>
+        <h4 class="mb-4 mt-1 text-title-lg text-on-surface">
+          Accommodation preference
+        </h4>
+
+        <div class="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <button
+            *ngFor="let option of accommodationOptions"
+            type="button"
+            (click)="accommodationStyle = option.value"
+            [disabled]="isGenerating"
+            [attr.aria-pressed]="accommodationStyle === option.value"
+            [ngClass]="
+              accommodationStyle === option.value
+                ? 'border-primary bg-primary-container text-on-primary-container'
+                : 'border-outline-variant/50 bg-surface text-on-surface-variant hover:border-primary/60'
+            "
+            class="flex items-center gap-3 rounded-2xl border p-4 text-left transition disabled:opacity-60"
+          >
+            <span class="material-symbols-outlined text-primary">
+              {{ option.icon }}
+            </span>
+            <span class="font-semibold">{{ option.label }}</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="rounded-2xl bg-surface-container-low p-5">
+        <h4 class="text-title-md text-on-surface">
+          Practical details
+        </h4>
+
+        <div class="mt-4 grid gap-4 sm:grid-cols-3">
+          <label>
+            <span class="mb-1.5 block text-label-sm text-on-surface">
+              Currency
+            </span>
+            <select
+              [(ngModel)]="currencyCode"
+              [disabled]="isGenerating"
+              class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-3 text-on-surface outline-none focus:border-primary"
+            >
+              <option
+                *ngFor="let currency of currencies"
+                [value]="currency"
+              >
+                {{ currency }}
+              </option>
+            </select>
+          </label>
+
+          <label>
+            <span class="mb-1.5 block text-label-sm text-on-surface">
+              Travelers
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="20"
+              step="1"
+              [(ngModel)]="travelerCount"
+              [disabled]="isGenerating"
+              class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-3 text-on-surface outline-none focus:border-primary"
+            />
+          </label>
+
+          <label>
+            <span class="mb-1.5 block text-label-sm text-on-surface">
+              Itinerary language
+            </span>
+            <select
+              [(ngModel)]="preferredLanguage"
+              [disabled]="isGenerating"
+              class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-3 text-on-surface outline-none focus:border-primary"
+            >
+              <option value="en">English</option>
+              <option value="ar">العربية</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <label class="block">
+        <span class="text-title-md text-on-surface">
+          Anything else?
+        </span>
+        <span class="ml-2 text-body-sm text-on-surface-variant">
+          Optional
+        </span>
+        <textarea
+          [(ngModel)]="additionalNotes"
+          [disabled]="isGenerating"
+          maxlength="500"
+          rows="3"
+          dir="auto"
+          placeholder="Celebrating an anniversary, avoiding early mornings, or already have a must-see place?"
+          class="mt-3 w-full resize-y rounded-2xl border border-outline-variant bg-surface px-4 py-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+        ></textarea>
+        <span class="mt-1 block text-right text-label-sm text-on-surface-variant">
+          {{ additionalNotes.length }}/500
+        </span>
+      </label>
+
+      <div class="flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant/20 pt-6">
+        <p class="max-w-lg text-body-sm text-on-surface-variant">
+          Your dates and cities are locked to the trip you created. You can
+          return here later to adjust these preferences and rebuild the plan.
+        </p>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            *ngIf="itinerary"
+            type="button"
+            (click)="cancelPreferenceEditing()"
+            [disabled]="isGenerating"
+            class="rounded-xl border border-outline-variant px-5 py-3.5 text-label-md font-semibold text-on-surface-variant transition hover:border-primary hover:text-primary"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            (click)="generateItinerary()"
+            [disabled]="isGenerating || isSaving || !tripId"
+            class="flex min-w-56 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-label-lg text-on-primary shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span
+              class="material-symbols-outlined"
+              [class.animate-spin]="isGenerating"
+            >
+              {{
+                isGenerating
+                  ? 'progress_activity'
+                  : 'route'
+              }}
+            </span>
+            {{
+              isGenerating
+                ? 'Building your itinerary...'
+                : itinerary
+                  ? 'Update itinerary'
+                  : 'Build my itinerary'
+            }}
+          </button>
+        </div>
+      </div>
+
+      <p
+        *ngIf="errorMessage"
+        role="alert"
+        class="rounded-2xl bg-error-container p-4 text-body-md text-on-error-container"
+      >
+        {{ errorMessage }}
+      </p>
     </div>
   </section>
 
-  <!-- Timeline Section -->
-  <div class="flex flex-col lg:flex-row gap-8">
-    <!-- Main Content: Vertical Timeline -->
-    <div class="flex-1 space-y-12">
-      <!-- Day 1 Block -->
-      <div class="relative timeline-line">
-        <div class="flex items-center gap-4 mb-8">
-          <div class="w-6 h-6 rounded-full bg-primary border-[4px] border-white shadow-md z-10 relative"></div>
-          <h3 class="text-headline-md font-headline-md text-on-surface">Day 1: Cultural Foundations</h3>
+  <div
+    *ngIf="isGenerating"
+    class="generation-overlay fixed inset-0 z-[120] grid place-items-center bg-slate-950/60 p-5 backdrop-blur-md"
+    aria-live="polite"
+    aria-busy="true"
+  >
+    <section class="generation-dialog w-full max-w-[520px] rounded-[28px] bg-white p-6 shadow-[0_35px_100px_rgba(5,16,33,.35)] md:p-8">
+      <div class="flex flex-col items-center text-center">
+        <div
+          class="generation-ring relative grid h-24 w-24 place-items-center rounded-full"
+          [style.--progress]="generationProgress"
+        >
+          <span class="relative z-10 text-xl font-extrabold text-primary">
+            {{ generationProgress }}%
+          </span>
         </div>
-        <div class="ml-10 space-y-6">
-          <!-- Activity Card 1 -->
-          <div class="bg-surface-container-lowest rounded-[20px] shadow-sm border border-outline-variant/20 overflow-hidden hover:translate-y-[-4px] transition-all duration-300 group">
-            <div class="flex flex-col md:flex-row">
-              <div class="w-full md:w-48 h-48 md:h-auto overflow-hidden">
-                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="A bustling Tsukiji Outer Market scene in Tokyo." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnwdsKkavKePILi9wOU_wBSm_26l2hQr16VBvQwM8ukj-LBkip85l_7bAhGdJaiadx6GA9ns8IcU0rWGxSOj8pcQER7qdMZl9bVrgALBmDzJvGggB6J9bcovEYDdsuVfIkA8fqS1ar1Sr_jJz43fryQILQf64MnHaGGs88JNO2Tu_P4e1Iiyw7A1PJZ3hvdsThrkazsOpURLD4j7rHxMsV6CWyHHBpVtiyj0tByLtJtZH-Kmy2_bozlg"/>
-              </div>
-              <div class="p-6 flex-1">
-                <div class="flex justify-between items-start mb-2">
-                  <div>
-                    <span class="text-label-sm font-label-sm text-primary uppercase mb-1 block">08:00 AM • Breakfast</span>
-                    <h4 class="text-headline-sm font-headline-sm text-on-surface">Tsukiji Outer Market</h4>
-                  </div>
-                  <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">restaurant</span>
-                </div>
-                <p class="text-body-md font-body-md text-on-surface-variant mb-4">Start your journey with the world's freshest sashimi breakfast. Wander through the narrow alleys filled with culinary treasures.</p>
-                <div class="flex items-center gap-4">
-                  <div class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full">
-                    <span class="material-symbols-outlined text-[14px]">schedule</span>
-                    2 Hours
-                  </div>
-                  <div class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full">
-                    <span class="material-symbols-outlined text-[14px]">attach_money</span>
-                    Moderate
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- Activity Card 2 -->
-          <div class="bg-surface-container-lowest rounded-[20px] shadow-sm border border-outline-variant/20 overflow-hidden hover:translate-y-[-4px] transition-all duration-300 group">
-            <div class="flex flex-col md:flex-row">
-              <div class="w-full md:w-48 h-48 md:h-auto overflow-hidden">
-                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="The mesmerizing TeamLab Borderless digital art museum in Tokyo." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9ZD76j2-ASNWE_6qrqeHnPmZ47844NGrCnIa5fwb29CVa2yqOKBf1dJTbqldGtm4CFzLI2C-uoViBEFwr0_2hEBOxkMFtWDfZE0lq6PIL5DIKKyhb3HbXbVaYq1hNQaBMTmHo3oZQIGgR31qnU0VnQX6EsCUZ5A16GXa8lSItvgTAtFD6__xhDWyktvVEMMz1LYL2L8Bz5T5w9YfA7yfM1XNWr9jCJYAdWYW_rx1gKlzRD1xCX7fnSw"/>
-              </div>
-              <div class="p-6 flex-1">
-                <div class="flex justify-between items-start mb-2">
-                  <div>
-                    <span class="text-label-sm font-label-sm text-primary uppercase mb-1 block">11:30 AM • Immersive Art</span>
-                    <h4 class="text-headline-sm font-headline-sm text-on-surface">TeamLab Borderless</h4>
-                  </div>
-                  <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">palette</span>
-                </div>
-                <p class="text-body-md font-body-md text-on-surface-variant mb-4">Get lost in a world of digital art where borders between people and art dissolve. A highlight of modern Tokyo.</p>
-                <div class="flex items-center gap-4">
-                  <div class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full">
-                    <span class="material-symbols-outlined text-[14px]">schedule</span>
-                    3 Hours
-                  </div>
-                  <div class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full text-secondary">
-                    <span class="material-symbols-outlined text-[14px]">confirmation_number</span>
-                    Booked
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <span class="mt-6 text-xs font-extrabold uppercase tracking-[0.18em] text-primary">
+          Building your journey
+        </span>
+        <h2 class="mt-2 text-2xl font-bold text-slate-900">
+          Your itinerary is taking shape
+        </h2>
+        <p class="mt-2 min-h-12 max-w-md text-sm leading-6 text-slate-500">
+          {{ generationMessage }}
+        </p>
       </div>
-      <!-- Day 2 Block -->
-      <div class="relative timeline-line">
-        <div class="flex items-center gap-4 mb-8 mt-12">
-          <div class="w-6 h-6 rounded-full bg-outline-variant border-[4px] border-white shadow-md z-10 relative"></div>
-          <h3 class="text-headline-md font-headline-md text-on-surface">Day 2: Neon &amp; Tradition</h3>
-        </div>
-        <div class="ml-10 space-y-6 opacity-80">
-          <div class="bg-surface-container-lowest rounded-[20px] shadow-sm border border-outline-variant/20 p-6 hover:translate-y-[-4px] transition-all duration-300">
-            <div class="flex justify-between items-start mb-2">
-              <div>
-                <span class="text-label-sm font-label-sm text-primary uppercase mb-1 block">10:00 AM • Spiritual</span>
-                <h4 class="text-headline-sm font-headline-sm text-on-surface">Meiji Jingu Shrine</h4>
-              </div>
-              <span class="material-symbols-outlined text-outline">account_balance</span>
-            </div>
-            <p class="text-body-md font-body-md text-on-surface-variant">A peaceful forest sanctuary in the heart of Shibuya. Walk through the grand Torii gates.</p>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Sidebar: Contextual AI Actions -->
-    <aside class="w-full lg:w-80 space-y-6">
-      <!-- AI Assistant Suggestion -->
-      <div class="bg-white p-6 rounded-[24px] shadow-xl border border-primary/10 relative overflow-hidden">
-        <div class="absolute top-0 right-0 p-4 opacity-10">
-          <span class="material-symbols-outlined text-[64px]">auto_awesome</span>
+      <div class="mt-6 space-y-2">
+        <div
+          *ngFor="let city of generationCities; let cityIndex = index"
+          class="flex items-center gap-3 rounded-2xl px-4 py-3 transition"
+          [ngClass]="
+            generationCityStatus(cityIndex) === 'active'
+              ? 'bg-blue-50 text-primary'
+              : generationCityStatus(cityIndex) === 'complete'
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-slate-50 text-slate-400'
+          "
+        >
+          <span
+            class="grid h-7 w-7 place-items-center rounded-full"
+            [ngClass]="
+              generationCityStatus(cityIndex) === 'active'
+                ? 'bg-primary text-white'
+                : generationCityStatus(cityIndex) === 'complete'
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-slate-200 text-slate-500'
+            "
+          >
+            <span
+              class="material-symbols-outlined text-[17px]"
+              [class.animate-spin]="generationCityStatus(cityIndex) === 'active'"
+            >
+              {{
+                generationCityStatus(cityIndex) === 'complete'
+                  ? 'check'
+                  : generationCityStatus(cityIndex) === 'active'
+                    ? 'progress_activity'
+                    : 'schedule'
+              }}
+            </span>
+          </span>
+          <span class="font-semibold">{{ city }}</span>
+          <span class="ml-auto text-xs font-bold">
+            {{
+              generationCityStatus(cityIndex) === 'complete'
+                ? 'Ready'
+                : generationCityStatus(cityIndex) === 'active'
+                  ? 'In progress'
+                  : 'Waiting'
+            }}
+          </span>
         </div>
-        <h5 class="text-headline-sm font-headline-sm text-on-surface mb-3 flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-          AI Optimizer
-        </h5>
-        <p class="text-label-md font-label-md text-on-surface-variant mb-4">I've noticed a gap in your schedule on Day 3. Would you like me to suggest some local hidden gems in Akihabara?</p>
-        <button class="w-full py-3 bg-primary-container text-on-primary-container rounded-xl text-label-md font-label-md hover:brightness-110 transition-all font-semibold">
-          Show Suggestions
-        </button>
       </div>
-      <!-- Weather Card -->
-      <div class="bg-surface-container-lowest p-6 rounded-[24px] shadow-sm border border-outline-variant/20">
-        <h5 class="text-label-md font-label-md text-outline uppercase tracking-wider mb-4">Travel Tips</h5>
-        <ul class="space-y-4">
-          <li class="flex items-start gap-3">
-            <span class="material-symbols-outlined text-secondary">train</span>
-            <span class="text-body-md font-body-md text-on-surface-variant">Purchase a Suica or Pasmo card for easy transit.</span>
-          </li>
-          <li class="flex items-start gap-3">
-            <span class="material-symbols-outlined text-secondary">wifi</span>
-            <span class="text-body-md font-body-md text-on-surface-variant">Pocket Wi-Fi is highly recommended for navigation.</span>
-          </li>
-        </ul>
-      </div>
-      <!-- Small Map Preview -->
-      <div class="rounded-[24px] overflow-hidden shadow-sm border border-outline-variant/20 h-48 relative group">
-        <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDafiHIYbxI3XC3k83-e65LF9ru_NPGiA9pie7Uw86fkwQ_2xethsxAP0ZGQxhNLezJNXm-pVhK19lVSi2JxOUbP92QQZ4xQzeh9KNm3gqQfurQ5L5Ow2z_K0lOjhl1_q9d1mLvpXbDeBM3cFCL5UHu5P90jTetX1ker5tI9iJgi4HkYXsHuF3jfB-6_eMrO1WhWneBA12mxWev9wtikJt1diGUjEoolRk7Qa-ezSOTMOwlxNcLYWh6lQ')"></div>
-        <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
-        <div class="absolute bottom-4 left-4 right-4 glass-blur bg-white/60 p-3 rounded-xl border border-white/40 flex items-center justify-between">
-          <span class="text-label-md font-label-md text-on-surface font-semibold">View Trip Map</span>
-          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-        </div>
-      </div>
-    </aside>
+
+      <p class="mt-5 flex items-center justify-center gap-2 text-center text-xs text-slate-400">
+        <span class="material-symbols-outlined text-[17px]">hourglass_top</span>
+        This can take a little while. Please keep this page open.
+      </p>
+    </section>
   </div>
+
+  <section
+    *ngIf="visibleDays.length"
+    class="mx-auto max-w-7xl space-y-6"
+    [dir]="contentDirection"
+  >
+    <div
+      class="itinerary-hero relative -mx-margin-mobile mb-8 min-h-[430px] overflow-hidden bg-slate-900 bg-cover bg-center px-6 py-8 text-white md:mx-0 md:min-h-[480px] md:rounded-[30px] md:px-10 md:py-10"
+      [style.background-image]="'url(' + itineraryHeroImage + ')'"
+    >
+      <div class="flex min-h-[365px] flex-col justify-between md:min-h-[400px]">
+        <div class="flex items-center justify-between gap-4">
+          <span class="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur-md">
+            <span class="material-symbols-outlined text-[17px]">verified</span>
+            Ready for your journey
+          </span>
+          <button
+            type="button"
+            (click)="editPreferences()"
+            class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-slate-950/30 px-4 py-2 text-sm font-bold text-white backdrop-blur-md transition hover:bg-white hover:text-slate-900"
+          >
+            <span class="material-symbols-outlined text-[18px]">tune</span>
+            Edit preferences
+          </button>
+        </div>
+
+        <div class="max-w-3xl">
+          <p class="text-sm font-bold uppercase tracking-[0.18em] text-white/70">
+            {{ trip?.destination || 'Your itinerary' }}
+          </p>
+          <h2 class="mt-2 text-4xl font-bold leading-tight md:text-6xl">
+            {{ trip?.name || 'Your complete trip' }}
+          </h2>
+          <p class="mt-4 max-w-2xl text-base leading-7 text-white/85 md:text-lg">
+            A day-by-day journey balanced around your interests, pace, and practical travel needs.
+          </p>
+
+          <div class="mt-6 flex flex-wrap gap-2.5">
+            <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-sm font-semibold backdrop-blur-md">
+              <span class="material-symbols-outlined text-[18px]">calendar_month</span>
+              {{ tripDateRange }}
+            </span>
+            <span
+              *ngFor="let city of tripCities"
+              class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-2 text-sm font-semibold backdrop-blur-md"
+            >
+              <span class="material-symbols-outlined text-[17px]">location_on</span>
+              {{ city }}
+            </span>
+            <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-sm font-semibold backdrop-blur-md">
+              <span class="material-symbols-outlined text-[18px]">group</span>
+              {{ itinerary?.travelerCount }} {{ itinerary?.travelerCount === 1 ? 'traveler' : 'travelers' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <span class="text-label-sm uppercase tracking-[0.18em] text-primary">
+          {{
+            planText(
+              'Validated itinerary',
+              'خط سير تم التحقق منه'
+            )
+          }}
+        </span>
+        <h3 class="mt-1 text-headline-md text-on-surface">
+          {{
+            planText(
+              'Your practical day-by-day plan',
+              'خطتك العملية يوماً بيوم'
+            )
+          }}
+        </h3>
+      </div>
+
+      <div
+        *ngIf="itinerary"
+        class="rounded-2xl bg-secondary-container px-5 py-3 text-on-secondary-container"
+      >
+        <p class="text-label-sm opacity-75">
+          {{
+            planText(
+              'Planning estimate',
+              'التكلفة التقديرية للتخطيط'
+            )
+          }}
+        </p>
+        <strong class="text-title-lg">
+          {{
+            itinerary.estimatedTotalCost
+              | currency:itinerary.currencyCode
+          }}
+        </strong>
+        <p class="mt-1 text-xs">
+          {{ itinerary.travelerCount }}
+          {{
+            planText(
+              itinerary.travelerCount === 1
+                ? 'traveler'
+                : 'travelers',
+              'مسافر'
+            )
+          }}
+        </p>
+      </div>
+    </div>
+
+    <div
+      *ngIf="usesQualitySafeguards; else legacyQualityNotice"
+      class="grid gap-3 sm:grid-cols-3"
+    >
+      <div class="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+        <span class="material-symbols-outlined text-emerald-600">
+          location_on
+        </span>
+        <div>
+          <strong class="block text-label-md text-on-surface">
+            {{ planText('Destination checked', 'تم التحقق من الوجهة') }}
+          </strong>
+          <span class="mt-1 block text-body-sm text-on-surface-variant">
+            {{
+              planText(
+                'Every suggested venue is matched to the trip destination.',
+                'تمت مطابقة كل مكان مقترح مع وجهة الرحلة.'
+              )
+            }}
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+        <span class="material-symbols-outlined text-primary">
+          verified
+        </span>
+        <div>
+          <strong class="block text-label-md text-on-surface">
+            {{ planText('Unique verified places', 'أماكن موثقة وغير مكررة') }}
+          </strong>
+          <span class="mt-1 block text-body-sm text-on-surface-variant">
+            {{
+              planText(
+                'Restaurants and attractions are not repeated.',
+                'لا تتكرر المطاعم أو المعالم في الخطة.'
+              )
+            }}
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4">
+        <span class="material-symbols-outlined text-amber-600">
+          price_check
+        </span>
+        <div>
+          <strong class="block text-label-md text-on-surface">
+            {{ planText('Honest pricing', 'تسعير واضح') }}
+          </strong>
+          <span class="mt-1 block text-body-sm text-on-surface-variant">
+            {{
+              planText(
+                'Date-specific hotel ranges include a direct booking link.',
+                'نطاقات أسعار الفنادق مرتبطة بالتواريخ وتشمل رابط حجز مباشر.'
+              )
+            }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #legacyQualityNotice>
+      <div class="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-on-surface">
+        <span class="material-symbols-outlined text-amber-700">
+          update
+        </span>
+        <div>
+          <strong class="block text-label-lg">
+            {{
+              planText(
+                'Regenerate to apply the new accuracy safeguards',
+                'أعد الإنشاء لتطبيق ضوابط الدقة الجديدة'
+              )
+            }}
+          </strong>
+          <p class="mt-1 text-body-sm text-on-surface-variant">
+            {{
+              planText(
+                'This saved plan was created before destination, duplicate-place, language and lodging-price validation was added.',
+                'تم إنشاء هذه الخطة قبل إضافة التحقق من الوجهة وتكرار الأماكن واللغة وأسعار الإقامة.'
+              )
+            }}
+          </p>
+        </div>
+      </div>
+    </ng-template>
+
+    <article
+      *ngFor="let day of visibleDays"
+      class="day-card overflow-hidden rounded-[26px] border border-outline-variant/25 bg-surface-container-lowest shadow-sm"
+    >
+      <div class="day-cover relative overflow-hidden bg-slate-200">
+        <img
+          [src]="dayImage(day)"
+          [alt]="day.title"
+          loading="lazy"
+          class="absolute inset-0 h-full w-full object-cover"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/10 to-transparent"></div>
+        <div class="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 text-white md:p-7">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-[0.18em] text-white/75">
+              Day {{ day.dayNumber }}
+            </span>
+            <h4 class="mt-1 text-2xl font-bold md:text-3xl">{{ day.title }}</h4>
+          </div>
+          <span class="shrink-0 rounded-full border border-white/25 bg-slate-950/30 px-3 py-1.5 text-xs font-bold backdrop-blur">
+            {{ formatPlanDate(day.date) }}
+          </span>
+        </div>
+      </div>
+
+      <header class="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant/20 bg-surface-container-low px-5 py-5 md:px-7">
+        <div class="flex items-start gap-4">
+          <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-title-md font-bold text-on-primary">
+            {{ day.dayNumber }}
+          </span>
+          <div>
+            <p class="text-label-sm uppercase tracking-wider text-primary">
+              {{ formatPlanDate(day.date) }}
+            </p>
+            <h4 class="mt-1 text-title-lg text-on-surface">
+              {{ day.title }}
+            </h4>
+            <p
+              *ngIf="day.notes"
+              class="mt-1 text-body-sm text-on-surface-variant"
+            >
+              {{ day.notes }}
+            </p>
+          </div>
+        </div>
+
+        <span class="rounded-full bg-surface px-3 py-1.5 text-label-sm text-on-surface-variant">
+          {{ day.estimatedTotalCost | currency:displayCurrency }}
+        </span>
+      </header>
+
+      <div class="space-y-4 p-5 md:p-7">
+        <ng-container
+          *ngFor="let item of day.items; let itemIndex = index"
+        >
+          <div
+            *ngIf="
+              item.routeDistanceMeters !== null &&
+              item.routeDurationMinutes !== null
+            "
+            class="mx-3 flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/25 bg-primary/5 px-4 py-3 text-label-sm text-on-surface-variant"
+          >
+            <span class="material-symbols-outlined text-[19px] text-primary">
+              {{ routeModeIcon(item.routeTravelMode) }}
+            </span>
+            <strong class="text-on-surface">
+              {{ routeModeLabel(item.routeTravelMode) }}
+            </strong>
+            <span *ngIf="item.location">
+              {{ planText('to', 'إلى') }} {{ item.location }}
+            </span>
+            <span>
+              {{ formatRouteDistance(item.routeDistanceMeters) }}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              {{ item.routeDurationMinutes }}
+              {{ planText('min', 'دقيقة') }}
+            </span>
+            <span
+              *ngIf="item.routeTransitDetails"
+              class="rounded-full bg-surface px-2.5 py-1"
+            >
+              {{ item.routeTransitDetails }}
+            </span>
+          </div>
+
+          <article
+            class="group overflow-hidden rounded-2xl border border-outline-variant/25 bg-surface transition hover:border-primary/30 hover:shadow-md md:flex"
+          >
+          <section
+            *ngIf="isFlight(item)"
+            class="flight-ticket min-w-0 flex-1 p-4 md:p-6"
+          >
+            <header class="flex flex-wrap items-start justify-between gap-4">
+              <div class="flex min-w-0 items-center gap-3">
+                <span class="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/15 bg-white text-primary shadow-sm">
+                  <span class="material-symbols-outlined">flight</span>
+                  <img
+                    *ngIf="shouldShowPhoto(item.photoUrl)"
+                    [src]="item.photoUrl"
+                    [alt]="flightDetail(item, 0) || 'Airline'"
+                    (error)="handlePhotoError(item.photoUrl)"
+                    loading="lazy"
+                    referrerpolicy="no-referrer"
+                    class="absolute inset-0 h-full w-full object-contain p-1.5"
+                  />
+                </span>
+                <div class="min-w-0">
+                  <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-primary">
+                    <span class="material-symbols-outlined text-[14px]">airplane_ticket</span>
+                    Flight
+                  </span>
+                  <h5 class="mt-1.5 truncate text-title-md font-bold text-on-surface">
+                    {{ item.title }}
+                  </h5>
+                </div>
+              </div>
+
+              <span class="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+                Fare available
+              </span>
+            </header>
+
+            <div class="mt-6 grid grid-cols-[auto_1fr_auto] items-center gap-4 md:gap-7">
+              <div>
+                <strong class="block text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
+                  {{ flightDepartureCode(item) }}
+                </strong>
+                <span class="mt-1 block text-sm font-bold text-primary">
+                  {{ item.startTime || '—' }}
+                </span>
+                <span class="mt-1 block max-w-32 text-xs text-slate-500">
+                  Departure
+                </span>
+              </div>
+
+              <div class="min-w-0 text-center">
+                <span class="block text-xs font-bold text-slate-500">
+                  {{ flightDuration(item) }}
+                </span>
+                <div class="flight-route-line relative my-2 h-0.5 rounded-full bg-primary/20">
+                  <span class="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 border-primary bg-white"></span>
+                  <span class="absolute right-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 border-primary bg-white"></span>
+                  <span class="absolute left-1/2 top-1/2 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-primary text-white shadow-md">
+                    <span class="material-symbols-outlined rotate-90 text-[18px]">flight</span>
+                  </span>
+                </div>
+                <span class="block truncate text-xs font-semibold text-slate-500">
+                  {{ flightStops(item) }}
+                </span>
+              </div>
+
+              <div class="text-right">
+                <strong class="block text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
+                  {{ flightArrivalCode(item) }}
+                </strong>
+                <span class="mt-1 block text-sm font-bold text-primary">
+                  {{ item.endTime || '—' }}
+                </span>
+                <span class="mt-1 block max-w-32 text-xs text-slate-500">
+                  Arrival
+                </span>
+              </div>
+            </div>
+
+            <div
+              *ngIf="item.address"
+              class="mt-5 flex items-start gap-2 rounded-xl bg-white/75 px-3.5 py-3 text-xs text-slate-600"
+            >
+              <span class="material-symbols-outlined mt-0.5 text-[17px] text-primary">route</span>
+              <span>{{ item.address }}</span>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-2 text-xs">
+              <span
+                *ngIf="flightDetail(item, 0)"
+                class="rounded-full border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-600"
+              >
+                {{ flightDetail(item, 0) }}
+              </span>
+              <span
+                *ngIf="flightDetail(item, 1)"
+                class="rounded-full border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-600"
+              >
+                {{ flightDetail(item, 1) }}
+              </span>
+            </div>
+
+            <footer class="mt-5 flex flex-wrap items-center gap-3 border-t border-primary/15 pt-4">
+              <div class="mr-auto">
+                <span class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Flight fare
+                </span>
+                <strong
+                  *ngIf="item.estimatedCost !== null"
+                  class="text-xl font-extrabold text-primary"
+                >
+                  {{ item.estimatedCost | currency:displayCurrency }}
+                </strong>
+              </div>
+
+              <a
+                *ngIf="item.externalUrl"
+                [href]="item.externalUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700"
+              >
+                View flight options
+                <span class="material-symbols-outlined text-[17px]">open_in_new</span>
+              </a>
+
+              <button
+                type="button"
+                (click)="startEdit(day, item)"
+                [disabled]="isSaving"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-primary/25 bg-white px-3 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/5 disabled:opacity-50"
+              >
+                <span class="material-symbols-outlined text-[17px]">edit</span>
+                Change
+              </button>
+              <button
+                type="button"
+                (click)="deleteItem(item)"
+                [disabled]="isSaving"
+                class="grid h-10 w-10 place-items-center rounded-xl border border-red-200 bg-white text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                aria-label="Delete flight"
+              >
+                <span class="material-symbols-outlined text-[18px]">delete</span>
+              </button>
+            </footer>
+          </section>
+
+          <div
+            *ngIf="!isFlight(item) && shouldShowPhoto(item.photoUrl)"
+            class="h-52 w-full shrink-0 overflow-hidden bg-surface-container-high md:h-auto md:min-h-48 md:w-56"
+          >
+            <img
+              [src]="item.photoUrl"
+              [alt]="item.title"
+              (error)="handlePhotoError(item.photoUrl)"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+              class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            />
+          </div>
+          <div
+            *ngIf="!isFlight(item)"
+            class="min-w-0 flex-1 p-4 md:p-5"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="rounded-full bg-primary-container px-2.5 py-1 text-xs font-semibold text-on-primary-container">
+                    <span class="inline-flex items-center gap-1">
+                      <span class="material-symbols-outlined text-[15px]">
+                        {{ categoryIcon(item.category) }}
+                      </span>
+                      {{ categoryLabel(item.category) }}
+                    </span>
+                  </span>
+                  <span
+                    *ngIf="item.startTime"
+                    class="text-label-sm text-on-surface-variant"
+                  >
+                    {{ item.startTime }}
+                    <ng-container *ngIf="item.endTime">
+                      – {{ item.endTime }}
+                    </ng-container>
+                  </span>
+                  <span
+                    *ngIf="item.rating !== null"
+                    class="flex items-center gap-1 text-label-sm text-on-surface-variant"
+                  >
+                    <span class="material-symbols-outlined text-[17px] text-amber-500">
+                      star
+                    </span>
+                    {{ item.rating }}
+                  </span>
+                </div>
+
+                <h5 class="mt-2 text-title-md font-semibold text-on-surface">
+                  {{ item.title }}
+                </h5>
+              </div>
+
+              <strong
+                *ngIf="item.estimatedCost !== null"
+                class="text-right text-primary"
+              >
+                <span class="block">
+                  {{ item.estimatedCost | currency:displayCurrency }}
+                </span>
+                <span
+                  *ngIf="item.costSource === 'live_hotel_rate'"
+                  class="mt-0.5 block text-[11px] font-medium text-on-surface-variant"
+                >
+                  {{
+                    planText(
+                      'live total stay',
+                      'إجمالي الإقامة المباشر'
+                    )
+                  }}
+                </span>
+                <span
+                  *ngIf="item.costSource === 'live_flight_price'"
+                  class="mt-0.5 block text-[11px] font-medium text-on-surface-variant"
+                >
+                  {{
+                    planText(
+                      'live Google Flights fare',
+                      'سعر مباشر من Google Flights'
+                    )
+                  }}
+                </span>
+              </strong>
+            </div>
+
+            <p
+              *ngIf="item.description"
+              class="mt-2 text-body-md text-on-surface-variant"
+            >
+              {{ item.description }}
+            </p>
+
+            <div
+              *ngIf="
+                item.priceLevel ||
+                item.ratePerNight !== null ||
+                item.priceSource
+              "
+              class="mt-3 flex flex-wrap items-center gap-2 text-label-sm"
+            >
+              <span
+                *ngIf="item.priceLevel"
+                class="rounded-full bg-emerald-500/10 px-3 py-1.5 font-semibold text-emerald-700"
+              >
+                {{
+                  planText(
+                    'Local price level',
+                    'مستوى السعر المحلي'
+                  )
+                }}:
+                {{ item.priceLevel }}
+              </span>
+              <span
+                *ngIf="item.ratePerNight !== null"
+                class="rounded-full bg-primary/10 px-3 py-1.5 font-semibold text-primary"
+              >
+                {{
+                  planText(
+                    'Approx. nightly range',
+                    'نطاق السعر التقريبي لليلة'
+                  )
+                }}:
+                {{
+                  hotelRangeLow(item.ratePerNight)
+                    | currency:displayCurrency
+                }}
+                –
+                {{
+                  hotelRangeHigh(item.ratePerNight)
+                    | currency:displayCurrency
+                }}
+              </span>
+              <span
+                *ngIf="
+                  item.ratePerNight !== null &&
+                  item.stayNights !== null
+                "
+                class="rounded-full bg-primary/5 px-3 py-1.5 font-semibold text-primary"
+              >
+                × {{ item.stayNights }}
+                {{
+                  planText(
+                    item.stayNights === 1 ? 'night' : 'nights',
+                    item.stayNights === 1 ? 'ليلة' : 'ليالٍ'
+                  )
+                }}
+              </span>
+              <span
+                *ngIf="item.priceSource"
+                class="text-on-surface-variant"
+              >
+                {{
+                  planText(
+                    'Rate source',
+                    'مصدر السعر'
+                  )
+                }}:
+                {{ item.priceSource }}
+              </span>
+            </div>
+
+            <div class="mt-3 space-y-1 text-body-sm text-on-surface-variant">
+              <p *ngIf="item.location" class="flex items-start gap-2">
+                <span class="material-symbols-outlined text-[18px] text-primary">
+                  location_on
+                </span>
+                <span>{{ item.location }}</span>
+              </p>
+              <p *ngIf="item.address" class="flex items-start gap-2">
+                <span class="material-symbols-outlined text-[18px] text-primary">
+                  map
+                </span>
+                <span>{{ item.address }}</span>
+              </p>
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+              <a
+                *ngIf="item.googleMapsUrl"
+                [href]="item.googleMapsUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-1.5 rounded-full bg-primary px-3 py-2 text-label-sm text-on-primary transition hover:opacity-90"
+              >
+                <span class="material-symbols-outlined text-[18px]">
+                  directions
+                </span>
+                Open map
+              </a>
+
+              <a
+                *ngIf="item.externalUrl"
+                [href]="item.externalUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-1.5 rounded-full border border-primary/30 px-3 py-2 text-label-sm font-semibold text-primary transition hover:bg-primary/5"
+              >
+                <span class="material-symbols-outlined text-[18px]">
+                  open_in_new
+                </span>
+                {{
+                  planText(
+                    item.category === 'accommodation'
+                      ? 'View hotel / booking'
+                      : item.costSource === 'live_flight_price'
+                        ? 'View flight options'
+                        : 'View source',
+                    'عرض المصدر'
+                  )
+                }}
+              </a>
+
+              <button
+                *ngIf="
+                  item.category === 'meal' ||
+                  item.category === 'accommodation'
+                "
+                type="button"
+                (click)="toggleVenueSuggestions(item)"
+                [disabled]="
+                  loadingVenueItemId === item.id ||
+                  isSaving
+                "
+                class="flex items-center gap-1.5 rounded-full border border-secondary/40 bg-secondary/5 px-3 py-2 text-label-sm font-semibold text-secondary transition hover:bg-secondary/10 disabled:opacity-50"
+              >
+                <span
+                  class="material-symbols-outlined text-[18px]"
+                  [class.animate-spin]="loadingVenueItemId === item.id"
+                >
+                  {{
+                    loadingVenueItemId === item.id
+                      ? 'progress_activity'
+                      : item.category === 'meal'
+                        ? 'restaurant'
+                        : 'hotel'
+                  }}
+                </span>
+                {{
+                  item.category === 'meal'
+                    ? planText(
+                        'Choose nearby restaurants',
+                        'اختر مطاعم قريبة'
+                      )
+                    : planText(
+                        'Change hotel',
+                        'غيّر الفندق'
+                      )
+                }}
+              </button>
+
+              <ng-container *ngIf="itinerary">
+                <button
+                  type="button"
+                  (click)="startEdit(day, item)"
+                  [disabled]="isSaving"
+                  class="rounded-full border border-outline-variant px-3 py-2 text-label-sm text-on-surface-variant hover:border-primary hover:text-primary disabled:opacity-50"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  (click)="moveItem(item, day, item.orderIndex - 1)"
+                  [disabled]="isSaving || itemIndex === 0"
+                  class="rounded-full border border-outline-variant p-2 text-on-surface-variant hover:text-primary disabled:opacity-35"
+                  aria-label="Move item earlier"
+                >
+                  <span class="material-symbols-outlined text-[18px]">
+                    arrow_upward
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  (click)="moveItem(item, day, item.orderIndex + 1)"
+                  [disabled]="isSaving || itemIndex === day.items.length - 1"
+                  class="rounded-full border border-outline-variant p-2 text-on-surface-variant hover:text-primary disabled:opacity-35"
+                  aria-label="Move item later"
+                >
+                  <span class="material-symbols-outlined text-[18px]">
+                    arrow_downward
+                  </span>
+                </button>
+                <button
+                  *ngIf="previousDay(day) as previous"
+                  type="button"
+                  (click)="moveItem(item, previous, previous.items.length)"
+                  [disabled]="isSaving"
+                  class="rounded-full border border-outline-variant px-3 py-2 text-label-sm text-on-surface-variant hover:text-primary disabled:opacity-50"
+                >
+                  Previous day
+                </button>
+                <button
+                  *ngIf="nextDay(day) as next"
+                  type="button"
+                  (click)="moveItem(item, next, next.items.length)"
+                  [disabled]="isSaving"
+                  class="rounded-full border border-outline-variant px-3 py-2 text-label-sm text-on-surface-variant hover:text-primary disabled:opacity-50"
+                >
+                  Next day
+                </button>
+                <button
+                  type="button"
+                  (click)="deleteItem(item)"
+                  [disabled]="isSaving"
+                  class="rounded-full px-3 py-2 text-label-sm text-error hover:bg-error-container disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              </ng-container>
+            </div>
+            </div>
+          </article>
+
+          <section
+            *ngIf="activeVenueItemId === item.id"
+            class="overflow-hidden rounded-2xl border border-secondary/25 bg-secondary/5 p-4"
+          >
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h6 class="font-semibold text-on-surface">
+                  {{
+                    item.category === 'meal'
+                      ? planText(
+                          'Nearby restaurant choices',
+                          'خيارات مطاعم قريبة'
+                        )
+                      : planText(
+                          'Alternative hotels for this city stay',
+                          'فنادق بديلة للإقامة في هذه المدينة'
+                        )
+                  }}
+                </h6>
+                <p class="text-body-sm text-on-surface-variant">
+                  {{
+                    planText(
+                      'These choices come from live travel search.',
+                      'هذه الخيارات تأتي من بحث سفر مباشر وليست من تخمين الذكاء الاصطناعي.'
+                    )
+                  }}
+                </p>
+              </div>
+              <button
+                type="button"
+                (click)="activeVenueItemId = ''"
+                class="rounded-full p-2 hover:bg-surface"
+                aria-label="Close venue choices"
+              >
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div
+              *ngIf="venueSuggestions[item.id]?.length; else noVenueChoices"
+              class="flex gap-3 overflow-x-auto pb-2"
+            >
+              <article
+                *ngFor="let venue of venueSuggestions[item.id]"
+                class="w-64 shrink-0 overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface shadow-sm"
+              >
+                <div class="relative flex h-32 items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/15 text-primary">
+                  <img
+                    *ngIf="shouldShowPhoto(venue.photoUrl)"
+                    [src]="venue.photoUrl"
+                    [alt]="venue.name"
+                    (error)="handlePhotoError(venue.photoUrl)"
+                    loading="lazy"
+                    referrerpolicy="no-referrer"
+                    class="absolute inset-0 h-full w-full object-cover transition duration-500 hover:scale-105"
+                  />
+                  <span class="material-symbols-outlined text-[34px]">
+                    {{ item.category === 'meal' ? 'restaurant' : 'hotel' }}
+                  </span>
+                </div>
+                <div class="p-3">
+                  <div class="flex items-start justify-between gap-2">
+                    <strong class="line-clamp-2 text-sm">
+                      {{ venue.name }}
+                    </strong>
+                    <span
+                      *ngIf="venue.rating !== null"
+                      class="shrink-0 text-xs text-amber-700"
+                    >
+                      ★ {{ venue.rating }}
+                    </span>
+                  </div>
+                  <p class="mt-1 line-clamp-2 text-xs text-on-surface-variant">
+                    {{ venue.address }}
+                  </p>
+                  <p
+                    *ngIf="venue.totalRate !== null"
+                    class="mt-2 font-semibold text-primary"
+                  >
+                    {{ venue.totalRate | currency:displayCurrency }}
+                    {{
+                      planText(
+                        'total stay',
+                        'إجمالي الإقامة'
+                      )
+                    }}
+                  </p>
+                  <p
+                    *ngIf="venue.ratePerNight !== null"
+                    class="mt-1 text-xs font-semibold text-primary"
+                  >
+                    {{
+                      hotelRangeLow(venue.ratePerNight)
+                        | currency:displayCurrency
+                    }}
+                    –
+                    {{
+                      hotelRangeHigh(venue.ratePerNight)
+                        | currency:displayCurrency
+                    }}
+                    {{ planText('per night', 'لليلة') }}
+                  </p>
+                  <p
+                    *ngIf="
+                      venue.totalRate === null &&
+                      venue.priceLevel
+                    "
+                    class="mt-2 text-xs font-semibold text-emerald-700"
+                  >
+                    {{
+                      planText(
+                        'Price level',
+                        'مستوى السعر'
+                      )
+                    }}:
+                    {{ venue.priceLevel }}
+                  </p>
+                  <div class="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      (click)="chooseVenue(item, venue)"
+                      [disabled]="isSaving"
+                      class="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary disabled:opacity-50"
+                    >
+                      {{
+                        item.category === 'meal'
+                          ? 'Add restaurant'
+                          : 'Choose hotel'
+                      }}
+                    </button>
+                    <a
+                      *ngIf="venue.googleMapsUrl"
+                      [href]="venue.googleMapsUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="rounded-lg border border-outline-variant px-2.5 py-2 text-primary"
+                      aria-label="Open venue map"
+                    >
+                      <span class="material-symbols-outlined text-[18px]">
+                        map
+                      </span>
+                    </a>
+                    <a
+                      *ngIf="venue.externalUrl"
+                      [href]="venue.externalUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="rounded-lg border border-primary/30 px-2.5 py-2 text-primary"
+                      aria-label="Open booking link"
+                    >
+                      <span class="material-symbols-outlined text-[18px]">
+                        open_in_new
+                      </span>
+                    </a>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <ng-template #noVenueChoices>
+              <p class="rounded-xl bg-surface p-4 text-body-sm text-on-surface-variant">
+                No additional live choices were returned for this item.
+              </p>
+            </ng-template>
+          </section>
+
+          <ng-container
+            *ngIf="editingItemId === item.id"
+            [ngTemplateOutlet]="itemEditor"
+          ></ng-container>
+        </ng-container>
+
+        <ng-container
+          *ngIf="addingDayId === day.id"
+          [ngTemplateOutlet]="itemEditor"
+        ></ng-container>
+
+        <ng-template #itemEditor>
+        <section
+          class="rounded-2xl border border-primary/25 bg-primary-container/20 p-5"
+        >
+          <div class="mb-4 flex items-center justify-between">
+            <h5 class="text-title-md font-semibold text-on-surface">
+              {{ editingItemId ? 'Edit itinerary item' : 'Add itinerary item' }}
+            </h5>
+            <button
+              type="button"
+              (click)="cancelItemForm()"
+              class="rounded-full p-1.5 text-on-surface-variant hover:bg-surface"
+              aria-label="Close item form"
+            >
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <label class="md:col-span-2">
+              <span class="mb-1 block text-label-sm">Title</span>
+              <input
+                [(ngModel)]="itemDraft.title"
+                [disabled]="isSaving"
+                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
+              />
+            </label>
+            <label>
+              <span class="mb-1 block text-label-sm">Start time</span>
+              <input
+                type="time"
+                [(ngModel)]="itemDraft.startTime"
+                [disabled]="isSaving"
+                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
+              />
+            </label>
+            <label>
+              <span class="mb-1 block text-label-sm">End time</span>
+              <input
+                type="time"
+                [(ngModel)]="itemDraft.endTime"
+                [disabled]="isSaving"
+                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
+              />
+            </label>
+            <label>
+              <span class="mb-1 block text-label-sm">Category</span>
+              <select
+                [(ngModel)]="itemDraft.category"
+                [disabled]="isSaving"
+                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
+              >
+                <option
+                  *ngFor="let category of categories"
+                  [value]="category"
+                >
+                  {{ category | titlecase }}
+                </option>
+              </select>
+            </label>
+            <label>
+              <span class="mb-1 block text-label-sm">Estimated cost</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                [(ngModel)]="itemDraft.estimatedCost"
+                [disabled]="isSaving"
+                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
+              />
+            </label>
+            <label>
+              <span class="mb-1 block text-label-sm">Day</span>
+              <select
+                [(ngModel)]="itemDraft.targetDayId"
+                [disabled]="isSaving"
+                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
+              >
+                <option
+                  *ngFor="let optionDay of visibleDays"
+                  [value]="optionDay.id"
+                >
+                  Day {{ optionDay.dayNumber }}
+                </option>
+              </select>
+            </label>
+            <label>
+              <span class="mb-1 block text-label-sm">Order</span>
+              <input
+                type="number"
+                min="0"
+                [(ngModel)]="itemDraft.orderIndex"
+                [disabled]="isSaving"
+                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
+              />
+            </label>
+            <label class="md:col-span-2">
+              <span class="mb-1 block text-label-sm">Location</span>
+              <input
+                [(ngModel)]="itemDraft.location"
+                [disabled]="isSaving"
+                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
+              />
+            </label>
+            <label class="md:col-span-2">
+              <span class="mb-1 block text-label-sm">Description</span>
+              <textarea
+                [(ngModel)]="itemDraft.description"
+                [disabled]="isSaving"
+                rows="2"
+                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
+              ></textarea>
+            </label>
+          </div>
+
+          <div class="mt-4 flex gap-3">
+            <button
+              type="button"
+              (click)="editingItemId ? saveEditedItem() : saveNewItem()"
+              [disabled]="isSaving"
+              class="rounded-xl bg-primary px-5 py-2.5 font-semibold text-on-primary disabled:opacity-50"
+            >
+              {{ isSaving ? 'Saving...' : 'Save item' }}
+            </button>
+            <button
+              type="button"
+              (click)="cancelItemForm()"
+              [disabled]="isSaving"
+              class="rounded-xl border border-outline-variant px-5 py-2.5 text-on-surface-variant"
+            >
+              Cancel
+            </button>
+          </div>
+        </section>
+        </ng-template>
+
+        <button
+          *ngIf="itinerary && addingDayId !== day.id"
+          type="button"
+          (click)="startAdd(day)"
+          [disabled]="isSaving || editingItemId !== ''"
+          class="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 py-3 text-label-md font-semibold text-primary transition hover:bg-primary/5 disabled:opacity-50"
+        >
+          <span class="material-symbols-outlined">add</span>
+          Add an item to day {{ day.dayNumber }}
+        </button>
+      </div>
+    </article>
+
+    <div
+      *ngIf="visibleDays.length > 0"
+      class="rounded-2xl border border-outline-variant/30 bg-surface-container-low px-4 py-3 text-xs text-on-surface-variant"
+    >
+      <p>
+        {{
+          planText(
+            'Route distance and duration: Google Maps. Hotel rates are date-specific search results; local venue costs remain planning estimates unless an exact numeric price is shown.',
+            'المسافة والمدة من خرائط Google. أسعار الفنادق نتائج بحث مرتبطة بالتواريخ، وتكاليف الأماكن المحلية تظل تقديرية ما لم يظهر سعر رقمي واضح.'
+          )
+        }}
+      </p>
+      <p class="mt-1">
+        {{
+          planText(
+            'Walking and bicycle routes are beta and may not always include complete pedestrian or cycling paths.',
+            'مسارات المشي والدراجات تجريبية وقد لا تعرض دائماً جميع ممرات المشاة أو الدراجات.'
+          )
+        }}
+      </p>
+    </div>
+  </section>
 </main>
-
-<!-- Floating AI Action Button -->
-<div class="fixed bottom-24 right-6 md:bottom-12 md:right-12 z-50">
-  <button routerLink="/concierge" class="bg-gradient-to-r from-primary to-secondary text-on-primary px-6 py-4 rounded-full flex items-center gap-3 shadow-[0_8px_30px_rgb(37,99,235,0.4)] hover:scale-105 active:scale-95 transition-all group">
-    <span class="material-symbols-outlined animate-pulse" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-    <span class="text-label-md font-label-md font-bold">Refine with AI</span>
-  </button>
-</div>
-
-<!-- BottomNavBar (Mobile Only) -->
-<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pt-3 pb-8 bg-surface/80 backdrop-blur-xl border-t border-outline-variant/20 z-50 rounded-t-[20px] shadow-[0_-4px_20px_rgba(15,23,42,0.05)]">
-  <a routerLink="/" routerLinkActive="text-primary font-semibold bg-primary-container/10 rounded-xl"
-     [routerLinkActiveOptions]="{exact: true}"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
-    <span class="material-symbols-outlined">explore</span>
-    <span class="text-label-sm font-label-sm mt-1">Explore</span>
-  </a>
-  <a routerLink="/planner" routerLinkActive="text-primary font-semibold bg-primary-container/10 rounded-xl"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
-    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">event_note</span>
-    <span class="text-label-sm font-label-sm mt-1">Planner</span>
-  </a>
-  <a routerLink="/bookings" routerLinkActive="text-primary font-semibold bg-primary-container/10 rounded-xl"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
-    <span class="material-symbols-outlined">confirmation_number</span>
-    <span class="text-label-sm font-label-sm mt-1">Bookings</span>
-  </a>
-  <a routerLink="/concierge" routerLinkActive="text-primary font-semibold bg-primary-container/10 rounded-xl"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
-    <span class="material-symbols-outlined">auto_awesome</span>
-    <span class="text-label-sm font-label-sm mt-1">Concierge</span>
-  </a>
-  <a href="#" class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 px-3 py-1">
-    <span class="material-symbols-outlined">person</span>
-    <span class="text-label-sm font-label-sm mt-1">Profile</span>
-  </a>
-</nav>

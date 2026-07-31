@@ -4,7 +4,7 @@
 
     <!-- Logo -->
     <a routerLink="/" class="flex items-center gap-3 cursor-pointer">
-      <img src="assets/logo.svg" alt="Safarni AI Travel" class="h-10 md:h-11 w-auto" />
+      <img src="assets/logo.svg" alt="Safarni Travel" class="h-10 md:h-11 w-auto" />
     </a>
 
     <!-- Desktop Nav -->
@@ -16,14 +16,16 @@
           Explore
         </a>
 
-        <a routerLink="/planner" routerLinkActive="text-primary font-semibold"
+        <a
+          routerLink="/"
+          [queryParams]="{ createTrip: '1' }"
           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
-          Planner
+          Create Trip
         </a>
 
         <a routerLink="/concierge" routerLinkActive="text-primary font-semibold"
           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
-          AI Concierge
+          Concierge
         </a>
 
         <a routerLink="/bookings" routerLinkActive="text-primary font-semibold"

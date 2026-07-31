@@ -18,6 +18,14 @@ public sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(t => t.OriginCountry)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        builder.Property(t => t.SelectedCitiesJson)
+            .IsRequired()
+            .HasMaxLength(2000);
+
         builder.Property(t => t.StartDate)
             .IsRequired();
 

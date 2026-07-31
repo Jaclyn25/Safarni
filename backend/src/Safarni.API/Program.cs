@@ -120,8 +120,28 @@ builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 
-// AI Provider (Groq)
-builder.Services.AddScoped<IAIProvider, GroqProvider>();
+// AI Providers (Groq)
+builder.Services.AddScoped<IAIProvider>(
+    services =>
+        new GroqProvider(
+            services.GetRequiredService<
+                IHttpClientFactory>(),
+            services.GetRequiredService<
+                IConfiguration>(),
+            services.GetRequiredService<
+                ILogger<GroqProvider>>(),
+            "GroqChat"));
+
+builder.Services.AddScoped<IItineraryAIProvider>(
+    services =>
+        new GroqProvider(
+            services.GetRequiredService<
+                IHttpClientFactory>(),
+            services.GetRequiredService<
+                IConfiguration>(),
+            services.GetRequiredService<
+                ILogger<GroqProvider>>(),
+            "GroqItinerary"));
 
 
 // Embeddings

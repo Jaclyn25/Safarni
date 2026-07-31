@@ -303,7 +303,14 @@
     }
 
     <!-- Messages Canvas -->
-    <div class="flex-grow overflow-y-auto custom-scrollbar space-y-6 pb-32" #chatMessages>
+    <div
+      class="flex-grow overflow-y-auto custom-scrollbar space-y-6 pb-32"
+      #chatMessages
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions text"
+      [attr.aria-busy]="isTyping"
+    >
 
       <!-- Empty State Workspace -->
       @if (!messages.length && !isTyping && !isLoadingConversation) {
@@ -471,7 +478,7 @@
             @if (m.formatted.paragraphs.length) {
             <div class="space-y-2 text-on-surface-variant">
               @for (paragraph of m.formatted.paragraphs; track $index) {
-              <p class="leading-relaxed">{{ paragraph }}</p>
+              <p class="whitespace-pre-wrap leading-relaxed">{{ paragraph }}</p>
               }
             </div>
             }
@@ -616,10 +623,18 @@
             style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
         </div>
 
-        <textarea #messageTextarea [(ngModel)]="inputValue" (input)="onTextareaInput($event)"
-          (keydown)="onKeydown($event)" rows="1" placeholder="Ask about Maldives, visas, hotels, or build a trip..."
-          class="flex-grow bg-transparent border-none focus:ring-0 text-body-md text-on-surface placeholder:text-on-surface-variant/50 outline-none concierge-textarea py-1.5"
-          [attr.maxlength]="maxMessageLength" aria-label="Ask Safarni AI Travel Workspace"></textarea>
+        <textarea
+          #messageTextarea
+          [(ngModel)]="inputValue"
+          (input)="onTextareaInput($event)"
+          (keydown)="onKeydown($event)"
+          rows="1"
+          placeholder="Ask about Maldives, visas, hotels, or build a trip..."
+          class="flex-grow bg-transparent border-none focus:ring-0 text-body-md text-on-surface placeholder:text-on-surface-variant/50 outline-none concierge-textarea py-1.5 disabled:cursor-not-allowed disabled:opacity-60"
+          [attr.maxlength]="maxMessageLength"
+          [disabled]="isTyping"
+          aria-label="Ask Safarni AI Travel Workspace"
+        ></textarea>
 
         @if (isGenerating) {
           <button (click)="stopGenerating()" 

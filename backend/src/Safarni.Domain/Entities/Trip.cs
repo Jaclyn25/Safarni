@@ -10,6 +10,10 @@ public class Trip
 
     public string Destination { get; set; } = string.Empty;
 
+    public string OriginCountry { get; set; } = string.Empty;
+
+    public string SelectedCitiesJson { get; set; } = "[]";
+
     public DateTime StartDate { get; set; }
 
     public DateTime EndDate { get; set; }
@@ -18,5 +22,7 @@ public class Trip
 
     public DateTime? UpdatedAt { get; set; }
 
-    public User? User { get; set; }
+    public User User { get; set; } = null!;
+
+    public ICollection<Itinerary> Itineraries { get; set; } = new List<Itinerary>();
 }

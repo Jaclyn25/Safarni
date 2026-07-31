@@ -14,6 +14,15 @@ public class PlaceDetails
     public string GoogleMapsLink { get; set; } = string.Empty;
     public string? PhotoUrl { get; set; }
     public List<string> Types { get; set; } = new();
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public string? PriceLevel { get; set; }
+    public decimal? RatePerNight { get; set; }
+    public decimal? TotalRate { get; set; }
+    public string? PriceCurrency { get; set; }
+    public string? PriceSource { get; set; }
+    public string? ExternalUrl { get; set; }
+    public string DataSource { get; set; } = "google_places";
 }
 
 public class PlacePhoto
@@ -126,6 +135,9 @@ public class PlaceNewApiItem
 
     [JsonPropertyName("photos")]
     public List<PlacePhotoNew>? Photos { get; set; }
+
+    [JsonPropertyName("location")]
+    public PlaceLocationNew? Location { get; set; }
 }
 
 public class DisplayNameNew
@@ -141,4 +153,13 @@ public class PlacePhotoNew
 {
     [JsonPropertyName("name")]
     public string? Name { get; set; }
+}
+
+public class PlaceLocationNew
+{
+    [JsonPropertyName("latitude")]
+    public double Latitude { get; set; }
+
+    [JsonPropertyName("longitude")]
+    public double Longitude { get; set; }
 }

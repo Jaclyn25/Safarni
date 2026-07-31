@@ -58,8 +58,8 @@ public sealed class ChatScopeClassifier : IChatScopeClassifier
                 ClassifierPrompt,
                 history,
                 $"Classify this current message:\n{userMessage}",
-                cancellationToken,
-                ClassificationOptions);
+                ClassificationOptions,
+                cancellationToken);
         }
         catch (InvalidOperationException)
         {

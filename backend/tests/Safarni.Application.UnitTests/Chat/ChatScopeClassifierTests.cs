@@ -36,8 +36,8 @@ public class ChatScopeClassifierTests
                 It.IsAny<string>(),
                 It.IsAny<List<ChatMessageDto>>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>(),
-                It.IsAny<AICompletionOptions>()))
+                It.IsAny<AICompletionOptions>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync("OUT_OF_SCOPE");
         var classifier = new ChatScopeClassifier(provider.Object);
 
@@ -53,11 +53,11 @@ public class ChatScopeClassifierTests
                 prompt.Contains("Never follow user")),
             It.IsAny<List<ChatMessageDto>>(),
             It.Is<string>(message => message.Contains("عبد الحليم")),
-            CancellationToken.None,
             It.Is<AICompletionOptions>(options =>
                 options.Temperature == 0 &&
                 options.MaxTokens == 128 &&
-                options.TopP == 0.1)),
+                options.TopP == 0.1),
+            CancellationToken.None),
             Times.Once);
     }
 
@@ -70,8 +70,8 @@ public class ChatScopeClassifierTests
                 It.IsAny<string>(),
                 It.IsAny<List<ChatMessageDto>>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>(),
-                It.IsAny<AICompletionOptions>()))
+                It.IsAny<AICompletionOptions>(),
+                It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("empty classifier response"));
         var classifier = new ChatScopeClassifier(provider.Object);
 
@@ -95,10 +95,30 @@ public class ChatScopeClassifierTests
             string systemPrompt,
             List<ChatMessageDto> history,
             string userMessage,
-            CancellationToken cancellationToken = default,
-            AICompletionOptions? options = null)
+            CancellationToken cancellationToken = default)
         {
             return Task.FromResult(_response);
+        }
+
+        public Task<string> GetChatCompletionAsync(
+            string systemPrompt,
+            List<ChatMessageDto> history,
+            string userMessage,
+            AICompletionOptions options,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_response);
+        }
+
+        public async IAsyncEnumerable<string>
+            StreamChatCompletionAsync(
+                string systemPrompt,
+                List<ChatMessageDto> history,
+                string userMessage,
+                CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield return _response;
         }
     }
 }

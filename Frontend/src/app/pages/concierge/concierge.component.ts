@@ -129,6 +129,9 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   ];
 
   private messageSubscription?: Subscription;
+  private abortController: AbortController | null = null;
+  private streamingMessageIndex: number | null = null;
+  private activeRequestId = 0;
   private shouldScroll = false;
   private readonly urlPattern = /https?:\/\/[^\s)\]]+/gi;
   private typewriterInterval: any;
@@ -692,7 +695,7 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
             this.conversationId = conv.id;
             localStorage.setItem('active_conversation_id', conv.id);
             this.renderNow();
-            this.sendMessage(conv.id, text);
+            void this.streamMessage(conv.id, text, this.activeRequestId);
           });
         },
         error: (err) => {
@@ -707,7 +710,7 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
-    this.sendMessage(this.conversationId, text);
+    void this.streamMessage(this.conversationId, text, this.activeRequestId);
   }
 
   onTextareaInput(event: Event): void {
@@ -732,10 +735,17 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   stopResponse(): void {
+    this.activeRequestId++;
+
     if (this.messageSubscription) {
       this.messageSubscription.unsubscribe();
       this.messageSubscription = undefined;
     }
+
+    this.abortController?.abort();
+    this.abortController = null;
+    this.streamingMessageIndex = null;
+
     this.stopThinkingAnimation();
     this.clearTypewriter();
   }
@@ -937,6 +947,81 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private stopThinkingAnimation(): void {
     this.isTyping = false;
+    this.renderNow();
+  }
+
+  private async streamMessage(
+    conversationId: string,
+    text: string,
+    requestId: number
+  ): Promise<void> {
+    const controller = new AbortController();
+    this.abortController = controller;
+
+    try {
+      await this.chatService.streamMessage(
+        conversationId,
+        text,
+        {
+          onToken: (token) => {
+            if (requestId !== this.activeRequestId) {
+              return;
+            }
+
+            this.appendStreamingToken(token);
+          },
+          onCompleted: (conversation) => {
+            if (requestId !== this.activeRequestId) {
+              return;
+            }
+
+            this.messages = conversation.messages.map(message =>
+              this.toChatMessage(message.content, message.role === 'user')
+            );
+
+            this.streamingMessageIndex = null;
+            this.refreshConversations();
+            this.shouldScroll = true;
+            this.renderNow();
+          }
+        },
+        controller.signal
+      );
+    } catch (error: unknown) {
+      if (
+        requestId !== this.activeRequestId ||
+        controller.signal.aborted ||
+        (error instanceof DOMException && error.name === 'AbortError')
+      ) {
+        return;
+      }
+
+      console.error('Error streaming chat response', error);
+      const errorDetails = this.getSendErrorDetails(error);
+      this.addErrorMessage(errorDetails.text, errorDetails.action);
+      this.renderNow();
+    } finally {
+      if (requestId === this.activeRequestId) {
+        this.abortController = null;
+        this.streamingMessageIndex = null;
+        this.stopThinkingAnimation();
+      }
+    }
+  }
+
+  private appendStreamingToken(token: string): void {
+    if (this.streamingMessageIndex === null) {
+      const message = this.toChatMessage(token, false);
+
+      this.messages.push(message);
+      this.streamingMessageIndex = this.messages.length - 1;
+    } else {
+      const message = this.messages[this.streamingMessageIndex];
+      message.text += token;
+      message.formatted = this.formatMessage(message.text, false);
+    }
+
+    this.shouldScroll = true;
     this.renderNow();
   }
 

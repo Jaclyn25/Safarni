@@ -40,6 +40,15 @@ public sealed class UpdateTripCommandHandler : IRequestHandler<UpdateTripCommand
 
         trip.Name = request.Name.Trim();
         trip.Destination = request.Destination.Trim();
+        trip.OriginCountry = request.OriginCountry.Trim();
+        trip.SelectedCitiesJson =
+            TripRouteSerializer.Serialize(
+                request.Cities
+                    .Select(city =>
+                        new TripCitySelection(
+                            city.Name.Trim(),
+                            city.Days))
+                    .ToList());
         trip.StartDate = request.StartDate;
         trip.EndDate = request.EndDate;
         trip.UpdatedAt = DateTime.UtcNow;
@@ -52,6 +61,9 @@ public sealed class UpdateTripCommandHandler : IRequestHandler<UpdateTripCommand
             trip.UserId,
             trip.Name,
             trip.Destination,
+            trip.OriginCountry,
+            TripRouteSerializer.Deserialize(
+                trip.SelectedCitiesJson),
             trip.StartDate,
             trip.EndDate,
             trip.CreatedAt,

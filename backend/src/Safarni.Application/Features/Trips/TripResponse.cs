@@ -5,6 +5,8 @@ public sealed record TripResponse(
     Guid UserId,
     string Name,
     string Destination,
+    string OriginCountry,
+    IReadOnlyList<TripCitySelection> Cities,
     DateTime StartDate,
     DateTime EndDate,
     DateTime CreatedAt,

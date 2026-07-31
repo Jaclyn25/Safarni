@@ -9,6 +9,8 @@ using Safarni.Application.Features.Trips.GenerateItinerary;
 using Safarni.Application.Features.Trips.Itineraries.GetActiveItinerary;
 using Safarni.Application.Features.Trips.Itineraries.ManageItems;
 using Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
+using Safarni.Application.Features.Trips.GetTrip;
+using Safarni.Application.Features.Trips.ListTrips;
 using Safarni.Application.Features.Trips.DeleteTrip;
 using Safarni.Application.Features.Trips.UpdateTrip;
 
@@ -24,6 +26,79 @@ public sealed class TripsController : ControllerBase
     public TripsController(ISender sender)
     {
         _sender = sender;
+    }
+
+    // =========================================================
+    // LIST MY TRIPS
+    // GET: /api/trips
+    // =========================================================
+
+    [HttpGet]
+    [ProducesResponseType(
+        typeof(ApiResponse<IReadOnlyCollection<TripResponse>>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ApiResponse<IReadOnlyCollection<TripResponse>>),
+        StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListTrips(
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new ListTripsQuery(),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<IReadOnlyCollection<TripResponse>>(
+                result.Error,
+                "Failed to load trips.");
+        }
+
+        return Ok(
+            ApiResponse<IReadOnlyCollection<TripResponse>>.SuccessResponse(
+                result.Value!,
+                "Trips loaded successfully.",
+                StatusCodes.Status200OK));
+    }
+
+    // =========================================================
+    // GET TRIP BY ID
+    // GET: /api/trips/{id}
+    // =========================================================
+
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(
+        typeof(ApiResponse<TripResponse>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ApiResponse<TripResponse>),
+        StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(
+        typeof(ApiResponse<TripResponse>),
+        StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(
+        typeof(ApiResponse<TripResponse>),
+        StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTripById(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new GetTripQuery(id),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<TripResponse>(
+                result.Error,
+                "Failed to load trip.");
+        }
+
+        return Ok(
+            ApiResponse<TripResponse>.SuccessResponse(
+                result.Value!,
+                "Trip loaded successfully.",
+                StatusCodes.Status200OK));
     }
 
     // =========================================================

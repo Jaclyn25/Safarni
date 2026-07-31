@@ -20,6 +20,30 @@ internal sealed class TripRepository : ITripRepository
             .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
     }
 
+    public Task<Trip?> GetByIdWithItinerariesAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Set<Trip>()
+            .Include(trip => trip.Itineraries)
+                .ThenInclude(itinerary => itinerary.Days)
+                    .ThenInclude(day => day.Items)
+            .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<Trip>> ListByUserIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Set<Trip>()
+            .Include(trip => trip.Itineraries)
+                .ThenInclude(itinerary => itinerary.Days)
+                    .ThenInclude(day => day.Items)
+            .Where(trip => trip.UserId == userId)
+            .OrderByDescending(trip => trip.CreatedAt)
+            .ToArrayAsync(cancellationToken);
+    }
+
     public async Task AddAsync(Trip trip, CancellationToken cancellationToken = default)
     {
         await _dbContext.Set<Trip>().AddAsync(trip, cancellationToken);

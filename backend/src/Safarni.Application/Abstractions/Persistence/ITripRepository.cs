@@ -5,6 +5,8 @@ namespace Safarni.Application.Abstractions.Persistence;
 public interface ITripRepository
 {
     Task<Trip?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Trip?> GetByIdWithItinerariesAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<Trip>> ListByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
     Task AddAsync(Trip trip, CancellationToken cancellationToken = default);
     void Update(Trip trip);
     void Remove(Trip trip);

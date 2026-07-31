@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService, getProfileErrorMessage } from '../../services/profile.service';
 import {
@@ -16,8 +17,10 @@ import {
   getSettingsErrorMessage
 } from '../../services/settings.service';
 import { MyProfile, UpdateMyProfileCommand } from '../../shared/models/update-my-profile.model';
+import { TripResponse, TripService } from '../../services/trip.service';
 
 type NavKey =
+  | 'trips'
   | 'account'
   | 'password'
   | 'notifications'
@@ -91,12 +94,13 @@ function readStoredLanguage(): LanguageChoice {
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
 })
 export class ProfileComponent implements OnInit, OnDestroy {
   readonly navItems: NavItem[] = [
+    { key: 'trips', label: 'My Trips', icon: 'luggage' },
     { key: 'account', label: 'Account', icon: 'person' },
     { key: 'password', label: 'Password', icon: 'lock' },
     { key: 'notifications', label: 'Notifications', icon: 'notifications' },
@@ -116,6 +120,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
   saveSuccess = signal(false);
 
   profile: MyProfile | null = null;
+
+  // ----- My Trips (GET /api/trips) -----
+  readonly trips = signal<TripResponse[]>([]);
+  readonly isTripsLoading = signal(true);
+  readonly tripsError = signal<string | null>(null);
 
   readonly travelStyles = ['Luxury', 'Adventure', 'Backpacking', 'Business', 'Culinary'];
   selectedTravelStyles = new Set<string>(['Luxury', 'Adventure', 'Culinary']);
@@ -189,7 +198,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
     private profileService: ProfileService,
     private preferencesService: PreferencesService,
     private settingsService: SettingsService,
-    private authService: AuthService
+    private authService: AuthService,
+    private tripService: TripService
   ) {
     // Mirrors UpdateMyProfileCommandValidator on the backend exactly,
     // so client-side errors match server-side ones field for field.
@@ -239,6 +249,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
     this.loadTravelPreferences();
     this.loadSettings();
+    this.loadTrips();
   }
 
   ngOnDestroy(): void {
@@ -550,6 +561,86 @@ export class ProfileComponent implements OnInit, OnDestroy {
         );
       },
     });
+  }
+
+  // ================= My Trips =================
+
+  loadTrips(): void {
+    this.isTripsLoading.set(true);
+    this.tripsError.set(null);
+
+    this.tripService.getTrips().subscribe({
+      next: (response) => {
+        this.trips.set(response.data ?? []);
+        this.isTripsLoading.set(false);
+      },
+      error: (error: unknown) => {
+        this.isTripsLoading.set(false);
+        this.tripsError.set(
+          this.tripService.getErrorMessage(
+            error,
+            'Could not load your trips. Please try again.'
+          )
+        );
+      },
+    });
+  }
+
+  tripDateRange(trip: TripResponse): string {
+    const start = new Date(trip.startDate);
+    const end = new Date(trip.endDate);
+
+    const format = (date: Date): string =>
+      date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+
+    return `${format(start)} – ${format(end)}`;
+  }
+
+  tripCityNames(trip: TripResponse): string {
+    return (trip.cities ?? [])
+      .map((city) => city.name)
+      .join(', ');
+  }
+
+  tripBadge(trip: TripResponse): { label: string; classes: string } {
+    switch (trip.itineraryStatus) {
+      case 'completed':
+        return {
+          label: 'Itinerary ready',
+          classes: 'badge--success'
+        };
+      case 'generating':
+        return {
+          label: 'Generating…',
+          classes: 'badge--progress'
+        };
+      case 'failed':
+        return {
+          label: 'Generation failed',
+          classes: 'badge--danger'
+        };
+      default:
+        return {
+          label: 'No itinerary yet',
+          classes: 'badge--muted'
+        };
+    }
+  }
+
+  tripCost(trip: TripResponse): string | null {
+    if (trip.estimatedTotalCost == null) {
+      return null;
+    }
+
+    const currency = trip.itineraryCurrency ?? 'USD';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency
+    }).format(trip.estimatedTotalCost);
   }
 
   get f() {

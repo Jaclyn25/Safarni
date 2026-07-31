@@ -170,7 +170,7 @@ Latest message: {userMessage}
                 try
                 {
                     var options = new ChatBotApi.Application.Common.Models.AICompletionOptions(0.0f, 100, 0.1f);
-                    standaloneQuery = await _aiProvider.GetChatCompletionAsync(prompt, history, "Rewrite this query:", cancellationToken, options);
+                    standaloneQuery = await _aiProvider.GetChatCompletionAsync(prompt, history, "Rewrite this query:", options, cancellationToken);
                     if (string.IsNullOrWhiteSpace(standaloneQuery))
                     {
                         standaloneQuery = userMessage;

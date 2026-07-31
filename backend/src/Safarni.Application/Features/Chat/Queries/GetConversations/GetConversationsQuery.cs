@@ -30,7 +30,9 @@ public class GetConversationsQueryHandler : IRequestHandler<GetConversationsQuer
             {
                 Id = c.Id,
                 Title = c.Title,
-                CreatedAt = c.CreatedAt
+                CreatedAt = c.CreatedAt,
+                IsPinned = c.IsPinned,
+                FolderId = c.FolderId
             })
             .ToList();
 

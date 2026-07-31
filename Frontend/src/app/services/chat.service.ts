@@ -13,7 +13,16 @@ export interface Conversation {
   id: string;
   title: string;
   createdAt: string;
+  isPinned?: boolean;
+  folderId?: string | null;
   messages: ChatMessage[];
+}
+
+export interface ChatFolder {
+  id: string;
+  name: string;
+  createdAt: string;
+  conversations: Conversation[];
 }
 
 @Injectable({
@@ -74,6 +83,50 @@ export class ChatService {
   deleteConversation(id: string): Observable<{ success: boolean }> {
     return this.http
       .delete<{ success: boolean }>(`${this.apiUrl}/conversations/${id}`, { headers: this.getHeaders() })
+      .pipe(timeout(this.requestTimeoutMs));
+  }
+
+  togglePin(id: string): Observable<Conversation> {
+    return this.http
+      .put<Conversation>(`${this.apiUrl}/conversations/${id}/pin`, {}, { headers: this.getHeaders() })
+      .pipe(timeout(this.requestTimeoutMs));
+  }
+
+  renameConversation(id: string, newTitle: string): Observable<Conversation> {
+    return this.http
+      .put<Conversation>(`${this.apiUrl}/conversations/${id}/rename`, { newTitle }, { headers: this.getHeaders() })
+      .pipe(timeout(this.requestTimeoutMs));
+  }
+
+  // --- Folder endpoints ---
+
+  getFolders(): Observable<ChatFolder[]> {
+    return this.http
+      .get<ChatFolder[]>(`${this.apiUrl}/folders`, { headers: this.getHeaders() })
+      .pipe(timeout(this.requestTimeoutMs));
+  }
+
+  createFolder(name: string): Observable<ChatFolder> {
+    return this.http
+      .post<ChatFolder>(`${this.apiUrl}/folders`, { name }, { headers: this.getHeaders() })
+      .pipe(timeout(this.requestTimeoutMs));
+  }
+
+  renameFolder(id: string, newName: string): Observable<ChatFolder> {
+    return this.http
+      .put<ChatFolder>(`${this.apiUrl}/folders/${id}/rename`, { newName }, { headers: this.getHeaders() })
+      .pipe(timeout(this.requestTimeoutMs));
+  }
+
+  deleteFolder(id: string): Observable<{ success: boolean }> {
+    return this.http
+      .delete<{ success: boolean }>(`${this.apiUrl}/folders/${id}`, { headers: this.getHeaders() })
+      .pipe(timeout(this.requestTimeoutMs));
+  }
+
+  moveConversationToFolder(conversationId: string, folderId: string | null): Observable<{ success: boolean }> {
+    return this.http
+      .put<{ success: boolean }>(`${this.apiUrl}/conversations/${conversationId}/folder`, { folderId }, { headers: this.getHeaders() })
       .pipe(timeout(this.requestTimeoutMs));
   }
 }

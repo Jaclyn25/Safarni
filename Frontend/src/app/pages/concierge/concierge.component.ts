@@ -7,13 +7,14 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
-  inject
+  inject,
+  HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { ChatService, Conversation } from '../../services/chat.service';
+import { ChatService, Conversation, ChatFolder } from '../../services/chat.service';
 
 export interface ItineraryDay {
   dayNumber: number;
@@ -60,12 +61,15 @@ export interface ChatMessage {
   copied?: boolean;
   isRegenerating?: boolean;
   action?: 'new-chat';
+  feedback?: 'like' | 'dislike' | null;
+  isStreaming?: boolean;
+  streamedText?: string;
+  isBookmarked?: boolean;
 }
 
 export interface GroupedConversations {
-  today: Conversation[];
-  thisWeek: Conversation[];
-  older: Conversation[];
+  pinned: Conversation[];
+  chats: Conversation[];
 }
 
 @Component({
@@ -89,9 +93,11 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   searchConvQuery = '';
   isTyping = false;
   isLoadingConversation = false;
+  isSidebarOpen = true;
   conversationId: string | null = null;
   messages: ChatMessage[] = [];
   conversationsList: Conversation[] = [];
+  folders: ChatFolder[] = [];
   readonly maxMessageLength = 4000;
 
   // Empty State Prompt Cards
@@ -125,8 +131,20 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   private messageSubscription?: Subscription;
   private shouldScroll = false;
   private readonly urlPattern = /https?:\/\/[^\s)\]]+/gi;
+  private typewriterInterval: any;
+  
+  // Bookmarks State
+  bookmarks: ChatMessage[] = [];
+  isBookmarksModalOpen = false;
+  
+  get isGenerating(): boolean {
+    return this.isTyping || this.messages.some(m => m.isStreaming);
+  }
+
+  constructor() {}
 
   ngOnInit(): void {
+    this.loadBookmarks();
     this.loadOrCreateConversation();
 
     // Handle incoming query param ?q=... from Explore or Destination pages
@@ -154,6 +172,17 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   loadOrCreateConversation(): void {
+    // Load both folders and conversations concurrently
+    this.chatService.getFolders().subscribe({
+      next: (folders) => {
+        this.folders = folders || [];
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error fetching folders', err);
+      }
+    });
+
     this.chatService.getConversations().subscribe({
       next: (conversations) => {
         this.conversationsList = conversations || [];
@@ -183,7 +212,8 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.getConversationById(id).subscribe({
       next: (conv) => {
         this.isLoadingConversation = false;
-        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
+        this.clearTypewriter();
+        this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user', 'normal', m.id));
         this.shouldScroll = true;
         this.cdr.detectChanges();
       },
@@ -261,33 +291,380 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
+  // --- Custom Context Menu State & Handlers ---
+  activeMenuConvId: string | null = null;
+
+  @HostListener('document:click')
+  onDocumentClick() {
+    if (this.activeMenuConvId) {
+      this.closeConvMenu();
+    }
+  }
+
+  toggleConvMenu(id: string, event: Event): void {
+    event.stopPropagation();
+    this.activeMenuConvId = this.activeMenuConvId === id ? null : id;
+  }
+
+  closeConvMenu(): void {
+    this.activeMenuConvId = null;
+  }
+
+  // --- Custom Rename Confirmation Modal State & Handlers ---
+  showRenameModal = false;
+  renamingConvId: string | null = null;
+  renamingConvOldTitle: string = '';
+  newTitleInput: string = '';
+  isRenamingConversation = false;
+
+  openRenameModal(id: string, title: string, event: Event): void {
+    event.stopPropagation();
+    this.renamingConvId = id;
+    this.renamingConvOldTitle = title;
+    this.newTitleInput = title;
+  }
+
+  cancelRenameConversation(): void {
+    this.renamingConvId = null;
+    this.renamingConvOldTitle = '';
+    this.newTitleInput = '';
+  }
+
+  executeRenameConversation(): void {
+    if (!this.renamingConvId || this.isRenamingConversation) return;
+
+    const newTitle = this.newTitleInput.trim();
+    if (!newTitle || newTitle === this.renamingConvOldTitle) {
+      this.cancelRenameConversation();
+      return;
+    }
+
+    const id = this.renamingConvId;
+    this.isRenamingConversation = true;
+
+    this.chatService.renameConversation(id, newTitle).subscribe({
+      next: (updatedConv) => {
+        this.isRenamingConversation = false;
+        this.renamingConvId = null;
+
+        const idx = this.conversationsList.findIndex(c => c.id === id);
+        if (idx !== -1) {
+          this.conversationsList[idx] = { ...this.conversationsList[idx], title: newTitle };
+          this.conversationsList = [...this.conversationsList];
+        }
+
+        for (let i = 0; i < this.folders.length; i++) {
+          if (this.folders[i].conversations) {
+            const fIdx = this.folders[i].conversations.findIndex(c => c.id === id);
+            if (fIdx !== -1) {
+              this.folders[i].conversations[fIdx] = { ...this.folders[i].conversations[fIdx], title: newTitle };
+              this.folders[i] = { ...this.folders[i] };
+            }
+          }
+        }
+        this.folders = [...this.folders];
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error renaming conversation', err);
+        this.isRenamingConversation = false;
+      }
+    });
+  }
+
+  togglePin(id: string, event: Event): void {
+    event.stopPropagation();
+
+    const conv = this.conversationsList.find(c => c.id === id);
+    if (conv) {
+      conv.isPinned = !conv.isPinned;
+    }
+
+    this.chatService.togglePin(id).subscribe({
+      next: (updatedConv) => {
+        const index = this.conversationsList.findIndex(c => c.id === id);
+        if (index !== -1) {
+          this.conversationsList[index] = updatedConv;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => {
+        console.error('Failed to toggle pin', err);
+        if (conv) conv.isPinned = !conv.isPinned;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   get groupedConversations(): GroupedConversations {
     const query = this.searchConvQuery.trim().toLowerCase();
     const filtered = this.conversationsList.filter(c => !query || c.title.toLowerCase().includes(query));
 
-    const today: Conversation[] = [];
-    const thisWeek: Conversation[] = [];
-    const older: Conversation[] = [];
-
-    const now = new Date();
-    const oneDay = 24 * 60 * 60 * 1000;
-    const sevenDays = 7 * oneDay;
+    const pinned: Conversation[] = [];
+    const chats: Conversation[] = [];
 
     filtered.forEach(conv => {
-      const updatedAt = new Date(conv.createdAt || Date.now());
-      const diff = now.getTime() - updatedAt.getTime();
+      if (conv.folderId) return; // Skip folder conversations in groups
 
-      if (diff < oneDay) {
-        today.push(conv);
-      } else if (diff < sevenDays) {
-        thisWeek.push(conv);
+      if (conv.isPinned) {
+        pinned.push(conv);
       } else {
-        older.push(conv);
+        chats.push(conv);
       }
     });
 
-    return { today, thisWeek, older };
+    return { pinned, chats };
   }
+
+  // --- Folder Logic ---
+  showCreateFolderModal = false;
+  newFolderNameInput = '';
+  isCreatingFolder = false;
+
+  openCreateFolderModal(): void {
+    this.newFolderNameInput = '';
+    this.showCreateFolderModal = true;
+  }
+
+  cancelCreateFolder(): void {
+    this.showCreateFolderModal = false;
+    this.newFolderNameInput = '';
+  }
+
+  executeCreateFolder(): void {
+    const name = this.newFolderNameInput.trim();
+    if (!name || this.isCreatingFolder) return;
+
+    this.isCreatingFolder = true;
+    this.chatService.createFolder(name).subscribe({
+      next: (folder) => {
+        this.isCreatingFolder = false;
+        this.showCreateFolderModal = false;
+        if (!folder.conversations) folder.conversations = [];
+        this.folders.unshift(folder);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.isCreatingFolder = false;
+        console.error('Error creating folder', err);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  showRenameFolderModal = false;
+  renamingFolderId: string | null = null;
+  renamingFolderOldName = '';
+  newFolderNameEdit = '';
+  isRenamingFolder = false;
+
+  openRenameFolderModal(id: string, name: string, event: Event): void {
+    event.stopPropagation();
+    this.renamingFolderId = id;
+    this.renamingFolderOldName = name;
+    this.newFolderNameEdit = name;
+  }
+
+  cancelRenameFolder(): void {
+    this.renamingFolderId = null;
+    this.renamingFolderOldName = '';
+    this.newFolderNameEdit = '';
+  }
+
+  executeRenameFolder(): void {
+    if (!this.renamingFolderId || this.isRenamingFolder) return;
+    const newName = this.newFolderNameEdit.trim();
+    if (!newName || newName === this.renamingFolderOldName) {
+      this.cancelRenameFolder();
+      return;
+    }
+
+    const id = this.renamingFolderId;
+    this.isRenamingFolder = true;
+    this.chatService.renameFolder(id, newName).subscribe({
+      next: (updatedFolder) => {
+        this.isRenamingFolder = false;
+        this.renamingFolderId = null;
+        const idx = this.folders.findIndex(f => f.id === id);
+        if (idx !== -1) {
+          this.folders[idx].name = updatedFolder.name;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => {
+        this.isRenamingFolder = false;
+        console.error('Error renaming folder', err);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  showDeleteFolderModal = false;
+  deletingFolderId: string | null = null;
+  deletingFolderName = '';
+  isDeletingFolder = false;
+
+  confirmDeleteFolder(id: string, name: string, event: Event): void {
+    event.stopPropagation();
+    this.deletingFolderId = id;
+    this.deletingFolderName = name;
+    this.showDeleteFolderModal = true;
+  }
+
+  cancelDeleteFolder(): void {
+    this.showDeleteFolderModal = false;
+    this.deletingFolderId = null;
+    this.deletingFolderName = '';
+  }
+
+  executeDeleteFolder(): void {
+    if (!this.deletingFolderId || this.isDeletingFolder) return;
+
+    const id = this.deletingFolderId;
+    this.isDeletingFolder = true;
+
+    this.chatService.deleteFolder(id).subscribe({
+      next: () => {
+        this.isDeletingFolder = false;
+        this.showDeleteFolderModal = false;
+
+        // Remove folder
+        const folderIdx = this.folders.findIndex(f => f.id === id);
+        if (folderIdx !== -1) {
+          // move conversations back to root
+          const folderConvs = this.folders[folderIdx].conversations || [];
+          folderConvs.forEach(fc => {
+            const listConv = this.conversationsList.find(c => c.id === fc.id);
+            if (listConv) listConv.folderId = null;
+          });
+          this.folders.splice(folderIdx, 1);
+        }
+
+        this.deletingFolderId = null;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.isDeletingFolder = false;
+        this.showDeleteFolderModal = false;
+        console.error('Failed to delete folder', err);
+        this.deletingFolderId = null;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // Manage move to folder
+  showMoveToFolderModal = false;
+  movingConvId: string | null = null;
+  isMovingConv = false;
+
+  openMoveToFolderModal(id: string, event: Event): void {
+    event.stopPropagation();
+    this.movingConvId = id;
+    this.showMoveToFolderModal = true;
+  }
+
+  cancelMoveToFolder(): void {
+    this.showMoveToFolderModal = false;
+    this.movingConvId = null;
+  }
+
+  executeMoveToFolder(folderId: string | null): void {
+    if (!this.movingConvId || this.isMovingConv) return;
+    const convId = this.movingConvId;
+    this.isMovingConv = true;
+
+    this.chatService.moveConversationToFolder(convId, folderId).subscribe({
+      next: () => {
+        this.isMovingConv = false;
+        this.showMoveToFolderModal = false;
+
+        // Update local state
+        const conv = this.conversationsList.find(c => c.id === convId);
+        if (conv) {
+          const oldFolderId = conv.folderId;
+          conv.folderId = folderId;
+
+          // Remove from old folder
+          if (oldFolderId) {
+            const oldF = this.folders.find(f => f.id === oldFolderId);
+            if (oldF && oldF.conversations) {
+              oldF.conversations = oldF.conversations.filter(c => c.id !== convId);
+            }
+          }
+
+          // Add to new folder
+          if (folderId) {
+            const newF = this.folders.find(f => f.id === folderId);
+            if (newF) {
+              if (!newF.conversations) newF.conversations = [];
+              newF.conversations.push(conv);
+            }
+          }
+        }
+        this.movingConvId = null;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.isMovingConv = false;
+        this.showMoveToFolderModal = false;
+        console.error('Error moving conversation', err);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // --- Bookmarks Logic ---
+  
+  loadBookmarks(): void {
+    const saved = localStorage.getItem('safarni_bookmarks');
+    if (saved) {
+      try {
+        this.bookmarks = JSON.parse(saved);
+      } catch (e) {
+        this.bookmarks = [];
+      }
+    }
+  }
+
+  saveBookmarks(): void {
+    localStorage.setItem('safarni_bookmarks', JSON.stringify(this.bookmarks));
+  }
+
+  toggleBookmark(m: ChatMessage): void {
+    if (m.isBookmarked) {
+      this.removeBookmark(m.id);
+      m.isBookmarked = false;
+    } else {
+      m.isBookmarked = true;
+      // We store a copy of the message without the formatted object (to save space) or just re-format it later
+      // But storing formatted might be easier for the modal
+      this.bookmarks.unshift({ ...m, isBookmarked: true });
+      this.saveBookmarks();
+    }
+  }
+
+  removeBookmark(id: string): void {
+    this.bookmarks = this.bookmarks.filter(b => b.id !== id);
+    this.saveBookmarks();
+    
+    // Update current messages if the removed bookmark is in the view
+    const msg = this.messages.find(m => m.id === id);
+    if (msg) {
+      msg.isBookmarked = false;
+    }
+  }
+
+  openBookmarks(): void {
+    this.isBookmarksModalOpen = true;
+  }
+
+  closeBookmarks(): void {
+    this.isBookmarksModalOpen = false;
+  }
+
+  // --- API Integrations ---
 
   handleSend(): void {
     if (this.isTyping) return;
@@ -360,10 +737,27 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.messageSubscription = undefined;
     }
     this.stopThinkingAnimation();
+    this.clearTypewriter();
+  }
+
+  stopGenerating(): void {
+    if (this.isTyping) {
+      this.stopResponse();
+    }
+    const streamingMsg = this.messages.find(m => m.isStreaming);
+    if (streamingMsg) {
+      this.clearTypewriter();
+      streamingMsg.isStreaming = false;
+      this.cdr.detectChanges();
+    }
   }
 
   handleRefresh(): void {
     this.startNewConversation();
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
   }
 
   useSuggestion(text: string): void {
@@ -383,7 +777,7 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   // --- Message Controls & Toolbar Methods ---
 
   copyMessage(m: ChatMessage): void {
-    if (!m.text) return;
+    if (m.copied) return;
     navigator.clipboard.writeText(m.text).then(() => {
       m.copied = true;
       this.cdr.detectChanges();
@@ -391,9 +785,17 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
         m.copied = false;
         this.cdr.detectChanges();
       }, 2000);
-    }).catch(err => {
-      console.error('Clipboard copy failed', err);
     });
+  }
+
+  toggleFeedback(m: ChatMessage, type: 'like' | 'dislike'): void {
+    if (m.feedback === type) {
+      m.feedback = null;
+    } else {
+      m.feedback = type;
+    }
+    this.cdr.detectChanges();
+    // Here you would typically send an API request to log the feedback
   }
 
   startEdit(m: ChatMessage): void {
@@ -407,13 +809,37 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   saveEditAndResend(m: ChatMessage): void {
-    if (!m.editText || !m.editText.trim() || this.isTyping) return;
+    if (!m.editText || !m.editText.trim() || this.isTyping || !this.conversationId || !m.id) return;
 
     const newText = m.editText.trim();
+    const messageId = m.id;
     m.isEditing = false;
     m.editText = undefined;
-    this.inputValue = newText;
-    this.handleSend();
+    
+    // Optimistically update the UI to show thinking state
+    m.text = newText;
+    this.isTyping = true;
+    this.startThinkingAnimation();
+    
+    this.chatService.editMessage(this.conversationId, messageId, newText).subscribe({
+      next: (conv) => {
+        this.zone.run(() => {
+          this.stopThinkingAnimation();
+          this.isTyping = false;
+          this.updateMessagesWithStreaming(conv);
+          this.refreshConversations();
+          this.shouldScroll = true;
+          this.renderNow();
+        });
+      },
+      error: (err) => {
+        console.error('Error editing message:', err);
+        this.zone.run(() => {
+          this.stopThinkingAnimation();
+          this.isTyping = false;
+        });
+      }
+    });
   }
 
   regenerateAiResponse(m: ChatMessage): void {
@@ -433,13 +859,34 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
 
           if (lastAiMsg && lastAiMsg.role !== 'user') {
             const newText = lastAiMsg.content;
+            const fullText = newText;
 
             m.versions = m.versions || [m.text];
             m.versions.push(newText);
             m.activeVersionIndex = m.versions.length - 1;
 
             m.text = newText;
-            m.formatted = this.formatMessage(newText, false);
+            m.isStreaming = true;
+            m.streamedText = '';
+            m.formatted = this.formatMessage('', false);
+            
+            let currentIndex = 0;
+            this.clearTypewriter();
+            this.typewriterInterval = setInterval(() => {
+              if (currentIndex < fullText.length) {
+                const chunkSize = Math.max(1, Math.floor(fullText.length / 150));
+                m.streamedText += fullText.substring(currentIndex, currentIndex + chunkSize);
+                currentIndex += chunkSize;
+                m.formatted = this.formatMessage(m.streamedText!, false, true);
+                this.cdr.detectChanges();
+              } else {
+                this.clearTypewriter();
+                m.isStreaming = false;
+                m.streamedText = fullText;
+                m.formatted = this.formatMessage(fullText, false);
+                this.cdr.detectChanges();
+              }
+            }, 80);
           }
 
           this.refreshConversations();
@@ -499,7 +946,7 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.zone.run(() => {
           this.stopThinkingAnimation();
           this.messageSubscription = undefined;
-          this.messages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user'));
+          this.updateMessagesWithStreaming(conv);
           this.refreshConversations();
           this.shouldScroll = true;
           this.renderNow();
@@ -526,6 +973,47 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
       window.setTimeout(() => {
         this.scrollMessagesToBottom();
       }, 0);
+    }
+  }
+
+  private clearTypewriter(): void {
+    if (this.typewriterInterval) {
+      clearInterval(this.typewriterInterval);
+      this.typewriterInterval = undefined;
+    }
+  }
+
+  private updateMessagesWithStreaming(conv: Conversation): void {
+    this.clearTypewriter();
+    const newMessages = conv.messages.map(m => this.toChatMessage(m.content, m.role === 'user', 'normal', m.id));
+    const lastMsg = newMessages[newMessages.length - 1];
+
+    if (lastMsg && !lastMsg.isUser && lastMsg.kind === 'normal') {
+      lastMsg.isStreaming = true;
+      lastMsg.streamedText = '';
+      lastMsg.formatted = this.formatMessage('', false);
+      const fullText = lastMsg.text;
+      
+      this.messages = newMessages;
+      let currentIndex = 0;
+      
+      this.typewriterInterval = setInterval(() => {
+        if (currentIndex < fullText.length) {
+          const chunkSize = Math.max(1, Math.floor(fullText.length / 150));
+          lastMsg.streamedText += fullText.substring(currentIndex, currentIndex + chunkSize);
+          currentIndex += chunkSize;
+          lastMsg.formatted = this.formatMessage(lastMsg.streamedText!, false, true);
+          this.cdr.detectChanges();
+        } else {
+          this.clearTypewriter();
+          lastMsg.isStreaming = false;
+          lastMsg.streamedText = fullText;
+          lastMsg.formatted = this.formatMessage(fullText, false);
+          this.cdr.detectChanges();
+        }
+      }, 80);
+    } else {
+      this.messages = newMessages;
     }
   }
 
@@ -572,16 +1060,19 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.shouldScroll = true;
   }
 
-  private toChatMessage(text: string, isUser: boolean, kind: 'normal' | 'error' = 'normal'): ChatMessage {
+  private toChatMessage(text: string, isUser: boolean, kind: 'normal' | 'error' = 'normal', id?: string): ChatMessage {
+    const isBookmarked = this.bookmarks.some(b => b.id === id);
+
     return {
-      id: Math.random().toString(36).substring(2, 9),
+      id: id || Math.random().toString(36).substring(2, 9),
       text,
       isUser,
       time: this.nowLabel(),
       kind,
       formatted: this.formatMessage(text, isUser),
       versions: isUser ? undefined : [text],
-      activeVersionIndex: isUser ? undefined : 0
+      activeVersionIndex: isUser ? undefined : 0,
+      isBookmarked
     };
   }
 
@@ -589,27 +1080,47 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
-  private formatMessage(text: string, isUser: boolean): FormattedMessage {
-    const normalized = this.normalizeAssistantText(text);
+  private formatMessage(text: string, isUser: boolean, isStreaming: boolean = false): FormattedMessage {
+    let suggestionsBlock = '';
+    let textToProcess = text;
+
+    if (!isUser) {
+      const suggestionMatch = textToProcess.match(/---SUGGESTIONS---([\s\S]*)$/i);
+      if (suggestionMatch) {
+        suggestionsBlock = suggestionMatch[1].trim();
+        textToProcess = textToProcess.substring(0, suggestionMatch.index).trim();
+      }
+    }
+
+    const normalized = this.normalizeAssistantText(textToProcess);
     const links = this.extractLinks(normalized);
     const withoutUrls = normalized.replace(this.urlPattern, '').trim();
-    const cleaned = this.cleanMarkdown(withoutUrls);
-
-    const direction = this.detectDirection(cleaned);
-    const paragraphs = this.extractParagraphs(cleaned);
+    let cleaned = this.cleanMarkdown(withoutUrls);
 
     // AI Response specific parsing
     let summary: string | undefined = undefined;
     let itineraryDays: ItineraryDay[] = [];
     let actionChips: ActionChip[] = [];
 
-    if (!isUser) {
+    if (!isUser && !isStreaming) {
+      itineraryDays = this.parseItineraryDays(cleaned);
+      actionChips = this.generateActionChips(cleaned, itineraryDays, suggestionsBlock);
+      
+      // Remove itinerary text from paragraphs so it doesn't double render
+      if (itineraryDays.length > 0) {
+        const dayRegex = /(?:Day|اليوم)\s*(\d+)[:\s–-]*(.*?)(?=(?:Day|اليوم)\s*\d+|$)/gsi;
+        cleaned = cleaned.replace(dayRegex, '').trim();
+      }
+    }
+
+    const direction = this.detectDirection(cleaned);
+    const paragraphs = this.extractParagraphs(cleaned);
+
+    if (!isUser && !isStreaming) {
       const hasSubstantialTravelResponse = paragraphs.length >= 3 && cleaned.length >= 280;
       if (hasSubstantialTravelResponse) {
         summary = paragraphs[0];
       }
-      itineraryDays = this.parseItineraryDays(cleaned);
-      actionChips = this.generateActionChips(cleaned, itineraryDays);
     }
 
     return {
@@ -694,48 +1205,54 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     return match ? match[1] : undefined;
   }
 
-  private generateActionChips(text: string, itineraryDays: ItineraryDay[]): ActionChip[] {
-    // Strictly exclude fallback, out-of-scope, or error messages
-    if (/(?:خارج نطاق|خارج التخصص|تعذر|حدث خطأ|ليس لدي معلومات)/i.test(text)) {
-      return [];
+  private generateActionChips(text: string, itineraryDays: ItineraryDay[], suggestionsBlock: string = ''): ActionChip[] {
+    const chips: ActionChip[] = [];
+
+    // Process Explicit Suggestions from AI
+    if (suggestionsBlock) {
+      const lines = suggestionsBlock.split('\n');
+      for (const line of lines) {
+        const cleanLine = line.replace(/^[-*•\d.)]+\s*/, '').trim();
+        if (cleanLine) {
+          chips.push({
+            label: cleanLine.length > 40 ? cleanLine.substring(0, 37) + '...' : cleanLine,
+            icon: 'lightbulb',
+            promptText: cleanLine,
+            actionType: 'prompt'
+          });
+        }
+      }
     }
 
-    // Require parsed day cards or explicit structured itinerary markers
+    // Strictly exclude fallback, out-of-scope, or error messages from getting itinerary chips
+    if (/(?:خارج نطاق|خارج التخصص|تعذر|حدث خطأ|ليس لدي معلومات)/i.test(text)) {
+      return chips;
+    }
+
+    // Require parsed day cards or explicit structured itinerary markers for Planner chips
     const isExplicitItinerary = itineraryDays.length > 0 ||
       /(?:Day\s*\d|اليوم\s*\d|خطة الرحلة|جدول الرحلة|البرنامج المقترح|Suggested Itinerary|Day-by-Day Plan)/i.test(text);
 
-    if (!isExplicitItinerary) {
-      return [];
+    if (isExplicitItinerary) {
+      const isArabic = this.detectDirection(text) === 'rtl';
+
+      chips.push(
+        {
+          label: isArabic ? 'إنشاء رحلة بالخطط' : 'Create Trip from this',
+          icon: 'map',
+          promptText: isArabic ? 'قم بإنشاء رحلة تفصيلية بناءً على هذا الرد' : 'Create a detailed trip in Planner based on this recommendation',
+          actionType: 'planner'
+        },
+        {
+          label: isArabic ? 'ميزانية أقل' : 'Make it cheaper',
+          icon: 'savings',
+          promptText: isArabic ? 'كيف يمكن تقليل ميزانية هذه الرحلة؟' : 'How can I lower the budget for this itinerary?',
+          actionType: 'prompt'
+        }
+      );
     }
 
-    const isArabic = this.detectDirection(text) === 'rtl';
-
-    return [
-      {
-        label: isArabic ? 'إنشاء رحلة بالخطط' : 'Create Trip from this',
-        icon: 'map',
-        promptText: isArabic ? 'قم بإنشاء رحلة تفصيلية بناءً على هذا الرد' : 'Create a detailed trip in Planner based on this recommendation',
-        actionType: 'planner'
-      },
-      {
-        label: isArabic ? 'ميزانية أقل' : 'Make it cheaper',
-        icon: 'savings',
-        promptText: isArabic ? 'كيف يمكن تقليل ميزانية هذه الرحلة؟' : 'How can I lower the budget for this itinerary?',
-        actionType: 'prompt'
-      },
-      {
-        label: isArabic ? 'إضافة أنشطة ثقافية' : 'Add more culture',
-        icon: 'museum',
-        promptText: isArabic ? 'أضف المزيد من الأنشطة الثقافية والتاريخية لهذه الخطّة' : 'Add more historical and cultural experiences to this plan',
-        actionType: 'prompt'
-      },
-      {
-        label: isArabic ? 'اختصار لـ 3 أيام' : 'Shorten to 3 days',
-        icon: 'schedule',
-        promptText: isArabic ? 'اختصر هذه الرحلة لتصبح 3 أيام فقط' : 'Shorten this recommendation into a 3-day itinerary',
-        actionType: 'prompt'
-      }
-    ];
+    return chips;
   }
 
   private extractLinks(text: string): MessageLink[] {

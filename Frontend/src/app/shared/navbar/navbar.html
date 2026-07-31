@@ -1,5 +1,6 @@
-<header class="bg-surface/80 dark:bg-surface/80 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm">
-  <div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto">
+<header [ngClass]="navbarBgClass" class="backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm transition-colors duration-300">
+  <div
+    class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto">
 
     <!-- Logo -->
     <a routerLink="/" class="flex items-center gap-3 cursor-pointer">
@@ -10,31 +11,22 @@
     <div class="hidden md:flex items-center gap-stack-lg">
 
       <nav class="flex gap-stack-lg">
-        <a
-          routerLink="/"
-          routerLinkActive="text-primary font-semibold"
-          [routerLinkActiveOptions]="{ exact: true }"
+        <a routerLink="/" routerLinkActive="text-primary font-semibold" [routerLinkActiveOptions]="{ exact: true }"
           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
           Explore
         </a>
 
-        <a
-          routerLink="/planner"
-          routerLinkActive="text-primary font-semibold"
+        <a routerLink="/planner" routerLinkActive="text-primary font-semibold"
           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
           Planner
         </a>
 
-        <a
-          routerLink="/concierge"
-          routerLinkActive="text-primary font-semibold"
+        <a routerLink="/concierge" routerLinkActive="text-primary font-semibold"
           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
           AI Concierge
         </a>
 
-        <a
-          routerLink="/bookings"
-          routerLinkActive="text-primary font-semibold"
+        <a routerLink="/bookings" routerLinkActive="text-primary font-semibold"
           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
           Bookings
         </a>
@@ -42,44 +34,38 @@
 
       @if (!user) {
 
-        <a
-          routerLink="/login"
-          class="bg-primary text-white px-5 py-2 rounded-full font-label-md text-label-md hover:opacity-90 transition-opacity">
-          Sign In
-        </a>
+      <a routerLink="/login"
+        class="bg-primary text-white px-5 py-2 rounded-full font-label-md text-label-md hover:opacity-90 transition-opacity">
+        Sign In
+      </a>
 
       } @else {
 
-        <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3">
 
-          <a
-            routerLink="/profile"
-            class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+        <a routerLink="/profile" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
 
-            <div
-              class="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center font-semibold">
-              {{ user.fullName.charAt(0) }}
-            </div>
+          <div class="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center font-semibold">
+            {{ user.fullName.charAt(0) }}
+          </div>
 
-            <div class="flex flex-col">
-              <span class="text-label-md font-semibold">
-                {{ user.fullName }}
-              </span>
+          <div class="flex flex-col">
+            <span class="text-label-md font-semibold">
+              {{ user.fullName }}
+            </span>
 
-              <span class="text-xs text-on-surface-variant">
-                {{ user.email }}
-              </span>
-            </div>
+            <span class="text-xs text-on-surface-variant">
+              {{ user.email }}
+            </span>
+          </div>
 
-          </a>
+        </a>
 
-          <button
-            (click)="logout()"
-            class="text-primary hover:underline transition-colors">
-            Logout
-          </button>
+        <button (click)="logout()" class="text-primary hover:underline transition-colors">
+          Logout
+        </button>
 
-        </div>
+      </div>
 
       }
 
@@ -90,19 +76,16 @@
 
       @if (!user) {
 
-        <a
-          routerLink="/login"
-          class="bg-primary text-white px-4 py-1.5 rounded-full font-label-sm text-label-sm">
-          Sign In
-        </a>
+      <a routerLink="/login" class="bg-primary text-white px-4 py-1.5 rounded-full font-label-sm text-label-sm">
+        Sign In
+      </a>
 
       } @else {
 
-        <a
-          routerLink="/profile"
-          class="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center font-semibold cursor-pointer">
-          {{ user.fullName.charAt(0) }}
-        </a>
+      <a routerLink="/profile"
+        class="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center font-semibold cursor-pointer">
+        {{ user.fullName.charAt(0) }}
+      </a>
 
       }
 

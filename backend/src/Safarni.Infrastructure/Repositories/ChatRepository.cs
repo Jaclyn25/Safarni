@@ -58,4 +58,29 @@ public class ChatRepository : IChatRepository
     {
         return await _context.TravelKnowledges.AsNoTracking().ToListAsync(cancellationToken);
     }
+
+    public async Task<List<ChatFolder>> GetFoldersByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.ChatFolders
+            .Include(f => f.Conversations)
+            .Where(f => f.UserId == userId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<ChatFolder?> GetFolderByIdAsync(Guid id, string userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.ChatFolders
+            .Include(f => f.Conversations)
+            .FirstOrDefaultAsync(f => f.Id == id && f.UserId == userId, cancellationToken);
+    }
+
+    public async Task AddFolderAsync(ChatFolder folder, CancellationToken cancellationToken = default)
+    {
+        await _context.ChatFolders.AddAsync(folder, cancellationToken);
+    }
+
+    public void DeleteFolder(ChatFolder folder)
+    {
+        _context.ChatFolders.Remove(folder);
+    }
 }

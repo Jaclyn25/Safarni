@@ -15,4 +15,10 @@ public interface IChatRepository
     void DeleteMessages(IEnumerable<ConversationMessage> messages);
     void Delete(Conversation conversation);
     Task<List<TravelKnowledge>> GetTravelKnowledgesAsync(CancellationToken cancellationToken = default);
+
+    // Folder methods
+    Task<List<ChatFolder>> GetFoldersByUserIdAsync(string userId, CancellationToken cancellationToken = default);
+    Task<ChatFolder?> GetFolderByIdAsync(Guid id, string userId, CancellationToken cancellationToken = default);
+    Task AddFolderAsync(ChatFolder folder, CancellationToken cancellationToken = default);
+    void DeleteFolder(ChatFolder folder);
 }

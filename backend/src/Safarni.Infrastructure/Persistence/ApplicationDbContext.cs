@@ -37,6 +37,7 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<ConversationMessage> ConversationMessages => Set<ConversationMessage>();
 
     public DbSet<TravelKnowledge> TravelKnowledges => Set<TravelKnowledge>();
+    public DbSet<ChatFolder> ChatFolders => Set<ChatFolder>();
 
 
     protected override void OnModelCreating(
@@ -83,6 +84,29 @@ public sealed class ApplicationDbContext : DbContext
                 .HasForeignKey(m => m.ConversationId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(e => e.Folder)
+                .WithMany(f => f.Conversations)
+                .HasForeignKey(e => e.FolderId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+        });
+
+
+
+        modelBuilder.Entity<ChatFolder>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.UserId)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.CreatedAt)
+                .IsRequired();
         });
 
 

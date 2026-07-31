@@ -1,0 +1,96 @@
+.planner-shell {
+  background:
+    radial-gradient(circle at 4% 0%, rgba(37, 99, 235, 0.09), transparent 30rem),
+    #f7f8fb;
+}
+
+.itinerary-hero {
+  isolation: isolate;
+}
+
+.itinerary-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(5, 16, 33, 0.88) 0%, rgba(5, 16, 33, 0.52) 54%, rgba(5, 16, 33, 0.15) 100%),
+    linear-gradient(0deg, rgba(5, 16, 33, 0.55), transparent 52%);
+}
+
+.day-card {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.day-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 55px rgba(15, 23, 42, 0.1);
+}
+
+.day-cover {
+  min-height: 190px;
+}
+
+.flight-ticket {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.11), transparent 16rem),
+    linear-gradient(135deg, #f9fbff 0%, #f2f7ff 100%);
+  border-inline-start: 4px solid #2563eb;
+}
+
+.flight-route-line {
+  min-width: 6rem;
+}
+
+.generation-overlay {
+  animation: generation-fade 220ms ease-out;
+}
+
+.generation-dialog {
+  animation: generation-rise 300ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.generation-ring {
+  background:
+    conic-gradient(
+      #2563eb calc(var(--progress) * 1%),
+      #e8edf5 0
+    );
+}
+
+.generation-ring::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+@keyframes generation-fade {
+  from { opacity: 0; }
+}
+
+@keyframes generation-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(.985);
+  }
+}
+
+@media (max-width: 767px) {
+  .itinerary-hero::after {
+    background:
+      linear-gradient(0deg, rgba(5, 16, 33, 0.92) 0%, rgba(5, 16, 33, 0.4) 80%, rgba(5, 16, 33, 0.25) 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .generation-overlay,
+  .generation-dialog {
+    animation: none;
+  }
+
+  .day-card {
+    transition: none;
+  }
+}

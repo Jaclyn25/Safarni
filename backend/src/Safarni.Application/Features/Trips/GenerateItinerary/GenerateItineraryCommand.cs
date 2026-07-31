@@ -1,4 +1,5 @@
 using ChatBotApi.Application.Common.DTOs;
+using ChatBotApi.Application.Common.Exceptions;
 using ChatBotApi.Application.Common.Interfaces;
 using ChatBotApi.Application.Common.Models;
 using MediatR;
@@ -24,13 +25,14 @@ public sealed class GenerateItineraryCommandHandler
     : IRequestHandler<GenerateItineraryCommand, Result<ItineraryResponse>>
 {
     private const int MaximumGenerationAttempts = 2;
+    private const int MaximumRateLimitAttempts = 3;
     private static readonly TimeSpan RateLimitRetryDelay =
         TimeSpan.FromSeconds(61);
 
     private readonly ICurrentUserService _currentUserService;
     private readonly ITripRepository _tripRepository;
     private readonly IItineraryRepository _itineraryRepository;
-    private readonly IAIProvider _aiProvider;
+    private readonly IItineraryAIProvider _aiProvider;
     private readonly IGooglePlacesService _googlePlacesService;
     private readonly IItineraryTravelDataService?
         _travelDataService;
@@ -45,7 +47,7 @@ public sealed class GenerateItineraryCommandHandler
         ICurrentUserService currentUserService,
         ITripRepository tripRepository,
         IItineraryRepository itineraryRepository,
-        IAIProvider aiProvider,
+        IItineraryAIProvider aiProvider,
         IGooglePlacesService googlePlacesService,
         ILogger<GenerateItineraryCommandHandler> logger,
         IItineraryTravelDataService? travelDataService = null,
@@ -360,6 +362,24 @@ public sealed class GenerateItineraryCommandHandler
                             cityStop.City);
                 }
 
+                var duplicateReplacements =
+                    ItineraryDuplicatePlaceResolver
+                        .ReplaceDuplicates(
+                            generatedDays,
+                            cityStop.City,
+                            request.Preferences
+                                .PreferredLanguage,
+                            places);
+
+                if (duplicateReplacements > 0)
+                {
+                    _logger.LogInformation(
+                        "Replaced {PlaceCount} repeated verified places in {City} for trip {TripId} without another AI request.",
+                        duplicateReplacements,
+                        cityStop.City,
+                        request.TripId);
+                }
+
                 ItineraryOutputParser
                     .ValidatePlaceReferences(
                         generatedDays,
@@ -405,37 +425,46 @@ public sealed class GenerateItineraryCommandHandler
             string operation,
             CancellationToken cancellationToken)
     {
-        try
+        for (var attempt = 1;
+             attempt <= MaximumRateLimitAttempts;
+             attempt++)
         {
-            return await _aiProvider.GetChatCompletionAsync(
-                systemPrompt,
-                new List<ChatMessageDto>(),
-                userMessage,
-                options,
-                cancellationToken);
-        }
-        catch (HttpRequestException exception)
-            when (exception.Message.Contains(
-                "rate limit",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogWarning(
-                "Groq rate-limited {Operation} for trip {TripId}. Retrying once after {DelaySeconds} seconds.",
-                operation,
-                tripId,
-                RateLimitRetryDelay.TotalSeconds);
+            try
+            {
+                return await _aiProvider.GetChatCompletionAsync(
+                    systemPrompt,
+                    new List<ChatMessageDto>(),
+                    userMessage,
+                    options,
+                    cancellationToken);
+            }
+            catch (AIProviderRateLimitException exception)
+                when (attempt < MaximumRateLimitAttempts)
+            {
+                var retryDelay =
+                    attempt == 2
+                        ? RateLimitRetryDelay
+                        : exception.RetryAfter is { } providerDelay &&
+                          providerDelay > TimeSpan.Zero
+                            ? providerDelay +
+                              TimeSpan.FromSeconds(1)
+                            : RateLimitRetryDelay;
 
-            await Task.Delay(
-                RateLimitRetryDelay,
-                cancellationToken);
+                _logger.LogWarning(
+                    "Groq rate-limited {Operation} for trip {TripId} on attempt {Attempt}. Retrying after {DelaySeconds} seconds.",
+                    operation,
+                    tripId,
+                    attempt,
+                    retryDelay.TotalSeconds);
 
-            return await _aiProvider.GetChatCompletionAsync(
-                systemPrompt,
-                new List<ChatMessageDto>(),
-                userMessage,
-                options,
-                cancellationToken);
+                await Task.Delay(
+                    retryDelay,
+                    cancellationToken);
+            }
         }
+
+        throw new InvalidOperationException(
+            "The itinerary AI request ended without a result.");
     }
 
     private async Task<(Trip? Trip, Error? Error)> GetOwnedTripAsync(

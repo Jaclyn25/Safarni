@@ -710,6 +710,45 @@ internal static class ItineraryPlaceCatalog
             var category =
                 ItineraryItemInput.ParseCategory(item.Category);
 
+            if (category == ItineraryItemCategory.Other)
+            {
+                var matchingOtherPlace = places.FirstOrDefault(candidate =>
+                    string.Equals(
+                        candidate.City,
+                        assignedCity,
+                        StringComparison.OrdinalIgnoreCase) &&
+                    candidate.Purpose is
+                        ItineraryPlacePurpose.Activity or
+                        ItineraryPlacePurpose.Meal &&
+                    ((!string.IsNullOrWhiteSpace(item.PlaceReference) &&
+                      string.Equals(
+                          candidate.Reference,
+                          item.PlaceReference.Trim(),
+                          StringComparison.OrdinalIgnoreCase)) ||
+                     NamesMatch(
+                         item.Location,
+                         candidate.Place.Name) ||
+                     NamesMatch(
+                         item.Title,
+                         candidate.Place.Name)));
+
+                if (matchingOtherPlace is not null)
+                {
+                    item.PlaceReference =
+                        matchingOtherPlace.Reference;
+                    item.Location =
+                        matchingOtherPlace.Place.Name;
+                    item.Category =
+                        matchingOtherPlace.Purpose ==
+                        ItineraryPlacePurpose.Meal
+                            ? "meal"
+                            : "activity";
+                    category =
+                        ItineraryItemInput.ParseCategory(
+                            item.Category);
+                }
+            }
+
             var requiresVerifiedPlace =
                 category is ItineraryItemCategory.Activity
                     or ItineraryItemCategory.Accommodation;

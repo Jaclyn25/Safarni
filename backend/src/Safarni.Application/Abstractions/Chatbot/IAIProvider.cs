@@ -3,7 +3,7 @@ using ChatBotApi.Application.Common.Models;
 
 namespace ChatBotApi.Application.Common.Interfaces;
 
-public interface IAIProvider
+public interface IItineraryAIProvider
 {
     Task<string> GetChatCompletionAsync(
         string systemPrompt,
@@ -17,7 +17,10 @@ public interface IAIProvider
         string userMessage,
         AICompletionOptions options,
         CancellationToken cancellationToken = default);
+}
 
+public interface IAIProvider : IItineraryAIProvider
+{
     IAsyncEnumerable<string> StreamChatCompletionAsync(
         string systemPrompt,
         List<ChatMessageDto> history,

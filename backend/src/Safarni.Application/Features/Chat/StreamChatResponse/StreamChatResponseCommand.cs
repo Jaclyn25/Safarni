@@ -34,6 +34,8 @@ public sealed class StreamChatResponseCommandHandler
     private readonly IPromptBuilder _promptBuilder;
     private readonly IIntentDetectionService
         _intentDetectionService;
+    private readonly IChatScopeClassifier
+        _scopeClassifier;
     private readonly IGooglePlacesService
         _googlePlacesService;
     private readonly IValidator<StreamChatResponseCommand>
@@ -50,6 +52,7 @@ public sealed class StreamChatResponseCommandHandler
         IQdrantService qdrantService,
         IPromptBuilder promptBuilder,
         IIntentDetectionService intentDetectionService,
+        IChatScopeClassifier scopeClassifier,
         IGooglePlacesService googlePlacesService,
         IValidator<StreamChatResponseCommand> validator,
         ILogger<StreamChatResponseCommandHandler> logger)
@@ -62,6 +65,7 @@ public sealed class StreamChatResponseCommandHandler
         _qdrantService = qdrantService;
         _promptBuilder = promptBuilder;
         _intentDetectionService = intentDetectionService;
+        _scopeClassifier = scopeClassifier;
         _googlePlacesService = googlePlacesService;
         _validator = validator;
         _logger = logger;
@@ -106,6 +110,7 @@ public sealed class StreamChatResponseCommandHandler
         var responseContext =
             await BuildResponseContextAsync(
                 request.Message,
+                history,
                 cancellationToken);
 
         var completeResponse = new StringBuilder();
@@ -224,14 +229,29 @@ public sealed class StreamChatResponseCommandHandler
     private async Task<ChatResponseContext>
         BuildResponseContextAsync(
             string message,
+            List<ChatMessageDto> history,
             CancellationToken cancellationToken)
     {
         var intent =
-            _intentDetectionService.DetectIntent(message);
+            await ResolveIntentAsync(
+                message,
+                history,
+                cancellationToken);
 
         _logger.LogInformation(
             "Detected streaming chat intent: {Intent}",
             intent);
+
+        if (intent is ChatIntent.Social or
+            ChatIntent.OutOfScope)
+        {
+            return new ChatResponseContext(
+                _promptBuilder.BuildDirectSystemPrompt(
+                    intent,
+                    message),
+                _promptBuilder.BuildUserPrompt(message),
+                ImmediateResponse: null);
+        }
 
         var contextChunks =
             await FindContextChunksAsync(
@@ -283,6 +303,42 @@ public sealed class StreamChatResponseCommandHandler
             systemPrompt,
             _promptBuilder.BuildUserPrompt(message),
             immediateResponse);
+    }
+
+    private async Task<ChatIntent> ResolveIntentAsync(
+        string message,
+        List<ChatMessageDto> history,
+        CancellationToken cancellationToken)
+    {
+        var keywordIntent =
+            _intentDetectionService.DetectIntent(message);
+
+        if (keywordIntent == ChatIntent.OutOfScope)
+        {
+            return ChatIntent.OutOfScope;
+        }
+
+        var semanticIntent =
+            await _scopeClassifier.ClassifyAsync(
+                message,
+                history,
+                cancellationToken);
+
+        if (semanticIntent is ChatIntent.OutOfScope or
+            ChatIntent.Social)
+        {
+            return semanticIntent;
+        }
+
+        return keywordIntent switch
+        {
+            ChatIntent.GooglePlacesOnly =>
+                ChatIntent.GooglePlacesOnly,
+            ChatIntent.Hybrid =>
+                ChatIntent.Hybrid,
+            _ =>
+                ChatIntent.RagOnly
+        };
     }
 
     private async Task<List<DocumentChunk>>

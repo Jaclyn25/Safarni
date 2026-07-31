@@ -11,13 +11,13 @@ export const routes: Routes = [
     path: 'planner/:tripId',
     loadComponent: () =>
       import('./pages/planner/planner.component').then((m) => m.PlannerComponent),
-    title: 'Safarni | AI Trip Planner'
+    title: 'Safarni | Trip Planner'
   },
   {
     path: 'planner',
     loadComponent: () =>
       import('./pages/planner/planner.component').then((m) => m.PlannerComponent),
-    title: 'Safarni | AI Trip Planner'
+    title: 'Safarni | Trip Planner'
   },
   {
     path: 'bookings',
@@ -29,7 +29,7 @@ export const routes: Routes = [
     path: 'concierge',
     loadComponent: () =>
       import('./pages/concierge/concierge.component').then((m) => m.ConciergeComponent),
-    title: 'Safarni | AI Concierge'
+    title: 'Safarni | Travel Concierge'
   },
   {
     path: 'register',

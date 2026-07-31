@@ -25,6 +25,17 @@ interface ChatStreamEvent {
   type: 'token' | 'completed' | 'error';
   token: string | null;
   conversation: Conversation | null;
+  code: string | null;
+}
+
+class ChatStreamRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+    this.name = 'ChatStreamRequestError';
+  }
 }
 
 @Injectable({
@@ -89,7 +100,10 @@ export class ChatService {
     });
 
     if (!response.ok) {
-      throw new Error(await this.readApiError(response));
+      throw new ChatStreamRequestError(
+        await this.readApiError(response),
+        response.status
+      );
     }
 
     if (!response.body) {
@@ -206,6 +220,14 @@ export class ChatService {
     }
 
     if (event.name === 'error') {
+      if (data?.code === 'Chat.SessionLimitReached') {
+        throw new ChatStreamRequestError(
+          data.token ||
+            'Start a new chat to continue.',
+          429
+        );
+      }
+
       throw new Error(
         data?.token ||
           'The assistant could not complete the response.'

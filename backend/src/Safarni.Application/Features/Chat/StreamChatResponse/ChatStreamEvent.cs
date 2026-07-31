@@ -5,7 +5,8 @@ namespace ChatBotApi.Application.Features.Chat.StreamChatResponse;
 public sealed record ChatStreamEvent(
     string Type,
     string? Token = null,
-    ConversationDto? Conversation = null)
+    ConversationDto? Conversation = null,
+    string? Code = null)
 {
     public static ChatStreamEvent TokenEvent(string token)
     {

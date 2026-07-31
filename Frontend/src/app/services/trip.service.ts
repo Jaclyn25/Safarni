@@ -1,5 +1,6 @@
 import {
   HttpClient,
+  HttpErrorResponse,
   HttpHeaders,
   HttpParams
 } from '@angular/common/http';
@@ -102,6 +103,48 @@ export class TripService {
         headers: this.getHeaders()
       }
     );
+  }
+
+  rememberTrip(trip: TripResponse): void {
+    sessionStorage.setItem(
+      `safarni_trip_${trip.id}`,
+      JSON.stringify(trip)
+    );
+  }
+
+  getRememberedTrip(
+    tripId: string
+  ): TripResponse | null {
+    const stored = sessionStorage.getItem(
+      `safarni_trip_${tripId}`
+    );
+
+    if (!stored) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(stored) as TripResponse;
+    } catch {
+      return null;
+    }
+  }
+
+  getErrorMessage(
+    error: unknown,
+    fallback: string
+  ): string {
+    if (error instanceof HttpErrorResponse) {
+      return (
+        error.error?.errors?.[0]?.message ||
+        error.error?.message ||
+        fallback
+      );
+    }
+
+    return error instanceof Error
+      ? error.message
+      : fallback;
   }
 
   private getHeaders(): HttpHeaders {

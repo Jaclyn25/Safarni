@@ -194,6 +194,9 @@ public sealed class
         var intentDetectionService =
             new Mock<IIntentDetectionService>();
 
+        var scopeClassifier =
+            new Mock<IChatScopeClassifier>();
+
         var googlePlacesService =
             new Mock<IGooglePlacesService>();
 
@@ -239,6 +242,14 @@ public sealed class
                 service.DetectIntent(userMessage))
             .Returns(ChatIntent.RagOnly);
 
+        scopeClassifier
+            .Setup(service =>
+                service.ClassifyAsync(
+                    userMessage,
+                    It.IsAny<List<ChatMessageDto>>(),
+                    It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ChatIntent.RagOnly);
+
         promptBuilder
             .Setup(builder =>
                 builder.BuildSystemPrompt(
@@ -267,6 +278,7 @@ public sealed class
                 qdrantService.Object,
                 promptBuilder.Object,
                 intentDetectionService.Object,
+                scopeClassifier.Object,
                 googlePlacesService.Object,
                 validator,
                 logger.Object);

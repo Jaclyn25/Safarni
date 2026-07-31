@@ -1,0 +1,97 @@
+.create-trip-backdrop {
+  animation: trip-modal-fade 180ms ease-out;
+}
+
+.create-trip-dialog {
+  height: min(820px, 92dvh);
+  animation: trip-modal-rise 240ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.create-trip-content {
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.create-trip-content,
+.city-result-list {
+  scrollbar-color: #b8c4d6 transparent;
+  scrollbar-width: thin;
+}
+
+.create-trip-content::-webkit-scrollbar,
+.city-result-list::-webkit-scrollbar {
+  width: 7px;
+}
+
+.create-trip-content::-webkit-scrollbar-thumb,
+.city-result-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #b8c4d6;
+}
+
+.create-trip-art {
+  background:
+    linear-gradient(180deg, rgba(9, 35, 65, 0.02) 40%, rgba(5, 20, 38, 0.82) 100%),
+    url('/assets/create-trip-travel-collage.jpg') center / cover no-repeat;
+}
+
+.create-trip-input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #d7dce5;
+  border-radius: 14px;
+  background: #fff;
+  color: #172033;
+  padding: 0.75rem 0.9rem 0.75rem 2.65rem;
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.create-trip-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.create-trip-input:disabled {
+  cursor: wait;
+  background: #f4f6f8;
+  color: #7a8494;
+}
+
+.create-trip-select {
+  appearance: none;
+}
+
+.city-result-list {
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.14);
+}
+
+@keyframes trip-modal-fade {
+  from { opacity: 0; }
+}
+
+@keyframes trip-modal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+}
+
+@media (max-width: 767px) {
+  .create-trip-dialog {
+    height: 94dvh;
+    width: 100%;
+    max-height: 94dvh;
+    border-radius: 24px 24px 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-trip-backdrop,
+  .create-trip-dialog {
+    animation: none;
+  }
+}

@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using ChatBotApi.Application.Common.Exceptions;
 using ChatBotApi.Application.Features.Chat.Commands.CreateConversation;
 using ChatBotApi.Application.Features.Chat.Commands.DeleteConversation;
 using ChatBotApi.Application.Features.Chat.Commands.RegenerateResponse;
@@ -24,6 +25,9 @@ namespace ChatBotApi.Controllers;
 [Route("api/[controller]")]
 public class ChatController : ControllerBase
 {
+    private const string ChatSessionLimitMessage =
+        "وصلت هذه المحادثة إلى الحد المتاح حاليًا. ابدأ شات جديد للمتابعة.";
+
     private static readonly JsonSerializerOptions
         StreamJsonOptions =
             new(JsonSerializerDefaults.Web);
@@ -137,6 +141,15 @@ public class ChatController : ControllerBase
 
             return;
         }
+        catch (AIProviderRateLimitException)
+        {
+            await WriteJsonErrorAsync(
+                StatusCodes.Status429TooManyRequests,
+                ChatSessionLimitMessage,
+                cancellationToken);
+
+            return;
+        }
         catch (OperationCanceledException)
             when (cancellationToken.IsCancellationRequested)
         {
@@ -179,6 +192,15 @@ public class ChatController : ControllerBase
             when (cancellationToken.IsCancellationRequested)
         {
             // The user stopped the response. Partial assistant text is not saved.
+        }
+        catch (AIProviderRateLimitException)
+        {
+            await WriteStreamEventAsync(
+                new ChatStreamEvent(
+                    Type: "error",
+                    Token: ChatSessionLimitMessage,
+                    Code: "Chat.SessionLimitReached"),
+                CancellationToken.None);
         }
         catch (Exception)
         {

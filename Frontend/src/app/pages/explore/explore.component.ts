@@ -1,7 +1,26 @@
-import { Component, inject } from '@angular/core';
+import {
+  Component,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  inject
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import {
+  ActivatedRoute,
+  Router,
+  RouterLink,
+  RouterLinkActive
+} from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import {
+  CreateTripRequest,
+  TravelCountry,
+  TripCitySelection,
+  TripService
+} from '../../services/trip.service';
+import { AuthService } from '../../services/auth.service';
 
 export interface FeaturedDestination {
   id: string;
@@ -42,10 +61,36 @@ export interface AiRecommendation {
   selector: 'app-explore',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
-  templateUrl: './explore.component.html'
+  templateUrl: './explore.component.html',
+  styleUrl: './explore.component.css'
 })
-export class ExploreComponent {
+export class ExploreComponent implements OnInit, OnDestroy {
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private tripService = inject(TripService);
+  private authService = inject(AuthService);
+
+  isCreateTripOpen = false;
+  isLoadingCountries = false;
+  isLoadingCities = false;
+  isCreatingTrip = false;
+  createTripError = '';
+  countryLoadError = '';
+  cityLoadError = '';
+
+  countries: TravelCountry[] = [];
+  availableCities: string[] = [];
+  citySearch = '';
+  selectedCities: TripCitySelection[] = [];
+
+  tripDraft: CreateTripRequest = {
+    name: '',
+    destination: '',
+    originCountry: '',
+    startDate: '',
+    endDate: '',
+    cities: []
+  };
 
   searchQuery: string = '';
   selectedFilter: string = 'All';
@@ -219,6 +264,352 @@ export class ExploreComponent {
     return this.trendingDestinations.filter(d => d.category === this.selectedFilter);
   }
 
+  get today(): string {
+    const now = new Date();
+    const timezoneOffset =
+      now.getTimezoneOffset() * 60_000;
+    return new Date(now.getTime() - timezoneOffset)
+      .toISOString()
+      .slice(0, 10);
+  }
+
+  get tripDayCount(): number {
+    if (
+      !this.tripDraft.startDate ||
+      !this.tripDraft.endDate
+    ) {
+      return 0;
+    }
+
+    const start = new Date(
+      `${this.tripDraft.startDate}T12:00:00`
+    );
+    const end = new Date(
+      `${this.tripDraft.endDate}T12:00:00`
+    );
+    const difference =
+      Math.floor(
+        (end.getTime() - start.getTime()) /
+          86_400_000
+      ) + 1;
+
+    return Math.max(0, difference);
+  }
+
+  get allocatedDays(): number {
+    return this.selectedCities.reduce(
+      (sum, city) => sum + Number(city.days || 0),
+      0
+    );
+  }
+
+  get remainingDays(): number {
+    return this.tripDayCount - this.allocatedDays;
+  }
+
+  get filteredCities(): string[] {
+    const query = this.citySearch
+      .trim()
+      .toLocaleLowerCase();
+    const selected = new Set(
+      this.selectedCities.map((city) =>
+        city.name.toLocaleLowerCase()
+      )
+    );
+
+    return this.availableCities
+      .filter(
+        (city) =>
+          !selected.has(city.toLocaleLowerCase()) &&
+          (!query ||
+            city.toLocaleLowerCase().includes(query))
+      );
+  }
+
+  get canCreateTrip(): boolean {
+    return Boolean(
+      this.tripDraft.name.trim() &&
+      this.tripDraft.originCountry &&
+      this.tripDraft.destination &&
+      this.tripDraft.startDate &&
+      this.tripDraft.endDate &&
+      this.tripDayCount > 0 &&
+      this.selectedCities.length > 0 &&
+      this.remainingDays === 0 &&
+      !this.isCreatingTrip
+    );
+  }
+
+  ngOnInit(): void {
+    this.route.queryParamMap.subscribe(
+      (queryParams) => {
+        if (
+          queryParams.get('createTrip') ===
+            '1' &&
+          !this.isCreateTripOpen
+        ) {
+          void this.openCreateTrip();
+        }
+      }
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.setPageScrollLocked(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  handleEscape(): void {
+    if (
+      this.isCreateTripOpen &&
+      !this.isCreatingTrip
+    ) {
+      this.closeCreateTrip();
+    }
+  }
+
+  async openCreateTrip(
+    suggestedName = '',
+    suggestedDestination = ''
+  ): Promise<void> {
+    this.createTripError = '';
+    this.tripDraft.name =
+      suggestedName || this.tripDraft.name;
+    this.isCreateTripOpen = true;
+    this.setPageScrollLocked(true);
+
+    if (this.countries.length === 0) {
+      await this.loadCountries();
+    }
+
+    if (
+      suggestedDestination &&
+      this.countries.some(
+        (country) =>
+          country.name.toLocaleLowerCase() ===
+          suggestedDestination.toLocaleLowerCase()
+      )
+    ) {
+      this.tripDraft.destination =
+        suggestedDestination;
+      await this.onDestinationChanged();
+    }
+  }
+
+  closeCreateTrip(): void {
+    if (this.isCreatingTrip) {
+      return;
+    }
+
+    this.isCreateTripOpen = false;
+    this.setPageScrollLocked(false);
+
+    if (
+      this.route.snapshot.queryParamMap.get(
+        'createTrip'
+      ) === '1'
+    ) {
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: {
+          createTrip: null
+        },
+        queryParamsHandling: 'merge',
+        replaceUrl: true
+      });
+    }
+  }
+
+  async onDestinationChanged(): Promise<void> {
+    this.availableCities = [];
+    this.selectedCities = [];
+    this.citySearch = '';
+    this.cityLoadError = '';
+
+    if (!this.tripDraft.destination) {
+      return;
+    }
+
+    this.isLoadingCities = true;
+
+    try {
+      const response = await firstValueFrom(
+        this.tripService.getCities(
+          this.tripDraft.destination
+        )
+      );
+      this.availableCities = response.data ?? [];
+    } catch {
+      this.cityLoadError =
+        'Cities could not be loaded. Please try selecting the country again.';
+    } finally {
+      this.isLoadingCities = false;
+    }
+  }
+
+  onDatesChanged(): void {
+    if (
+      this.tripDraft.endDate &&
+      this.tripDraft.startDate &&
+      this.tripDraft.endDate <
+        this.tripDraft.startDate
+    ) {
+      this.tripDraft.endDate =
+        this.tripDraft.startDate;
+    }
+
+    this.rebalanceCityDays();
+  }
+
+  addCity(cityName: string): void {
+    if (
+      !cityName ||
+      this.selectedCities.some(
+        (city) =>
+          city.name.toLocaleLowerCase() ===
+          cityName.toLocaleLowerCase()
+      ) ||
+      this.selectedCities.length >=
+        this.tripDayCount
+    ) {
+      return;
+    }
+
+    if (this.selectedCities.length === 0) {
+      this.selectedCities = [
+        {
+          name: cityName,
+          days: Math.max(1, this.tripDayCount)
+        }
+      ];
+    } else {
+      const donorIndex =
+        this.findCityWithMostDays();
+
+      if (
+        donorIndex < 0 ||
+        this.selectedCities[donorIndex].days <= 1
+      ) {
+        return;
+      }
+
+      this.selectedCities =
+        this.selectedCities.map(
+          (city, index) =>
+            index === donorIndex
+              ? {
+                  ...city,
+                  days: city.days - 1
+                }
+              : city
+        );
+      this.selectedCities = [
+        ...this.selectedCities,
+        { name: cityName, days: 1 }
+      ];
+    }
+
+    this.citySearch = '';
+  }
+
+  removeCity(cityName: string): void {
+    const removed = this.selectedCities.find(
+      (city) => city.name === cityName
+    );
+    this.selectedCities =
+      this.selectedCities.filter(
+        (city) => city.name !== cityName
+      );
+
+    if (
+      removed &&
+      this.selectedCities.length > 0
+    ) {
+      this.selectedCities = this.selectedCities.map(
+        (city, index) =>
+          index === 0
+            ? {
+                ...city,
+                days: city.days + removed.days
+              }
+            : city
+      );
+    }
+  }
+
+  changeCityDays(
+    cityName: string,
+    rawValue: number | string
+  ): void {
+    const nextValue = Math.max(
+      1,
+      Math.floor(Number(rawValue) || 1)
+    );
+
+    this.selectedCities = this.selectedCities.map(
+      (city) =>
+        city.name === cityName
+          ? { ...city, days: nextValue }
+          : city
+    );
+  }
+
+  async createTrip(): Promise<void> {
+    this.createTripError = '';
+
+    if (!this.canCreateTrip) {
+      this.createTripError =
+        this.remainingDays === 0
+          ? 'Please complete all required trip details.'
+          : `Allocate all trip days before continuing.`;
+      return;
+    }
+
+    if (!this.authService.isAuthenticated()) {
+      this.createTripError =
+        'Please sign in before creating your trip. Your details will stay here.';
+      return;
+    }
+
+    this.isCreatingTrip = true;
+
+    const request: CreateTripRequest = {
+      ...this.tripDraft,
+      name: this.tripDraft.name.trim(),
+      cities: this.selectedCities.map((city) => ({
+        name: city.name,
+        days: Number(city.days)
+      }))
+    };
+
+    try {
+      const response = await firstValueFrom(
+        this.tripService.createTrip(request)
+      );
+
+      if (!response.data) {
+        throw new Error(
+          'The trip was created without a response.'
+        );
+      }
+
+      this.tripService.rememberTrip(response.data);
+      this.closeCreateTripAfterSuccess();
+      await this.router.navigate([
+        '/planner',
+        response.data.id
+      ]);
+    } catch (error: unknown) {
+      this.createTripError =
+        this.tripService.getErrorMessage(
+          error,
+          'Your trip could not be created. Please try again.'
+        );
+    } finally {
+      this.isCreatingTrip = false;
+    }
+  }
+
   onSearch(): void {
     const query = this.searchQuery.trim();
     if (query) {
@@ -243,7 +634,84 @@ export class ExploreComponent {
   }
 
   buildRecommendation(title: string): void {
-    this.router.navigate(['/planner'], { queryParams: { trip: title } });
+    const destination =
+      title.split(' ')[0] || '';
+    void this.openCreateTrip(title, destination);
+  }
+
+  private async loadCountries(): Promise<void> {
+    this.isLoadingCountries = true;
+    this.countryLoadError = '';
+
+    try {
+      const response = await firstValueFrom(
+        this.tripService.getCountries()
+      );
+      this.countries = (response.data ?? []).sort(
+        (first, second) =>
+          first.name.localeCompare(second.name)
+      );
+    } catch {
+      this.countryLoadError =
+        'Countries could not be loaded. Please close this window and try again.';
+    } finally {
+      this.isLoadingCountries = false;
+    }
+  }
+
+  private rebalanceCityDays(): void {
+    if (this.selectedCities.length === 0) {
+      return;
+    }
+
+    if (
+      this.tripDayCount <
+      this.selectedCities.length
+    ) {
+      this.selectedCities =
+        this.selectedCities.slice(
+          0,
+          this.tripDayCount
+        );
+    }
+
+    if (this.selectedCities.length === 0) {
+      return;
+    }
+
+    const resetCities = this.selectedCities.map(
+      (city) => ({ ...city, days: 1 })
+    );
+    resetCities[0].days +=
+      this.tripDayCount - resetCities.length;
+    this.selectedCities = resetCities;
+  }
+
+  private findCityWithMostDays(): number {
+    if (this.selectedCities.length === 0) {
+      return -1;
+    }
+
+    return this.selectedCities.reduce(
+      (bestIndex, city, index, cities) =>
+        city.days > cities[bestIndex].days
+          ? index
+          : bestIndex,
+      0
+    );
+  }
+
+  private setPageScrollLocked(
+    locked: boolean
+  ): void {
+    document.body.style.overflow = locked
+      ? 'hidden'
+      : '';
+  }
+
+  private closeCreateTripAfterSuccess(): void {
+    this.isCreateTripOpen = false;
+    this.setPageScrollLocked(false);
   }
 }
 

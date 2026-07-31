@@ -212,11 +212,23 @@ internal static class ItineraryOutputParser
 
             if (category is
                     (ItineraryItemCategory.Activity or
-                    ItineraryItemCategory.Meal) &&
-                !usedReferences.Add(candidate.Reference))
+                     ItineraryItemCategory.Meal) &&
+                 !usedReferences.Add(candidate.Reference))
             {
-                throw new ItineraryOutputException(
-                    $"The verified place '{candidate.Place.Name}' is repeated. Every restaurant, cafe and attraction must be unique.");
+                var hasUnusedAlternative = places.Any(alternative =>
+                    alternative.Purpose == candidate.Purpose &&
+                    string.Equals(
+                        alternative.City,
+                        assignedCity,
+                        StringComparison.OrdinalIgnoreCase) &&
+                    !usedReferences.Contains(
+                        alternative.Reference));
+
+                if (hasUnusedAlternative)
+                {
+                    throw new ItineraryOutputException(
+                        $"The verified place '{candidate.Place.Name}' is repeated even though another verified option is available.");
+                }
             }
         }
     }
@@ -231,7 +243,6 @@ internal static class ItineraryOutputParser
     {
         ValidateDailyStructure(
             days,
-            preferences,
             places,
             cityPlan);
         ValidateMealFrequency(
@@ -253,18 +264,9 @@ internal static class ItineraryOutputParser
 
     private static void ValidateDailyStructure(
         IReadOnlyList<AiItineraryDay> days,
-        GenerateItineraryPreferences preferences,
         IReadOnlyList<ItineraryPlaceCandidate> places,
         IReadOnlyList<ItineraryCityStop> cityPlan)
     {
-        var desiredActivityCount =
-            preferences.Pace.Trim().ToLowerInvariant() switch
-            {
-                "active" => 3,
-                "relaxed" => 1,
-                _ => 2
-            };
-
         foreach (var day in days)
         {
             var assignedCity =
@@ -280,20 +282,16 @@ internal static class ItineraryOutputParser
                     assignedCity,
                     StringComparison.OrdinalIgnoreCase));
 
-            var requirePaceActivities =
-                activityCandidates >=
-                desiredActivityCount;
-
             var activityCount = day.Items.Count(item =>
                     ItineraryItemInput.ParseCategory(
                         item.Category) ==
                     ItineraryItemCategory.Activity);
 
-            if (requirePaceActivities &&
-                activityCount < desiredActivityCount)
+            if (activityCandidates > 0 &&
+                activityCount < 1)
             {
                 throw new ItineraryOutputException(
-                    $"Day {day.DayNumber} must include at least {desiredActivityCount} verified activities for the selected {preferences.Pace} pace.");
+                    $"Day {day.DayNumber} must include at least one verified activity.");
             }
 
             TimeSpan? previousEnd = null;

@@ -22,15 +22,19 @@ public class GroqProvider : IAIProvider
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly ILogger<GroqProvider> _logger;
+    private readonly string _configurationSectionName;
 
     public GroqProvider(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
-        ILogger<GroqProvider> logger)
+        ILogger<GroqProvider> logger,
+        string configurationSectionName)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
         _logger = logger;
+        _configurationSectionName =
+            configurationSectionName;
     }
 
     public Task<string> GetChatCompletionAsync(
@@ -245,45 +249,53 @@ public class GroqProvider : IAIProvider
 
     private GroqSettings GetSettings()
     {
+        var sectionPrefix =
+            $"{_configurationSectionName}:";
+
         var apiKey =
-            _configuration["Groq:ApiKey"] ??
-            Environment.GetEnvironmentVariable(
-                "GROQ_API_KEY");
+            _configuration[
+                $"{sectionPrefix}ApiKey"];
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             _logger.LogError(
-                "Groq API key is not configured.");
+                "Groq API key is not configured for {ConfigurationSection}.",
+                _configurationSectionName);
 
             throw new InvalidOperationException(
-                "Groq API key is not configured.");
+                $"Groq API key is not configured for {_configurationSectionName}.");
         }
 
         return new GroqSettings(
             apiKey,
-            _configuration["Groq:Model"]
+            _configuration[
+                $"{sectionPrefix}Model"]
                 ?? "llama-3.3-70b-versatile",
 
             double.TryParse(
-                _configuration["Groq:Temperature"],
+                _configuration[
+                    $"{sectionPrefix}Temperature"],
                 out var temperature)
                     ? temperature
                     : 0.7,
 
             int.TryParse(
-                _configuration["Groq:MaxTokens"],
+                _configuration[
+                    $"{sectionPrefix}MaxTokens"],
                 out var maxTokens)
                     ? maxTokens
                     : 1200,
 
             double.TryParse(
-                _configuration["Groq:TopP"],
+                _configuration[
+                    $"{sectionPrefix}TopP"],
                 out var topP)
                     ? topP
                     : 0.9,
 
             int.TryParse(
-                _configuration["Groq:TimeoutSeconds"],
+                _configuration[
+                    $"{sectionPrefix}TimeoutSeconds"],
                 out var timeoutSeconds)
                     ? timeoutSeconds
                     : 30);
@@ -453,7 +465,7 @@ public class GroqProvider : IAIProvider
                 body);
 
             throw new HttpRequestException(
-                "The AI request is too large. Reduce the number of places or the requested output size.");
+                "The AI request is too large. Reduce the requested input or output size.");
         }
 
         if (response.StatusCode ==
@@ -463,8 +475,9 @@ public class GroqProvider : IAIProvider
                 "Groq rate limit was exceeded. Body: {Body}",
                 body);
 
-            throw new HttpRequestException(
-                "The AI provider rate limit was exceeded. Please try again shortly.");
+            throw new AIProviderRateLimitException(
+                "The AI provider rate limit was exceeded.",
+                GetRetryAfter(response));
         }
 
         _logger.LogError(
@@ -474,6 +487,29 @@ public class GroqProvider : IAIProvider
 
         throw new HttpRequestException(
             "The AI provider returned an error.");
+    }
+
+    private static TimeSpan? GetRetryAfter(
+        HttpResponseMessage response)
+    {
+        var retryAfter = response.Headers.RetryAfter;
+
+        if (retryAfter?.Delta is { } delta)
+        {
+            return delta;
+        }
+
+        if (retryAfter?.Date is { } retryDate)
+        {
+            var remaining =
+                retryDate - DateTimeOffset.UtcNow;
+
+            return remaining > TimeSpan.Zero
+                ? remaining
+                : TimeSpan.Zero;
+        }
+
+        return null;
     }
 
     private static readonly JsonSerializerOptions

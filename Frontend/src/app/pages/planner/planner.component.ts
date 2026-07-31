@@ -3,13 +3,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   Component,
   HostListener,
+  OnDestroy,
   OnInit
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  ActivatedRoute,
-  RouterLink,
-  RouterLinkActive
+  ActivatedRoute
 } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
@@ -23,6 +22,10 @@ import {
   ItineraryService,
   VenueSuggestion
 } from '../../services/itinerary.service';
+import {
+  TripResponse,
+  TripService
+} from '../../services/trip.service';
 
 interface ItemDraft {
   targetDayId: string;
@@ -48,15 +51,23 @@ interface PreferenceOption {
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    RouterLink,
-    RouterLinkActive
+    FormsModule
   ],
-  templateUrl: './planner.component.html'
+  templateUrl: './planner.component.html',
+  styleUrl: './planner.component.css'
 })
-export class PlannerComponent implements OnInit {
+export class PlannerComponent
+  implements OnInit, OnDestroy {
   scrolled = false;
   tripId = '';
+  trip: TripResponse | null = null;
+  isEditingPreferences = false;
+  generationProgress = 12;
+  generationCityIndex = 0;
+  generationMessage =
+    'Gathering your trip details…';
+  private generationTimer:
+    ReturnType<typeof setInterval> | null = null;
 
   selectedInterests = [
     'culture',
@@ -310,7 +321,8 @@ export class PlannerComponent implements OnInit {
 
   constructor(
     private readonly route: ActivatedRoute,
-    private readonly itineraryService: ItineraryService
+    private readonly itineraryService: ItineraryService,
+    private readonly tripService: TripService
   ) {}
 
   ngOnInit(): void {
@@ -320,8 +332,16 @@ export class PlannerComponent implements OnInit {
       '';
 
     if (this.tripId) {
+      this.trip =
+        this.tripService.getRememberedTrip(
+          this.tripId
+        );
       void this.loadExistingItinerary();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.stopGenerationProgress();
   }
 
   @HostListener('window:scroll')
@@ -331,6 +351,149 @@ export class PlannerComponent implements OnInit {
 
   get visibleDays(): ItineraryDay[] {
     return this.itinerary?.days ?? [];
+  }
+
+  get tripCities(): string[] {
+    if (this.trip?.cities?.length) {
+      return this.trip.cities.map(
+        (city) => city.name
+      );
+    }
+
+    return [];
+  }
+
+  get tripDateRange(): string {
+    if (
+      !this.trip?.startDate ||
+      !this.trip?.endDate
+    ) {
+      return `${this.visibleDays.length} ${
+        this.visibleDays.length === 1
+          ? 'day'
+          : 'days'
+      }`;
+    }
+
+    const start = new Date(this.trip.startDate);
+    const end = new Date(this.trip.endDate);
+    const formatter = new Intl.DateTimeFormat(
+      'en-US',
+      {
+        month: 'short',
+        day: 'numeric',
+        year:
+          start.getFullYear() !==
+          end.getFullYear()
+            ? 'numeric'
+            : undefined
+      }
+    );
+
+    return `${formatter.format(start)} – ${formatter.format(end)}, ${end.getFullYear()}`;
+  }
+
+  get itineraryHeroImage(): string {
+    return this.destinationImage(
+      this.trip?.destination ||
+        this.tripCities[0] ||
+        this.visibleDays[0]?.title ||
+        ''
+    );
+  }
+
+  get generationCities(): string[] {
+    return this.tripCities.length
+      ? this.tripCities
+      : ['Your day-by-day plan'];
+  }
+
+  generationCityStatus(
+    index: number
+  ): 'complete' | 'active' | 'waiting' {
+    if (index < this.generationCityIndex) {
+      return 'complete';
+    }
+
+    if (index === this.generationCityIndex) {
+      return 'active';
+    }
+
+    return 'waiting';
+  }
+
+  editPreferences(): void {
+    this.isEditingPreferences = true;
+    window.setTimeout(
+      () =>
+        document
+          .getElementById('preferences')
+          ?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          }),
+      0
+    );
+  }
+
+  cancelPreferenceEditing(): void {
+    this.isEditingPreferences = false;
+  }
+
+  dayImage(
+    day: ItineraryDay
+  ): string {
+    return this.destinationImage(
+      `${day.title} ${day.notes ?? ''}`
+    );
+  }
+
+  isFlight(item: ItineraryItem): boolean {
+    return item.costSource ===
+      'live_flight_price';
+  }
+
+  flightDepartureCode(
+    item: ItineraryItem
+  ): string {
+    return this.flightCodes(item)[0] || 'DEP';
+  }
+
+  flightArrivalCode(
+    item: ItineraryItem
+  ): string {
+    return this.flightCodes(item)[1] || 'ARR';
+  }
+
+  flightDetail(
+    item: ItineraryItem,
+    index: number
+  ): string {
+    return (
+      item.description
+        ?.split('·')
+        .map((part) => part.trim())
+        .filter(Boolean)[index] ?? ''
+    );
+  }
+
+  flightDuration(
+    item: ItineraryItem
+  ): string {
+    return (
+      this.flightDetail(item, 3) ||
+      this.flightDetail(item, 2) ||
+      'Flight'
+    );
+  }
+
+  flightStops(
+    item: ItineraryItem
+  ): string {
+    return (
+      this.flightDetail(item, 2) ||
+      'Route details'
+    );
   }
 
   get displayCurrency(): string {
@@ -639,6 +802,7 @@ export class PlannerComponent implements OnInit {
     };
 
     this.isGenerating = true;
+    this.startGenerationProgress();
     this.cancelItemForm();
 
     try {
@@ -668,6 +832,7 @@ export class PlannerComponent implements OnInit {
         : message;
     } finally {
       this.isGenerating = false;
+      this.stopGenerationProgress();
     }
   }
 
@@ -959,6 +1124,164 @@ export class PlannerComponent implements OnInit {
       itinerary.currencyCode;
     this.travelerCount =
       itinerary.travelerCount;
+    this.isEditingPreferences = false;
+  }
+
+  private startGenerationProgress(): void {
+    this.stopGenerationProgress();
+    this.generationProgress = 12;
+    this.generationCityIndex = 0;
+    this.generationMessage =
+      'Gathering your trip details…';
+
+    const messages = [
+      'Arranging the best flow for each day…',
+      'Balancing activities, meals, and rest…',
+      'Checking routes and practical timing…',
+      'Almost there — adding the finishing touches…'
+    ];
+    let messageIndex = 0;
+
+    this.generationTimer = setInterval(() => {
+      this.generationProgress = Math.min(
+        92,
+        this.generationProgress +
+          Math.max(
+            2,
+            Math.round(
+              (94 - this.generationProgress) *
+                0.09
+            )
+          )
+      );
+
+      messageIndex =
+        (messageIndex + 1) % messages.length;
+      this.generationMessage =
+        messages[messageIndex];
+
+      const cityProgress = Math.floor(
+        (this.generationProgress / 94) *
+          this.generationCities.length
+      );
+      this.generationCityIndex = Math.min(
+        this.generationCities.length - 1,
+        cityProgress
+      );
+    }, 1800);
+  }
+
+  private stopGenerationProgress(): void {
+    if (this.generationTimer) {
+      clearInterval(this.generationTimer);
+      this.generationTimer = null;
+    }
+  }
+
+  private destinationImage(
+    source: string
+  ): string {
+    const normalized = source
+      .toLocaleLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    const images: Array<
+      [string[], string]
+    > = [
+      [
+        [
+          'turkey',
+          'turkiye',
+          'istanbul',
+          'izmir',
+          'antalya',
+          'cappadocia'
+        ],
+        'assets/countries/turkey.png'
+      ],
+      [
+        ['thailand', 'bangkok', 'phuket'],
+        'assets/countries/thailand.png'
+      ],
+      [
+        ['maldives', 'male'],
+        'assets/countries/maldives.png'
+      ],
+      [
+        ['dubai', 'united arab emirates', 'uae'],
+        'assets/countries/dubai.png'
+      ],
+      [
+        ['japan', 'tokyo', 'kyoto', 'osaka'],
+        'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1800&q=88&auto=format'
+      ],
+      [
+        ['france', 'paris', 'lyon', 'nice'],
+        'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1800&q=88&auto=format'
+      ],
+      [
+        ['italy', 'rome', 'florence', 'venice', 'amalfi'],
+        'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=1800&q=88&auto=format'
+      ],
+      [
+        ['egypt', 'cairo', 'luxor', 'aswan'],
+        'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=1800&q=88&auto=format'
+      ],
+      [
+        ['spain', 'barcelona', 'madrid', 'seville'],
+        'https://images.unsplash.com/photo-1509840841025-9088ba78a826?w=1800&q=88&auto=format'
+      ],
+      [
+        ['morocco', 'marrakech', 'casablanca', 'fes'],
+        'https://images.unsplash.com/photo-1489493585363-d69421e0edd3?w=1800&q=88&auto=format'
+      ],
+      [
+        ['united kingdom', 'england', 'london'],
+        'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1800&q=88&auto=format'
+      ],
+      [
+        ['poland', 'krakow', 'warsaw'],
+        'https://images.unsplash.com/photo-1519197924294-4ba991a11128?w=1800&q=88&auto=format'
+      ]
+    ];
+
+    return (
+      images.find(([keys]) =>
+        keys.some((key) =>
+          normalized.includes(key)
+        )
+      )?.[1] ??
+      'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1800&q=88&auto=format'
+    );
+  }
+
+  private flightCodes(
+    item: ItineraryItem
+  ): [string, string] {
+    const placeIdParts =
+      item.googlePlaceId?.split(':') ?? [];
+
+    if (
+      placeIdParts.length >= 3 &&
+      placeIdParts[0] === 'serp-flight'
+    ) {
+      return [
+        placeIdParts[1].toUpperCase(),
+        placeIdParts[2].toUpperCase()
+      ];
+    }
+
+    const addressCodes = [
+      ...(item.address?.matchAll(
+        /\(([A-Z]{3})\)/g
+      ) ?? [])
+    ].map((match) => match[1]);
+
+    return [
+      addressCodes[0] ?? '',
+      addressCodes[1] ?? ''
+    ];
   }
 
   private applyPreferences(

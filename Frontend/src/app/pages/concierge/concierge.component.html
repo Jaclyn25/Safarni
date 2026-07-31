@@ -1,122 +1,248 @@
 <!-- Main Concierge AI Travel Workspace Component -->
-<main class="max-w-container-max mx-auto h-[calc(100vh-160px)] md:h-[calc(100vh-80px)] flex w-full overflow-hidden concierge-workspace">
+<main
+  class="max-w-container-max mx-auto h-[calc(100vh-160px)] md:h-[calc(100vh-80px)] flex w-full overflow-hidden concierge-workspace">
 
-  <!-- Sidebar (Desktop) -->
-  <aside class="hidden md:flex flex-col w-72 bg-surface-container-low border-r border-outline-variant/30 px-4 pt-6 pb-4 h-full flex-shrink-0">
 
-    <!-- New Trip Chat CTA -->
-    <button
-      (click)="startNewConversation()"
-      class="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-primary text-on-primary font-bold shadow-md hover:bg-primary/90 transition-all active:scale-95 mb-4 flex-shrink-0 text-label-md"
-    >
-      <span class="material-symbols-outlined text-[20px]">add</span>
-      <span>New Trip Chat</span>
-    </button>
+
+  <!-- Sidebar History -->
+  <aside
+    [class]="'relative flex-col bg-surface-container-low border-r border-outline-variant/30 px-4 pt-6 pb-4 h-full flex-shrink-0 transition-all duration-300 ' + (isSidebarOpen ? 'w-72 flex' : 'w-0 px-0 overflow-hidden hidden')">
+
+    <!-- Header Row: New Chat + Close Sidebar -->
+    <div class="flex items-center gap-2 mb-4 w-full">
+      <button (click)="toggleSidebar()"
+        class="hidden md:flex p-2 rounded-xl hover:bg-surface-container-high text-on-surface-variant transition-colors flex-shrink-0"
+        title="Close Sidebar">
+        <span class="material-symbols-outlined text-[20px]"
+          style="font-variation-settings: 'FILL' 0;">view_sidebar</span>
+      </button>
+
+      <button (click)="startNewConversation()"
+        class="flex-grow flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-primary text-on-primary font-bold shadow-md hover:bg-primary/90 transition-all active:scale-95 text-label-md">
+        <span class="material-symbols-outlined text-[20px]">add</span>
+        <span>New Chat</span>
+      </button>
+    </div>
 
     <!-- Search Conversations -->
     <div class="relative mb-4 flex-shrink-0">
-      <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant/50 text-[18px]">search</span>
-      <input
-        [(ngModel)]="searchConvQuery"
-        placeholder="Search trip chats..."
-        class="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl pl-9 pr-3 py-2 text-label-sm text-on-surface placeholder:text-on-surface-variant/50 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-      />
+      <span
+        class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant/50 text-[18px]">search</span>
+      <input [(ngModel)]="searchConvQuery" placeholder="Search trip chats..."
+        class="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl pl-9 pr-3 py-2 text-label-sm text-on-surface placeholder:text-on-surface-variant/50 focus:ring-1 focus:ring-primary focus:border-primary outline-none" />
     </div>
 
     <!-- Conversations Grouped List -->
     <div class="flex-grow overflow-y-auto custom-scrollbar space-y-4 pr-1">
 
-      <!-- Today -->
-      @if (groupedConversations.today.length) {
-        <div>
-          <h3 class="text-label-sm text-on-surface-variant font-bold px-2 opacity-60 tracking-wider mb-1">TODAY</h3>
-          <div class="space-y-1">
-            @for (conv of groupedConversations.today; track conv.id) {
-              <div
-                (click)="selectConversation(conv.id)"
-                role="button"
-                tabindex="0"
-                [class]="'flex items-center justify-between w-full px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ' + (conversationId === conv.id ? 'bg-primary/10 text-primary font-bold border border-primary/20' : 'text-on-surface-variant hover:bg-surface-container-high')"
+      <!-- Pinned -->
+      @if (groupedConversations.pinned.length) {
+      <div>
+        <h3
+          class="text-label-sm text-on-surface-variant font-bold px-2 opacity-60 tracking-wider mb-1 flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px]">push_pin</span> PINNED
+        </h3>
+        <div class="space-y-1">
+          @for (conv of groupedConversations.pinned; track conv.id) {
+          <div (click)="selectConversation(conv.id)" role="button" tabindex="0"
+            [class]="'flex items-center justify-between w-full px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ' + (conversationId === conv.id ? 'bg-primary/10 text-primary font-bold border border-primary/20' : 'text-on-surface-variant hover:bg-surface-container-high')">
+            <div class="flex items-center gap-2 truncate flex-grow">
+              <span class="material-symbols-outlined text-[16px] text-primary"
+                style="font-variation-settings: 'FILL' 1;">push_pin</span>
+              @if (renamingConvId === conv.id) {
+                <input type="text" [(ngModel)]="newTitleInput" (keyup.enter)="executeRenameConversation()" (keyup.escape)="cancelRenameConversation()" (blur)="cancelRenameConversation()" (click)="$event.stopPropagation()" class="flex-grow bg-surface border border-primary/50 rounded-md px-2 py-1 text-label-sm outline-none focus:ring-1 focus:ring-primary w-full" autofocus />
+                @if (isRenamingConversation) {
+                  <span class="material-symbols-outlined text-[14px] animate-spin text-primary">sync</span>
+                }
+              } @else {
+                <span class="truncate text-label-md text-left">{{ conv.title }}</span>
+              }
+            </div>
+            <div class="relative flex items-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" [class.opacity-100]="activeMenuConvId === conv.id">
+              <button
+                (click)="toggleConvMenu(conv.id, $event)"
+                class="p-1 rounded-lg hover:bg-surface-container-highest text-on-surface-variant transition-colors"
               >
-                <div class="flex items-center gap-2 truncate flex-grow">
-                  <span class="material-symbols-outlined text-[16px] opacity-70">chat_bubble_outline</span>
-                  <span class="truncate text-label-md text-left">{{ conv.title }}</span>
+                <span class="material-symbols-outlined text-[20px]">more_vert</span>
+              </button>
+
+              @if (activeMenuConvId === conv.id) {
+                <div class="absolute right-0 top-full mt-1 bg-surface-container-highest rounded-xl shadow-lg border border-outline-variant/30 py-1 w-40 z-50 overflow-hidden text-label-md">
+                  <button (click)="closeConvMenu(); openRenameModal(conv.id, conv.title, $event)" class="w-full text-left px-3 py-2 hover:bg-surface-container-low text-on-surface-variant transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">edit</span> Rename
+                  </button>
+                  <button (click)="closeConvMenu(); togglePin(conv.id, $event)" class="w-full text-left px-3 py-2 hover:bg-surface-container-low text-on-surface-variant transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">keep_off</span> Unpin
+                  </button>
+                  <button (click)="closeConvMenu(); openMoveToFolderModal(conv.id, $event)" class="w-full text-left px-3 py-2 hover:bg-surface-container-low text-on-surface-variant transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">drive_file_move</span> Move
+                  </button>
+                  <button (click)="closeConvMenu(); confirmDeleteConversation(conv.id, conv.title, $event)" class="w-full text-left px-3 py-2 hover:bg-error/10 text-error transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">delete</span> Delete
+                  </button>
                 </div>
-                <button
-                  (click)="confirmDeleteConversation(conv.id, conv.title, $event)"
-                  [attr.aria-label]="'Delete chat: ' + conv.title"
-                  class="p-1 rounded-lg hover:bg-error/15 text-on-surface-variant/40 hover:text-error transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
-                >
-                  <span class="material-symbols-outlined text-[16px]">delete</span>
-                </button>
-              </div>
-            }
+              }
+            </div>
           </div>
+          }
         </div>
+      </div>
       }
 
-      <!-- This Week -->
-      @if (groupedConversations.thisWeek.length) {
-        <div>
-          <h3 class="text-label-sm text-on-surface-variant font-bold px-2 opacity-60 tracking-wider mb-1">THIS WEEK</h3>
-          <div class="space-y-1">
-            @for (conv of groupedConversations.thisWeek; track conv.id) {
-              <div
-                (click)="selectConversation(conv.id)"
-                role="button"
-                tabindex="0"
-                [class]="'flex items-center justify-between w-full px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ' + (conversationId === conv.id ? 'bg-primary/10 text-primary font-bold border border-primary/20' : 'text-on-surface-variant hover:bg-surface-container-high')"
-              >
-                <div class="flex items-center gap-2 truncate flex-grow">
-                  <span class="material-symbols-outlined text-[16px] opacity-70">chat_bubble_outline</span>
-                  <span class="truncate text-label-md text-left">{{ conv.title }}</span>
-                </div>
-                <button
-                  (click)="confirmDeleteConversation(conv.id, conv.title, $event)"
-                  [attr.aria-label]="'Delete chat: ' + conv.title"
-                  class="p-1 rounded-lg hover:bg-error/15 text-on-surface-variant/40 hover:text-error transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
-                >
-                  <span class="material-symbols-outlined text-[16px]">delete</span>
-                </button>
-              </div>
-            }
-          </div>
+      <!-- Folders -->
+      <div class="space-y-2 mb-4">
+        <div class="flex items-center justify-between px-2 mb-1">
+          <h3 class="text-label-sm text-on-surface-variant font-bold opacity-60 tracking-wider flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">folder</span> FOLDERS
+          </h3>
+          <button (click)="openCreateFolderModal()"
+            class="p-1 rounded-md text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors"
+            title="Create New Folder">
+            <span class="material-symbols-outlined text-[16px]">create_new_folder</span>
+          </button>
         </div>
-      }
 
-      <!-- Older -->
-      @if (groupedConversations.older.length) {
-        <div>
-          <h3 class="text-label-sm text-on-surface-variant font-bold px-2 opacity-60 tracking-wider mb-1">OLDER</h3>
-          <div class="space-y-1">
-            @for (conv of groupedConversations.older; track conv.id) {
-              <div
-                (click)="selectConversation(conv.id)"
-                role="button"
-                tabindex="0"
-                [class]="'flex items-center justify-between w-full px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ' + (conversationId === conv.id ? 'bg-primary/10 text-primary font-bold border border-primary/20' : 'text-on-surface-variant hover:bg-surface-container-high')"
-              >
-                <div class="flex items-center gap-2 truncate flex-grow">
-                  <span class="material-symbols-outlined text-[16px] opacity-70">chat_bubble_outline</span>
-                  <span class="truncate text-label-md text-left">{{ conv.title }}</span>
-                </div>
-                <button
-                  (click)="confirmDeleteConversation(conv.id, conv.title, $event)"
-                  [attr.aria-label]="'Delete chat: ' + conv.title"
-                  class="p-1 rounded-lg hover:bg-error/15 text-on-surface-variant/40 hover:text-error transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
-                >
-                  <span class="material-symbols-outlined text-[16px]">delete</span>
-                </button>
+        @if (folders.length === 0) {
+        <div
+          class="text-label-sm text-on-surface-variant/50 text-center py-2 italic bg-surface-container-lowest border border-outline-variant/10 rounded-xl">
+          No folders yet</div>
+        }
+        @for (folder of folders; track folder.id) {
+        <details
+          class="group/folder bg-surface-container-lowest rounded-xl border border-outline-variant/20"
+          open>
+          <summary
+            class="flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-surface-container-high transition-colors select-none">
+            <div class="flex items-center gap-2 font-bold text-on-surface text-label-md truncate flex-grow">
+              <span
+                class="material-symbols-outlined text-[18px] text-primary transition-transform group-open/folder:rotate-90">chevron_right</span>
+              <span class="material-symbols-outlined text-[16px] text-secondary">folder</span>
+              @if (renamingFolderId === folder.id) {
+                <input type="text" [(ngModel)]="newFolderNameEdit" (keyup.enter)="executeRenameFolder()" (keyup.escape)="cancelRenameFolder()" (blur)="cancelRenameFolder()" (click)="$event.stopPropagation()" class="flex-grow bg-surface border border-primary/50 rounded-md px-2 py-1 text-label-sm outline-none focus:ring-1 focus:ring-primary w-full" autofocus />
+                @if (isRenamingFolder) {
+                  <span class="material-symbols-outlined text-[14px] animate-spin text-primary">sync</span>
+                }
+              } @else {
+                <span class="truncate">{{ folder.name }}</span>
+              }
+            </div>
+            <div class="flex items-center gap-1 opacity-0 group-hover/folder:opacity-100 transition-opacity">
+              <button (click)="openRenameFolderModal(folder.id, folder.name, $event)"
+                class="p-1 rounded text-on-surface-variant/50 hover:bg-surface-container-highest hover:text-primary"
+                title="Rename Folder">
+                <span class="material-symbols-outlined text-[16px]">edit</span>
+              </button>
+              <button (click)="confirmDeleteFolder(folder.id, folder.name, $event)"
+                class="p-1 rounded text-on-surface-variant/50 hover:bg-surface-container-highest hover:text-error"
+                title="Delete Folder">
+                <span class="material-symbols-outlined text-[16px]">delete</span>
+              </button>
+            </div>
+          </summary>
+          <div class="px-2 pb-2 pt-1 space-y-1 bg-surface-container-lowest border-t border-outline-variant/10">
+            @if (!folder.conversations || folder.conversations.length === 0) {
+            <div class="text-label-sm text-on-surface-variant/50 text-center py-2 italic">Empty folder</div>
+            }
+            @for (conv of folder.conversations; track conv.id) {
+            <div (click)="selectConversation(conv.id)" role="button" tabindex="0"
+              [class]="'flex items-center justify-between w-full px-2 py-2 rounded-lg cursor-pointer transition-colors group ' + (conversationId === conv.id ? 'bg-primary/10 text-primary font-bold border border-primary/20' : 'text-on-surface-variant hover:bg-surface-container-high')">
+              <div class="flex items-center gap-2 truncate flex-grow">
+                <span class="material-symbols-outlined text-[14px] opacity-70">chat_bubble_outline</span>
+                @if (renamingConvId === conv.id) {
+                  <input type="text" [(ngModel)]="newTitleInput" (keyup.enter)="executeRenameConversation()" (keyup.escape)="cancelRenameConversation()" (blur)="cancelRenameConversation()" (click)="$event.stopPropagation()" class="flex-grow bg-surface border border-primary/50 rounded-md px-2 py-1 text-label-sm outline-none focus:ring-1 focus:ring-primary w-full" autofocus />
+                  @if (isRenamingConversation) {
+                    <span class="material-symbols-outlined text-[14px] animate-spin text-primary">sync</span>
+                  }
+                } @else {
+                  <span class="truncate text-label-sm text-left">{{ conv.title }}</span>
+                }
               </div>
+              <div class="relative flex items-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" [class.opacity-100]="activeMenuConvId === conv.id">
+                <button
+                  (click)="toggleConvMenu(conv.id, $event)"
+                  class="p-1 rounded-lg hover:bg-surface-container-highest text-on-surface-variant transition-colors"
+                >
+                  <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                </button>
+
+                @if (activeMenuConvId === conv.id) {
+                  <div class="absolute right-0 top-full mt-1 bg-surface-container-highest rounded-xl shadow-lg border border-outline-variant/30 py-1 w-40 z-50 overflow-hidden text-label-md">
+                    <button (click)="closeConvMenu(); openRenameModal(conv.id, conv.title, $event)" class="w-full text-left px-3 py-2 hover:bg-surface-container-low text-on-surface-variant transition-colors flex items-center gap-2">
+                      <span class="material-symbols-outlined text-[16px]">edit</span> Rename
+                    </button>
+                    <button (click)="closeConvMenu(); togglePin(conv.id, $event)" class="w-full text-left px-3 py-2 hover:bg-surface-container-low text-on-surface-variant transition-colors flex items-center gap-2">
+                      <span class="material-symbols-outlined text-[16px]">{{ conv.isPinned ? 'keep_off' : 'push_pin' }}</span> {{ conv.isPinned ? 'Unpin' : 'Pin' }}
+                    </button>
+                    <button (click)="closeConvMenu(); openMoveToFolderModal(conv.id, $event)" class="w-full text-left px-3 py-2 hover:bg-surface-container-low text-on-surface-variant transition-colors flex items-center gap-2">
+                      <span class="material-symbols-outlined text-[16px]">drive_file_move</span> Move
+                    </button>
+                    <button (click)="closeConvMenu(); confirmDeleteConversation(conv.id, conv.title, $event)" class="w-full text-left px-3 py-2 hover:bg-error/10 text-error transition-colors flex items-center gap-2">
+                      <span class="material-symbols-outlined text-[16px]">delete</span> Delete
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
             }
           </div>
+        </details>
+        }
+      </div>
+
+      <!-- Chats -->
+      @if (groupedConversations.chats.length) {
+      <div>
+        <h3 class="text-label-sm text-on-surface-variant font-bold px-2 opacity-60 tracking-wider mb-1">CHATS</h3>
+        <div class="space-y-1">
+          @for (conv of groupedConversations.chats; track conv.id) {
+          <div (click)="selectConversation(conv.id)" role="button" tabindex="0"
+            [class]="'flex items-center justify-between w-full px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ' + (conversationId === conv.id ? 'bg-primary/10 text-primary font-bold border border-primary/20' : 'text-on-surface-variant hover:bg-surface-container-high')">
+            <div class="flex items-center gap-2 truncate flex-grow">
+              <span class="material-symbols-outlined text-[16px] opacity-70">chat_bubble_outline</span>
+              @if (renamingConvId === conv.id) {
+                <input type="text" [(ngModel)]="newTitleInput" (keyup.enter)="executeRenameConversation()" (keyup.escape)="cancelRenameConversation()" (blur)="cancelRenameConversation()" (click)="$event.stopPropagation()" class="flex-grow bg-surface border border-primary/50 rounded-md px-2 py-1 text-label-sm outline-none focus:ring-1 focus:ring-primary w-full" autofocus />
+                @if (isRenamingConversation) {
+                  <span class="material-symbols-outlined text-[14px] animate-spin text-primary">sync</span>
+                }
+              } @else {
+                <span class="truncate text-label-md text-left">{{ conv.title }}</span>
+              }
+            </div>
+            <div class="relative flex items-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" [class.opacity-100]="activeMenuConvId === conv.id">
+              <button
+                (click)="toggleConvMenu(conv.id, $event)"
+                class="p-1 rounded-lg hover:bg-surface-container-highest text-on-surface-variant transition-colors"
+              >
+                <span class="material-symbols-outlined text-[20px]">more_vert</span>
+              </button>
+
+              @if (activeMenuConvId === conv.id) {
+                <div class="absolute right-0 top-full mt-1 bg-surface-container-highest rounded-xl shadow-lg border border-outline-variant/30 py-1 w-40 z-50 overflow-hidden text-label-md">
+                  <button (click)="closeConvMenu(); openRenameModal(conv.id, conv.title, $event)" class="w-full text-left px-3 py-2 hover:bg-surface-container-low text-on-surface-variant transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">edit</span> Rename
+                  </button>
+                  <button (click)="closeConvMenu(); togglePin(conv.id, $event)" class="w-full text-left px-3 py-2 hover:bg-surface-container-low text-on-surface-variant transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">push_pin</span> Pin
+                  </button>
+                  <button (click)="closeConvMenu(); openMoveToFolderModal(conv.id, $event)" class="w-full text-left px-3 py-2 hover:bg-surface-container-low text-on-surface-variant transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">drive_file_move</span> Move
+                  </button>
+                  <button (click)="closeConvMenu(); confirmDeleteConversation(conv.id, conv.title, $event)" class="w-full text-left px-3 py-2 hover:bg-error/10 text-error transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">delete</span> Delete
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+          }
         </div>
+      </div>
       }
 
       @if (!conversationsList.length) {
-        <div class="text-center py-8 text-on-surface-variant/60 text-label-sm">
-          No previous trip chats
-        </div>
+      <div class="text-center py-8 text-on-surface-variant/60 text-label-sm">
+        No previous trip chats
+      </div>
       }
 
     </div>
@@ -127,20 +253,36 @@
 
     <!-- Workspace Header -->
     <div class="flex items-center justify-between mb-4 flex-shrink-0">
-      <div>
-        <h1 class="text-headline-sm md:text-headline-md font-bold text-on-surface flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-          <span>AI Travel Workspace</span>
-        </h1>
-        <p class="text-label-md text-on-surface-variant opacity-75">Instant AI itineraries, visa requirements & local recommendations</p>
+      <div class="flex items-start gap-4">
+        @if (!isSidebarOpen) {
+        <button (click)="toggleSidebar()"
+          class="hidden md:flex p-2 mt-1 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors border border-outline-variant/30 shadow-sm"
+          title="Open Sidebar">
+          <span class="material-symbols-outlined text-[20px]"
+            style="font-variation-settings: 'FILL' 0;">view_sidebar</span>
+        </button>
+        }
+        <div>
+          <h1 class="text-headline-sm md:text-headline-md font-bold text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary"
+              style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+            <span>Safarni Concierge</span>
+          </h1>
+          <p class="text-label-md text-on-surface-variant opacity-75">Instant AI itineraries, visa requirements & local
+            recommendations</p>
+        </div>
       </div>
 
       <div class="flex items-center gap-2">
-        <button
-          (click)="handleRefresh()"
+        <button (click)="openBookmarks()"
           class="p-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors flex items-center gap-1.5 text-label-sm font-semibold"
-          title="New trip chat"
-        >
+          title="محفوظاتي">
+          <span class="material-symbols-outlined text-[20px]">bookmarks</span>
+          <span class="hidden sm:inline">محفوظاتي</span>
+        </button>
+        <button (click)="handleRefresh()"
+          class="p-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors flex items-center gap-1.5 text-label-sm font-semibold"
+          title="New trip chat">
           <span class="material-symbols-outlined text-[20px]">refresh</span>
           <span class="hidden sm:inline">Reset</span>
         </button>
@@ -149,18 +291,15 @@
 
     <!-- Mobile Conversation Switcher -->
     @if (conversationsList.length) {
-      <div class="md:hidden mb-3 flex-shrink-0">
-        <select
-          [ngModel]="conversationId || ''"
-          (ngModelChange)="openConversation($event)"
-          class="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-3 py-2 text-label-sm text-on-surface"
-        >
-          <option value="">+ Start new trip chat</option>
-          @for (conv of conversationsList; track conv.id) {
-            <option [value]="conv.id">{{ conv.title }}</option>
-          }
-        </select>
-      </div>
+    <div class="md:hidden mb-3 flex-shrink-0">
+      <select [ngModel]="conversationId || ''" (ngModelChange)="openConversation($event)"
+        class="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-3 py-2 text-label-sm text-on-surface">
+        <option value="">+ Start new trip chat</option>
+        @for (conv of conversationsList; track conv.id) {
+        <option [value]="conv.id">{{ conv.title }}</option>
+        }
+      </select>
+    </div>
     }
 
     <!-- Messages Canvas -->
@@ -175,312 +314,313 @@
 
       <!-- Empty State Workspace -->
       @if (!messages.length && !isTyping && !isLoadingConversation) {
-        <section class="max-w-2xl mx-auto py-8 text-center" aria-labelledby="workspace-title">
-          <div class="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4 shadow-inner">
-            <span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 1;">travel_explore</span>
-          </div>
+      <section class="max-w-2xl mx-auto py-8 text-center" aria-labelledby="workspace-title">
+        <div
+          class="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4 shadow-inner">
+          <span class="material-symbols-outlined text-[36px]"
+            style="font-variation-settings: 'FILL' 1;">travel_explore</span>
+        </div>
 
-          <h2 id="workspace-title" class="text-headline-md font-bold text-on-surface mb-2">
-            Plan anything, from visas to full trips
-          </h2>
-          <p class="text-body-md text-on-surface-variant mb-8 max-w-lg mx-auto">
-            Ask about destinations, budget estimates, visa requirements, secret local spots, or build custom itineraries.
-          </p>
+        <h2 id="workspace-title" class="text-headline-md font-bold text-on-surface mb-2">
+          Plan anything, from visas to full trips
+        </h2>
+        <p class="text-body-md text-on-surface-variant mb-8 max-w-lg mx-auto">
+          Ask about destinations, budget estimates, visa requirements, secret local spots, or build custom itineraries.
+        </p>
 
-          <!-- 4 Interactive Prompt Cards -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-            @for (card of emptyStateCards; track card.title) {
-              <button
-                (click)="useSuggestion(card.prompt)"
-                class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-primary/40 hover:shadow-md transition-all group flex items-start gap-4 text-left cursor-pointer active:scale-95"
-              >
-                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-colors">
-                  <span class="material-symbols-outlined text-[20px]">{{ card.icon }}</span>
-                </div>
-                <div>
-                  <h3 class="text-label-lg font-bold text-on-surface mb-0.5 group-hover:text-primary transition-colors">{{ card.title }}</h3>
-                  <p class="text-label-sm text-on-surface-variant opacity-80">{{ card.subtitle }}</p>
-                </div>
-              </button>
-            }
-          </div>
-        </section>
+        <!-- 4 Interactive Prompt Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+          @for (card of emptyStateCards; track card.title) {
+          <button (click)="useSuggestion(card.prompt)"
+            class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-primary/40 hover:shadow-md transition-all group flex items-start gap-4 text-left cursor-pointer active:scale-95">
+            <div
+              class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-colors">
+              <span class="material-symbols-outlined text-[20px]">{{ card.icon }}</span>
+            </div>
+            <div>
+              <h3 class="text-label-lg font-bold text-on-surface mb-0.5 group-hover:text-primary transition-colors">{{
+                card.title }}</h3>
+              <p class="text-label-sm text-on-surface-variant opacity-80">{{ card.subtitle }}</p>
+            </div>
+          </button>
+          }
+        </div>
+      </section>
       }
 
       <!-- Render Messages -->
       @for (m of messages; track m.id || $index) {
 
-        <!-- User Message Bubble (Compact + Inline Edit + Toolbar) -->
-        @if (m.isUser) {
-          <div class="flex items-start gap-3 max-w-2xl ml-auto flex-row-reverse message-entrance group">
-            <div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center flex-shrink-0 text-label-sm font-bold shadow-sm">
-              <span class="material-symbols-outlined text-[16px]">person</span>
+      <!-- User Message Bubble (Compact + Inline Edit + Toolbar) -->
+      @if (m.isUser) {
+      <div class="flex items-start gap-3 max-w-2xl ml-auto flex-row-reverse message-entrance group">
+        <div
+          class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center flex-shrink-0 text-label-sm font-bold shadow-sm">
+          <span class="material-symbols-outlined text-[16px]">person</span>
+        </div>
+
+        <div class="space-y-1.5 text-right max-w-full min-w-0">
+
+          <!-- User Inline Edit Container -->
+          @if (m.isEditing) {
+          <div
+            class="bg-surface-container-lowest border border-primary/40 rounded-2xl p-3 shadow-md text-right space-y-2">
+            <textarea [(ngModel)]="m.editText" rows="3"
+              class="w-full bg-transparent border border-outline-variant/30 rounded-xl p-2.5 text-body-md text-on-surface outline-none focus:border-primary concierge-textarea"
+              placeholder="Edit your travel request..."></textarea>
+
+            <div class="flex items-center justify-end gap-2">
+              <button (click)="cancelEdit(m)"
+                class="px-3 py-1.5 rounded-lg text-label-sm text-on-surface-variant hover:bg-surface-container font-semibold transition-colors">
+                Cancel
+              </button>
+              <button (click)="saveEditAndResend(m)" [disabled]="!m.editText?.trim() || isTyping"
+                class="px-3 py-1.5 rounded-lg text-label-sm bg-primary text-on-primary font-bold shadow-sm hover:bg-primary/90 disabled:opacity-40 transition-all">
+                Send revised message
+              </button>
             </div>
+          </div>
 
-            <div class="space-y-1.5 text-right max-w-full min-w-0">
+          <!-- Standard User Bubble -->
+          } @else {
+          <div
+            class="bg-primary text-on-primary px-4 py-2.5 rounded-2xl rounded-tr-none text-body-md shadow-sm text-right inline-block"
+            [dir]="m.formatted.direction">
+            {{ m.text }}
+          </div>
 
-              <!-- User Inline Edit Container -->
-              @if (m.isEditing) {
-                <div class="bg-surface-container-lowest border border-primary/40 rounded-2xl p-3 shadow-md text-right space-y-2">
-                  <textarea
-                    [(ngModel)]="m.editText"
-                    rows="3"
-                    class="w-full bg-transparent border border-outline-variant/30 rounded-xl p-2.5 text-body-md text-on-surface outline-none focus:border-primary concierge-textarea"
-                    placeholder="Edit your travel request..."
-                  ></textarea>
+          <!-- User Message Hover Toolbar -->
+          <div
+            class="flex items-center justify-end gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+            <span class="text-label-sm text-on-surface-variant opacity-50 mr-1">{{ m.time }}</span>
 
-                  <div class="flex items-center justify-end gap-2">
-                    <button
-                      (click)="cancelEdit(m)"
-                      class="px-3 py-1.5 rounded-lg text-label-sm text-on-surface-variant hover:bg-surface-container font-semibold transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      (click)="saveEditAndResend(m)"
-                      [disabled]="!m.editText?.trim() || isTyping"
-                      class="px-3 py-1.5 rounded-lg text-label-sm bg-primary text-on-primary font-bold shadow-sm hover:bg-primary/90 disabled:opacity-40 transition-all"
-                    >
-                      Send revised message
-                    </button>
-                  </div>
-                </div>
+            <button (click)="copyMessage(m)" [class]="'msg-toolbar-btn ' + (m.copied ? 'copied' : '')"
+              [title]="m.copied ? 'Copied!' : 'Copy message'">
+              <span class="material-symbols-outlined text-[16px]">
+                {{ m.copied ? 'check' : 'content_copy' }}
+              </span>
+            </button>
 
-              <!-- Standard User Bubble -->
-              } @else {
-                <div
-                  class="bg-primary text-on-primary px-4 py-2.5 rounded-2xl rounded-tr-none text-body-md shadow-sm text-right inline-block"
-                  [dir]="m.formatted.direction"
-                >
-                  {{ m.text }}
-                </div>
+            <button (click)="startEdit(m)" class="msg-toolbar-btn" title="Edit request">
+              <span class="material-symbols-outlined text-[16px]">edit</span>
+            </button>
+          </div>
+          }
+        </div>
+      </div>
 
-                <!-- User Message Hover Toolbar -->
-                <div class="flex items-center justify-end gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span class="text-label-sm text-on-surface-variant opacity-50 mr-1">{{ m.time }}</span>
+      <!-- Assistant Error Message -->
+      } @else if (m.kind === 'error') {
+      <div class="flex items-start gap-3 max-w-3xl message-entrance">
+        <div class="w-8 h-8 rounded-full bg-error/10 text-error flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-[18px]">error</span>
+        </div>
+        <div class="space-y-1 min-w-0 flex-1">
+          <div class="bg-error/10 text-error rounded-2xl rounded-tl-none p-4 text-body-md border border-error/20">
+            <div class="font-bold mb-1">Unable to complete request</div>
+            @for (paragraph of m.formatted.paragraphs; track $index) {
+            <p>{{ paragraph }}</p>
+            }
+            @if (m.action === 'new-chat') {
+            <button type="button" (click)="startNewConversation()"
+              class="mt-3 inline-flex items-center gap-2 rounded-xl bg-error px-4 py-2 text-label-md font-bold text-on-error transition-colors hover:bg-error/90">
+              <span class="material-symbols-outlined text-[18px]">add_comment</span>
+              <span>ابدأ شات جديد</span>
+            </button>
+            }
+          </div>
+          <span class="text-label-sm text-on-surface-variant opacity-50 block ml-1">{{ m.time }}</span>
+        </div>
+      </div>
 
-                  <button
-                    (click)="copyMessage(m)"
-                    [class]="'msg-toolbar-btn ' + (m.copied ? 'copied' : '')"
-                    [title]="m.copied ? 'Copied!' : 'Copy message'"
-                  >
-                    <span class="material-symbols-outlined text-[16px]">
-                      {{ m.copied ? 'check' : 'content_copy' }}
+      <!-- AI Assistant Travel Card Response + Version Switcher + Toolbar -->
+      } @else {
+      <div class="flex items-start gap-3.5 max-w-3xl message-entrance group">
+        <div
+          class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center shadow-md flex-shrink-0 mt-0.5">
+          <span class="material-symbols-outlined text-[18px]"
+            style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+        </div>
+
+        <div class="space-y-2 min-w-0 flex-1">
+
+          <!-- Version Switcher Header (when multiple versions exist) -->
+          @if (m.versions && m.versions.length > 1) {
+          <div class="flex items-center gap-2 mb-1">
+            <div class="version-switcher">
+              <button (click)="switchVersion(m, -1)" [disabled]="(m.activeVersionIndex || 0) <= 0"
+                class="hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed" title="Previous version">
+                <span class="material-symbols-outlined text-[14px]">chevron_left</span>
+              </button>
+
+              <span>{{ (m.activeVersionIndex || 0) + 1 }} / {{ m.versions.length }}</span>
+
+              <button (click)="switchVersion(m, 1)" [disabled]="(m.activeVersionIndex || 0) >= m.versions.length - 1"
+                class="hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed" title="Next version">
+                <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+              </button>
+            </div>
+          </div>
+          }
+
+          <!-- Main AI Response Card -->
+          <div
+            class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl rounded-tl-none p-5 shadow-sm text-body-md text-on-surface space-y-4 relative"
+            [dir]="m.formatted.direction">
+            <!-- Response Summary Header -->
+            @if (m.formatted.summary) {
+            <div class="bg-primary/5 p-4 rounded-xl border border-primary/15 text-on-surface font-medium text-body-md">
+              {{ m.formatted.summary }}
+            </div>
+            }
+
+            <!-- Paragraph Sections -->
+            @if (m.formatted.paragraphs.length) {
+            <div class="space-y-2 text-on-surface-variant">
+              @for (paragraph of m.formatted.paragraphs; track $index) {
+              <p class="whitespace-pre-wrap leading-relaxed">{{ paragraph }}</p>
+              }
+            </div>
+            }
+
+            <!-- Day-by-Day Itinerary Cards -->
+            @if (m.formatted.itineraryDays.length) {
+            <div class="space-y-3 pt-2">
+              <h3 class="text-label-lg font-bold text-primary flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+                <span>Day-by-Day Plan</span>
+              </h3>
+
+              <div class="grid grid-cols-1 gap-3">
+                @for (day of m.formatted.itineraryDays; track day.dayNumber) {
+                <div class="itinerary-day-card">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-label-sm">
+                      Day {{ day.dayNumber }}
                     </span>
-                  </button>
-
-                  <button
-                    (click)="startEdit(m)"
-                    class="msg-toolbar-btn"
-                    title="Edit request"
-                  >
-                    <span class="material-symbols-outlined text-[16px]">edit</span>
-                  </button>
-                </div>
-              }
-            </div>
-          </div>
-
-        <!-- Assistant Error Message -->
-        } @else if (m.kind === 'error') {
-          <div class="flex items-start gap-3 max-w-3xl message-entrance">
-            <div class="w-8 h-8 rounded-full bg-error/10 text-error flex items-center justify-center flex-shrink-0">
-              <span class="material-symbols-outlined text-[18px]">error</span>
-            </div>
-            <div class="space-y-1 min-w-0 flex-1">
-              <div class="bg-error/10 text-error rounded-2xl rounded-tl-none p-4 text-body-md border border-error/20">
-                <div class="font-bold mb-1">Unable to complete request</div>
-                @for (paragraph of m.formatted.paragraphs; track $index) {
-                  <p>{{ paragraph }}</p>
-                }
-                @if (m.action === 'new-chat') {
-                  <button
-                    type="button"
-                    (click)="startNewConversation()"
-                    class="mt-3 inline-flex items-center gap-2 rounded-xl bg-error px-4 py-2 text-label-md font-bold text-on-error transition-colors hover:bg-error/90"
-                  >
-                    <span class="material-symbols-outlined text-[18px]">add_comment</span>
-                    <span>ابدأ شات جديد</span>
-                  </button>
-                }
-              </div>
-              <span class="text-label-sm text-on-surface-variant opacity-50 block ml-1">{{ m.time }}</span>
-            </div>
-          </div>
-
-        <!-- AI Assistant Travel Card Response + Version Switcher + Toolbar -->
-        } @else {
-          <div class="flex items-start gap-3.5 max-w-3xl message-entrance group">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center shadow-md flex-shrink-0 mt-0.5">
-              <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-            </div>
-
-            <div class="space-y-2 min-w-0 flex-1">
-
-              <!-- Version Switcher Header (when multiple versions exist) -->
-              @if (m.versions && m.versions.length > 1) {
-                <div class="flex items-center gap-2 mb-1">
-                  <div class="version-switcher">
-                    <button
-                      (click)="switchVersion(m, -1)"
-                      [disabled]="(m.activeVersionIndex || 0) <= 0"
-                      class="hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Previous version"
-                    >
-                      <span class="material-symbols-outlined text-[14px]">chevron_left</span>
-                    </button>
-
-                    <span>{{ (m.activeVersionIndex || 0) + 1 }} / {{ m.versions.length }}</span>
-
-                    <button
-                      (click)="switchVersion(m, 1)"
-                      [disabled]="(m.activeVersionIndex || 0) >= m.versions.length - 1"
-                      class="hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Next version"
-                    >
-                      <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-                    </button>
-                  </div>
-                </div>
-              }
-
-              <!-- Main AI Response Card -->
-              <div
-                class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl rounded-tl-none p-5 shadow-sm text-body-md text-on-surface space-y-4 relative"
-                [dir]="m.formatted.direction"
-              >
-                <!-- Response Summary Header -->
-                @if (m.formatted.summary) {
-                  <div class="bg-primary/5 p-4 rounded-xl border border-primary/15 text-on-surface font-medium text-body-md">
-                    {{ m.formatted.summary }}
-                  </div>
-                }
-
-                <!-- Paragraph Sections -->
-                @if (m.formatted.paragraphs.length) {
-                  <div class="space-y-2 text-on-surface-variant">
-                    @for (paragraph of m.formatted.paragraphs; track $index) {
-                      <p class="whitespace-pre-wrap leading-relaxed">{{ paragraph }}</p>
+                    @if (day.budget) {
+                    <span class="text-label-sm text-on-surface-variant font-semibold">
+                      Est. {{ day.budget }}
+                    </span>
                     }
                   </div>
-                }
+                  <h4 class="text-body-md font-bold text-on-surface mb-2">{{ day.title }}</h4>
 
-                <!-- Day-by-Day Itinerary Cards -->
-                @if (m.formatted.itineraryDays.length) {
-                  <div class="space-y-3 pt-2">
-                    <h3 class="text-label-lg font-bold text-primary flex items-center gap-1.5">
-                      <span class="material-symbols-outlined text-[18px]">calendar_today</span>
-                      <span>Day-by-Day Plan</span>
-                    </h3>
-
-                    <div class="grid grid-cols-1 gap-3">
-                      @for (day of m.formatted.itineraryDays; track day.dayNumber) {
-                        <div class="itinerary-day-card">
-                          <div class="flex items-center justify-between mb-2">
-                            <span class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-label-sm">
-                              Day {{ day.dayNumber }}
-                            </span>
-                            @if (day.budget) {
-                              <span class="text-label-sm text-on-surface-variant font-semibold">
-                                Est. {{ day.budget }}
-                              </span>
-                            }
-                          </div>
-                          <h4 class="text-body-md font-bold text-on-surface mb-2">{{ day.title }}</h4>
-
-                          <div class="space-y-1 text-body-sm text-on-surface-variant">
-                            @if (day.morning) {
-                              <div class="flex items-start gap-1.5">
-                                <span class="text-primary font-bold text-label-sm">Morning:</span>
-                                <span>{{ day.morning }}</span>
-                              </div>
-                            }
-                            @if (day.afternoon) {
-                              <div class="flex items-start gap-1.5">
-                                <span class="text-primary font-bold text-label-sm">Afternoon:</span>
-                                <span>{{ day.afternoon }}</span>
-                              </div>
-                            }
-                            @if (day.evening) {
-                              <div class="flex items-start gap-1.5">
-                                <span class="text-primary font-bold text-label-sm">Evening:</span>
-                                <span>{{ day.evening }}</span>
-                              </div>
-                            }
-                          </div>
-                        </div>
-                      }
+                  <div class="space-y-1 text-body-sm text-on-surface-variant">
+                    @if (day.morning) {
+                    <div class="flex items-start gap-1.5">
+                      <span class="text-primary font-bold text-label-sm">Morning:</span>
+                      <span>{{ day.morning }}</span>
                     </div>
-                  </div>
-                }
-
-                <!-- Extracted Web Links -->
-                @if (m.formatted.links.length) {
-                  <div class="flex flex-wrap gap-2 pt-2">
-                    @for (link of m.formatted.links; track link.url) {
-                      <a [href]="link.url" target="_blank" rel="noopener noreferrer" class="action-chip">
-                        <span class="material-symbols-outlined text-[16px]">{{ link.icon }}</span>
-                        <span>{{ link.label }}</span>
-                      </a>
+                    }
+                    @if (day.afternoon) {
+                    <div class="flex items-start gap-1.5">
+                      <span class="text-primary font-bold text-label-sm">Afternoon:</span>
+                      <span>{{ day.afternoon }}</span>
+                    </div>
+                    }
+                    @if (day.evening) {
+                    <div class="flex items-start gap-1.5">
+                      <span class="text-primary font-bold text-label-sm">Evening:</span>
+                      <span>{{ day.evening }}</span>
+                    </div>
                     }
                   </div>
+                </div>
                 }
               </div>
+            </div>
+            }
 
-              <!-- Post-Response Interactive Action Chips (for trip plans) -->
-              @if (m.formatted.actionChips.length) {
-                <div class="flex flex-wrap gap-2 pt-1">
-                  @for (chip of m.formatted.actionChips; track chip.label) {
-                    <button (click)="executeActionChip(chip)" class="action-chip">
-                      <span class="material-symbols-outlined text-[16px]">{{ chip.icon }}</span>
-                      <span>{{ chip.label }}</span>
-                    </button>
-                  }
-                </div>
+            <!-- Extracted Web Links -->
+            @if (m.formatted.links.length) {
+            <div class="flex flex-wrap gap-2 pt-2">
+              @for (link of m.formatted.links; track link.url) {
+              <a [href]="link.url" target="_blank" rel="noopener noreferrer" class="action-chip">
+                <span class="material-symbols-outlined text-[16px]">{{ link.icon }}</span>
+                <span>{{ link.label }}</span>
+              </a>
               }
+            </div>
+            }
+          </div>
 
-              <!-- AI Message Toolbar & Timestamp -->
-              <div class="flex items-center justify-between pt-1">
-                <span class="text-label-sm text-on-surface-variant opacity-50 ml-1">{{ m.time }}</span>
+          <!-- Post-Response Interactive Action Chips (for trip plans) -->
+          @if (m.formatted.actionChips.length) {
+          <div class="flex flex-wrap gap-2 pt-1">
+            @for (chip of m.formatted.actionChips; track chip.label) {
+            <button (click)="executeActionChip(chip)" class="action-chip">
+              <span class="material-symbols-outlined text-[16px]">{{ chip.icon }}</span>
+              <span>{{ chip.label }}</span>
+            </button>
+            }
+          </div>
+          }
 
-                <!-- Action Toolbar Icons -->
-                <div class="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                  <!-- Copy Button -->
-                  <button
-                    (click)="copyMessage(m)"
-                    [class]="'msg-toolbar-btn ' + (m.copied ? 'copied' : '')"
-                    [title]="m.copied ? 'Copied!' : 'Copy response'"
-                  >
-                    <span class="material-symbols-outlined text-[16px]">
-                      {{ m.copied ? 'check' : 'content_copy' }}
-                    </span>
-                  </button>
+          <!-- AI Message Toolbar & Timestamp -->
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-label-sm text-on-surface-variant opacity-50 ml-1">{{ m.time }}</span>
 
-                  @if (isLatestAssistantMessage(m)) {
-                    <button
-                      (click)="regenerateAiResponse(m)"
-                      [disabled]="isTyping"
-                      class="msg-toolbar-btn disabled:opacity-40"
-                      title="Regenerate latest response"
-                    >
-                      <span class="material-symbols-outlined text-[16px]">refresh</span>
-                    </button>
-                  }
-                </div>
-              </div>
+            <!-- Action Toolbar Icons -->
+            <div class="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+              <!-- Copy Button -->
+              <button (click)="copyMessage(m)" [class]="'msg-toolbar-btn ' + (m.copied ? 'copied' : '')"
+                [title]="m.copied ? 'Copied!' : 'Copy response'">
+                <span class="material-symbols-outlined text-[16px]">
+                  {{ m.copied ? 'check' : 'content_copy' }}
+                </span>
+              </button>
 
+              <!-- Like Button -->
+              <button (click)="toggleFeedback(m, 'like')" [class]="'msg-toolbar-btn ' + (m.feedback === 'like' ? 'text-primary' : '')"
+                title="Helpful response">
+                <span class="material-symbols-outlined text-[16px]" [style.font-variation-settings]="m.feedback === 'like' ? '\'FILL\' 1' : '\'FILL\' 0'">
+                  thumb_up
+                </span>
+              </button>
+
+              <!-- Dislike Button -->
+              <button (click)="toggleFeedback(m, 'dislike')" [class]="'msg-toolbar-btn ' + (m.feedback === 'dislike' ? 'text-error' : '')"
+                title="Not helpful">
+                <span class="material-symbols-outlined text-[16px]" [style.font-variation-settings]="m.feedback === 'dislike' ? '\'FILL\' 1' : '\'FILL\' 0'">
+                  thumb_down
+                </span>
+              </button>
+
+              <!-- Bookmark Button -->
+              <button (click)="toggleBookmark(m)" [class]="'msg-toolbar-btn ' + (m.isBookmarked ? 'text-primary' : '')"
+                title="حفظ في محفوظاتي">
+                <span class="material-symbols-outlined text-[16px]" [style.font-variation-settings]="m.isBookmarked ? '\'FILL\' 1' : '\'FILL\' 0'">
+                  bookmark
+                </span>
+              </button>
+
+              @if (isLatestAssistantMessage(m)) {
+              <button (click)="regenerateAiResponse(m)" [disabled]="isGenerating"
+                class="msg-toolbar-btn disabled:opacity-40" title="Regenerate latest response">
+                <span class="material-symbols-outlined text-[16px]">refresh</span>
+              </button>
+              }
             </div>
           </div>
-        }
+
+        </div>
+      </div>
+      }
       }
 
     </div>
 
+
+
     <!-- Smart Input Bar -->
     <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%_-_32px)] max-w-3xl z-50">
-      <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-[0_8px_32px_rgba(15,23,42,0.08)] p-2.5 flex items-end gap-3 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
-        <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mb-0.5">
-          <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+      <div
+        class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-[0_8px_32px_rgba(15,23,42,0.08)] p-2.5 flex items-end gap-3 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+        <div
+          class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mb-0.5">
+          <span class="material-symbols-outlined text-[20px]"
+            style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
         </div>
 
         <textarea
@@ -496,14 +636,19 @@
           aria-label="Ask Safarni AI Travel Workspace"
         ></textarea>
 
-        <button
-          (click)="handleSend()"
-          [disabled]="isTyping || !inputValue.trim()"
-          class="bg-primary text-on-primary w-10 h-10 rounded-xl flex items-center justify-center shadow-md hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 mb-0.5"
-          aria-label="Send message"
-        >
-          <span class="material-symbols-outlined text-[20px]">send</span>
-        </button>
+        @if (isGenerating) {
+          <button (click)="stopGenerating()" 
+            class="bg-error text-on-error w-10 h-10 rounded-xl flex items-center justify-center shadow-md hover:bg-error/90 active:scale-95 transition-all flex-shrink-0 mb-0.5"
+            aria-label="Stop generating">
+            <span class="material-symbols-outlined text-[20px]">stop</span>
+          </button>
+        } @else {
+          <button (click)="handleSend()" [disabled]="!inputValue.trim()"
+            class="bg-primary text-on-primary w-10 h-10 rounded-xl flex items-center justify-center shadow-md hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 mb-0.5"
+            aria-label="Send message">
+            <span class="material-symbols-outlined text-[20px]">send</span>
+          </button>
+        }
       </div>
     </div>
 
@@ -511,80 +656,236 @@
 </main>
 
 <!-- Bottom Navigation (Mobile Only) -->
-<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pt-3 pb-safe-bottom bg-surface/90 backdrop-blur-xl border-t border-outline-variant/20 z-50 shadow-[0_-4px_20px_rgba(15,23,42,0.05)]">
-  <a routerLink="/" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90" [routerLinkActiveOptions]="{exact: true}"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
+<nav
+  class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pt-3 pb-safe-bottom bg-surface/90 backdrop-blur-xl border-t border-outline-variant/20 z-50 shadow-[0_-4px_20px_rgba(15,23,42,0.05)]">
+  <a routerLink="/" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
+    [routerLinkActiveOptions]="{exact: true}"
+    class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
     <span class="material-symbols-outlined">explore</span>
     <span class="text-label-sm font-label-sm">Explore</span>
   </a>
   <a routerLink="/planner" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
+    class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
     <span class="material-symbols-outlined">event_note</span>
     <span class="text-label-sm font-label-sm">Planner</span>
   </a>
   <a routerLink="/bookings" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
+    class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
     <span class="material-symbols-outlined">confirmation_number</span>
     <span class="text-label-sm font-label-sm">Bookings</span>
   </a>
   <a routerLink="/concierge" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
+    class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
     <span class="material-symbols-outlined">auto_awesome</span>
     <span class="text-label-sm font-label-sm">Concierge</span>
   </a>
   <a routerLink="/profile" routerLinkActive="text-primary font-semibold bg-primary-container/20 scale-90"
-     class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
+    class="flex flex-col items-center justify-center text-on-surface-variant opacity-80 px-3 py-1">
     <span class="material-symbols-outlined">person</span>
     <span class="text-label-sm font-label-sm">Profile</span>
   </a>
 </nav>
 
-<!-- Custom Delete Confirmation Modal Overlay -->
-@if (showDeleteModal) {
-  <div
-    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md message-entrance"
-    (click)="cancelDeleteConversation()"
-  >
-    <div
-      class="bg-surface-container-lowest border border-outline-variant/30 rounded-3xl p-6 max-w-md w-full shadow-2xl text-center space-y-4 relative overflow-hidden"
-      (click)="$event.stopPropagation()"
-    >
-      <!-- Top Decorative Accent -->
-      <div class="w-14 h-14 rounded-2xl bg-error/10 text-error flex items-center justify-center mx-auto shadow-inner">
-        <span class="material-symbols-outlined text-[30px]">delete_forever</span>
-      </div>
+<!-- Bookmarks Modal -->
+@if (isBookmarksModalOpen) {
+<div class="fixed inset-0 z-[100] flex items-center justify-center bg-scrim/40 backdrop-blur-sm animate-fade-in">
+  <div class="bg-surface rounded-3xl w-full max-w-2xl max-h-[85vh] mx-4 shadow-xl border border-outline-variant/30 flex flex-col overflow-hidden transform transition-all">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-lowest">
+      <h2 class="text-title-lg font-bold text-on-surface flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">bookmarks</span>
+        محفوظاتي
+      </h2>
+      <button (click)="closeBookmarks()" class="p-2 rounded-full hover:bg-surface-variant text-on-surface-variant transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
 
-      <div class="space-y-1.5">
-        <h3 class="text-headline-sm font-bold text-on-surface">Delete Trip Chat?</h3>
-        <p class="text-body-md text-on-surface-variant leading-relaxed">
-          Are you sure you want to delete <span class="font-bold text-on-surface">"{{ deletingConvTitle }}"</span>? This action cannot be undone.
-        </p>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="flex items-center gap-3 pt-2">
-        <button
-          (click)="cancelDeleteConversation()"
-          [disabled]="isDeletingConversation"
-          class="flex-1 py-2.5 px-4 rounded-xl border border-outline-variant/40 bg-surface-container-low hover:bg-surface-container text-on-surface font-semibold text-label-md transition-all active:scale-95 disabled:opacity-50"
-        >
-          Cancel
-        </button>
-
-        <button
-          (click)="executeDeleteConversation()"
-          [disabled]="isDeletingConversation"
-          class="flex-1 py-2.5 px-4 rounded-xl bg-error text-on-error font-bold shadow-md hover:bg-error/90 transition-all active:scale-95 flex items-center justify-center gap-2 text-label-md disabled:opacity-50"
-        >
-          @if (isDeletingConversation) {
-            <span class="material-symbols-outlined animate-spin text-[18px]">sync</span>
-            <span>Deleting...</span>
-          } @else {
-            <span class="material-symbols-outlined text-[18px]">delete</span>
-            <span>Delete Chat</span>
-          }
-        </button>
-      </div>
+    <!-- Body -->
+    <div class="p-6 overflow-y-auto flex-grow custom-scrollbar space-y-4">
+      @if (bookmarks.length === 0) {
+        <div class="text-center py-12 text-on-surface-variant opacity-70">
+          <span class="material-symbols-outlined text-[48px] mb-4">bookmark_border</span>
+          <p class="text-body-lg">لا يوجد رسائل محفوظة.</p>
+          <p class="text-body-sm mt-2">يمكنك حفظ أي رسالة من المحادثة للرجوع إليها هنا.</p>
+        </div>
+      } @else {
+        @for (b of bookmarks; track b.id) {
+        <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-4 hover:border-primary/30 transition-colors group">
+          <!-- Short snippet or full text -->
+          <div class="text-body-md text-on-surface line-clamp-4 whitespace-pre-wrap" [dir]="b.formatted.direction">
+            {{ b.text }}
+          </div>
+          <div class="flex items-center justify-between mt-3 pt-3 border-t border-outline-variant/20">
+            <span class="text-label-sm text-on-surface-variant opacity-60">{{ b.time }}</span>
+            <div class="flex items-center gap-2">
+              <button (click)="copyMessage(b)" class="p-1.5 rounded-lg hover:bg-surface-variant text-on-surface-variant transition-colors" title="نسخ">
+                <span class="material-symbols-outlined text-[18px]">content_copy</span>
+              </button>
+              <button (click)="removeBookmark(b.id)" class="p-1.5 rounded-lg hover:bg-error/10 text-error transition-colors" title="إزالة">
+                <span class="material-symbols-outlined text-[18px]">delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        }
+      }
     </div>
   </div>
+</div>
+}
+
+<!-- Custom Delete Confirmation Modal Overlay -->
+@if (showDeleteModal) {
+<div
+  class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md message-entrance"
+  (click)="cancelDeleteConversation()">
+  <div
+    class="bg-surface-container-lowest border border-outline-variant/30 rounded-3xl p-6 max-w-md w-full shadow-2xl text-center space-y-4 relative overflow-hidden"
+    (click)="$event.stopPropagation()">
+    <!-- Top Decorative Accent -->
+    <div class="w-14 h-14 rounded-2xl bg-error/10 text-error flex items-center justify-center mx-auto shadow-inner">
+      <span class="material-symbols-outlined text-[30px]">delete_forever</span>
+    </div>
+
+    <div class="space-y-1.5">
+      <h3 class="text-headline-sm font-bold text-on-surface">Delete Trip Chat?</h3>
+      <p class="text-body-md text-on-surface-variant leading-relaxed">
+        Are you sure you want to delete <span class="font-bold text-on-surface">"{{ deletingConvTitle }}"</span>? This
+        action cannot be undone.
+      </p>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex items-center gap-3 pt-2">
+      <button (click)="cancelDeleteConversation()" [disabled]="isDeletingConversation"
+        class="flex-1 py-2.5 px-4 rounded-xl border border-outline-variant/40 bg-surface-container-low hover:bg-surface-container text-on-surface font-semibold text-label-md transition-all active:scale-95 disabled:opacity-50">
+        Cancel
+      </button>
+
+      <button (click)="executeDeleteConversation()" [disabled]="isDeletingConversation"
+        class="flex-1 py-2.5 px-4 rounded-xl bg-error text-on-error font-bold shadow-md hover:bg-error/90 transition-all active:scale-95 flex items-center justify-center gap-2 text-label-md disabled:opacity-50">
+        @if (isDeletingConversation) {
+        <span class="material-symbols-outlined animate-spin text-[18px]">sync</span>
+        <span>Deleting...</span>
+        } @else {
+        <span class="material-symbols-outlined text-[18px]">delete</span>
+        <span>Delete Chat</span>
+        }
+      </button>
+    </div>
+  </div>
+</div>
+}
+
+
+
+<!-- Create Folder Modal -->
+@if (showCreateFolderModal) {
+<div
+  class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md message-entrance"
+  (click)="cancelCreateFolder()">
+  <div
+    class="bg-surface-container-lowest border border-outline-variant/30 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+    (click)="$event.stopPropagation()">
+    <div class="flex items-center gap-3 mb-2">
+      <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+        <span class="material-symbols-outlined">create_new_folder</span>
+      </div>
+      <h3 class="text-title-lg font-bold text-on-surface">New Folder</h3>
+    </div>
+    <input type="text" [(ngModel)]="newFolderNameInput" placeholder="Folder name..."
+      class="w-full px-4 py-3 bg-surface-container-low border border-outline-variant/50 rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-body-lg"
+      (keyup.enter)="executeCreateFolder()" autofocus />
+    <div class="flex items-center gap-3 pt-2">
+      <button (click)="cancelCreateFolder()" [disabled]="isCreatingFolder"
+        class="flex-1 py-2.5 px-4 rounded-xl border border-outline-variant/40 bg-surface-container-low hover:bg-surface-container text-on-surface font-semibold text-label-md transition-all active:scale-95 disabled:opacity-50">Cancel</button>
+      <button (click)="executeCreateFolder()" [disabled]="isCreatingFolder || !newFolderNameInput.trim()"
+        class="flex-1 py-2.5 px-4 rounded-xl bg-primary text-on-primary font-bold shadow-md hover:bg-primary/90 transition-all active:scale-95 flex items-center justify-center gap-2 text-label-md disabled:opacity-50">
+        @if (isCreatingFolder) {
+        <span class="material-symbols-outlined animate-spin text-[18px]">sync</span><span>Saving...</span>
+        } @else {
+        <span>Create Folder</span>
+        }
+      </button>
+    </div>
+  </div>
+</div>
+}
+
+
+
+<!-- Delete Folder Modal -->
+@if (showDeleteFolderModal) {
+<div
+  class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md message-entrance"
+  (click)="cancelDeleteFolder()">
+  <div
+    class="bg-surface-container-lowest border border-outline-variant/30 rounded-3xl p-6 max-w-md w-full shadow-2xl text-center space-y-4"
+    (click)="$event.stopPropagation()">
+    <div class="w-14 h-14 rounded-2xl bg-error/10 text-error flex items-center justify-center mx-auto shadow-inner">
+      <span class="material-symbols-outlined text-[30px]">folder_delete</span>
+    </div>
+    <div class="space-y-1.5">
+      <h3 class="text-headline-sm font-bold text-on-surface">Delete Folder?</h3>
+      <p class="text-body-md text-on-surface-variant leading-relaxed">
+        Are you sure you want to delete <span class="font-bold text-on-surface">"{{ deletingFolderName
+          }}"</span>?<br />Chats inside will be kept, but they won't be in a folder anymore.
+      </p>
+    </div>
+    <div class="flex items-center gap-3 pt-2">
+      <button (click)="cancelDeleteFolder()" [disabled]="isDeletingFolder"
+        class="flex-1 py-2.5 px-4 rounded-xl border border-outline-variant/40 bg-surface-container-low hover:bg-surface-container text-on-surface font-semibold text-label-md transition-all active:scale-95 disabled:opacity-50">Cancel</button>
+      <button (click)="executeDeleteFolder()" [disabled]="isDeletingFolder"
+        class="flex-1 py-2.5 px-4 rounded-xl bg-error text-on-error font-bold shadow-md hover:bg-error/90 transition-all active:scale-95 flex items-center justify-center gap-2 text-label-md disabled:opacity-50">
+        @if (isDeletingFolder) {
+        <span class="material-symbols-outlined animate-spin text-[18px]">sync</span><span>Deleting...</span>
+        } @else {
+        <span class="material-symbols-outlined text-[18px]">delete</span><span>Delete Folder</span>
+        }
+      </button>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Move To Folder Modal -->
+@if (showMoveToFolderModal) {
+<div
+  class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md message-entrance"
+  (click)="cancelMoveToFolder()">
+  <div
+    class="bg-surface-container-lowest border border-outline-variant/30 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+    (click)="$event.stopPropagation()">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+        <span class="material-symbols-outlined">drive_file_move</span>
+      </div>
+      <h3 class="text-title-lg font-bold text-on-surface">Move Chat to Folder</h3>
+    </div>
+
+    <div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+      <!-- Root option -->
+      <button (click)="executeMoveToFolder(null)" [disabled]="isMovingConv"
+        class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-high transition-colors text-left border border-outline-variant/20">
+        <span class="material-symbols-outlined text-secondary">home</span>
+        <span class="text-label-md font-bold text-on-surface">None (Remove from folder)</span>
+      </button>
+
+      <!-- Folders -->
+      @for (folder of folders; track folder.id) {
+      <button (click)="executeMoveToFolder(folder.id)" [disabled]="isMovingConv"
+        class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-high transition-colors text-left border border-outline-variant/20">
+        <span class="material-symbols-outlined text-primary">folder</span>
+        <span class="text-label-md font-bold text-on-surface">{{ folder.name }}</span>
+      </button>
+      }
+    </div>
+
+    <div class="flex justify-end pt-2">
+      <button (click)="cancelMoveToFolder()" [disabled]="isMovingConv"
+        class="py-2.5 px-6 rounded-xl border border-outline-variant/40 bg-surface-container-low hover:bg-surface-container text-on-surface font-semibold text-label-md transition-all active:scale-95 disabled:opacity-50">Close</button>
+    </div>
+  </div>
+</div>
 }

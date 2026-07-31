@@ -446,6 +446,7 @@ public sealed class TripsController : ControllerBase
                     "Venue selected successfully.",
                     StatusCodes.Status200OK));
     }
+  
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

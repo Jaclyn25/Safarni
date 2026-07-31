@@ -12,6 +12,13 @@ namespace ChatBotApi.Application.Features.Chat.Services;
 
 public class IntentDetectionService : IIntentDetectionService
 {
+    private readonly IAIProvider _aiProvider;
+
+    public IntentDetectionService(IAIProvider aiProvider)
+    {
+        _aiProvider = aiProvider;
+    }
+
     private static readonly string[] PlacesKeywords =
     {
         "restaurant", "restaurants", "hotel", "hotels", "cafe", "cafes", "coffee shop",
@@ -140,16 +147,48 @@ public class IntentDetectionService : IIntentDetectionService
         return ChatIntent.Ambiguous;
     }
 
-    public Task<IntentDetectionResult> DetectIntentAsync(
+    public async Task<IntentDetectionResult> DetectIntentAsync(
         string userMessage,
         List<ChatMessageDto> history,
         CancellationToken cancellationToken)
     {
-        return Task.FromResult(new IntentDetectionResult
+        var intent = DetectIntent(userMessage);
+        var standaloneQuery = userMessage;
+
+        // Only rewrite if intent requires contextual searching
+        if (intent is ChatIntent.RagOnly or ChatIntent.GooglePlacesOnly or ChatIntent.Hybrid or ChatIntent.Ambiguous)
         {
-            Intent = DetectIntent(userMessage),
-            StandaloneQuery = userMessage
-        });
+            if (history != null && history.Count > 0)
+            {
+                var prompt = $@"
+You are a helpful travel query rewriter. 
+Given the user's latest message and the chat history, rewrite the user's latest message into a standalone search query that contains all necessary context (like the city, hotel name, or subject) so it can be used to search Google Places or a travel database independently.
+If the latest message is already self-contained, just return the latest message.
+DO NOT answer the question. ONLY return the rewritten query. Keep it very concise.
+Latest message: {userMessage}
+";
+                try
+                {
+                    var options = new ChatBotApi.Application.Common.Models.AICompletionOptions(0.0f, 100, 0.1f);
+                    standaloneQuery = await _aiProvider.GetChatCompletionAsync(prompt, history, "Rewrite this query:", cancellationToken, options);
+                    if (string.IsNullOrWhiteSpace(standaloneQuery))
+                    {
+                        standaloneQuery = userMessage;
+                    }
+                }
+                catch
+                {
+                    // Fallback to original message if rewriting fails
+                    standaloneQuery = userMessage;
+                }
+            }
+        }
+
+        return new IntentDetectionResult
+        {
+            Intent = intent,
+            StandaloneQuery = standaloneQuery.Trim()
+        };
     }
 
     private static bool ContainsAny(string text, string[] keywords)

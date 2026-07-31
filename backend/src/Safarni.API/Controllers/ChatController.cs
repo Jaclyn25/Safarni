@@ -229,6 +229,14 @@ public class ChatController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPut("conversations/{id:guid}/pin")]
+    public async Task<IActionResult> TogglePin(Guid id, CancellationToken cancellationToken)
+    {
+        var command = new ChatBotApi.Application.Features.Chat.Commands.TogglePin.TogglePinCommand(id, CurrentUserId);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpDelete("conversations/{id:guid}")]
     public async Task<IActionResult> DeleteConversation(Guid id, CancellationToken cancellationToken)
     {
@@ -269,9 +277,65 @@ public class ChatController : ControllerBase
             },
             cancellationToken);
     }
+
+    [HttpPut("conversations/{id:guid}/rename")]
+    public async Task<IActionResult> RenameConversation(Guid id, [FromBody] RenameConversationRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ChatBotApi.Application.Features.Chat.Commands.RenameConversation.RenameConversationCommand(id, CurrentUserId, request.NewTitle);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    // ==========================================
+    // FOLDERS
+    // ==========================================
+
+    [HttpGet("folders")]
+    public async Task<IActionResult> GetFolders(CancellationToken cancellationToken)
+    {
+        var query = new ChatBotApi.Application.Features.Chat.Queries.GetFolders.GetFoldersQuery(CurrentUserId);
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("folders")]
+    public async Task<IActionResult> CreateFolder([FromBody] CreateFolderRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ChatBotApi.Application.Features.Chat.Commands.CreateFolder.CreateFolderCommand(CurrentUserId, request.Name);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPut("folders/{id:guid}/rename")]
+    public async Task<IActionResult> RenameFolder(Guid id, [FromBody] RenameFolderRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ChatBotApi.Application.Features.Chat.Commands.Folders.RenameFolderCommand(id, CurrentUserId, request.NewName);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpDelete("folders/{id:guid}")]
+    public async Task<IActionResult> DeleteFolder(Guid id, CancellationToken cancellationToken)
+    {
+        var command = new ChatBotApi.Application.Features.Chat.Commands.Folders.DeleteFolderCommand(id, CurrentUserId);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(new { success = result });
+    }
+
+    [HttpPut("conversations/{id:guid}/folder")]
+    public async Task<IActionResult> MoveConversationToFolder(Guid id, [FromBody] MoveConversationRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ChatBotApi.Application.Features.Chat.Commands.Folders.MoveConversationToFolderCommand(id, request.FolderId, CurrentUserId);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(new { success = result });
+    }
 }
 
 public record StartConversationRequest(string? Title);
 public record SendMessageRequest(Guid ConversationId, string Message);
 public record RegenerateRequest(Guid ConversationId);
 public record EditMessageRequest(Guid ConversationId, Guid MessageId, string NewContent);
+public record RenameConversationRequest(string NewTitle);
+public record CreateFolderRequest(string Name);
+public record RenameFolderRequest(string NewName);
+public record MoveConversationRequest(Guid? FolderId);

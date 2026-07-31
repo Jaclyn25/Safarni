@@ -336,6 +336,21 @@ export class PlannerComponent
         this.tripService.getRememberedTrip(
           this.tripId
         );
+
+      if (!this.trip) {
+        this.tripService.getTrip(this.tripId).subscribe({
+          next: (response) => {
+            if (response.data) {
+              this.trip = response.data;
+              this.tripService.rememberTrip(response.data);
+            }
+          },
+          error: () => {
+            this.trip = null;
+          }
+        });
+      }
+
       void this.loadExistingItinerary();
     }
   }

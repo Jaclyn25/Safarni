@@ -10,4 +10,9 @@ public sealed record TripResponse(
     DateTime StartDate,
     DateTime EndDate,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    Guid? ActiveItineraryId = null,
+    string? ItineraryStatus = null,
+    string? ItineraryCurrency = null,
+    decimal? EstimatedTotalCost = null,
+    DateTime? ItineraryGeneratedAt = null);

@@ -44,6 +44,11 @@ export interface TripResponse {
   endDate: string;
   createdAt: string;
   updatedAt: string | null;
+  activeItineraryId?: string | null;
+  itineraryStatus?: string | null;
+  itineraryCurrency?: string | null;
+  estimatedTotalCost?: number | null;
+  itineraryGeneratedAt?: string | null;
 }
 
 @Injectable({
@@ -99,6 +104,28 @@ export class TripService {
     return this.http.post<ApiResponse<TripResponse>>(
       '/api/trips',
       request,
+      {
+        headers: this.getHeaders()
+      }
+    );
+  }
+
+  getTrips(): Observable<
+    ApiResponse<TripResponse[]>
+  > {
+    return this.http.get<ApiResponse<TripResponse[]>>(
+      '/api/trips',
+      {
+        headers: this.getHeaders()
+      }
+    );
+  }
+
+  getTrip(
+    tripId: string
+  ): Observable<ApiResponse<TripResponse>> {
+    return this.http.get<ApiResponse<TripResponse>>(
+      `/api/trips/${tripId}`,
       {
         headers: this.getHeaders()
       }

@@ -1,5 +1,7 @@
 import {
+  ChangeDetectorRef,
   Component,
+  DestroyRef,
   HostListener,
   OnDestroy,
   OnInit,
@@ -14,8 +16,10 @@ import {
   RouterLinkActive
 } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   CreateTripRequest,
+  FlightAirportSuggestion,
   TravelCountry,
   TripCitySelection,
   TripService
@@ -72,17 +76,28 @@ export class ExploreComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private tripService = inject(TripService);
   private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
 
   isCreateTripOpen = false;
   isLoadingCountries = false;
   isLoadingCities = false;
+  isLoadingOriginAirports = false;
+  isLoadingDestinationAirports = false;
   isCreatingTrip = false;
   createTripError = '';
   countryLoadError = '';
   cityLoadError = '';
+  originAirportLoadError = '';
+  destinationAirportLoadError = '';
 
   countries: TravelCountry[] = [];
   availableCities: string[] = [];
+  originAirports: FlightAirportSuggestion[] = [];
+  destinationAirports: FlightAirportSuggestion[] = [];
+  destinationAirportCode: string | null = null;
+  destinationAirportName: string | null = null;
+  destinationAirportCity: string | null = null;
   citySearch = '';
   selectedCities: TripCitySelection[] = [];
 
@@ -90,6 +105,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
     name: '',
     destination: '',
     originCountry: '',
+    originCountryCode: null,
+    originCity: null,
+    originAirportCode: null,
+    originAirportName: null,
     startDate: '',
     endDate: '',
     cities: []
@@ -329,6 +348,30 @@ export class ExploreComponent implements OnInit, OnDestroy {
       );
   }
 
+  get selectedOriginAirportLabel(): string {
+    if (!this.tripDraft.originAirportCode) {
+      return 'Optional — select an airport to include flights.';
+    }
+
+    return [
+      this.tripDraft.originAirportCode,
+      this.tripDraft.originAirportName,
+      this.tripDraft.originCity
+    ].filter(Boolean).join(' · ');
+  }
+
+  get selectedDestinationAirportLabel(): string {
+    if (!this.destinationAirportCode) {
+      return 'Optional — select an airport to include flights.';
+    }
+
+    return [
+      this.destinationAirportCode,
+      this.destinationAirportName,
+      this.destinationAirportCity
+    ].filter(Boolean).join(' · ');
+  }
+
   get canCreateTrip(): boolean {
     return Boolean(
       this.tripDraft.name.trim() &&
@@ -344,8 +387,9 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.route.queryParamMap.subscribe(
-      (queryParams) => {
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((queryParams) => {
         if (
           queryParams.get('createTrip') ===
             '1' &&
@@ -353,8 +397,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
         ) {
           void this.openCreateTrip();
         }
-      }
-    );
+      });
   }
 
   ngOnDestroy(): void {
@@ -395,6 +438,8 @@ export class ExploreComponent implements OnInit, OnDestroy {
       await this.loadCountries();
     }
 
+    await this.loadAirportOptionsForDraft();
+
     if (
       suggestedDestination &&
       this.countries.some(
@@ -433,31 +478,67 @@ export class ExploreComponent implements OnInit, OnDestroy {
     }
   }
 
+  async onOriginCountryChanged(): Promise<void> {
+    const country = this.countries.find(
+      (candidate) => candidate.name === this.tripDraft.originCountry
+    );
+
+    this.tripDraft.originCountryCode = country?.iso2 ?? null;
+    this.tripDraft.originCity = null;
+    this.tripDraft.originAirportCode = null;
+    this.tripDraft.originAirportName = null;
+    this.originAirports = [];
+    this.originAirportLoadError = '';
+
+    if (!this.tripDraft.originCountry) {
+      return;
+    }
+
+    await this.loadOriginAirports();
+  }
+
+  selectOriginAirport(code: string): void {
+    const normalizedCode = code?.trim().toUpperCase() || '';
+    const airport = this.originAirports.find(
+      (candidate) => candidate.code.toUpperCase() === normalizedCode
+    );
+
+    this.tripDraft.originAirportCode = airport?.code ?? null;
+    this.tripDraft.originAirportName = airport?.name ?? null;
+    this.tripDraft.originCity = airport?.city ?? null;
+  }
+
   async onDestinationChanged(): Promise<void> {
     this.availableCities = [];
     this.selectedCities = [];
     this.citySearch = '';
     this.cityLoadError = '';
+    this.destinationAirports = [];
+    this.destinationAirportCode = null;
+    this.destinationAirportName = null;
+    this.destinationAirportCity = null;
+    this.destinationAirportLoadError = '';
 
     if (!this.tripDraft.destination) {
       return;
     }
 
-    this.isLoadingCities = true;
+    await Promise.all([
+      this.loadDestinationCities(),
+      this.loadDestinationAirports()
+    ]);
+  }
 
-    try {
-      const response = await firstValueFrom(
-        this.tripService.getCities(
-          this.tripDraft.destination
-        )
-      );
-      this.availableCities = response.data ?? [];
-    } catch {
-      this.cityLoadError =
-        'Cities could not be loaded. Please try selecting the country again.';
-    } finally {
-      this.isLoadingCities = false;
-    }
+  selectDestinationAirport(code: string): void {
+    const normalizedCode = code?.trim().toUpperCase() || '';
+    const airport = this.destinationAirports.find(
+      (candidate) =>
+        candidate.code.toUpperCase() === normalizedCode
+    );
+
+    this.destinationAirportCode = airport?.code ?? null;
+    this.destinationAirportName = airport?.name ?? null;
+    this.destinationAirportCity = airport?.city ?? null;
   }
 
   onDatesChanged(): void {
@@ -576,7 +657,13 @@ export class ExploreComponent implements OnInit, OnDestroy {
       ExploreComponent.TRIP_DRAFT_KEY,
       JSON.stringify({
         draft: this.tripDraft,
-        selectedCities: this.selectedCities
+        selectedCities: this.selectedCities,
+        destinationAirportCode:
+          this.destinationAirportCode,
+        destinationAirportName:
+          this.destinationAirportName,
+        destinationAirportCity:
+          this.destinationAirportCity
       })
     );
   }
@@ -597,6 +684,9 @@ export class ExploreComponent implements OnInit, OnDestroy {
       const parsed = JSON.parse(raw) as {
         draft?: Partial<CreateTripRequest>;
         selectedCities?: TripCitySelection[];
+        destinationAirportCode?: string | null;
+        destinationAirportName?: string | null;
+        destinationAirportCity?: string | null;
       };
 
       if (parsed?.draft) {
@@ -607,8 +697,20 @@ export class ExploreComponent implements OnInit, OnDestroy {
       }
 
       if (Array.isArray(parsed?.selectedCities)) {
-        this.selectedCities = parsed.selectedCities;
+        this.selectedCities = parsed.selectedCities.map(
+          (city) => ({
+            name: city.name,
+            days: city.days
+          })
+        );
       }
+
+      this.destinationAirportCode =
+        parsed.destinationAirportCode ?? null;
+      this.destinationAirportName =
+        parsed.destinationAirportName ?? null;
+      this.destinationAirportCity =
+        parsed.destinationAirportCity ?? null;
     } catch {
       // Ignore corrupt drafts.
     } finally {
@@ -643,10 +745,30 @@ export class ExploreComponent implements OnInit, OnDestroy {
     const request: CreateTripRequest = {
       ...this.tripDraft,
       name: this.tripDraft.name.trim(),
-      cities: this.selectedCities.map((city) => ({
-        name: city.name,
-        days: Number(city.days)
-      }))
+      originCountryCode:
+        this.tripDraft.originCountryCode?.toUpperCase() || null,
+      originCity:
+        this.tripDraft.originCity?.trim() || null,
+      originAirportCode:
+        this.tripDraft.originAirportCode?.toUpperCase() || null,
+      originAirportName:
+        this.tripDraft.originAirportName?.trim() || null,
+      cities: this.selectedCities.map((city, index) => {
+        const isFlightEndpoint =
+          index === 0 ||
+          index === this.selectedCities.length - 1;
+
+        return {
+          name: city.name.trim(),
+          days: Number(city.days),
+          airportCode: isFlightEndpoint
+            ? this.destinationAirportCode?.toUpperCase() || null
+            : null,
+          airportName: isFlightEndpoint
+            ? this.destinationAirportName?.trim() || null
+            : null
+        };
+      })
     };
 
     try {
@@ -674,6 +796,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
         );
     } finally {
       this.isCreatingTrip = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -723,7 +846,193 @@ export class ExploreComponent implements OnInit, OnDestroy {
         'Countries could not be loaded. Please close this window and try again.';
     } finally {
       this.isLoadingCountries = false;
+      this.cdr.markForCheck();
     }
+  }
+
+  private async loadAirportOptionsForDraft(): Promise<void> {
+    const tasks: Promise<void>[] = [];
+
+    if (this.tripDraft.originCountry) {
+      const country = this.countries.find(
+        (candidate) =>
+          candidate.name === this.tripDraft.originCountry
+      );
+      this.tripDraft.originCountryCode ??=
+        country?.iso2 ?? null;
+      tasks.push(this.loadOriginAirports(true));
+    }
+
+    if (this.tripDraft.destination) {
+      tasks.push(this.loadDestinationAirports(true));
+    }
+
+    await Promise.all(tasks);
+  }
+
+  private async loadOriginAirports(
+    preserveSelection = false
+  ): Promise<void> {
+    if (!this.tripDraft.originCountry) {
+      return;
+    }
+
+    const preservedCode = preserveSelection
+      ? this.tripDraft.originAirportCode
+      : null;
+    const preservedName = preserveSelection
+      ? this.tripDraft.originAirportName
+      : null;
+    const preservedCity = preserveSelection
+      ? this.tripDraft.originCity
+      : null;
+
+    this.isLoadingOriginAirports = true;
+    this.originAirportLoadError = '';
+
+    try {
+      const response = await firstValueFrom(
+        this.tripService.getAirports(
+          this.tripDraft.originCountry
+        )
+      );
+
+      this.originAirports = this.uniqueAirports(
+        response.data ?? []
+      );
+
+      if (
+        preservedCode &&
+        !this.originAirports.some(
+          (airport) => airport.code === preservedCode
+        )
+      ) {
+        this.originAirports = [
+          {
+            code: preservedCode,
+            name: preservedName || preservedCode,
+            city: preservedCity || this.tripDraft.originCountry
+          },
+          ...this.originAirports
+        ];
+      }
+    } catch (error: unknown) {
+      this.originAirportLoadError =
+        this.tripService.getErrorMessage(
+          error,
+          'Origin airports could not be loaded. You can continue without flights.'
+        );
+    } finally {
+      this.isLoadingOriginAirports = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private async loadDestinationCities(): Promise<void> {
+    if (!this.tripDraft.destination) {
+      return;
+    }
+
+    this.isLoadingCities = true;
+
+    try {
+      const response = await firstValueFrom(
+        this.tripService.getCities(
+          this.tripDraft.destination
+        )
+      );
+      this.availableCities = response.data ?? [];
+    } catch {
+      this.cityLoadError =
+        'Cities could not be loaded. Please try selecting the country again.';
+    } finally {
+      this.isLoadingCities = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private async loadDestinationAirports(
+    preserveSelection = false
+  ): Promise<void> {
+    if (!this.tripDraft.destination) {
+      return;
+    }
+
+    const preservedCode = preserveSelection
+      ? this.destinationAirportCode
+      : null;
+    const preservedName = preserveSelection
+      ? this.destinationAirportName
+      : null;
+    const preservedCity = preserveSelection
+      ? this.destinationAirportCity
+      : null;
+
+    this.isLoadingDestinationAirports = true;
+    this.destinationAirportLoadError = '';
+
+    try {
+      const response = await firstValueFrom(
+        this.tripService.getAirports(
+          this.tripDraft.destination
+        )
+      );
+
+      this.destinationAirports = this.uniqueAirports(
+        response.data ?? []
+      );
+
+      if (
+        preservedCode &&
+        !this.destinationAirports.some(
+          (airport) => airport.code === preservedCode
+        )
+      ) {
+        this.destinationAirports = [
+          {
+            code: preservedCode,
+            name: preservedName || preservedCode,
+            city:
+              preservedCity ||
+              this.tripDraft.destination
+          },
+          ...this.destinationAirports
+        ];
+      }
+    } catch (error: unknown) {
+      this.destinationAirportLoadError =
+        this.tripService.getErrorMessage(
+          error,
+          'Destination airports could not be loaded. You can continue without flights.'
+        );
+    } finally {
+      this.isLoadingDestinationAirports = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private uniqueAirports(
+    airports: FlightAirportSuggestion[]
+  ): FlightAirportSuggestion[] {
+    const seen = new Set<string>();
+
+    return airports
+      .map((airport) => ({
+        ...airport,
+        code: airport.code.trim().toUpperCase()
+      }))
+      .filter((airport) => {
+        if (!/^[A-Z]{3}$/.test(airport.code)) {
+          return false;
+        }
+
+        if (seen.has(airport.code)) {
+          return false;
+        }
+
+        seen.add(airport.code);
+        return true;
+      });
   }
 
   private rebalanceCityDays(): void {
@@ -781,4 +1090,3 @@ export class ExploreComponent implements OnInit, OnDestroy {
     this.setPageScrollLocked(false);
   }
 }
-

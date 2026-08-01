@@ -94,3 +94,24 @@
     transition: none;
   }
 }
+
+/* Keep the long-running server progress dialog usable on short screens. */
+.generation-dialog {
+  max-height: calc(100dvh - 2.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation: none !important;
+  }
+
+  .group img {
+    transition: none !important;
+  }
+
+  .group:hover img {
+    transform: none !important;
+  }
+}

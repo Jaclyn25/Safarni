@@ -6,7 +6,7 @@ public sealed record ItineraryResponse(
     Guid Id,
     Guid TripId,
     GenerateItineraryPreferences Preferences,
-    decimal BudgetAmount,
+    decimal? BudgetAmount,
     string CurrencyCode,
     int TravelerCount,
     string Status,
@@ -15,6 +15,8 @@ public sealed record ItineraryResponse(
     DateTime CreatedAt,
     DateTime UpdatedAt,
     decimal EstimatedTotalCost,
+    int UnknownCostItemCount,
+    bool IsCompleteCostEstimate,
     IReadOnlyList<ItineraryDayResponse> Days);
 
 public sealed record ItineraryDayResponse(
@@ -24,6 +26,8 @@ public sealed record ItineraryDayResponse(
     string Title,
     string? Notes,
     decimal EstimatedTotalCost,
+    int UnknownCostItemCount,
+    bool IsCompleteCostEstimate,
     IReadOnlyList<ItineraryItemResponse> Items);
 
 public sealed record ItineraryItemResponse(
@@ -44,6 +48,14 @@ public sealed record ItineraryItemResponse(
     string? PriceSource,
     string? ExternalUrl,
     string? CostSource,
+    string? FlightDepartureAirportCode,
+    string? FlightDepartureAirportName,
+    string? FlightArrivalAirportCode,
+    string? FlightArrivalAirportName,
+    string? FlightAirlines,
+    string? FlightNumbers,
+    int? FlightDurationMinutes,
+    int? FlightStopCount,
     int? RouteDistanceMeters,
     int? RouteDurationMinutes,
     string? RouteTravelMode,
@@ -60,6 +72,7 @@ internal static class ItineraryResponseMapper
             .OrderBy(day => day.DayNumber)
             .Select(MapDay)
             .ToList();
+        var unknownCostCount = days.Sum(day => day.UnknownCostItemCount);
 
         return new ItineraryResponse(
             itinerary.Id,
@@ -75,6 +88,8 @@ internal static class ItineraryResponseMapper
             itinerary.CreatedAt,
             itinerary.UpdatedAt,
             days.Sum(day => day.EstimatedTotalCost),
+            unknownCostCount,
+            unknownCostCount == 0,
             days);
     }
 
@@ -84,6 +99,8 @@ internal static class ItineraryResponseMapper
             .OrderBy(item => item.OrderIndex)
             .Select(MapItem)
             .ToList();
+        var unknownCostCount = items.Count(item =>
+            item.EstimatedCost is null);
 
         return new ItineraryDayResponse(
             day.Id,
@@ -92,11 +109,12 @@ internal static class ItineraryResponseMapper
             day.Title,
             day.Notes,
             items.Sum(item => item.EstimatedCost ?? 0),
+            unknownCostCount,
+            unknownCostCount == 0,
             items);
     }
 
-    private static ItineraryItemResponse MapItem(
-        ItineraryItem item)
+    private static ItineraryItemResponse MapItem(ItineraryItem item)
     {
         return new ItineraryItemResponse(
             item.Id,
@@ -112,10 +130,18 @@ internal static class ItineraryResponseMapper
             item.PhotoUrl,
             item.PriceLevel,
             item.RatePerNight,
-            CalculateStayNights(item),
+            item.StayNights,
             item.PriceSource,
             item.ExternalUrl,
             item.CostSource,
+            item.FlightDepartureAirportCode,
+            item.FlightDepartureAirportName,
+            item.FlightArrivalAirportCode,
+            item.FlightArrivalAirportName,
+            item.FlightAirlines,
+            item.FlightNumbers,
+            item.FlightDurationMinutes,
+            item.FlightStopCount,
             item.RouteDistanceMeters,
             item.RouteDurationMinutes,
             item.RouteTravelMode,
@@ -125,45 +151,21 @@ internal static class ItineraryResponseMapper
             item.OrderIndex);
     }
 
-    private static int? CalculateStayNights(
-        ItineraryItem item)
-    {
-        if (item.Category !=
-                ItineraryItemCategory.Accommodation ||
-            item.RatePerNight is null or <= 0 ||
-            item.EstimatedCost is null or <= 0)
-        {
-            return null;
-        }
-
-        return Math.Max(
-            1,
-            (int)decimal.Round(
-                item.EstimatedCost.Value /
-                item.RatePerNight.Value,
-                0,
-                MidpointRounding.AwayFromZero));
-    }
-
-    private static string? ResolveGoogleMapsUrl(
-        ItineraryItem item)
+    private static string? ResolveGoogleMapsUrl(ItineraryItem item)
     {
         const string serpLocalPrefix = "serp-local:";
 
-        if (!string.IsNullOrWhiteSpace(
-                item.GooglePlaceId) &&
+        if (!string.IsNullOrWhiteSpace(item.GooglePlaceId) &&
             item.GooglePlaceId.StartsWith(
                 serpLocalPrefix,
                 StringComparison.OrdinalIgnoreCase))
         {
-            var placeId = item.GooglePlaceId[
-                serpLocalPrefix.Length..];
+            var placeId = item.GooglePlaceId[serpLocalPrefix.Length..];
 
-            if (placeId.Length > 0 &&
-                placeId.All(char.IsDigit))
+            if (placeId.Length > 0 && placeId.All(char.IsDigit))
             {
-                return "https://www.google.com/maps?cid="
-                       + Uri.EscapeDataString(placeId);
+                return "https://www.google.com/maps?cid=" +
+                       Uri.EscapeDataString(placeId);
             }
         }
 

@@ -1,10 +1,8 @@
 using MediatR;
 using Safarni.Application.Abstractions.Authentication;
 using Safarni.Application.Abstractions.Persistence;
-using Safarni.Application.Abstractions.Travel;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Common.Results;
-using Safarni.Application.Features.Trips.GenerateItinerary;
 using Safarni.Domain.Entities;
 
 namespace Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
@@ -38,30 +36,28 @@ public sealed class GetVenueSuggestionsQueryHandler
     private readonly ICurrentUserService _currentUser;
     private readonly ITripRepository _trips;
     private readonly IItineraryRepository _itineraries;
-    private readonly IItineraryTravelDataService _travelData;
+    private readonly ItineraryVenueSuggestionLoader _loader;
 
     public GetVenueSuggestionsQueryHandler(
         ICurrentUserService currentUser,
         ITripRepository trips,
         IItineraryRepository itineraries,
-        IItineraryTravelDataService travelData)
+        ItineraryVenueSuggestionLoader loader)
     {
         _currentUser = currentUser;
         _trips = trips;
         _itineraries = itineraries;
-        _travelData = travelData;
+        _loader = loader;
     }
 
-    public async Task<Result<IReadOnlyList<VenueSuggestionResponse>>>
-        Handle(
-            GetVenueSuggestionsQuery request,
-            CancellationToken cancellationToken)
+    public async Task<Result<IReadOnlyList<VenueSuggestionResponse>>> Handle(
+        GetVenueSuggestionsQuery request,
+        CancellationToken cancellationToken)
     {
         if (_currentUser.UserId is not { } userId)
         {
-            return Result<IReadOnlyList<VenueSuggestionResponse>>
-                .Failure(
-                    AuthenticationErrors.AuthenticationRequired);
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                AuthenticationErrors.AuthenticationRequired);
         }
 
         var trip = await _trips.GetByIdAsync(
@@ -70,198 +66,74 @@ public sealed class GetVenueSuggestionsQueryHandler
 
         if (trip is null)
         {
-            return Result<IReadOnlyList<VenueSuggestionResponse>>
-                .Failure(ItineraryErrors.TripNotFound);
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                ItineraryErrors.TripNotFound);
         }
 
         if (trip.UserId != userId)
         {
-            return Result<IReadOnlyList<VenueSuggestionResponse>>
-                .Failure(ItineraryErrors.Forbidden);
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                ItineraryErrors.Forbidden);
         }
 
-        var itinerary =
-            await _itineraries.GetActiveByTripIdAsync(
-                request.TripId,
-                cancellationToken);
+        var itinerary = await _itineraries.GetActiveByTripIdAsync(
+            request.TripId,
+            cancellationToken);
         var day = itinerary?.Days.FirstOrDefault(candidate =>
-            candidate.Items.Any(item =>
-                item.Id == request.ItemId));
+            candidate.Items.Any(item => item.Id == request.ItemId));
         var item = day?.Items.FirstOrDefault(candidate =>
             candidate.Id == request.ItemId);
 
         if (itinerary is null || day is null || item is null)
         {
-            return Result<IReadOnlyList<VenueSuggestionResponse>>
-                .Failure(ItineraryErrors.ItemNotFound);
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                ItineraryErrors.ItemNotFound);
         }
 
-        var citySchedule =
-            TripRouteSerializer.Deserialize(
-                trip.SelectedCitiesJson);
-        var city = GetCityForDay(
-            citySchedule,
-            day.DayNumber);
-
-        if (city is null)
+        if (item.Category is not
+            (ItineraryItemCategory.Meal or
+             ItineraryItemCategory.Accommodation))
         {
-            return Result<IReadOnlyList<VenueSuggestionResponse>>
-                .Failure(ItineraryErrors.InvalidAiResponse);
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                ItineraryErrors.UnsupportedVenueSelection);
         }
 
-        IReadOnlyList<
-            ChatBotApi.Application.Common.Models.GooglePlaces.PlaceDetails>
-            places;
-
-        if (item.Category ==
-            ItineraryItemCategory.Accommodation)
+        IReadOnlyList<LoadedVenueSuggestion> loaded;
+        try
         {
-            var preferences =
-                GenerateItineraryPreferencesSerializer
-                    .Deserialize(itinerary.Preferences);
-            var startDay = GetStartDay(
-                citySchedule,
-                city.Name);
-            var checkIn = trip.StartDate.Date
-                .AddDays(startDay - 1);
-            var checkOut = checkIn.AddDays(city.Days);
-
-            places = await _travelData.SearchHotelsAsync(
-                city.Name,
-                preferences.AccommodationStyle,
-                checkIn,
-                checkOut,
-                itinerary.TravelerCount,
-                itinerary.CurrencyCode,
-                preferences.PreferredLanguage,
+            loaded = await _loader.LoadAsync(
+                trip,
+                itinerary,
+                day,
+                item,
                 cancellationToken);
         }
-        else if (item.Category ==
-                 ItineraryItemCategory.Meal)
+        catch (InvalidOperationException)
         {
-            var preferences =
-                GenerateItineraryPreferencesSerializer
-                    .Deserialize(itinerary.Preferences);
-            var mealPeriod = GetMealPeriod(item);
-
-            places = await _travelData.SearchLocalAsync(
-                $"popular {mealPeriod} restaurants and cafes in {city.Name}",
-                city.Name,
-                preferences.PreferredLanguage,
-                cancellationToken);
-        }
-        else
-        {
-            return Result<IReadOnlyList<VenueSuggestionResponse>>
-                .Failure(
-                    new Error(
-                        "Itinerary.UnsupportedVenueSelection",
-                        "Venue choices are available only for meals and accommodation.",
-                        ErrorType.Validation));
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                TripErrors.CorruptRoute);
         }
 
-        var eligiblePlaces = places
-            .Where(place =>
-                !string.IsNullOrWhiteSpace(place.Name))
-            .Where(place =>
-                !string.Equals(
-                    place.PlaceId,
-                    item.GooglePlaceId,
-                    StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        var cityMatchedPlaces = eligiblePlaces
-            .Where(place =>
-                place.Address.Contains(
-                    city.Name,
-                    StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        var suggestions = (cityMatchedPlaces.Count > 0
-                ? cityMatchedPlaces
-                : eligiblePlaces)
+        var suggestions = loaded
             .Take(6)
-            .Select(place =>
-                new VenueSuggestionResponse(
-                    place.PlaceId,
-                    place.Name,
-                    place.Description,
-                    place.Address,
-                    place.GoogleMapsLink,
-                    place.Rating,
-                    place.PhotoUrl,
-                    place.PriceLevel,
-                    place.RatePerNight,
-                    place.TotalRate,
-                    place.PriceSource,
-                    place.ExternalUrl,
-                    place.Latitude,
-                    place.Longitude))
+            .Select(candidate => new VenueSuggestionResponse(
+                candidate.Place.PlaceId,
+                candidate.Place.Name,
+                candidate.Place.Description,
+                candidate.Place.Address,
+                candidate.Place.GoogleMapsLink,
+                candidate.Place.Rating,
+                candidate.Place.PhotoUrl,
+                candidate.Place.PriceLevel,
+                candidate.Place.RatePerNight,
+                candidate.Place.TotalRate,
+                candidate.Place.PriceSource,
+                candidate.Place.ExternalUrl,
+                candidate.Place.Latitude,
+                candidate.Place.Longitude))
             .ToList();
 
-        return Result<IReadOnlyList<VenueSuggestionResponse>>
-            .Success(suggestions);
-    }
-
-    private static TripCitySelection? GetCityForDay(
-        IReadOnlyList<TripCitySelection> cities,
-        int dayNumber)
-    {
-        var cursor = 1;
-
-        foreach (var city in cities)
-        {
-            if (dayNumber >= cursor &&
-                dayNumber < cursor + city.Days)
-            {
-                return city;
-            }
-
-            cursor += city.Days;
-        }
-
-        return null;
-    }
-
-    private static int GetStartDay(
-        IReadOnlyList<TripCitySelection> cities,
-        string cityName)
-    {
-        var startDay = 1;
-
-        foreach (var city in cities)
-        {
-            if (string.Equals(
-                    city.Name,
-                    cityName,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                return startDay;
-            }
-
-            startDay += city.Days;
-        }
-
-        return 1;
-    }
-
-    private static string GetMealPeriod(
-        ItineraryItem item)
-    {
-        if (item.Title.Contains(
-                "breakfast",
-                StringComparison.OrdinalIgnoreCase) ||
-            item.StartTime < TimeSpan.FromHours(11))
-        {
-            return "breakfast";
-        }
-
-        if (item.Title.Contains(
-                "dinner",
-                StringComparison.OrdinalIgnoreCase) ||
-            item.StartTime >= TimeSpan.FromHours(17))
-        {
-            return "dinner";
-        }
-
-        return "lunch";
+        return Result<IReadOnlyList<VenueSuggestionResponse>>.Success(
+            suggestions);
     }
 }

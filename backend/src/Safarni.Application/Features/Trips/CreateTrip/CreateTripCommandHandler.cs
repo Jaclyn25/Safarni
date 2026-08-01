@@ -7,7 +7,8 @@ using Safarni.Domain.Entities;
 
 namespace Safarni.Application.Features.Trips.CreateTrip;
 
-public sealed class CreateTripCommandHandler : IRequestHandler<CreateTripCommand, Result<TripResponse>>
+public sealed class CreateTripCommandHandler
+    : IRequestHandler<CreateTripCommand, Result<TripResponse>>
 {
     private readonly ICurrentUserService _currentUserService;
     private readonly ITripRepository _tripRepository;
@@ -20,11 +21,14 @@ public sealed class CreateTripCommandHandler : IRequestHandler<CreateTripCommand
         _tripRepository = tripRepository;
     }
 
-    public async Task<Result<TripResponse>> Handle(CreateTripCommand request, CancellationToken cancellationToken)
+    public async Task<Result<TripResponse>> Handle(
+        CreateTripCommand request,
+        CancellationToken cancellationToken)
     {
         if (_currentUserService.UserId is not { } userId)
         {
-            return Result<TripResponse>.Failure(AuthenticationErrors.AuthenticationRequired);
+            return Result<TripResponse>.Failure(
+                AuthenticationErrors.AuthenticationRequired);
         }
 
         var trip = new Trip
@@ -34,35 +38,39 @@ public sealed class CreateTripCommandHandler : IRequestHandler<CreateTripCommand
             Name = request.Name.Trim(),
             Destination = request.Destination.Trim(),
             OriginCountry = request.OriginCountry.Trim(),
-            SelectedCitiesJson =
-                TripRouteSerializer.Serialize(
-                    request.Cities
-                        .Select(city =>
-                            new TripCitySelection(
-                                city.Name.Trim(),
-                                city.Days))
-                        .ToList()),
-            StartDate = request.StartDate,
-            EndDate = request.EndDate,
+            OriginCountryCode = NormalizeCountryCode(
+                request.OriginCountryCode),
+            OriginCity = NullIfWhiteSpace(request.OriginCity),
+            OriginAirportCode = TripRouteSerializer.NormalizeAirportCode(
+                request.OriginAirportCode),
+            OriginAirportName = NullIfWhiteSpace(
+                request.OriginAirportName),
+            StartDate = request.StartDate.Date,
+            EndDate = request.EndDate.Date,
             CreatedAt = DateTime.UtcNow
         };
+
+        TripRouteSerializer.ReplaceCities(trip, request.Cities);
 
         await _tripRepository.AddAsync(trip, cancellationToken);
         await _tripRepository.SaveAsync(cancellationToken);
 
-        var response = new TripResponse(
-            trip.Id,
-            trip.UserId,
-            trip.Name,
-            trip.Destination,
-            trip.OriginCountry,
-            TripRouteSerializer.Deserialize(
-                trip.SelectedCitiesJson),
-            trip.StartDate,
-            trip.EndDate,
-            trip.CreatedAt,
-            trip.UpdatedAt);
+        return Result<TripResponse>.Success(
+            TripResponseMapper.Map(trip));
+    }
 
-        return Result<TripResponse>.Success(response);
+    private static string? NormalizeCountryCode(string? value)
+    {
+        var normalized = NullIfWhiteSpace(value)?.ToUpperInvariant();
+        return normalized is { Length: 2 } && normalized.All(char.IsLetter)
+            ? normalized
+            : null;
+    }
+
+    private static string? NullIfWhiteSpace(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim();
     }
 }

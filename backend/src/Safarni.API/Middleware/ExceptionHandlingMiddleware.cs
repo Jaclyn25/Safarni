@@ -1,6 +1,7 @@
 using FluentValidation;
 using ChatBotApi.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Safarni.API.Common;
 
 namespace Safarni.API.Middleware;
@@ -29,6 +30,20 @@ public sealed class ExceptionHandlingMiddleware
                 exception.Errors.Select(error => new ApiError(error.ErrorCode, error.ErrorMessage)),
                 "Validation failed.",
                 StatusCodes.Status400BadRequest);
+
+            await context.Response.WriteAsJsonAsync(response);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            context.Response.StatusCode = StatusCodes.Status409Conflict;
+            context.Response.ContentType = "application/json";
+
+            var response = ApiResponse<object>.FailureResponse(
+                [new ApiError(
+                    "Data.ConcurrencyConflict",
+                    "This trip or itinerary was changed by another request. Reload and try again.")],
+                "The saved data changed while this request was running.",
+                StatusCodes.Status409Conflict);
 
             await context.Response.WriteAsJsonAsync(response);
         }

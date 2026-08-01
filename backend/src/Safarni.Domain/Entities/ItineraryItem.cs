@@ -34,11 +34,29 @@ public class ItineraryItem
 
     public decimal? RatePerNight { get; set; }
 
+    public int? StayNights { get; set; }
+
     public string? PriceSource { get; set; }
 
     public string? ExternalUrl { get; set; }
 
     public string? CostSource { get; set; }
+
+    public string? FlightDepartureAirportCode { get; set; }
+
+    public string? FlightDepartureAirportName { get; set; }
+
+    public string? FlightArrivalAirportCode { get; set; }
+
+    public string? FlightArrivalAirportName { get; set; }
+
+    public string? FlightAirlines { get; set; }
+
+    public string? FlightNumbers { get; set; }
+
+    public int? FlightDurationMinutes { get; set; }
+
+    public int? FlightStopCount { get; set; }
 
     public int? RouteDistanceMeters { get; set; }
 
@@ -54,6 +72,8 @@ public class ItineraryItem
     public decimal? EstimatedCost { get; set; }
 
     public int OrderIndex { get; set; }
+
+    public byte[] RowVersion { get; set; } = [];
 
     public ItineraryDay ItineraryDay { get; set; } = null!;
 }

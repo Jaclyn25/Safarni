@@ -4,11 +4,12 @@ namespace Safarni.Application.Features.Trips.GenerateItinerary;
 
 /// <summary>
 /// Guided traveler choices used to generate a structured itinerary.
-/// Free-form notes are optional and supplement the guided selections.
+/// Dietary and accessibility fields were intentionally removed because the
+/// product no longer exposes or applies those preferences.
 /// </summary>
 public sealed record GenerateItineraryPreferences
 {
-    public const int CurrentQualityVersion = 2;
+    public const int CurrentQualityVersion = 3;
 
     public int QualityVersion { get; init; }
 
@@ -20,16 +21,12 @@ public sealed record GenerateItineraryPreferences
 
     public string AccommodationStyle { get; init; } = string.Empty;
 
-    public IReadOnlyList<string> DietaryNeeds { get; init; } = [];
-
-    public IReadOnlyList<string> AccessibilityNeeds { get; init; } = [];
-
     public string PreferredLanguage { get; init; } = "en";
 
     public string? AdditionalNotes { get; init; }
 }
 
-internal static class GenerateItineraryPreferencesSerializer
+public static class GenerateItineraryPreferencesSerializer
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web);
@@ -37,9 +34,7 @@ internal static class GenerateItineraryPreferencesSerializer
     public static string Serialize(
         GenerateItineraryPreferences preferences)
     {
-        return JsonSerializer.Serialize(
-            preferences,
-            JsonOptions);
+        return JsonSerializer.Serialize(preferences, JsonOptions);
     }
 
     public static GenerateItineraryPreferences Deserialize(
@@ -60,12 +55,7 @@ internal static class GenerateItineraryPreferencesSerializer
                     return preferences with
                     {
                         Interests = preferences.Interests ?? [],
-                        Transportation =
-                            preferences.Transportation ?? [],
-                        DietaryNeeds =
-                            preferences.DietaryNeeds ?? [],
-                        AccessibilityNeeds =
-                            preferences.AccessibilityNeeds ?? []
+                        Transportation = preferences.Transportation ?? []
                     };
                 }
             }
@@ -78,8 +68,8 @@ internal static class GenerateItineraryPreferencesSerializer
         return CreateLegacyPreferences(storedPreferences);
     }
 
-    private static GenerateItineraryPreferences
-        CreateLegacyPreferences(string storedPreferences)
+    private static GenerateItineraryPreferences CreateLegacyPreferences(
+        string storedPreferences)
     {
         var notes = string.IsNullOrWhiteSpace(storedPreferences)
             ? null
@@ -91,8 +81,7 @@ internal static class GenerateItineraryPreferencesSerializer
             Pace = "balanced",
             Transportation = ["mixed"],
             AccommodationStyle = "mid_range",
-            PreferredLanguage =
-                ContainsArabic(notes) ? "ar" : "en",
+            PreferredLanguage = ContainsArabic(notes) ? "ar" : "en",
             AdditionalNotes = notes
         };
     }

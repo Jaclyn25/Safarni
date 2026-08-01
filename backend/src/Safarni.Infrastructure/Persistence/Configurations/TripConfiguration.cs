@@ -22,18 +22,39 @@ public sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.Property(t => t.OriginCountryCode)
+            .HasMaxLength(2)
+            .IsUnicode(false);
+
+        builder.Property(t => t.OriginCity)
+            .HasMaxLength(100);
+
+        builder.Property(t => t.OriginAirportCode)
+            .HasMaxLength(3)
+            .IsUnicode(false);
+
+        builder.Property(t => t.OriginAirportName)
+            .HasMaxLength(200);
+
         builder.Property(t => t.SelectedCitiesJson)
             .IsRequired()
-            .HasMaxLength(2000);
+            .HasMaxLength(4000);
 
         builder.Property(t => t.StartDate)
+            .HasColumnType("date")
             .IsRequired();
 
         builder.Property(t => t.EndDate)
+            .HasColumnType("date")
             .IsRequired();
 
         builder.Property(t => t.CreatedAt)
             .IsRequired();
+
+        builder.Property(t => t.RowVersion)
+            .IsRowVersion();
+
+        builder.HasIndex(t => new { t.UserId, t.CreatedAt });
 
         builder.HasOne(t => t.User)
             .WithMany(u => u.Trips)

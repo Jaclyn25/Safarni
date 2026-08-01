@@ -11,7 +11,8 @@ internal sealed record ItineraryPlaceCandidate(
     string Reference,
     PlaceDetails Place,
     ItineraryPlacePurpose Purpose,
-    string City);
+    string City,
+    int? StayNights);
 
 internal enum ItineraryPlacePurpose
 {
@@ -26,6 +27,387 @@ internal sealed record ItineraryPlaceSearch(
 
 internal static class ItineraryPlaceCatalog
 {
+    public static async Task<IReadOnlyList<ItineraryVerifiedActivity>>
+        VerifyActivitySuggestionsAsync(
+            IGooglePlacesService googlePlacesService,
+            IItineraryTravelDataService? travelDataService,
+            IReadOnlyList<ItineraryActivitySuggestion> suggestions,
+            IReadOnlyList<ItineraryCityStop> cityPlan,
+            string languageCode,
+            CancellationToken cancellationToken)
+    {
+        var verified = new List<ItineraryVerifiedActivity>();
+        var usedPlaceIds = new HashSet<string>(
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var cityStop in cityPlan)
+        {
+            var cityAliases =
+                await ResolveDestinationAliasesAsync(
+                    googlePlacesService,
+                    cityStop.City,
+                    cancellationToken);
+
+            var citySuggestions = suggestions
+                .Where(suggestion =>
+                    string.Equals(
+                        suggestion.City,
+                        cityStop.City,
+                        StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var suggestion in citySuggestions)
+            {
+                var results = await SearchSuggestedActivityAsync(
+                    googlePlacesService,
+                    travelDataService,
+                    suggestion,
+                    cityStop.City,
+                    languageCode,
+                    cancellationToken);
+
+                var selected = results
+                    .Where(IsUsablePlace)
+                    .Where(place =>
+                        IsInDestination(
+                            place,
+                            cityAliases))
+                    .Where(place =>
+                        MatchesPurpose(
+                            place,
+                            ItineraryPlacePurpose.Activity))
+                    .Select(place => new
+                    {
+                        Place = place,
+                        Score = CalculateSuggestionMatchScore(
+                            suggestion.Name,
+                            place)
+                    })
+                    .Where(result => result.Score >= 45d)
+                    .OrderByDescending(result => result.Score)
+                    .ThenByDescending(result =>
+                        !string.IsNullOrWhiteSpace(
+                            result.Place.PhotoUrl))
+                    .ThenByDescending(result =>
+                        result.Place.Rating ?? 0)
+                    .ThenByDescending(result =>
+                        result.Place.UserRatingsTotal ?? 0)
+                    .FirstOrDefault();
+
+                if (selected is null ||
+                    !usedPlaceIds.Add(selected.Place.PlaceId))
+                {
+                    continue;
+                }
+
+                verified.Add(
+                    new ItineraryVerifiedActivity(
+                        selected.Place,
+                        cityStop.City,
+                        suggestion.Name,
+                        selected.Score));
+            }
+        }
+
+        return verified;
+    }
+
+    public static IReadOnlyList<ItineraryPlaceCandidate>
+        MergeSuggestedActivities(
+            IReadOnlyList<ItineraryPlaceCandidate> fallbackPlaces,
+            IReadOnlyList<ItineraryVerifiedActivity> verifiedActivities,
+            IReadOnlyList<ItineraryCityStop> cityPlan,
+            GenerateItineraryPreferences preferences)
+    {
+        var selected = new List<(
+            PlaceDetails Place,
+            ItineraryPlacePurpose Purpose,
+            string City,
+            int? StayNights)>();
+
+        foreach (var cityStop in cityPlan)
+        {
+            var activityLimit = GetCandidateLimit(
+                ItineraryPlacePurpose.Activity,
+                cityStop.DayCount,
+                preferences.Pace);
+
+            var preferredActivities = verifiedActivities
+                .Where(activity =>
+                    string.Equals(
+                        activity.City,
+                        cityStop.City,
+                        StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(activity =>
+                    !string.IsNullOrWhiteSpace(
+                        activity.Place.PhotoUrl))
+                .ThenByDescending(activity =>
+                    activity.MatchScore)
+                .ThenByDescending(activity =>
+                    activity.Place.Rating ?? 0)
+                .Select(activity => activity.Place)
+                .ToList();
+
+            var fallbackActivities = fallbackPlaces
+                .Where(candidate =>
+                    candidate.Purpose ==
+                        ItineraryPlacePurpose.Activity &&
+                    string.Equals(
+                        candidate.City,
+                        cityStop.City,
+                        StringComparison.OrdinalIgnoreCase))
+                .Select(candidate => candidate.Place)
+                .ToList();
+
+            var cityActivities = preferredActivities
+                .Concat(fallbackActivities)
+                .GroupBy(
+                    place => place.PlaceId,
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .Take(activityLimit)
+                .ToList();
+
+            selected.AddRange(cityActivities.Select(place =>
+                (
+                    place,
+                    ItineraryPlacePurpose.Activity,
+                    cityStop.City,
+                    (int?)null)));
+
+            selected.AddRange(fallbackPlaces
+                .Where(candidate =>
+                    candidate.Purpose ==
+                        ItineraryPlacePurpose.Meal &&
+                    string.Equals(
+                        candidate.City,
+                        cityStop.City,
+                        StringComparison.OrdinalIgnoreCase))
+                .Take(cityStop.DayCount * 3)
+                .Select(candidate =>
+                    (
+                        candidate.Place,
+                        candidate.Purpose,
+                        candidate.City,
+                        candidate.StayNights)));
+
+            var accommodations = OrderAccommodationCandidates(
+                    fallbackPlaces.Where(candidate =>
+                        candidate.Purpose ==
+                            ItineraryPlacePurpose.Accommodation &&
+                        string.Equals(
+                            candidate.City,
+                            cityStop.City,
+                            StringComparison.OrdinalIgnoreCase)),
+                    preferences.AccommodationStyle)
+                .Take(3);
+
+            selected.AddRange(accommodations.Select(candidate =>
+                (
+                    candidate.Place,
+                    candidate.Purpose,
+                    candidate.City,
+                    candidate.StayNights)));
+        }
+
+        return selected
+            .GroupBy(
+                candidate =>
+                    $"{candidate.City}:{candidate.Purpose}:" +
+                    candidate.Place.PlaceId,
+                StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .Select((candidate, index) =>
+                new ItineraryPlaceCandidate(
+                    $"P{index + 1}",
+                    candidate.Place,
+                    candidate.Purpose,
+                    candidate.City,
+                    candidate.StayNights))
+            .ToList();
+    }
+
+    public static int NormalizeActivityItems(
+        IReadOnlyList<AiItineraryDay> days,
+        IReadOnlyList<ItineraryPlaceCandidate> places,
+        string assignedCity,
+        string languageCode)
+    {
+        var activityCandidates = places
+            .Where(candidate =>
+                candidate.Purpose ==
+                    ItineraryPlacePurpose.Activity &&
+                string.Equals(
+                    candidate.City,
+                    assignedCity,
+                    StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (activityCandidates.Count == 0)
+        {
+            return 0;
+        }
+
+        var activityByReference = activityCandidates
+            .ToDictionary(
+                candidate => candidate.Reference,
+                StringComparer.OrdinalIgnoreCase);
+
+        var usedReferences = days
+            .SelectMany(day => day.Items)
+            .Where(item =>
+                ItineraryItemInput.ParseCategory(
+                    item.Category) ==
+                ItineraryItemCategory.Activity)
+            .Select(item =>
+                string.IsNullOrWhiteSpace(item.PlaceReference)
+                    ? null
+                    : item.PlaceReference.Trim())
+            .Where(reference =>
+                reference is not null &&
+                activityByReference.ContainsKey(reference))
+            .Cast<string>()
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var normalizedCount = 0;
+
+        foreach (var item in days
+                     .OrderBy(day => day.DayNumber)
+                     .SelectMany(day => day.Items
+                         .OrderBy(entry => entry.OrderIndex)))
+        {
+            var category =
+                ItineraryItemInput.ParseCategory(item.Category);
+
+            var isActivityLikeOther =
+                category == ItineraryItemCategory.Other &&
+                !IsRestOrAdministrativeItem(item) &&
+                LooksLikeActivity(item, assignedCity);
+
+            var hasValidActivityReference =
+                category == ItineraryItemCategory.Activity &&
+                !string.IsNullOrWhiteSpace(item.PlaceReference) &&
+                activityByReference.ContainsKey(
+                    item.PlaceReference.Trim());
+
+            if (hasValidActivityReference)
+            {
+                var verifiedCandidate =
+                    activityByReference[
+                        item.PlaceReference!.Trim()];
+
+                item.PlaceReference =
+                    verifiedCandidate.Reference;
+                item.Location =
+                    verifiedCandidate.Place.Name;
+
+                usedReferences.Add(
+                    verifiedCandidate.Reference);
+
+                continue;
+            }
+
+            var isUnverifiedActivity =
+                category == ItineraryItemCategory.Activity;
+
+            if (!isActivityLikeOther &&
+                !isUnverifiedActivity)
+            {
+                continue;
+            }
+
+            var matchingCandidate = activityCandidates
+                .Where(candidate =>
+                    !usedReferences.Contains(
+                        candidate.Reference))
+                .Select(candidate => new
+                {
+                    Candidate = candidate,
+                    Score = Math.Max(
+                        CalculateNameSimilarity(
+                            item.Location,
+                            candidate.Place.Name),
+                        CalculateNameSimilarity(
+                            item.Title,
+                            candidate.Place.Name))
+                })
+                .Where(entry => entry.Score >= 45d)
+                .OrderByDescending(entry => entry.Score)
+                .ThenByDescending(entry =>
+                    !string.IsNullOrWhiteSpace(
+                        entry.Candidate.Place.PhotoUrl))
+                .ThenByDescending(entry =>
+                    entry.Candidate.Place.Rating ?? 0)
+                .ThenByDescending(entry =>
+                    entry.Candidate.Place.UserRatingsTotal ?? 0)
+                .Select(entry => entry.Candidate)
+                .FirstOrDefault();
+
+            if (matchingCandidate is null)
+            {
+                matchingCandidate = activityCandidates
+                    .Where(candidate =>
+                        !usedReferences.Contains(
+                            candidate.Reference))
+                    .OrderByDescending(candidate =>
+                        !string.IsNullOrWhiteSpace(
+                            candidate.Place.PhotoUrl))
+                    .ThenByDescending(candidate =>
+                        candidate.Place.Rating ?? 0)
+                    .ThenByDescending(candidate =>
+                        candidate.Place.UserRatingsTotal ?? 0)
+                    .FirstOrDefault();
+            }
+
+            if (matchingCandidate is null)
+            {
+                continue;
+            }
+
+            item.Category = "activity";
+            item.PlaceReference =
+                matchingCandidate.Reference;
+            item.Location =
+                matchingCandidate.Place.Name;
+            item.Title =
+                matchingCandidate.Place.Name;
+            item.Description =
+                BuildVerifiedActivityDescription(
+                    languageCode);
+
+            usedReferences.Add(
+                matchingCandidate.Reference);
+            normalizedCount++;
+        }
+
+        return normalizedCount;
+    }
+
+    public static void ValidateRemainingOtherItems(
+        IReadOnlyList<AiItineraryDay> days)
+    {
+        foreach (var day in days)
+        {
+            foreach (var item in day.Items)
+            {
+                if (ItineraryItemInput.ParseCategory(
+                        item.Category) !=
+                    ItineraryItemCategory.Other)
+                {
+                    continue;
+                }
+
+                if (!IsRestOrAdministrativeItem(item))
+                {
+                    throw new ItineraryOutputException(
+                        $"The item '{item.Title}' looks like an activity but was returned as other. It must use a verified activity placeReference.");
+                }
+
+                item.PlaceReference = null;
+            }
+        }
+    }
+
     public static async Task<IReadOnlyList<ItineraryPlaceCandidate>> LoadAsync(
         IGooglePlacesService googlePlacesService,
         IItineraryTravelDataService? travelDataService,
@@ -151,14 +533,322 @@ internal static class ItineraryPlaceCatalog
                                 ?? decimal.MaxValue)
                             .Take(3)))
             .Select((candidate, index) =>
-                new ItineraryPlaceCandidate(
+            {
+                var cityStop = cityPlan.First(stop =>
+                    string.Equals(
+                        stop.City,
+                        candidate.City,
+                        StringComparison.OrdinalIgnoreCase));
+
+                return new ItineraryPlaceCandidate(
                     $"P{index + 1}",
                     candidate.Place,
                     candidate.Purpose,
-                    candidate.City))
+                    candidate.City,
+                    candidate.Purpose == ItineraryPlacePurpose.Accommodation
+                        ? cityStop.NightCount
+                        : null);
+            })
             .ToList();
 
         return selectedPlaces;
+    }
+
+    private static async Task<IReadOnlyList<PlaceDetails>>
+        SearchSuggestedActivityAsync(
+            IGooglePlacesService googlePlacesService,
+            IItineraryTravelDataService? travelDataService,
+            ItineraryActivitySuggestion suggestion,
+            string destination,
+            string languageCode,
+            CancellationToken cancellationToken)
+    {
+        var query = $"{suggestion.Name} in {destination}";
+        IReadOnlyList<PlaceDetails> results = [];
+
+        if (travelDataService?.IsConfigured == true)
+        {
+            results = await travelDataService.SearchLocalAsync(
+                query,
+                destination,
+                languageCode,
+                cancellationToken);
+        }
+
+        if (results.Any(place =>
+                !string.IsNullOrWhiteSpace(place.PhotoUrl)))
+        {
+            return results;
+        }
+
+        var googleResults =
+            await googlePlacesService.TextSearchAsync(
+                query,
+                cancellationToken,
+                "en");
+
+        return results
+            .Concat(googleResults)
+            .GroupBy(
+                place => string.IsNullOrWhiteSpace(place.PlaceId)
+                    ? NormalizeName(
+                        $"{place.Name} {place.Address}")
+                    : place.PlaceId,
+                StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToList();
+    }
+
+    private static double CalculateSuggestionMatchScore(
+        string suggestionName,
+        PlaceDetails place)
+    {
+        var score = CalculateNameSimilarity(
+            suggestionName,
+            place.Name);
+
+        if (!string.IsNullOrWhiteSpace(place.PhotoUrl))
+        {
+            score += 4d;
+        }
+
+        if (place.Rating is >= 4d)
+        {
+            score += 2d;
+        }
+
+        return score;
+    }
+
+    private static double CalculateNameSimilarity(
+        string? first,
+        string? second)
+    {
+        var normalizedFirst = NormalizeName(first);
+        var normalizedSecond = NormalizeName(second);
+
+        if (string.IsNullOrWhiteSpace(normalizedFirst) ||
+            string.IsNullOrWhiteSpace(normalizedSecond))
+        {
+            return 0d;
+        }
+
+        if (string.Equals(
+                normalizedFirst,
+                normalizedSecond,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return 100d;
+        }
+
+        if (normalizedFirst.Contains(
+                normalizedSecond,
+                StringComparison.OrdinalIgnoreCase) ||
+            normalizedSecond.Contains(
+                normalizedFirst,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return 88d;
+        }
+
+        var firstTokens = normalizedFirst
+            .Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries)
+            .Where(token => token.Length >= 2)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var secondTokens = normalizedSecond
+            .Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries)
+            .Where(token => token.Length >= 2)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (firstTokens.Count == 0 ||
+            secondTokens.Count == 0)
+        {
+            return 0d;
+        }
+
+        var sharedCount = firstTokens
+            .Count(secondTokens.Contains);
+        var recall = sharedCount /
+                     (double)firstTokens.Count;
+        var precision = sharedCount /
+                        (double)secondTokens.Count;
+
+        return (recall * 65d) +
+               (precision * 35d);
+    }
+
+    private static IOrderedEnumerable<ItineraryPlaceCandidate>
+        OrderAccommodationCandidates(
+            IEnumerable<ItineraryPlaceCandidate> candidates,
+            string accommodationStyle)
+    {
+        var style = accommodationStyle
+            .Trim()
+            .ToLowerInvariant();
+
+        return style switch
+        {
+            "budget" => candidates
+                .OrderBy(candidate =>
+                    candidate.Place.TotalRate is null
+                        ? 1
+                        : 0)
+                .ThenBy(candidate =>
+                    candidate.Place.TotalRate ??
+                    decimal.MaxValue)
+                .ThenByDescending(candidate =>
+                    candidate.Place.Rating ?? 0),
+
+            "luxury" => candidates
+                .OrderByDescending(candidate =>
+                    candidate.Place.Rating ?? 0)
+                .ThenByDescending(candidate =>
+                    candidate.Place.UserRatingsTotal ?? 0)
+                .ThenByDescending(candidate =>
+                    candidate.Place.TotalRate ?? 0),
+
+            _ => candidates
+                .OrderByDescending(candidate =>
+                    candidate.Place.Rating ?? 0)
+                .ThenByDescending(candidate =>
+                    candidate.Place.UserRatingsTotal ?? 0)
+                .ThenBy(candidate =>
+                    candidate.Place.TotalRate ??
+                    decimal.MaxValue)
+        };
+    }
+
+    private static bool IsRestOrAdministrativeItem(
+        AiItineraryItem item)
+    {
+        var text = NormalizeName(
+            $"{item.Title} {item.Description}");
+
+        var administrativePhrases = new[]
+        {
+            "rest",
+            "free time",
+            "break",
+            "check in",
+            "check out",
+            "hotel check in",
+            "hotel check out",
+            "arrival",
+            "departure",
+            "settle in",
+            "personal time",
+            "راحة",
+            "وقت حر",
+            "استراحة",
+            "تسجيل الوصول",
+            "تسجيل المغادرة",
+            "الوصول",
+            "المغادرة",
+            "الاستقرار في الفندق"
+        };
+
+        return administrativePhrases.Any(phrase =>
+            text.Contains(
+                phrase,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool LooksLikeActivity(
+        AiItineraryItem item,
+        string assignedCity)
+    {
+        var location = NormalizeName(item.Location);
+        var normalizedCity = NormalizeName(assignedCity);
+
+        if (!string.IsNullOrWhiteSpace(location) &&
+            !string.Equals(
+                location,
+                "city",
+                StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(
+                location,
+                "المدينة",
+                StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(
+                location,
+                normalizedCity,
+                StringComparison.OrdinalIgnoreCase) &&
+            !location.Contains(
+                "hotel",
+                StringComparison.OrdinalIgnoreCase) &&
+            !location.Contains(
+                "فندق",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var title = NormalizeName(item.Title);
+        var activityWords = new[]
+        {
+            "visit",
+            "explore",
+            "discover",
+            "tour",
+            "museum",
+            "market",
+            "park",
+            "beach",
+            "temple",
+            "mosque",
+            "church",
+            "castle",
+            "palace",
+            "fort",
+            "cruise",
+            "hike",
+            "diving",
+            "snorkeling",
+            "safari",
+            "gallery",
+            "monastery",
+            "landmark",
+            "attraction",
+            "زيارة",
+            "استكشاف",
+            "جولة",
+            "متحف",
+            "سوق",
+            "حديقة",
+            "شاطئ",
+            "معبد",
+            "مسجد",
+            "كنيسة",
+            "قلعة",
+            "قصر",
+            "رحلة",
+            "غوص",
+            "سفاري",
+            "معرض",
+            "دير",
+            "معلم"
+        };
+
+        return activityWords.Any(word =>
+            title.Contains(
+                word,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string BuildVerifiedActivityDescription(
+        string languageCode)
+    {
+        return string.Equals(
+            languageCode,
+            "ar",
+            StringComparison.OrdinalIgnoreCase)
+                ? "زيارة نشاط موثّق يناسب تفضيلات الرحلة."
+                : "Visit this verified activity selected for your trip.";
     }
 
     private static async Task<IReadOnlyList<PlaceDetails>>
@@ -180,14 +870,19 @@ internal static class ItineraryPlaceCatalog
             if (search.Purpose ==
                 ItineraryPlacePurpose.Accommodation)
             {
+                var checkOutDate = cityStop.GetCheckOutDate(trip);
+
+                if (checkOutDate is null)
+                {
+                    return [];
+                }
+
                 results =
                     await travelDataService.SearchHotelsAsync(
                         cityStop.City,
                         preferences.AccommodationStyle,
                         cityStop.GetStartDate(trip),
-                        GetHotelCheckOutDate(
-                            trip,
-                            cityStop),
+                        checkOutDate.Value,
                         travelerCount,
                         currencyCode,
                         preferences.PreferredLanguage,
@@ -223,15 +918,6 @@ internal static class ItineraryPlaceCatalog
             search.Query,
             cancellationToken,
             "en");
-    }
-
-    private static DateTime GetHotelCheckOutDate(
-        Trip trip,
-        ItineraryCityStop cityStop)
-    {
-        // Trip dates are inclusive in Safarni. A city allocated three
-        // itinerary days therefore owns a three-night hotel stay.
-        return cityStop.GetEndDate(trip).AddDays(1);
     }
 
     private static IReadOnlyList<ItineraryPlaceSearch>

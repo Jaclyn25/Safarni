@@ -4,20 +4,9 @@ import {
 } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import type { ApiResponse } from '../models/api-response.model';
 
-export interface ApiError {
-  code: string;
-  message: string;
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T | null;
-  errors: ApiError[];
-  statusCode: number;
-  timestamp: string;
-}
+export type { ApiResponse } from '../models/api-response.model';
 
 export interface GenerateItineraryPreferences {
   qualityVersion?: number;
@@ -25,17 +14,37 @@ export interface GenerateItineraryPreferences {
   pace: string;
   transportation: string[];
   accommodationStyle: string;
-  dietaryNeeds: string[];
-  accessibilityNeeds: string[];
   preferredLanguage: 'en' | 'ar';
   additionalNotes: string | null;
 }
 
 export interface GenerateItineraryRequest {
   preferences: GenerateItineraryPreferences;
-  budgetAmount: number;
+  budgetAmount: number | null;
   currencyCode: string;
   travelerCount: number;
+}
+
+export type ItineraryGenerationStatus =
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+export interface ItineraryGenerationJob {
+  id: string;
+  tripId: string;
+  status: ItineraryGenerationStatus;
+  progressPercent: number;
+  stage: string;
+  errorCode: string | null;
+  errorMessage: string | null;
+  itineraryId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
 }
 
 export interface ItineraryItem {
@@ -57,6 +66,16 @@ export interface ItineraryItem {
   priceSource: string | null;
   externalUrl: string | null;
   costSource: string | null;
+
+  flightDepartureAirportCode: string | null;
+  flightDepartureAirportName: string | null;
+  flightArrivalAirportCode: string | null;
+  flightArrivalAirportName: string | null;
+  flightAirlines: string | null;
+  flightNumbers: string | null;
+  flightDurationMinutes: number | null;
+  flightStopCount: number | null;
+
   routeDistanceMeters: number | null;
   routeDurationMinutes: number | null;
   routeTravelMode: string | null;
@@ -74,6 +93,8 @@ export interface ItineraryDay {
   title: string;
   notes: string | null;
   estimatedTotalCost: number;
+  unknownCostItemCount: number;
+  isCompleteCostEstimate: boolean;
   items: ItineraryItem[];
 }
 
@@ -82,7 +103,7 @@ export interface ItineraryResponse {
   tripId: string;
   preferences: GenerateItineraryPreferences;
 
-  budgetAmount: number;
+  budgetAmount: number | null;
   currencyCode: string;
   travelerCount: number;
 
@@ -92,6 +113,8 @@ export interface ItineraryResponse {
   createdAt: string;
   updatedAt: string;
   estimatedTotalCost: number;
+  unknownCostItemCount: number;
+  isCompleteCostEstimate: boolean;
   days: ItineraryDay[];
 }
 
@@ -112,10 +135,8 @@ export interface VenueSuggestion {
   longitude: number | null;
 }
 
-export interface ItineraryItemRequest {
-  dayId?: string;
-  targetDayId?: string;
-
+export interface AddItineraryItemRequest {
+  dayId: string;
   title: string;
   description: string | null;
   startTime: string | null;
@@ -124,6 +145,21 @@ export interface ItineraryItemRequest {
   category: string;
   estimatedCost: number | null;
   orderIndex: number | null;
+}
+
+export interface UpdateItineraryItemRequest {
+  title: string;
+  description: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  location: string | null;
+  category: string;
+  estimatedCost: number | null;
+}
+
+export interface MoveItineraryItemRequest {
+  targetDayId: string;
+  targetOrderIndex: number;
 }
 
 @Injectable({
@@ -149,15 +185,53 @@ export class ItineraryService {
     );
   }
 
-  generateItinerary(
+  startGeneration(
     tripId: string,
-    request: GenerateItineraryRequest
-  ): Observable<ApiResponse<ItineraryResponse>> {
+    request: GenerateItineraryRequest,
+    idempotencyKey: string
+  ): Observable<
+    ApiResponse<ItineraryGenerationJob>
+  > {
     return this.http.post<
-      ApiResponse<ItineraryResponse>
+      ApiResponse<ItineraryGenerationJob>
     >(
       `${this.apiUrl}/${tripId}/itinerary/generate`,
       request,
+      {
+        headers: this.getHeaders().set(
+          'Idempotency-Key',
+          idempotencyKey
+        )
+      }
+    );
+  }
+
+  getGenerationJob(
+    tripId: string,
+    jobId: string
+  ): Observable<
+    ApiResponse<ItineraryGenerationJob>
+  > {
+    return this.http.get<
+      ApiResponse<ItineraryGenerationJob>
+    >(
+      `${this.apiUrl}/${tripId}/itinerary/generation/${jobId}`,
+      {
+        headers: this.getHeaders()
+      }
+    );
+  }
+
+  cancelGeneration(
+    tripId: string,
+    jobId: string
+  ): Observable<
+    ApiResponse<ItineraryGenerationJob>
+  > {
+    return this.http.delete<
+      ApiResponse<ItineraryGenerationJob>
+    >(
+      `${this.apiUrl}/${tripId}/itinerary/generation/${jobId}`,
       {
         headers: this.getHeaders()
       }
@@ -166,7 +240,7 @@ export class ItineraryService {
 
   addItem(
     tripId: string,
-    request: ItineraryItemRequest
+    request: AddItineraryItemRequest
   ): Observable<ApiResponse<ItineraryResponse>> {
     return this.http.post<
       ApiResponse<ItineraryResponse>
@@ -182,12 +256,28 @@ export class ItineraryService {
   updateItem(
     tripId: string,
     itemId: string,
-    request: ItineraryItemRequest
+    request: UpdateItineraryItemRequest
   ): Observable<ApiResponse<ItineraryResponse>> {
     return this.http.put<
       ApiResponse<ItineraryResponse>
     >(
       `${this.apiUrl}/${tripId}/itinerary/items/${itemId}`,
+      request,
+      {
+        headers: this.getHeaders()
+      }
+    );
+  }
+
+  moveItem(
+    tripId: string,
+    itemId: string,
+    request: MoveItineraryItemRequest
+  ): Observable<ApiResponse<ItineraryResponse>> {
+    return this.http.put<
+      ApiResponse<ItineraryResponse>
+    >(
+      `${this.apiUrl}/${tripId}/itinerary/items/${itemId}/position`,
       request,
       {
         headers: this.getHeaders()
@@ -226,13 +316,13 @@ export class ItineraryService {
   selectVenue(
     tripId: string,
     itemId: string,
-    venue: VenueSuggestion
+    placeId: string
   ): Observable<ApiResponse<ItineraryResponse>> {
     return this.http.put<
       ApiResponse<ItineraryResponse>
     >(
       `${this.apiUrl}/${tripId}/itinerary/items/${itemId}/venue`,
-      venue,
+      { placeId },
       {
         headers: this.getHeaders()
       }

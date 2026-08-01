@@ -10,5 +10,9 @@ public sealed record UpdateTripCommand(
     DateTime StartDate,
     DateTime EndDate,
     string OriginCountry,
-    IReadOnlyList<TripCitySelection> Cities)
+    IReadOnlyList<TripCitySelection> Cities,
+    string? OriginCountryCode = null,
+    string? OriginCity = null,
+    string? OriginAirportCode = null,
+    string? OriginAirportName = null)
     : IRequest<Result<TripResponse>>;

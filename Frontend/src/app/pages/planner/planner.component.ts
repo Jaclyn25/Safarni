@@ -1,27 +1,43 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
+  ChangeDetectionStrategy,
   Component,
-  HostListener,
+  DestroyRef,
   OnDestroy,
-  OnInit
+  OnInit,
+  signal
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   ActivatedRoute
 } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import {
+  Observable,
+  Subscription,
+  combineLatest,
+  distinctUntilChanged,
+  firstValueFrom,
+  map
+} from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import {
   GenerateItineraryPreferences,
+  AddItineraryItemRequest,
   GenerateItineraryRequest,
   ItineraryDay,
+  ItineraryGenerationJob,
   ItineraryItem,
-  ItineraryItemRequest,
   ItineraryResponse,
+  UpdateItineraryItemRequest,
   ItineraryService,
   VenueSuggestion
 } from '../../services/itinerary.service';
+import type { ApiResponse } from '../../models/api-response.model';
+import {
+  ItineraryGenerationService
+} from '../../services/itinerary-generation.service';
 import {
   TripResponse,
   TripService
@@ -54,20 +70,53 @@ interface PreferenceOption {
     FormsModule
   ],
   templateUrl: './planner.component.html',
-  styleUrl: './planner.component.css'
+  styleUrl: './planner.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PlannerComponent
   implements OnInit, OnDestroy {
-  scrolled = false;
   tripId = '';
-  trip: TripResponse | null = null;
+
+  private readonly tripState = signal<TripResponse | null>(null);
+  get trip(): TripResponse | null {
+    return this.tripState();
+  }
+  private set trip(value: TripResponse | null) {
+    this.tripState.set(value);
+  }
+
   isEditingPreferences = false;
-  generationProgress = 12;
+
+  private readonly generationJobState =
+    signal<ItineraryGenerationJob | null>(null);
+  get generationJob(): ItineraryGenerationJob | null {
+    return this.generationJobState();
+  }
+  private set generationJob(
+    value: ItineraryGenerationJob | null
+  ) {
+    this.generationJobState.set(value);
+  }
+
+  private readonly generationProgressState = signal(0);
+  get generationProgress(): number {
+    return this.generationProgressState();
+  }
+  private set generationProgress(value: number) {
+    this.generationProgressState.set(
+      Math.max(0, Math.min(100, Math.round(value)))
+    );
+  }
+
   generationCityIndex = 0;
-  generationMessage =
-    'Gathering your trip details…';
-  private generationTimer:
-    ReturnType<typeof setInterval> | null = null;
+
+  private readonly generationMessageState = signal('Queued');
+  get generationMessage(): string {
+    return this.generationMessageState();
+  }
+  private set generationMessage(value: string) {
+    this.generationMessageState.set(value);
+  }
 
   selectedInterests = [
     'culture',
@@ -82,30 +131,73 @@ export class PlannerComponent
   ];
 
   accommodationStyle = 'mid_range';
-  selectedDietaryNeeds: string[] = [];
-  selectedAccessibilityNeeds: string[] = [];
   preferredLanguage: 'en' | 'ar' = 'en';
   additionalNotes = '';
 
-  budgetAmount = 10_000_000;
   currencyCode = 'USD';
   travelerCount = 1;
 
-  itinerary: ItineraryResponse | null = null;
-  errorMessage = '';
+  private readonly itineraryState =
+    signal<ItineraryResponse | null>(null);
+  get itinerary(): ItineraryResponse | null {
+    return this.itineraryState();
+  }
+  private set itinerary(value: ItineraryResponse | null) {
+    this.itineraryState.set(value);
+  }
+
+  private readonly errorMessageState = signal('');
+  get errorMessage(): string {
+    return this.errorMessageState();
+  }
+  private set errorMessage(value: string) {
+    this.errorMessageState.set(value);
+  }
+
   failedPhotoUrls = new Set<string>();
   venueSuggestions:
     Record<string, VenueSuggestion[]> = {};
   activeVenueItemId = '';
-  loadingVenueItemId = '';
 
-  isGenerating = false;
-  isSaving = false;
+  private readonly loadingVenueItemIdState = signal('');
+  get loadingVenueItemId(): string {
+    return this.loadingVenueItemIdState();
+  }
+  private set loadingVenueItemId(value: string) {
+    this.loadingVenueItemIdState.set(value);
+  }
+
+  private readonly isGeneratingState = signal(false);
+  get isGenerating(): boolean {
+    return this.isGeneratingState();
+  }
+  private set isGenerating(value: boolean) {
+    this.isGeneratingState.set(value);
+  }
+
+  private readonly isSavingState = signal(false);
+  get isSaving(): boolean {
+    return this.isSavingState();
+  }
+  private set isSaving(value: boolean) {
+    this.isSavingState.set(value);
+  }
+
+  private readonly isCancellingGenerationState = signal(false);
+  get isCancellingGeneration(): boolean {
+    return this.isCancellingGenerationState();
+  }
+  private set isCancellingGeneration(value: boolean) {
+    this.isCancellingGenerationState.set(value);
+  }
 
   editingItemId = '';
   addingDayId = '';
 
   itemDraft: ItemDraft = this.emptyDraft();
+
+  private generationSubscription: Subscription | null = null;
+  private handledTerminalJobId = '';
 
   readonly categories = [
     'activity',
@@ -257,111 +349,37 @@ export class PlannerComponent
       }
     ];
 
-  readonly dietaryOptions: PreferenceOption[] = [
-    {
-      value: 'vegetarian',
-      label: 'Vegetarian',
-      icon: 'eco'
-    },
-    {
-      value: 'vegan',
-      label: 'Vegan',
-      icon: 'nutrition'
-    },
-    {
-      value: 'halal',
-      label: 'Halal',
-      icon: 'verified'
-    },
-    {
-      value: 'kosher',
-      label: 'Kosher',
-      icon: 'verified'
-    },
-    {
-      value: 'gluten_free',
-      label: 'Gluten-free',
-      icon: 'no_food'
-    },
-    {
-      value: 'food_allergies',
-      label: 'Food allergies',
-      icon: 'allergy'
-    }
-  ];
-
-  readonly accessibilityOptions:
-    PreferenceOption[] = [
-      {
-        value: 'wheelchair_accessible',
-        label: 'Wheelchair accessible',
-        icon: 'accessible'
-      },
-      {
-        value: 'limited_walking',
-        label: 'Limited walking',
-        icon: 'transfer_within_a_station'
-      },
-      {
-        value: 'step_free',
-        label: 'Step-free access',
-        icon: 'elevator'
-      },
-      {
-        value: 'visual_support',
-        label: 'Visual assistance',
-        icon: 'visibility'
-      },
-      {
-        value: 'hearing_support',
-        label: 'Hearing assistance',
-        icon: 'hearing'
-      }
-    ];
 
   constructor(
     private readonly route: ActivatedRoute,
     private readonly itineraryService: ItineraryService,
-    private readonly tripService: TripService
+    private readonly generationService: ItineraryGenerationService,
+    private readonly tripService: TripService,
+    private readonly destroyRef: DestroyRef
   ) {}
 
   ngOnInit(): void {
-    this.tripId =
-      this.route.snapshot.paramMap.get('tripId') ??
-      this.route.snapshot.queryParamMap.get('tripId') ??
-      '';
-
-    if (this.tripId) {
-      this.trip =
-        this.tripService.getRememberedTrip(
-          this.tripId
-        );
-
-      if (!this.trip) {
-        this.tripService.getTrip(this.tripId).subscribe({
-          next: (response) => {
-            if (response.data) {
-              this.trip = response.data;
-              this.tripService.rememberTrip(response.data);
-            }
-          },
-          error: () => {
-            this.trip = null;
-          }
-        });
-      }
-
-      void this.loadExistingItinerary();
-    }
+    combineLatest([
+      this.route.paramMap,
+      this.route.queryParamMap
+    ])
+      .pipe(
+        map(([params, queryParams]) =>
+          params.get('tripId') ??
+          queryParams.get('tripId') ??
+          ''
+        ),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((tripId) => {
+        void this.initializePlanner(tripId);
+      });
   }
 
   ngOnDestroy(): void {
-    this.stopGenerationProgress();
-  }
-
-  @HostListener('window:scroll')
-  onWindowScroll(): void {
-    this.scrolled = window.scrollY > 20;
+    this.generationSubscription?.unsubscribe();
+    this.setGenerationScrollLocked(false);
   }
 
   get visibleDays(): ItineraryDay[] {
@@ -390,8 +408,8 @@ export class PlannerComponent
       }`;
     }
 
-    const start = new Date(this.trip.startDate);
-    const end = new Date(this.trip.endDate);
+    const start = this.parseDateOnly(this.trip.startDate);
+    const end = this.parseDateOnly(this.trip.endDate);
     const formatter = new Intl.DateTimeFormat(
       'en-US',
       {
@@ -426,6 +444,10 @@ export class PlannerComponent
   generationCityStatus(
     index: number
   ): 'complete' | 'active' | 'waiting' {
+    if (this.generationProgress >= 78) {
+      return 'complete';
+    }
+
     if (index < this.generationCityIndex) {
       return 'complete';
     }
@@ -464,50 +486,67 @@ export class PlannerComponent
   }
 
   isFlight(item: ItineraryItem): boolean {
-    return item.costSource ===
-      'live_flight_price';
+    return Boolean(
+      item.flightDepartureAirportCode &&
+      item.flightArrivalAirportCode
+    );
   }
 
   flightDepartureCode(
     item: ItineraryItem
   ): string {
-    return this.flightCodes(item)[0] || 'DEP';
+    return item.flightDepartureAirportCode || 'DEP';
   }
 
   flightArrivalCode(
     item: ItineraryItem
   ): string {
-    return this.flightCodes(item)[1] || 'ARR';
+    return item.flightArrivalAirportCode || 'ARR';
   }
 
   flightDetail(
     item: ItineraryItem,
     index: number
   ): string {
-    return (
-      item.description
-        ?.split('·')
-        .map((part) => part.trim())
-        .filter(Boolean)[index] ?? ''
-    );
+    return index === 0
+      ? item.flightAirlines || ''
+      : item.flightNumbers || '';
   }
 
   flightDuration(
     item: ItineraryItem
   ): string {
-    return (
-      this.flightDetail(item, 3) ||
-      this.flightDetail(item, 2) ||
-      'Flight'
-    );
+    const totalMinutes = item.flightDurationMinutes;
+
+    if (totalMinutes == null) {
+      return this.planText('Flight', 'رحلة طيران');
+    }
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return [
+      hours > 0 ? `${hours}h` : '',
+      minutes > 0 ? `${minutes}m` : ''
+    ].filter(Boolean).join(' ');
   }
 
   flightStops(
     item: ItineraryItem
   ): string {
-    return (
-      this.flightDetail(item, 2) ||
-      'Route details'
+    const stops = item.flightStopCount;
+
+    if (stops == null) {
+      return this.planText('Route details', 'تفاصيل المسار');
+    }
+
+    if (stops === 0) {
+      return this.planText('Direct', 'مباشرة');
+    }
+
+    return this.planText(
+      `${stops} ${stops === 1 ? 'stop' : 'stops'}`,
+      `${stops} توقف`
     );
   }
 
@@ -540,7 +579,7 @@ export class PlannerComponent
       this.itinerary
         ?.preferences
         .qualityVersion ?? 0
-    ) >= 2;
+    ) >= 3;
   }
 
   planText(
@@ -687,25 +726,7 @@ export class PlannerComponent
       );
   }
 
-  toggleDietaryNeed(value: string): void {
-    this.selectedDietaryNeeds =
-      this.toggleOption(
-        this.selectedDietaryNeeds,
-        value,
-        4,
-        'dietary needs'
-      );
-  }
 
-  toggleAccessibilityNeed(value: string): void {
-    this.selectedAccessibilityNeeds =
-      this.toggleOption(
-        this.selectedAccessibilityNeeds,
-        value,
-        4,
-        'accessibility needs'
-      );
-  }
 
   isSelected(
     values: string[],
@@ -778,7 +799,7 @@ export class PlannerComponent
         this.itineraryService.selectVenue(
           this.tripId,
           item.id,
-          venue
+          venue.placeId
         )
       );
 
@@ -804,50 +825,96 @@ export class PlannerComponent
   async generateItinerary(): Promise<void> {
     this.errorMessage = '';
 
-    if (!this.validateGenerationForm()) {
+    if (this.isGenerating || !this.validateGenerationForm()) {
       return;
     }
 
-      const request: GenerateItineraryRequest = {
-        preferences: this.buildPreferences(),
-        budgetAmount: this.planningBudgetCeiling(),
-      currencyCode:
-        this.currencyCode.toUpperCase(),
+    const request: GenerateItineraryRequest = {
+      preferences: this.buildPreferences(),
+      budgetAmount: null,
+      currencyCode: this.currencyCode.toUpperCase(),
       travelerCount: this.travelerCount
     };
 
     this.isGenerating = true;
-    this.startGenerationProgress();
+    this.setGenerationScrollLocked(true);
+    this.generationProgress = 0;
+    this.generationMessage = 'Queued';
+    this.generationCityIndex = 0;
     this.cancelItemForm();
+
+    const idempotencyKey =
+      this.generationService.createOrReuseIdempotencyKey(
+        this.tripId
+      );
 
     try {
       const response = await firstValueFrom(
-        this.itineraryService
-          .generateItinerary(
-            this.tripId,
-            request
-          )
+        this.itineraryService.startGeneration(
+          this.tripId,
+          request,
+          idempotencyKey
+        )
       );
 
       if (!response.data) {
         throw new Error(
-          'The server did not return an itinerary.'
+          'The server did not return a generation job.'
         );
       }
 
-      this.applyItinerary(response.data);
+      this.generationService.rememberJob(
+        this.tripId,
+        response.data.id
+      );
+      this.trackGeneration(response.data, false);
     } catch (error: unknown) {
-      const message = this.getErrorMessage(
+      this.isGenerating = false;
+      this.setGenerationScrollLocked(false);
+      this.errorMessage = this.getErrorMessage(
         error,
-        'The itinerary could not be generated. Please try again.'
+        'The itinerary could not be queued. Please try again.'
+      );
+    }
+  }
+
+  async cancelGeneration(): Promise<void> {
+    const jobId = this.generationJob?.id;
+
+    if (!jobId || this.isCancellingGeneration) {
+      return;
+    }
+
+    this.isCancellingGeneration = true;
+
+    try {
+      const response = await firstValueFrom(
+        this.itineraryService.cancelGeneration(
+          this.tripId,
+          jobId
+        )
       );
 
-      this.errorMessage = this.itinerary
-        ? `${message} Your existing itinerary is still available below.`
-        : message;
+      if (response.data) {
+        this.updateGenerationJob(response.data);
+
+        if (
+          this.generationService.isTerminal(
+            response.data.status
+          )
+        ) {
+          await this.handleTerminalGeneration(
+            response.data
+          );
+        }
+      }
+    } catch (error: unknown) {
+      this.errorMessage = this.getErrorMessage(
+        error,
+        'The generation request could not be cancelled.'
+      );
     } finally {
-      this.isGenerating = false;
-      this.stopGenerationProgress();
+      this.isCancellingGeneration = false;
     }
   }
 
@@ -898,10 +965,7 @@ export class PlannerComponent
     await this.runItemRequest(
       this.itineraryService.addItem(
         this.tripId,
-        {
-          ...this.toRequest(),
-          dayId: this.addingDayId
-        }
+        this.toAddRequest(this.addingDayId)
       )
     );
   }
@@ -918,7 +982,7 @@ export class PlannerComponent
       this.itineraryService.updateItem(
         this.tripId,
         this.editingItemId,
-        this.toRequest()
+        this.toUpdateRequest()
       )
     );
   }
@@ -948,19 +1012,12 @@ export class PlannerComponent
     targetOrderIndex: number
   ): Promise<void> {
     await this.runItemRequest(
-      this.itineraryService.updateItem(
+      this.itineraryService.moveItem(
         this.tripId,
         item.id,
         {
           targetDayId: targetDay.id,
-          title: item.title,
-          description: item.description,
-          startTime: item.startTime,
-          endTime: item.endTime,
-          location: item.location,
-          category: item.category,
-          estimatedCost: item.estimatedCost,
-          orderIndex: Math.max(
+          targetOrderIndex: Math.max(
             0,
             targetOrderIndex
           )
@@ -998,6 +1055,58 @@ export class PlannerComponent
       : null;
   }
 
+  private async initializePlanner(
+    tripId: string
+  ): Promise<void> {
+    this.generationSubscription?.unsubscribe();
+    this.generationSubscription = null;
+    this.handledTerminalJobId = '';
+    this.tripId = tripId;
+    this.trip = null;
+    this.itinerary = null;
+    this.errorMessage = '';
+    this.isGenerating = false;
+    this.setGenerationScrollLocked(false);
+    this.generationJob = null;
+    this.generationProgress = 0;
+    this.generationMessage = 'Queued';
+
+    if (!tripId) {
+      this.errorMessage =
+        'No trip was selected. Open the planner from one of your trips.';
+      return;
+    }
+
+    this.trip = this.tripService.getRememberedTrip(tripId);
+
+    await Promise.all([
+      this.loadTrip(),
+      this.loadExistingItinerary()
+    ]);
+
+    await this.resumeGenerationIfNeeded();
+  }
+
+  private async loadTrip(): Promise<void> {
+    try {
+      const response = await firstValueFrom(
+        this.tripService.getTrip(this.tripId)
+      );
+
+      if (response.data) {
+        this.trip = response.data;
+        this.tripService.rememberTrip(response.data);
+      }
+    } catch (error: unknown) {
+      if (!this.trip) {
+        this.errorMessage = this.getErrorMessage(
+          error,
+          'The trip details could not be loaded.'
+        );
+      }
+    }
+  }
+
   private async loadExistingItinerary(): Promise<void> {
     try {
       const response = await firstValueFrom(
@@ -1031,8 +1140,8 @@ export class PlannerComponent
   }
 
   private async runItemRequest(
-    request: ReturnType<
-      ItineraryService['addItem']
+    request: Observable<
+      ApiResponse<ItineraryResponse>
     >
   ): Promise<void> {
     this.errorMessage = '';
@@ -1117,8 +1226,6 @@ export class PlannerComponent
       ],
       accommodationStyle:
         this.accommodationStyle,
-      dietaryNeeds: [],
-      accessibilityNeeds: [],
       preferredLanguage:
         this.preferredLanguage,
       additionalNotes:
@@ -1142,55 +1249,205 @@ export class PlannerComponent
     this.isEditingPreferences = false;
   }
 
-  private startGenerationProgress(): void {
-    this.stopGenerationProgress();
-    this.generationProgress = 12;
-    this.generationCityIndex = 0;
-    this.generationMessage =
-      'Gathering your trip details…';
+  private async resumeGenerationIfNeeded(): Promise<void> {
+    const jobId =
+      this.generationService.getRememberedJobId(this.tripId);
 
-    const messages = [
-      'Arranging the best flow for each day…',
-      'Balancing activities, meals, and rest…',
-      'Checking routes and practical timing…',
-      'Almost there — adding the finishing touches…'
-    ];
-    let messageIndex = 0;
+    if (!jobId) {
+      return;
+    }
 
-    this.generationTimer = setInterval(() => {
-      this.generationProgress = Math.min(
-        92,
-        this.generationProgress +
-          Math.max(
-            2,
-            Math.round(
-              (94 - this.generationProgress) *
-                0.09
-            )
-          )
-      );
+    this.isGenerating = true;
+    this.setGenerationScrollLocked(true);
+    this.generationProgress = 0;
+    this.generationMessage = 'Restoring generation progress';
 
-      messageIndex =
-        (messageIndex + 1) % messages.length;
-      this.generationMessage =
-        messages[messageIndex];
+    this.generationSubscription?.unsubscribe();
+    this.generationSubscription =
+      this.generationService
+        .trackJob(this.tripId, jobId, true)
+        .subscribe({
+          next: (job) => {
+            this.updateGenerationJob(job);
 
-      const cityProgress = Math.floor(
-        (this.generationProgress / 94) *
-          this.generationCities.length
-      );
-      this.generationCityIndex = Math.min(
-        this.generationCities.length - 1,
-        cityProgress
-      );
-    }, 1800);
+            if (
+              this.generationService.isTerminal(job.status)
+            ) {
+              void this.handleTerminalGeneration(job);
+            }
+          },
+          error: (error: unknown) => {
+            this.isGenerating = false;
+            this.setGenerationScrollLocked(false);
+
+            if (
+              error instanceof HttpErrorResponse &&
+              error.status === 404
+            ) {
+              this.generationService
+                .clearRememberedGeneration(this.tripId);
+            }
+
+            this.errorMessage = this.getErrorMessage(
+              error,
+              'Generation progress could not be restored. Refresh the page to try again.'
+            );
+          }
+        });
   }
 
-  private stopGenerationProgress(): void {
-    if (this.generationTimer) {
-      clearInterval(this.generationTimer);
-      this.generationTimer = null;
+  private trackGeneration(
+    initialJob: ItineraryGenerationJob,
+    startImmediately: boolean
+  ): void {
+    this.updateGenerationJob(initialJob);
+    this.generationService.rememberJob(
+      this.tripId,
+      initialJob.id
+    );
+
+    if (this.generationService.isTerminal(initialJob.status)) {
+      void this.handleTerminalGeneration(initialJob);
+      return;
     }
+
+    this.generationSubscription?.unsubscribe();
+    this.generationSubscription =
+      this.generationService
+        .trackJob(
+          this.tripId,
+          initialJob.id,
+          startImmediately
+        )
+        .subscribe({
+          next: (job) => {
+            this.updateGenerationJob(job);
+
+            if (
+              this.generationService.isTerminal(job.status)
+            ) {
+              void this.handleTerminalGeneration(job);
+            }
+          },
+          error: (error: unknown) => {
+            this.isGenerating = false;
+            this.setGenerationScrollLocked(false);
+            this.errorMessage = this.getErrorMessage(
+              error,
+              'The itinerary generation status could not be loaded. Refresh the page to resume checking the server job.'
+            );
+          }
+        });
+  }
+
+  private updateGenerationJob(
+    job: ItineraryGenerationJob
+  ): void {
+    this.generationJob = job;
+    this.generationProgress = job.progressPercent;
+    this.generationMessage =
+      job.stage || 'Building your itinerary';
+
+    const planningPrefix = 'planning ';
+    const normalizedStage = job.stage
+      .trim()
+      .toLocaleLowerCase();
+
+    if (normalizedStage.startsWith(planningPrefix)) {
+      const activeCity = normalizedStage
+        .slice(planningPrefix.length)
+        .trim();
+      const cityIndex = this.tripCities.findIndex(
+        (city) =>
+          city.toLocaleLowerCase() === activeCity
+      );
+
+      if (cityIndex >= 0) {
+        this.generationCityIndex = cityIndex;
+      }
+    } else if (job.progressPercent >= 78) {
+      this.generationCityIndex = this.generationCities.length;
+    } else if (job.progressPercent < 30) {
+      this.generationCityIndex = 0;
+    }
+  }
+
+  private async handleTerminalGeneration(
+    job: ItineraryGenerationJob
+  ): Promise<void> {
+    if (this.handledTerminalJobId === job.id) {
+      return;
+    }
+
+    this.handledTerminalJobId = job.id;
+    this.generationSubscription?.unsubscribe();
+    this.generationSubscription = null;
+
+    try {
+      if (job.status === 'completed') {
+        this.generationProgress = 100;
+        this.generationMessage = 'Completed';
+        this.generationCityIndex =
+          this.generationCities.length;
+        await this.loadExistingItinerary();
+      } else if (job.status === 'failed') {
+        this.errorMessage =
+          job.errorMessage ||
+          'The itinerary could not be generated.';
+      } else if (job.status === 'cancelled') {
+        this.errorMessage =
+          'Itinerary generation was cancelled.';
+      }
+    } finally {
+      this.isGenerating = false;
+      this.setGenerationScrollLocked(false);
+      this.isCancellingGeneration = false;
+      this.generationService
+        .clearRememberedGeneration(this.tripId);
+    }
+  }
+
+  private setGenerationScrollLocked(locked: boolean): void {
+    document.body.style.overflow = locked ? 'hidden' : '';
+  }
+
+  private parseDateOnly(value: string): Date {
+    return new Date(`${value.slice(0, 10)}T12:00:00`);
+  }
+
+  trackById(
+    _index: number,
+    item: { id: string }
+  ): string {
+    return item.id;
+  }
+
+  trackByValue(
+    _index: number,
+    option: PreferenceOption
+  ): string {
+    return option.value;
+  }
+
+  trackByString(
+    _index: number,
+    value: string
+  ): string {
+    return value;
+  }
+
+  trackByCity(
+    _index: number,
+    city: { name: string }
+  ): string {
+    return city.name;
+  }
+
+  trackByVenue(
+    _index: number,
+    venue: VenueSuggestion
+  ): string {
+    return venue.placeId;
   }
 
   private destinationImage(
@@ -1240,7 +1497,7 @@ export class PlannerComponent
         'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=1800&q=88&auto=format'
       ],
       [
-        ['egypt', 'cairo', 'luxor', 'aswan'],
+        ['egypt', 'cairo', 'luxor', 'aswan', 'hurghada', 'dahab', 'sharm'],
         'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=1800&q=88&auto=format'
       ],
       [
@@ -1271,34 +1528,6 @@ export class PlannerComponent
     );
   }
 
-  private flightCodes(
-    item: ItineraryItem
-  ): [string, string] {
-    const placeIdParts =
-      item.googlePlaceId?.split(':') ?? [];
-
-    if (
-      placeIdParts.length >= 3 &&
-      placeIdParts[0] === 'serp-flight'
-    ) {
-      return [
-        placeIdParts[1].toUpperCase(),
-        placeIdParts[2].toUpperCase()
-      ];
-    }
-
-    const addressCodes = [
-      ...(item.address?.matchAll(
-        /\(([A-Z]{3})\)/g
-      ) ?? [])
-    ].map((match) => match[1]);
-
-    return [
-      addressCodes[0] ?? '',
-      addressCodes[1] ?? ''
-    ];
-  }
-
   private applyPreferences(
     preferences: GenerateItineraryPreferences
   ): void {
@@ -1317,8 +1546,6 @@ export class PlannerComponent
       preferences.accommodationStyle ||
       'mid_range';
 
-    this.selectedDietaryNeeds = [];
-    this.selectedAccessibilityNeeds = [];
 
     this.preferredLanguage =
       preferences.preferredLanguage === 'ar'
@@ -1352,13 +1579,6 @@ export class PlannerComponent
     return [...values, value];
   }
 
-  private planningBudgetCeiling(): number {
-    // Accommodation style now controls the spending tier. This value is
-    // only a generous internal safety ceiling required by the existing API;
-    // it is not presented as a traveler-selected budget.
-    return 10_000_000;
-  }
-
   private validateDraft(): boolean {
     this.errorMessage = '';
 
@@ -1383,31 +1603,44 @@ export class PlannerComponent
       return false;
     }
 
+    if (
+      this.itemDraft.startTime &&
+      this.itemDraft.endTime &&
+      this.itemDraft.endTime <= this.itemDraft.startTime
+    ) {
+      this.errorMessage =
+        'End time must be later than start time.';
+      return false;
+    }
+
     return true;
   }
 
-  private toRequest(): ItineraryItemRequest {
+  private toAddRequest(
+    dayId: string
+  ): AddItineraryItemRequest {
     return {
-      targetDayId:
-        this.itemDraft.targetDayId,
-      title:
-        this.itemDraft.title.trim(),
+      dayId,
+      ...this.itemContentRequest(),
+      orderIndex: this.itemDraft.orderIndex
+    };
+  }
+
+  private toUpdateRequest(): UpdateItineraryItemRequest {
+    return this.itemContentRequest();
+  }
+
+  private itemContentRequest(): UpdateItineraryItemRequest {
+    return {
+      title: this.itemDraft.title.trim(),
       description:
-        this.itemDraft.description.trim() ||
-        null,
-      startTime:
-        this.itemDraft.startTime || null,
-      endTime:
-        this.itemDraft.endTime || null,
+        this.itemDraft.description.trim() || null,
+      startTime: this.itemDraft.startTime || null,
+      endTime: this.itemDraft.endTime || null,
       location:
-        this.itemDraft.location.trim() ||
-        null,
-      category:
-        this.itemDraft.category,
-      estimatedCost:
-        this.itemDraft.estimatedCost,
-      orderIndex:
-        this.itemDraft.orderIndex
+        this.itemDraft.location.trim() || null,
+      category: this.itemDraft.category,
+      estimatedCost: this.itemDraft.estimatedCost
     };
   }
 

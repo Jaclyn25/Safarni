@@ -8,7 +8,7 @@ internal static class ItineraryEntityFactory
     public static Itinerary Create(
         Trip trip,
         GenerateItineraryPreferences preferences,
-        decimal budgetAmount,
+        decimal? budgetAmount,
         string currencyCode,
         int travelerCount,
         IEnumerable<AiItineraryDay> generatedDays,
@@ -71,9 +71,10 @@ internal static class ItineraryEntityFactory
         foreach (var generatedItem in generatedDay.Items
                      .OrderBy(item => item.OrderIndex))
         {
-            var verifiedPlace = ItineraryPlaceCatalog.FindPlace(
+            var verifiedCandidate = ItineraryPlaceCatalog.FindCandidate(
                 places,
                 generatedItem.PlaceReference);
+            var verifiedPlace = verifiedCandidate?.Place;
 
             var category = ItineraryItemInput.ParseCategory(
                 generatedItem.Category);
@@ -105,6 +106,7 @@ internal static class ItineraryEntityFactory
                 Longitude = verifiedPlace?.Longitude,
                 PriceLevel = verifiedPlace?.PriceLevel,
                 RatePerNight = verifiedPlace?.RatePerNight,
+                StayNights = verifiedCandidate?.StayNights,
                 PriceSource = verifiedPlace?.PriceSource,
                 ExternalUrl = verifiedPlace?.ExternalUrl,
 

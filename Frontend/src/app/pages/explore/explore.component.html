@@ -382,7 +382,8 @@
         <ul class="space-y-2 text-label-md text-on-surface-variant">
           <li><a class="hover:text-primary transition-colors" routerLink="/">Explore</a></li>
           <li><a class="hover:text-primary transition-colors" routerLink="/concierge">Concierge</a></li>
-          <li><a class="hover:text-primary transition-colors" routerLink="/" [queryParams]="{ createTrip: '1' }">Create a trip</a></li>
+          <li><a class="hover:text-primary transition-colors" routerLink="/" [queryParams]="{ createTrip: '1' }">Create
+              a trip</a></li>
         </ul>
       </div>
       <div>
@@ -412,18 +413,14 @@
 @if (isCreateTripOpen) {
 <div
   class="create-trip-backdrop fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-[3px] md:items-center md:p-6"
-  role="presentation"
-  (mousedown)="closeCreateTrip()"
->
+  role="presentation" (mousedown)="closeCreateTrip()">
   <section
     class="create-trip-dialog relative grid max-h-[94dvh] w-full max-w-[1040px] overflow-hidden rounded-t-[26px] bg-white shadow-[0_32px_100px_rgba(15,23,42,0.32)] md:grid-cols-[0.85fr_1.15fr] md:rounded-[28px]"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="create-trip-title"
-    (mousedown)="$event.stopPropagation()"
-  >
-    <aside class="create-trip-art relative hidden min-h-[680px] overflow-hidden md:flex md:flex-col md:justify-between md:p-8">
-      <div class="inline-flex w-fit items-center gap-2 rounded-full border border-white/30 bg-white/85 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm backdrop-blur">
+    role="dialog" aria-modal="true" aria-labelledby="create-trip-title" (mousedown)="$event.stopPropagation()">
+    <aside
+      class="create-trip-art relative hidden min-h-[680px] overflow-hidden md:flex md:flex-col md:justify-between md:p-8">
+      <div
+        class="inline-flex w-fit items-center gap-2 rounded-full border border-white/30 bg-white/85 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm backdrop-blur">
         <span class="material-symbols-outlined text-[16px] text-primary">flight_takeoff</span>
         Your journey starts here
       </div>
@@ -437,22 +434,20 @@
     </aside>
 
     <div class="create-trip-content min-h-0 min-w-0 overflow-y-auto">
-      <header class="sticky top-0 z-20 flex items-start justify-between border-b border-slate-100 bg-white/95 px-5 py-5 backdrop-blur md:px-8 md:py-6">
+      <header
+        class="sticky top-0 z-20 flex items-start justify-between border-b border-slate-100 bg-white/95 px-5 py-5 backdrop-blur md:px-8 md:py-6">
         <div>
-          <span class="mb-2 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.16em] text-primary">
+          <span
+            class="mb-2 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.16em] text-primary">
             <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
             Trip details
           </span>
           <h2 id="create-trip-title" class="text-2xl font-bold text-slate-900 md:text-[28px]">Create a new trip</h2>
           <p class="mt-1 text-sm text-slate-500">Start with the essentials. You’ll personalize the experience next.</p>
         </div>
-        <button
-          type="button"
-          (click)="closeCreateTrip()"
-          [disabled]="isCreatingTrip"
+        <button type="button" (click)="closeCreateTrip()" [disabled]="isCreatingTrip"
           class="ml-4 grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40"
-          aria-label="Close create trip"
-        >
+          aria-label="Close create trip">
           <span class="material-symbols-outlined">close</span>
         </button>
       </header>
@@ -461,60 +456,132 @@
         <label class="block">
           <span class="mb-2 block text-sm font-bold text-slate-700">Trip name <span class="text-red-500">*</span></span>
           <span class="relative block">
-            <span class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">edit</span>
-            <input
-              name="tripName"
-              [(ngModel)]="tripDraft.name"
-              maxlength="200"
-              required
-              autocomplete="off"
-              class="create-trip-input"
-              placeholder="e.g. Summer in Türkiye"
-            />
+            <span
+              class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">edit</span>
+            <input name="tripName" [(ngModel)]="tripDraft.name" maxlength="200" required autocomplete="off"
+              class="create-trip-input" placeholder="e.g. Summer in Türkiye" />
           </span>
         </label>
 
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="block">
-            <span class="mb-2 block text-sm font-bold text-slate-700">Traveling from <span class="text-red-500">*</span></span>
-            <span class="relative block">
-              <span class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">my_location</span>
-              <select
-                name="originCountry"
-                [(ngModel)]="tripDraft.originCountry"
-                required
-                [disabled]="isLoadingCountries"
-                class="create-trip-input create-trip-select"
-              >
-                <option value="">{{ isLoadingCountries ? 'Loading countries…' : 'Select origin country' }}</option>
-                @for (country of countries; track country.iso2) {
-                <option [value]="country.name">{{ country.name }}</option>
-                }
-              </select>
-              <span class="material-symbols-outlined pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">expand_more</span>
-            </span>
-          </label>
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div class="space-y-3">
+            <label class="block">
+              <span class="mb-2 block text-sm font-bold text-slate-700">Traveling from <span
+                  class="text-red-500">*</span></span>
+              <span class="relative block">
+                <span
+                  class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">my_location</span>
+                <select name="originCountry" [(ngModel)]="tripDraft.originCountry"
+                  (ngModelChange)="onOriginCountryChanged()" required [disabled]="isLoadingCountries"
+                  class="create-trip-input create-trip-select">
+                  <option value="">{{ isLoadingCountries ? 'Loading countries…' : 'Select origin country' }}</option>
+                  @for (country of countries; track country.iso2) {
+                  <option [value]="country.name">{{ country.name }}</option>
+                  }
+                </select>
+                <span
+                  class="material-symbols-outlined pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">expand_more</span>
+              </span>
+            </label>
 
-          <label class="block">
-            <span class="mb-2 block text-sm font-bold text-slate-700">Traveling to <span class="text-red-500">*</span></span>
-            <span class="relative block">
-              <span class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">flight_land</span>
-              <select
-                name="destinationCountry"
-                [(ngModel)]="tripDraft.destination"
-                (ngModelChange)="onDestinationChanged()"
-                required
-                [disabled]="isLoadingCountries"
-                class="create-trip-input create-trip-select"
-              >
-                <option value="">{{ isLoadingCountries ? 'Loading countries…' : 'Select destination country' }}</option>
-                @for (country of countries; track country.iso2) {
-                <option [value]="country.name">{{ country.name }}</option>
-                }
-              </select>
-              <span class="material-symbols-outlined pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">expand_more</span>
-            </span>
-          </label>
+            <label class="block">
+              <span class="mb-2 flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                <span class="material-symbols-outlined text-[18px] text-primary">flight_takeoff</span>
+                Departure airport
+              </span>
+              <span class="relative block">
+                <span
+                  class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">local_airport</span>
+                <select name="originAirportCode" [ngModel]="tripDraft.originAirportCode || ''"
+                  (ngModelChange)="selectOriginAirport($event)"
+                  [disabled]="!tripDraft.originCountry || isLoadingOriginAirports"
+                  class="create-trip-input create-trip-select">
+                  <option value="">
+                    {{
+                    !tripDraft.originCountry
+                    ? 'Choose origin country first'
+                    : isLoadingOriginAirports
+                    ? 'Loading airports…'
+                    : 'Select departure airport'
+                    }}
+                  </option>
+                  @for (airport of originAirports; track airport.code) {
+                  <option [value]="airport.code">
+                    {{ airport.code }} — {{ airport.name }} ({{ airport.city }})
+                  </option>
+                  }
+                </select>
+                <span
+                  class="material-symbols-outlined pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">expand_more</span>
+              </span>
+              <span class="mt-1.5 block text-[11px] font-medium text-slate-500">
+                {{ selectedOriginAirportLabel }}
+              </span>
+              @if (originAirportLoadError) {
+              <span class="mt-1.5 block text-xs text-amber-700">{{ originAirportLoadError }}</span>
+              }
+            </label>
+          </div>
+
+          <div class="space-y-3">
+            <label class="block">
+              <span class="mb-2 block text-sm font-bold text-slate-700">Traveling to <span
+                  class="text-red-500">*</span></span>
+              <span class="relative block">
+                <span
+                  class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">flight_land</span>
+                <select name="destinationCountry" [(ngModel)]="tripDraft.destination"
+                  (ngModelChange)="onDestinationChanged()" required [disabled]="isLoadingCountries"
+                  class="create-trip-input create-trip-select">
+                  <option value="">{{ isLoadingCountries ? 'Loading countries…' : 'Select destination country' }}
+                  </option>
+                  @for (country of countries; track country.iso2) {
+                  <option [value]="country.name">{{ country.name }}</option>
+                  }
+                </select>
+                <span
+                  class="material-symbols-outlined pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">expand_more</span>
+              </span>
+            </label>
+
+            <label class="block">
+              <span class="mb-2 flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                <span class="material-symbols-outlined text-[18px] text-primary">flight_land</span>
+                Destination airport
+              </span>
+              <span class="relative block">
+                <span
+                  class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">local_airport</span>
+                <select name="destinationAirportCode" [ngModel]="destinationAirportCode || ''"
+                  (ngModelChange)="selectDestinationAirport($event)"
+                  [disabled]="!tripDraft.destination || isLoadingDestinationAirports"
+                  class="create-trip-input create-trip-select">
+                  <option value="">
+                    {{
+                    !tripDraft.destination
+                    ? 'Choose destination country first'
+                    : isLoadingDestinationAirports
+                    ? 'Loading airports…'
+                    : 'Select destination airport'
+                    }}
+                  </option>
+                  @for (airport of destinationAirports; track airport.code) {
+                  <option [value]="airport.code">
+                    {{ airport.code }} — {{ airport.name }} ({{ airport.city }})
+                  </option>
+                  }
+                </select>
+                <span
+                  class="material-symbols-outlined pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">expand_more</span>
+              </span>
+              <span class="mt-1.5 block text-[11px] font-medium text-slate-500">
+                {{ selectedDestinationAirportLabel }}
+              </span>
+              @if (destinationAirportLoadError) {
+              <span class="mt-1.5 block text-xs text-amber-700">{{ destinationAirportLoadError }}</span>
+              }
+            </label>
+          </div>
         </div>
 
         @if (countryLoadError) {
@@ -523,34 +590,24 @@
 
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
-            <span class="mb-2 block text-sm font-bold text-slate-700">Start date <span class="text-red-500">*</span></span>
+            <span class="mb-2 block text-sm font-bold text-slate-700">Start date <span
+                class="text-red-500">*</span></span>
             <span class="relative block">
-              <span class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">calendar_today</span>
-              <input
-                type="date"
-                name="startDate"
-                [(ngModel)]="tripDraft.startDate"
-                (ngModelChange)="onDatesChanged()"
-                [min]="today"
-                required
-                class="create-trip-input"
-              />
+              <span
+                class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">calendar_today</span>
+              <input type="date" name="startDate" [(ngModel)]="tripDraft.startDate" (ngModelChange)="onDatesChanged()"
+                [min]="today" required class="create-trip-input" />
             </span>
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-bold text-slate-700">End date <span class="text-red-500">*</span></span>
+            <span class="mb-2 block text-sm font-bold text-slate-700">End date <span
+                class="text-red-500">*</span></span>
             <span class="relative block">
-              <span class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">event_available</span>
-              <input
-                type="date"
-                name="endDate"
-                [(ngModel)]="tripDraft.endDate"
-                (ngModelChange)="onDatesChanged()"
-                [min]="tripDraft.startDate || today"
-                required
-                class="create-trip-input"
-              />
+              <span
+                class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">event_available</span>
+              <input type="date" name="endDate" [(ngModel)]="tripDraft.endDate" (ngModelChange)="onDatesChanged()"
+                [min]="tripDraft.startDate || today" required class="create-trip-input" />
             </span>
           </label>
         </div>
@@ -565,20 +622,18 @@
             </div>
             @if (tripDayCount > 0) {
             <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
-              {{ selectedCities.length }}/{{ tripDayCount }} cities · {{ tripDayCount }} {{ tripDayCount === 1 ? 'day' : 'days' }}
+              {{ selectedCities.length }}/{{ tripDayCount }} cities · {{ tripDayCount }} {{ tripDayCount === 1 ? 'day' :
+              'days' }}
             </span>
             }
           </div>
 
           <div class="relative mt-4">
-            <span class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">location_city</span>
-            <input
-              name="citySearch"
-              [(ngModel)]="citySearch"
+            <span
+              class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[20px] text-slate-400">location_city</span>
+            <input name="citySearch" [(ngModel)]="citySearch"
               [disabled]="!tripDraft.destination || !tripDayCount || isLoadingCities || selectedCities.length >= tripDayCount"
-              autocomplete="off"
-              class="create-trip-input"
-              [placeholder]="
+              autocomplete="off" class="create-trip-input" [placeholder]="
                 !tripDraft.destination
                   ? 'Choose a destination country first'
                   : !tripDayCount
@@ -588,17 +643,14 @@
                       : isLoadingCities
                         ? 'Loading cities…'
                         : 'Search and add a city'
-              "
-            />
+              " />
 
             @if (citySearch && filteredCities.length) {
-            <div class="city-result-list absolute inset-x-0 top-[54px] z-30 max-h-64 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-1.5">
+            <div
+              class="city-result-list absolute inset-x-0 top-[54px] z-30 max-h-64 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-1.5">
               @for (city of filteredCities; track city) {
-              <button
-                type="button"
-                (click)="addCity(city)"
-                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-primary"
-              >
+              <button type="button" (click)="addCity(city)"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-primary">
                 <span class="flex items-center gap-2">
                   <span class="material-symbols-outlined text-[18px] text-slate-400">location_on</span>
                   {{ city }}
@@ -617,51 +669,41 @@
           @if (selectedCities.length) {
           <div class="mt-4 max-h-72 space-y-2.5 overflow-y-auto overscroll-contain pr-1">
             @for (city of selectedCities; track city.name) {
-            <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm">
+            <div
+              class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm">
               <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-blue-50 text-primary">
                 <span class="material-symbols-outlined text-[20px]">location_on</span>
               </span>
               <strong class="min-w-24 flex-1 text-sm text-slate-800">{{ city.name }}</strong>
               <label class="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                <input
-                  type="number"
-                  min="1"
-                  [max]="tripDayCount"
-                  [ngModel]="city.days"
-                  (ngModelChange)="changeCityDays(city.name, $event)"
-                  [name]="'days-' + city.name"
-                  class="h-9 w-16 rounded-xl border border-slate-200 px-2 text-center text-sm font-bold text-slate-800 outline-none focus:border-primary focus:ring-2 focus:ring-blue-100"
-                />
+                <input type="number" min="1" [max]="tripDayCount" [ngModel]="city.days"
+                  (ngModelChange)="changeCityDays(city.name, $event)" [name]="'days-' + city.name"
+                  class="h-9 w-16 rounded-xl border border-slate-200 px-2 text-center text-sm font-bold text-slate-800 outline-none focus:border-primary focus:ring-2 focus:ring-blue-100" />
                 {{ city.days === 1 ? 'day' : 'days' }}
               </label>
-              <button
-                type="button"
-                (click)="removeCity(city.name)"
+              <button type="button" (click)="removeCity(city.name)"
                 class="grid h-8 w-8 place-items-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600"
-                [attr.aria-label]="'Remove ' + city.name"
-              >
+                [attr.aria-label]="'Remove ' + city.name">
                 <span class="material-symbols-outlined text-[18px]">close</span>
               </button>
+
             </div>
             }
           </div>
           }
 
           @if (selectedCities.length) {
-          <div
-            class="mt-3 flex items-center gap-2 text-xs font-bold"
-            [class.text-emerald-700]="remainingDays === 0"
-            [class.text-amber-700]="remainingDays !== 0"
-          >
+          <div class="mt-3 flex items-center gap-2 text-xs font-bold" [class.text-emerald-700]="remainingDays === 0"
+            [class.text-amber-700]="remainingDays !== 0">
             <span class="material-symbols-outlined text-[18px]">
               {{ remainingDays === 0 ? 'check_circle' : 'info' }}
             </span>
             @if (remainingDays === 0) {
-              All {{ tripDayCount }} trip days are allocated
+            All {{ tripDayCount }} trip days are allocated
             } @else if (remainingDays > 0) {
-              {{ remainingDays }} {{ remainingDays === 1 ? 'day remains' : 'days remain' }} to allocate
+            {{ remainingDays }} {{ remainingDays === 1 ? 'day remains' : 'days remain' }} to allocate
             } @else {
-              Reduce the city total by {{ -remainingDays }} {{ remainingDays === -1 ? 'day' : 'days' }}
+            Reduce the city total by {{ -remainingDays }} {{ remainingDays === -1 ? 'day' : 'days' }}
             }
           </div>
           }
@@ -674,15 +716,13 @@
         </p>
         }
 
-        <footer class="sticky bottom-0 -mx-5 -mb-6 flex items-center justify-between gap-4 border-t border-slate-100 bg-white/95 px-5 py-4 backdrop-blur md:-mx-8 md:px-8">
+        <footer
+          class="sticky bottom-0 -mx-5 -mb-6 flex items-center justify-between gap-4 border-t border-slate-100 bg-white/95 px-5 py-4 backdrop-blur md:-mx-8 md:px-8">
           <p class="hidden text-xs leading-5 text-slate-500 sm:block">
             Next: travel preferences
           </p>
-          <button
-            type="submit"
-            [disabled]="!canCreateTrip"
-            class="ml-auto flex min-w-48 items-center justify-center gap-2 rounded-[14px] bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
-          >
+          <button type="submit" [disabled]="!canCreateTrip"
+            class="ml-auto flex min-w-48 items-center justify-center gap-2 rounded-[14px] bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0">
             @if (isCreatingTrip) {
             <span class="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
             Creating trip…

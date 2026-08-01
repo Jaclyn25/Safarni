@@ -22,6 +22,16 @@ public static class ItineraryErrors
         "The itinerary item was not found.",
         ErrorType.NotFound);
 
+    public static readonly Error VenueNotFound = new(
+        "Itinerary.VenueNotFound",
+        "The selected venue is no longer available in the verified results.",
+        ErrorType.NotFound);
+
+    public static readonly Error UnsupportedVenueSelection = new(
+        "Itinerary.UnsupportedVenueSelection",
+        "Venue choices are available only for meals and accommodation.",
+        ErrorType.Validation);
+
     public static readonly Error Forbidden = new(
         "Itinerary.Forbidden",
         "You cannot access or change this trip itinerary.",
@@ -46,6 +56,26 @@ public static class ItineraryErrors
         "Itinerary.GenerationFailed",
         "The itinerary could not be generated. Please try again.",
         ErrorType.Failure);
+
+    public static readonly Error BudgetInsufficientForFlights = new(
+        "Itinerary.BudgetInsufficientForFlights",
+        "The selected budget does not cover the verified flight prices for this route.",
+        ErrorType.Validation);
+
+    public static readonly Error GenerationAlreadyRunning = new(
+        "Itinerary.GenerationAlreadyRunning",
+        "An itinerary generation job is already queued or running for this trip.",
+        ErrorType.Conflict);
+
+    public static readonly Error IdempotencyKeyReused = new(
+        "Itinerary.IdempotencyKeyReused",
+        "This idempotency key was already used for a different trip request.",
+        ErrorType.Conflict);
+
+    public static readonly Error GenerationJobNotFound = new(
+        "Itinerary.GenerationJobNotFound",
+        "The itinerary generation job was not found.",
+        ErrorType.NotFound);
 
     public static readonly Error InvalidItem = new(
         "Itinerary.InvalidItem",

@@ -1,0 +1,54 @@
+<main class="layout">
+  <!-- Side Navigation -->
+  <aside class="sidenav">
+    <div class="sidenav__profile">
+      <div class="sidenav__avatar">{{ initials }}</div>
+      <div>
+        <h3>{{ profile?.fullName || 'Traveler' }}</h3>
+        <p>{{ profile?.email || 'Premium Member' }}</p>
+      </div>
+    </div>
+
+    <nav class="sidenav__nav">
+      <a
+        *ngFor="let item of navItems"
+        [routerLink]="['/profile', item.path]"
+        class="sidenav__link"
+        routerLinkActive="sidenav__link--active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        <span class="material-symbols-outlined">{{ item.icon }}</span>
+        <span>{{ item.label }}</span>
+      </a>
+
+      <div class="sidenav__danger">
+        <a routerLink="/profile/security" class="sidenav__link sidenav__link--danger" routerLinkActive="sidenav__link--active">
+          <span class="material-symbols-outlined">delete_forever</span>
+          <span>Delete Account</span>
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <section class="content">
+    <header class="content__header">
+      <h1>My Profile</h1>
+      <p>Manage your trips, profile, preferences, and account security.</p>
+    </header>
+
+    <div *ngIf="isLoading()" class="loading-state">Loading your profile…</div>
+    <p *ngIf="loadError()" class="field__error">{{ loadError() }}</p>
+
+    <div class="sections" *ngIf="!isLoading()">
+      <router-outlet></router-outlet>
+    </div>
+  </section>
+</main>
+
+<!-- AI Floating Bubble -->
+<div class="ai-bubble">
+  <button aria-label="Open AI assistant">
+    <span class="material-symbols-outlined">auto_awesome</span>
+  </button>
+</div>

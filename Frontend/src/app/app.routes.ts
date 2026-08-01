@@ -99,11 +99,102 @@ export const routes: Routes = [
   {
     path: 'profile',
     loadComponent: () =>
-      import('./pages/profile/profile.component').then(
-        (m) => m.ProfileComponent
+      import('./pages/profile/layout/profile-layout.component').then(
+        (m) => m.ProfileLayoutComponent
       ),
     canActivate: [authGuard],
-    title: 'Safarni | My Profile'
+    title: 'Safarni | My Profile',
+    children: [
+      { path: '', redirectTo: 'account', pathMatch: 'full' },
+      {
+        path: 'account',
+        loadComponent: () =>
+          import('./pages/profile/sections/profile-account.component').then(
+            (m) => m.ProfileAccountComponent
+          ),
+        title: 'Safarni | Account'
+      },
+      {
+        path: 'trips',
+        loadComponent: () =>
+          import('./pages/profile/sections/profile-trips.component').then(
+            (m) => m.ProfileTripsComponent
+          ),
+        title: 'Safarni | My Trips'
+      },
+      {
+        path: 'password',
+        loadComponent: () =>
+          import('./pages/profile/sections/profile-password.component').then(
+            (m) => m.ProfilePasswordComponent
+          ),
+        title: 'Safarni | Password'
+      },
+      {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./pages/profile/sections/profile-notifications.component').then(
+            (m) => m.ProfileNotificationsComponent
+          ),
+        title: 'Safarni | Notifications'
+      },
+      {
+        path: 'privacy',
+        loadComponent: () =>
+          import('./pages/profile/sections/profile-notifications.component').then(
+            (m) => m.ProfileNotificationsComponent
+          ),
+        title: 'Safarni | Privacy'
+      },
+      {
+        path: 'travel-preferences',
+        loadComponent: () =>
+          import('./pages/profile/sections/profile-travel-preferences.component').then(
+            (m) => m.ProfileTravelPreferencesComponent
+          ),
+        title: 'Safarni | Travel Preferences'
+      },
+      {
+        path: 'theme',
+        loadComponent: () =>
+          import('./pages/profile/sections/profile-theme.component').then(
+            (m) => m.ProfileThemeComponent
+          ),
+        title: 'Safarni | Appearance'
+      },
+      {
+        path: 'language',
+        loadComponent: () =>
+          import('./pages/profile/sections/profile-language.component').then(
+            (m) => m.ProfileLanguageComponent
+          ),
+        title: 'Safarni | Language'
+      },
+      {
+        path: 'currency',
+        loadComponent: () =>
+          import('./pages/profile/sections/profile-currency.component').then(
+            (m) => m.ProfileCurrencyComponent
+          ),
+        title: 'Safarni | Currency'
+      },
+      {
+        path: 'security',
+        loadComponent: () =>
+          import('./pages/profile/sections/profile-security.component').then(
+            (m) => m.ProfileSecurityComponent
+          ),
+        title: 'Safarni | Security'
+      },
+      {
+        path: 'connected-accounts',
+        loadComponent: () =>
+          import('./pages/profile/sections/profile-connected-accounts.component').then(
+            (m) => m.ProfileConnectedAccountsComponent
+          ),
+        title: 'Safarni | Connected Accounts'
+      }
+    ]
   },
   {
     path: 'destination/:id',

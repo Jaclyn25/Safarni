@@ -1,0 +1,15 @@
+<section class="card" id="currency">
+  <h2><span class="material-symbols-outlined">payments</span> Currency</h2>
+  <p class="card__hint">Choose the currency used to display prices and budgets across the app.</p>
+  <div class="chip-row">
+    <button
+      type="button"
+      class="chip"
+      *ngFor="let option of currencyOptions"
+      [class.chip--active]="currencyCode === option.code"
+      (click)="selectCurrency(option.code)"
+    >
+      {{ option.symbol }} {{ option.code }} · {{ option.name }}
+    </button>
+  </div>
+</section>

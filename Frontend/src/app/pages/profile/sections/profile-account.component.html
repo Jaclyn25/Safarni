@@ -1,0 +1,86 @@
+<section class="card" id="account">
+  <div class="card__header">
+    <h2><span class="material-symbols-outlined">account_circle</span> Account Profile</h2>
+  </div>
+
+  <div *ngIf="isLoading()" class="loading-state">Loading your profile…</div>
+
+  <form *ngIf="!isLoading()" [formGroup]="profileForm" (ngSubmit)="saveChanges()" class="stack">
+    <div class="profile-grid">
+      <div class="avatar-upload">
+        <div class="avatar-upload__image">
+          <img [src]="profile?.avatarUrl || 'https://placehold.co/96x96'" alt="Profile photo" />
+        </div>
+        <label class="avatar-upload__btn">
+          <span class="material-symbols-outlined">photo_camera</span>
+          <input type="file" accept="image/*" hidden (change)="onAvatarSelected($event)" />
+        </label>
+      </div>
+
+      <div class="fields">
+        <div class="field">
+          <label for="fullName">Full Name</label>
+          <input id="fullName" type="text" formControlName="fullName" />
+          <p class="field__error" *ngIf="f['fullName'].touched && f['fullName'].errors?.['required']">
+            Full name is required.
+          </p>
+          <p class="field__error" *ngIf="f['fullName'].errors?.['maxlength']">
+            Full name must be 100 characters or fewer.
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="email">Email Address</label>
+          <input id="email" type="email" formControlName="email" readonly />
+          <p class="field__hint">Your email address cannot be changed here.</p>
+          <p class="field__error" *ngIf="f['email'].touched && f['email'].errors?.['email']">
+            Enter a valid email address.
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="phoneNumber">Phone Number</label>
+          <input id="phoneNumber" type="tel" formControlName="phoneNumber" placeholder="+1 (555) 000-1234" />
+          <p class="field__error" *ngIf="f['phoneNumber'].errors?.['pattern']">
+            Use only digits, spaces, and + - ( ).
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="dateOfBirth">Date of Birth</label>
+          <input id="dateOfBirth" type="date" formControlName="dateOfBirth" />
+          <p class="field__error" *ngIf="f['dateOfBirth'].errors?.['dateInFuture']">
+            Date of birth cannot be in the future.
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="country">Country</label>
+          <input id="country" type="text" formControlName="country" placeholder="e.g. Egypt" />
+        </div>
+
+        <div class="field">
+          <label for="city">City</label>
+          <input id="city" type="text" formControlName="city" placeholder="e.g. Cairo" />
+        </div>
+
+        <div class="field field--full">
+          <label for="bio">Bio</label>
+          <textarea id="bio" rows="3" formControlName="bio"></textarea>
+          <p class="field__hint">{{ f['bio'].value?.length || 0 }}/500</p>
+          <p class="field__error" *ngIf="f['bio'].errors?.['maxlength']">Bio must be 500 characters or fewer.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Action Bar -->
+    <div class="action-bar">
+      <span class="action-bar__message" *ngIf="saveError()">{{ saveError() }}</span>
+      <span class="action-bar__message action-bar__message--success" *ngIf="saveSuccess()">Changes saved.</span>
+      <button type="button" class="btn btn--ghost" (click)="discardChanges()">Discard Changes</button>
+      <button type="submit" class="btn btn--primary" [disabled]="isSaving()">
+        {{ isSaving() ? 'Saving…' : 'Save Changes' }}
+      </button>
+    </div>
+  </form>
+</section>

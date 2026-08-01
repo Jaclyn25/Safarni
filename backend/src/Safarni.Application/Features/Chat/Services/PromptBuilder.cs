@@ -9,6 +9,25 @@ namespace ChatBotApi.Application.Features.Chat.Services;
 
 public class PromptBuilder : IPromptBuilder
 {
+    public string BuildDirectSystemPrompt(ChatIntent intent, string userMessage)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("You are Safarni AI, a specialized intelligent travel and tourism assistant.");
+        sb.AppendLine("Answer strictly in Arabic with a warm, concise, helpful tone.");
+        sb.AppendLine("Never return raw JSON.");
+
+        if (intent == ChatIntent.Social)
+        {
+            sb.AppendLine("The user is making small talk or greeting you. Respond naturally, then invite them to ask for help with travel, destinations, itineraries, hotels, attractions, or trip planning.");
+        }
+        else
+        {
+            sb.AppendLine("If the user asks about anything outside travel and tourism, politely decline and explain that you can only help with Safarni travel-related questions.");
+        }
+
+        return sb.ToString();
+    }
+
     public string BuildSystemPrompt(List<DocumentChunk> contextChunks, string userMessage)
     {
         var sb = new StringBuilder();
@@ -52,7 +71,7 @@ public class PromptBuilder : IPromptBuilder
         return sb.ToString();
     }
 
-    public string BuildSystemPromptWithPlaces(List<DocumentChunk>? contextChunks, List<PlaceDetails>? places, ChatIntent intent)
+    public string BuildSystemPromptWithPlaces(List<DocumentChunk>? contextChunks, List<PlaceDetails>? places, ChatIntent intent, string userMessage)
     {
         var sb = new StringBuilder();
         sb.AppendLine("You are Safarni AI, a specialized intelligent travel and tourism assistant.");
@@ -109,5 +128,15 @@ public class PromptBuilder : IPromptBuilder
         sb.AppendLine();
         sb.Append("Answer:");
         return sb.ToString();
+    }
+
+    public string GetGooglePlacesLanguageCode(string userMessage)
+    {
+        if (string.IsNullOrWhiteSpace(userMessage))
+        {
+            return "en";
+        }
+
+        return userMessage.Any(c => c >= '\u0600' && c <= '\u06FF') ? "ar" : "en";
     }
 }

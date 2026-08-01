@@ -200,14 +200,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                 List<PlaceDetails>? places = null;
                 try
                 {
-                    places = await _googlePlacesService.TextSearchAsync(
-                        queryToSearch,
-                        cancellationToken,
-                        _promptBuilder.GetGooglePlacesLanguageCode(queryToSearch));
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
+                    places = await _googlePlacesService.TextSearchAsync(lastUserMsg.Content, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -222,8 +215,34 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                 }
                 else
                 {
-                    // Travel intent, but no live/database data. Fall back to the LLM's general travel knowledge.
-                    systemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), lastUserMsg.Content);
+                    // STEP 3: Refuse if neither DB nor Google Places has it
+                    var refusalText = "عفواً، لا يمكنني العثور على هذه المعلومات في قاعدة المعرفة الخاصة بي ولا عبر Google Places.";
+                    var newAssistantRefusalMsg = new ConversationMessage
+                    {
+                        Id = Guid.NewGuid(),
+                        ConversationId = conversation.Id,
+                        Role = "assistant",
+                        Content = refusalText,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    conversation.Messages.Add(newAssistantRefusalMsg);
+                    await _repository.AddMessageAsync(newAssistantRefusalMsg, cancellationToken);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                    return new ConversationDto
+                    {
+                        Id = conversation.Id,
+                        Title = conversation.Title,
+                        CreatedAt = conversation.CreatedAt,
+                        Messages = conversation.Messages
+                            .OrderBy(m => m.CreatedAt)
+                            .Select(m => new ChatMessageDto
+                            {
+                                Role = m.Role,
+                                Content = m.Content
+                            })
+                            .ToList()
+                    };
                 }
             }
         }

@@ -1,5 +1,10 @@
 /* Merged global styles from the 4 original static pages — content unchanged */
 
+@config "../tailwind.config.js";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 html {
   scroll-behavior: smooth;
 }

@@ -1,0 +1,36 @@
+<section class="card" id="security">
+  <h2><span class="material-symbols-outlined">security</span> Security</h2>
+  <p class="card__hint">
+    Manage your account security. Changing your password, reviewing connected
+    accounts, and understanding what happens if you delete your account.
+  </p>
+
+  <div class="toggle-row">
+    <div>
+      <p class="toggle-row__label">Password</p>
+      <p class="toggle-row__hint">Change your password from the Password page.</p>
+    </div>
+  </div>
+
+  <div class="toggle-row">
+    <div>
+      <p class="toggle-row__label">Two-Factor Authentication</p>
+      <p class="toggle-row__hint">2FA is not available yet. We will notify you when it ships.</p>
+    </div>
+  </div>
+
+  <div class="stack" style="margin-top: 24px;">
+    <div class="card card--danger">
+      <div class="card__header card__header--danger">
+        <span class="material-symbols-outlined">report</span>
+        <h2>Danger Zone</h2>
+      </div>
+      <p>Once you delete your account, there is no going back. Please be certain.</p>
+
+      <button type="button" class="btn btn--danger" (click)="toggleConfirm()">
+        <span class="material-symbols-outlined">delete</span>
+        {{ confirmDelete() ? 'Are you sure? This cannot be undone.' : 'Delete My Account' }}
+      </button>
+    </div>
+  </div>
+</section>

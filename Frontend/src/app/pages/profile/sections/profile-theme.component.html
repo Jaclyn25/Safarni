@@ -1,0 +1,44 @@
+<section class="card" id="theme">
+  <h2><span class="material-symbols-outlined">palette</span> Appearance</h2>
+
+  <div class="theme-grid">
+    <button
+      type="button"
+      class="theme-option"
+      [class.theme-option--active]="themeChoice === 'light'"
+      (click)="selectTheme('light')"
+    >
+      <div class="theme-preview theme-preview--light">
+        <div class="bar bar--wide"></div>
+        <div class="bar"></div>
+      </div>
+      <span>Light Mode</span>
+    </button>
+
+    <button
+      type="button"
+      class="theme-option"
+      [class.theme-option--active]="themeChoice === 'dark'"
+      (click)="selectTheme('dark')"
+    >
+      <div class="theme-preview theme-preview--dark">
+        <div class="bar bar--wide"></div>
+        <div class="bar"></div>
+      </div>
+      <span>Dark Mode</span>
+    </button>
+
+    <button
+      type="button"
+      class="theme-option"
+      [class.theme-option--active]="themeChoice === 'system'"
+      (click)="selectTheme('system')"
+    >
+      <div class="theme-preview theme-preview--split">
+        <div class="theme-preview__half theme-preview__half--light"><div class="bar"></div></div>
+        <div class="theme-preview__half theme-preview__half--dark"><div class="bar"></div></div>
+      </div>
+      <span>System Default</span>
+    </button>
+  </div>
+</section>

@@ -1,0 +1,8 @@
+<section class="card" id="language">
+  <h2><span class="material-symbols-outlined">language</span> Language</h2>
+  <p class="card__hint">Choose the app language. Arabic switches the whole interface to right-to-left.</p>
+  <div class="chip-row">
+    <button type="button" class="chip" [class.chip--active]="languageChoice === 'en'" (click)="selectLanguage('en')">English</button>
+    <button type="button" class="chip" [class.chip--active]="languageChoice === 'ar'" (click)="selectLanguage('ar')">العربية</button>
+  </div>
+</section>

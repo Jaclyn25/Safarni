@@ -1,0 +1,68 @@
+<section class="card" id="travel-preferences">
+  <h2><span class="material-symbols-outlined">explore</span> Travel Preferences</h2>
+
+  <div class="stack">
+    <div class="field">
+      <label>Travel Style</label>
+      <div class="chip-row">
+        <span
+          *ngFor="let style of travelStyles"
+          class="chip"
+          [class.chip--active]="isTravelStyleSelected(style)"
+          (click)="toggleTravelStyle(style)"
+        >
+          {{ style }}
+        </span>
+      </div>
+    </div>
+
+    <div class="fields fields--two">
+      <div class="field">
+        <label for="preferredDestinationCountry">Preferred Destination</label>
+        <input id="preferredDestinationCountry" type="text" [(ngModel)]="preferredDestinationCountry" [ngModelOptions]="{ standalone: true }" placeholder="e.g. Italy" />
+      </div>
+      <div class="field">
+        <label for="travelPurpose">Travel Purpose</label>
+        <input id="travelPurpose" type="text" [(ngModel)]="travelPurpose" [ngModelOptions]="{ standalone: true }" placeholder="e.g. leisure, business, family" />
+      </div>
+      <div class="field">
+        <label for="passportNumber">Passport Number</label>
+        <input id="passportNumber" type="text" [(ngModel)]="passportNumber" [ngModelOptions]="{ standalone: true }" placeholder="e.g. A12345678" />
+      </div>
+      <div class="field">
+        <label for="nationality">Nationality</label>
+        <input id="nationality" type="text" [(ngModel)]="nationality" [ngModelOptions]="{ standalone: true }" placeholder="e.g. Egyptian" />
+      </div>
+      <div class="field">
+        <label for="passportExpiryDate">Passport Expiry Date</label>
+        <input id="passportExpiryDate" type="date" [(ngModel)]="passportExpiryDate" [ngModelOptions]="{ standalone: true }" />
+      </div>
+      <div class="field">
+        <label for="minBudget">Min Budget (USD)</label>
+        <input id="minBudget" type="number" min="0" [(ngModel)]="minBudget" [ngModelOptions]="{ standalone: true }" placeholder="e.g. 1000" />
+      </div>
+      <div class="field">
+        <label for="maxBudget">Max Budget (USD)</label>
+        <input id="maxBudget" type="number" min="0" [(ngModel)]="maxBudget" [ngModelOptions]="{ standalone: true }" placeholder="e.g. 5000" />
+      </div>
+      <div class="field">
+        <label for="dietary">Dietary Requirements</label>
+        <select id="dietary" [(ngModel)]="dietaryRequirement" [ngModelOptions]="{ standalone: true }">
+          <option *ngFor="let opt of dietaryOptions" [value]="opt">{{ opt }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="seat">Seat Preference</label>
+        <select id="seat" [(ngModel)]="seatPreference" [ngModelOptions]="{ standalone: true }">
+          <option *ngFor="let opt of seatOptions" [value]="opt">{{ opt }}</option>
+        </select>
+      </div>
+    </div>
+
+    <p class="field__error" *ngIf="preferencesError()">{{ preferencesError() }}</p>
+    <p class="field__hint" *ngIf="preferencesSuccess()">Travel preferences saved.</p>
+    <button type="button" class="btn btn--primary" [disabled]="isSavingPreferences()" (click)="saveTravelPreferences()">
+      {{ isSavingPreferences() ? 'Saving…' : 'Save Travel Preferences' }}
+    </button>
+  </div>
+</section>

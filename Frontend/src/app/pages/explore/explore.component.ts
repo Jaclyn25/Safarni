@@ -395,7 +395,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
             '1' &&
           !this.isCreateTripOpen
         ) {
-          void this.openCreateTrip();
+          void this.openCreateTrip(
+            queryParams.get('trip') ?? '',
+            queryParams.get('destination') ?? ''
+          );
         }
       });
   }
@@ -422,7 +425,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
       this.persistTripDraft();
       this.setPageScrollLocked(false);
       void this.router.navigate(['/login'], {
-        queryParams: { returnUrl: '/?createTrip=1' }
+        queryParams: { returnUrl: this.router.url }
       });
       return;
     }
@@ -470,7 +473,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
       void this.router.navigate([], {
         relativeTo: this.route,
         queryParams: {
-          createTrip: null
+          createTrip: null,
+          destination: null,
+          trip: null,
+          days: null
         },
         queryParamsHandling: 'merge',
         replaceUrl: true

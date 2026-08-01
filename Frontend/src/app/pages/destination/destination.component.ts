@@ -403,13 +403,22 @@ export class DestinationComponent implements OnInit {
   }
 
   onCreateTrip(itineraryTitle?: string, days?: number): void {
-    const tripDays = days || this.builderDays;
     const title = itineraryTitle || `Trip to ${this.destination.country}`;
-    this.router.navigate(['/planner'], {
+    const countryAliases: Record<string, string> = {
+      turkey: 'Türkiye',
+      'dubai, uae': 'United Arab Emirates',
+      uae: 'United Arab Emirates'
+    };
+    const destination =
+      countryAliases[this.destination.country.toLocaleLowerCase()] ??
+      this.destination.country;
+
+    void this.router.navigate(['/'], {
       queryParams: {
-        destination: this.destination.country,
-        days: tripDays,
-        trip: title
+        createTrip: '1',
+        destination,
+        trip: title,
+        days: days || this.builderDays
       }
     });
   }

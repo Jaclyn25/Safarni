@@ -86,8 +86,13 @@ internal static class ItineraryPromptBuilder
           sightseeing; include at most one short check-out or airport-preparation
           item that ends before the cutoff.
         - Never schedule any item that starts or ends outside a verified flight window.
-        - In addition to meals on ordinary days, include this number of verified experiences:
+        - On ordinary days, aim for this number of verified experiences when
+          enough distinct verified activity candidates and time are available:
           relaxed pace: 1 or 2; balanced pace: 2; active pace: 3.
+        - If the verified catalog contains fewer activities than the pace target,
+          use fewer activities. Never invent a venue to satisfy a count.
+        - Spread available verified activities across different eligible days
+          before placing multiple activities on the same day.
         - Every item must have a practical startTime and endTime.
         - Keep items in chronological order with no overlapping time ranges.
         - Keep every item description under 14 words.
@@ -186,6 +191,19 @@ internal static class ItineraryPromptBuilder
         var placesCatalog =
             ItineraryPlaceCatalog.BuildPromptCatalog(places);
 
+        var activityAvailability = string.Join(
+            Environment.NewLine,
+            cityPlan.Select(stop =>
+                $"- {stop.City}: " +
+                places.Count(candidate =>
+                    candidate.Purpose ==
+                        ItineraryPlacePurpose.Activity &&
+                    string.Equals(
+                        candidate.City,
+                        stop.City,
+                        StringComparison.OrdinalIgnoreCase)) +
+                " verified activity candidate(s)"));
+
         var citySchedule =
             ItineraryCityPlanner.BuildPromptSchedule(
                 trip,
@@ -263,6 +281,9 @@ internal static class ItineraryPromptBuilder
             Verified activity and accommodation catalog:
             {placesCatalog}
 
+            Verified activity availability:
+            {activityAvailability}
+
             Important:
             - Return only days {planningStartDay} through {planningEndDay},
               using those absolute dayNumber values and exact dates.
@@ -282,7 +303,10 @@ internal static class ItineraryPromptBuilder
               contain English text only and no Arabic characters.
             - Official place names may remain untranslated only in location.
             - Do not invent any venue.
-            - Never repeat a P reference for activities.
+            - Do not repeat an activity P reference while another unused
+              verified activity reference is available.
+            - If the verified catalog is smaller than the requested pace target,
+              use fewer activities rather than inventing a venue.
             - Do not create local transport items; route connectors are added later.
             - If a previous city is supplied, begin the first requested day
               with one realistic intercity transport item from that city.
@@ -315,6 +339,9 @@ internal static class ItineraryPromptBuilder
             airport-preparation item before the cutoff.
             Every attraction or experience must use category activity and a
             verified placeReference. Do not hide venue visits under other.
+            Copy placeReference and location directly from the verified catalog.
+            When no unused verified activity is available, return fewer activity
+            items instead of creating a generic or unverified venue.
             Follow every original rule.
             Return only the corrected NDJSON segment.
             """;

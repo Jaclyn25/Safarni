@@ -540,6 +540,28 @@ public sealed class ItineraryGenerationProcessor
                 ItineraryOutputParser.NormalizeChronologicalOrder(
                     generatedDays);
 
+                var totalTripDays = Math.Max(
+                    1,
+                    (trip.EndDate.Date - trip.StartDate.Date).Days + 1);
+
+                var flightWindowAdjustments =
+                    ItineraryFlightWindowRepair.Repair(
+                        generatedDays,
+                        flightPlan,
+                        totalTripDays);
+
+                if (flightWindowAdjustments > 0)
+                {
+                    _logger.LogInformation(
+                        "Repaired {AdjustmentCount} itinerary items to respect verified flight windows in {City} for trip {TripId} without another AI request.",
+                        flightWindowAdjustments,
+                        cityStop.City,
+                        tripId);
+
+                    ItineraryOutputParser.NormalizeChronologicalOrder(
+                        generatedDays);
+                }
+
                 var accommodationAdjustments = ItineraryAccommodationResolver
                     .NormalizeCityStay(
                         generatedDays,
@@ -612,9 +634,7 @@ public sealed class ItineraryGenerationProcessor
                 ItineraryOutputParser.ValidateFlightConstraints(
                     generatedDays,
                     flightPlan,
-                    Math.Max(
-                        1,
-                        (trip.EndDate.Date - trip.StartDate.Date).Days + 1));
+                    totalTripDays);
 
                 return generatedDays;
             }
@@ -756,7 +776,7 @@ public sealed class ItineraryGenerationProcessor
                 }
 
                 _logger.LogWarning(
-                    "Groq rate-limited {Operation} for trip {TripId} on attempt {Attempt}. Retrying after {DelaySeconds} seconds.",
+                    "Itinerary AI provider rate-limited {Operation} for trip {TripId} on attempt {Attempt}. Retrying after {DelaySeconds} seconds.",
                     operation,
                     tripId,
                     attempt,

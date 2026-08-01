@@ -83,6 +83,25 @@ public sealed class UpdateItineraryItemCommandValidator
     }
 }
 
+public sealed class AddRecommendedItineraryItemCommandValidator
+    : AbstractValidator<AddRecommendedItineraryItemCommand>
+{
+    public AddRecommendedItineraryItemCommandValidator()
+    {
+        RuleFor(command => command.TripId).NotEmpty();
+        RuleFor(command => command.DayId).NotEmpty();
+        RuleFor(command => command.Category)
+            .Must(ItineraryItemInput.IsValidCategory)
+            .WithMessage("Select a supported itinerary category.");
+        RuleFor(command => command.PlaceId)
+            .NotEmpty()
+            .MaximumLength(200);
+        RuleFor(command => command.OrderIndex)
+            .GreaterThanOrEqualTo(0)
+            .When(command => command.OrderIndex.HasValue);
+    }
+}
+
 public sealed class MoveItineraryItemCommandValidator
     : AbstractValidator<MoveItineraryItemCommand>
 {

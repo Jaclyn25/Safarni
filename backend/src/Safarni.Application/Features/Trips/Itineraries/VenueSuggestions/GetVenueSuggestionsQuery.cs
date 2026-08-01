@@ -3,6 +3,7 @@ using Safarni.Application.Abstractions.Authentication;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Common.Results;
+using Safarni.Application.Features.Trips.GenerateItinerary;
 using Safarni.Domain.Entities;
 
 namespace Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
@@ -10,6 +11,12 @@ namespace Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
 public sealed record GetVenueSuggestionsQuery(
     Guid TripId,
     Guid ItemId)
+    : IRequest<Result<IReadOnlyList<VenueSuggestionResponse>>>;
+
+public sealed record GetDayVenueSuggestionsQuery(
+    Guid TripId,
+    Guid DayId,
+    string Category)
     : IRequest<Result<IReadOnlyList<VenueSuggestionResponse>>>;
 
 public sealed record VenueSuggestionResponse(
@@ -90,9 +97,7 @@ public sealed class GetVenueSuggestionsQueryHandler
                 ItineraryErrors.ItemNotFound);
         }
 
-        if (item.Category is not
-            (ItineraryItemCategory.Meal or
-             ItineraryItemCategory.Accommodation))
+        if (item.FlightDepartureAirportCode is not null)
         {
             return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
                 ItineraryErrors.UnsupportedVenueSelection);
@@ -114,8 +119,108 @@ public sealed class GetVenueSuggestionsQueryHandler
                 TripErrors.CorruptRoute);
         }
 
-        var suggestions = loaded
-            .Take(6)
+        var suggestions = VenueSuggestionResponseMapper.Map(loaded);
+
+        return Result<IReadOnlyList<VenueSuggestionResponse>>.Success(
+            suggestions);
+    }
+}
+
+public sealed class GetDayVenueSuggestionsQueryHandler
+    : IRequestHandler<
+        GetDayVenueSuggestionsQuery,
+        Result<IReadOnlyList<VenueSuggestionResponse>>>
+{
+    private readonly ICurrentUserService _currentUser;
+    private readonly ITripRepository _trips;
+    private readonly IItineraryRepository _itineraries;
+    private readonly ItineraryVenueSuggestionLoader _loader;
+
+    public GetDayVenueSuggestionsQueryHandler(
+        ICurrentUserService currentUser,
+        ITripRepository trips,
+        IItineraryRepository itineraries,
+        ItineraryVenueSuggestionLoader loader)
+    {
+        _currentUser = currentUser;
+        _trips = trips;
+        _itineraries = itineraries;
+        _loader = loader;
+    }
+
+    public async Task<Result<IReadOnlyList<VenueSuggestionResponse>>> Handle(
+        GetDayVenueSuggestionsQuery request,
+        CancellationToken cancellationToken)
+    {
+        if (_currentUser.UserId is not { } userId)
+        {
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                AuthenticationErrors.AuthenticationRequired);
+        }
+
+        var trip = await _trips.GetByIdAsync(
+            request.TripId,
+            cancellationToken);
+
+        if (trip is null)
+        {
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                ItineraryErrors.TripNotFound);
+        }
+
+        if (trip.UserId != userId)
+        {
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                ItineraryErrors.Forbidden);
+        }
+
+        var itinerary = await _itineraries.GetActiveByTripIdAsync(
+            request.TripId,
+            cancellationToken);
+        var day = itinerary?.Days.FirstOrDefault(candidate =>
+            candidate.Id == request.DayId);
+
+        if (itinerary is null || day is null)
+        {
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                ItineraryErrors.DayNotFound);
+        }
+
+        if (!ItineraryItemInput.IsValidCategory(request.Category))
+        {
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                ItineraryErrors.UnsupportedVenueSelection);
+        }
+
+        IReadOnlyList<LoadedVenueSuggestion> loaded;
+        try
+        {
+            loaded = await _loader.LoadAsync(
+                trip,
+                itinerary,
+                day,
+                ItineraryItemInput.ParseCategory(request.Category),
+                null,
+                cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return Result<IReadOnlyList<VenueSuggestionResponse>>.Failure(
+                TripErrors.CorruptRoute);
+        }
+
+        return Result<IReadOnlyList<VenueSuggestionResponse>>.Success(
+            VenueSuggestionResponseMapper.Map(loaded));
+    }
+}
+
+internal static class VenueSuggestionResponseMapper
+{
+    public static IReadOnlyList<VenueSuggestionResponse> Map(
+        IReadOnlyList<LoadedVenueSuggestion> loaded)
+    {
+        return loaded
+            .Take(8)
             .Select(candidate => new VenueSuggestionResponse(
                 candidate.Place.PlaceId,
                 candidate.Place.Name,
@@ -132,8 +237,5 @@ public sealed class GetVenueSuggestionsQueryHandler
                 candidate.Place.Latitude,
                 candidate.Place.Longitude))
             .ToList();
-
-        return Result<IReadOnlyList<VenueSuggestionResponse>>.Success(
-            suggestions);
     }
 }

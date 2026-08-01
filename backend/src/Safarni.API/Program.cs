@@ -143,6 +143,7 @@ builder.Services.AddScoped<IItineraryAIProvider>(
                 ILogger<GroqProvider>>(),
             "GroqItinerary"));
 
+builder.Services.UseGeminiForItineraryGeneration();
 
 // Embeddings
 builder.Services.AddSingleton<

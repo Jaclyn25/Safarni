@@ -32,14 +32,51 @@
 }
 
 .flight-ticket {
+  position: relative;
   background:
-    radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.11), transparent 16rem),
-    linear-gradient(135deg, #f9fbff 0%, #f2f7ff 100%);
-  border-inline-start: 4px solid #2563eb;
+    radial-gradient(circle at 96% 8%, rgba(37, 99, 235, 0.1), transparent 14rem),
+    linear-gradient(135deg, #fbfdff 0%, #f4f8ff 100%);
+}
+
+.flight-ticket::before {
+  content: '';
+  position: absolute;
+  inset-block: 1rem;
+  inset-inline-start: 0;
+  width: 4px;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(180deg, #2563eb, #60a5fa);
+}
+
+.flight-route-board {
+  backdrop-filter: blur(8px);
 }
 
 .flight-route-line {
   min-width: 6rem;
+}
+
+.recommendation-tray,
+.add-item-panel {
+  animation: panel-rise 180ms ease-out;
+}
+
+.recommendation-card {
+  transition: transform 180ms ease, box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.recommendation-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
+}
+
+@keyframes panel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 .generation-overlay {
@@ -91,6 +128,15 @@
   }
 
   .day-card {
+    transition: none;
+  }
+
+  .recommendation-tray,
+  .add-item-panel {
+    animation: none;
+  }
+
+  .recommendation-card {
     transition: none;
   }
 }

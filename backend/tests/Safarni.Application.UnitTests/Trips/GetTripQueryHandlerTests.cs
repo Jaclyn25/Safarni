@@ -41,7 +41,18 @@ public class GetTripQueryHandlerTests
             SelectedCitiesJson = "[]",
             StartDate = DateTime.UtcNow.AddDays(1),
             EndDate = DateTime.UtcNow.AddDays(4),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Cities =
+            [
+                new TripCity
+                {
+                    Id = Guid.NewGuid(),
+                    TripId = tripId,
+                    Name = "Rome",
+                    Days = 4,
+                    OrderIndex = 0
+                }
+            ]
         };
 
         _currentUserServiceMock.Setup(x => x.UserId).Returns(userId);

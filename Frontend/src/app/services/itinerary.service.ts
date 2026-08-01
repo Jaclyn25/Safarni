@@ -147,6 +147,13 @@ export interface AddItineraryItemRequest {
   orderIndex: number | null;
 }
 
+export interface AddRecommendedItineraryItemRequest {
+  dayId: string;
+  category: string;
+  placeId: string;
+  orderIndex: number | null;
+}
+
 export interface UpdateItineraryItemRequest {
   title: string;
   description: string | null;
@@ -253,6 +260,19 @@ export class ItineraryService {
     );
   }
 
+  addRecommendedItem(
+    tripId: string,
+    request: AddRecommendedItineraryItemRequest
+  ): Observable<ApiResponse<ItineraryResponse>> {
+    return this.http.post<ApiResponse<ItineraryResponse>>(
+      `${this.apiUrl}/${tripId}/itinerary/items/from-venue`,
+      request,
+      {
+        headers: this.getHeaders()
+      }
+    );
+  }
+
   updateItem(
     tripId: string,
     itemId: string,
@@ -309,6 +329,20 @@ export class ItineraryService {
       `${this.apiUrl}/${tripId}/itinerary/items/${itemId}/venues`,
       {
         headers: this.getHeaders()
+      }
+    );
+  }
+
+  getDayVenueSuggestions(
+    tripId: string,
+    dayId: string,
+    category: string
+  ): Observable<ApiResponse<VenueSuggestion[]>> {
+    return this.http.get<ApiResponse<VenueSuggestion[]>>(
+      `${this.apiUrl}/${tripId}/itinerary/days/${dayId}/venues`,
+      {
+        headers: this.getHeaders(),
+        params: { category }
       }
     );
   }

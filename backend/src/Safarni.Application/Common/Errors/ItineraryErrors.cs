@@ -29,7 +29,7 @@ public static class ItineraryErrors
 
     public static readonly Error UnsupportedVenueSelection = new(
         "Itinerary.UnsupportedVenueSelection",
-        "Venue choices are available only for meals and accommodation.",
+        "Recommendations are not available for this itinerary item.",
         ErrorType.Validation);
 
     public static readonly Error Forbidden = new(

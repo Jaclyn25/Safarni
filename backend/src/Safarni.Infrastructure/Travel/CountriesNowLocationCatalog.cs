@@ -13,6 +13,53 @@ internal sealed class CountriesNowLocationCatalog
         "travel-location-countries";
     private static readonly TimeSpan CacheDuration =
         TimeSpan.FromHours(24);
+    private static readonly IReadOnlySet<string>
+        RetiredCountryCodes =
+            new HashSet<string>(
+                ["AN"],
+                StringComparer.OrdinalIgnoreCase);
+    private static readonly IReadOnlyDictionary<string, string>
+        CanonicalCountryCodesBySourceCode =
+            new Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase)
+            {
+                ["EL"] = "GR"
+            };
+    private static readonly IReadOnlyDictionary<string, string>
+        CanonicalCountryNamesByIso2 =
+            new Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase)
+            {
+                ["AS"] = "American Samoa",
+                ["CD"] = "Democratic Republic of the Congo",
+                ["CI"] = "Côte d’Ivoire",
+                ["CV"] = "Cabo Verde",
+                ["CZ"] = "Czechia",
+                ["LY"] = "Libya",
+                ["MK"] = "North Macedonia",
+                ["PS"] = "State of Palestine",
+                ["SZ"] = "Eswatini",
+                ["TR"] = "Türkiye"
+            };
+    private static readonly IReadOnlyDictionary<string, string>
+        CountriesNowNamesByCanonicalName =
+            new Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase)
+            {
+                ["American Samoa"] = "AmericanSamoa",
+                ["Democratic Republic of the Congo"] =
+                    "Congo, The Democratic Republic of the",
+                ["Côte d’Ivoire"] = "Ivory Coast",
+                ["Cabo Verde"] = "Cape Verde",
+                ["Czechia"] = "Czech Republic",
+                ["Libya"] = "Libyan Arab Jamahiriya",
+                ["North Macedonia"] =
+                    "Macedonia, The Former Yugoslav Republic of",
+                ["State of Palestine"] =
+                    "Palestinian Territory, Occupied",
+                ["Eswatini"] = "Swaziland",
+                ["Türkiye"] = "Turkey"
+            };
     private static readonly IReadOnlyDictionary<
         string,
         IReadOnlyList<string>>
@@ -87,16 +134,29 @@ internal sealed class CountriesNowLocationCatalog
                 .GetProperty("data")
                 .EnumerateArray()
                 .Select(country =>
-                    new TravelCountry(
-                        country.GetProperty("name")
-                            .GetString() ?? string.Empty,
-                        country.GetProperty("iso2")
-                            .GetString() ?? string.Empty))
+                {
+                    var sourceName = country.GetProperty("name")
+                        .GetString() ?? string.Empty;
+                    var sourceIso2 = country.GetProperty("iso2")
+                        .GetString() ?? string.Empty;
+                    var iso2 = GetCanonicalCountryCode(
+                        sourceIso2);
+
+                    return new TravelCountry(
+                        GetCanonicalCountryName(
+                            iso2,
+                            sourceName),
+                        iso2);
+                })
                 .Where(country =>
                     !string.IsNullOrWhiteSpace(
-                        country.Name))
+                        country.Name) &&
+                    !string.IsNullOrWhiteSpace(
+                        country.Iso2) &&
+                    !RetiredCountryCodes.Contains(
+                        country.Iso2))
                 .DistinctBy(
-                    country => country.Name,
+                    country => country.Iso2,
                     StringComparer.OrdinalIgnoreCase)
                 .OrderBy(country => country.Name)
                 .ToList();
@@ -127,6 +187,8 @@ internal sealed class CountriesNowLocationCatalog
             CancellationToken cancellationToken = default)
     {
         var normalizedCountry = country.Trim();
+        var countriesNowName =
+            GetCountriesNowCountryName(normalizedCountry);
         var cacheKey =
             $"travel-location-cities:{normalizedCountry.ToLowerInvariant()}";
 
@@ -149,7 +211,7 @@ internal sealed class CountriesNowLocationCatalog
                     {
                         Content = JsonContent.Create(new
                         {
-                            country = normalizedCountry
+                            country = countriesNowName
                         })
                     },
                     _logger,
@@ -213,5 +275,36 @@ internal sealed class CountriesNowLocationCatalog
             out var destinations)
                 ? destinations
                 : [];
+    }
+
+    private static string GetCanonicalCountryName(
+        string iso2,
+        string sourceName)
+    {
+        return CanonicalCountryNamesByIso2.TryGetValue(
+            iso2,
+            out var canonicalName)
+                ? canonicalName
+                : sourceName.Trim();
+    }
+
+    private static string GetCanonicalCountryCode(
+        string sourceIso2)
+    {
+        return CanonicalCountryCodesBySourceCode.TryGetValue(
+            sourceIso2,
+            out var canonicalIso2)
+                ? canonicalIso2
+                : sourceIso2.Trim().ToUpperInvariant();
+    }
+
+    private static string GetCountriesNowCountryName(
+        string canonicalName)
+    {
+        return CountriesNowNamesByCanonicalName.TryGetValue(
+            canonicalName,
+            out var countriesNowName)
+                ? countriesNowName
+                : canonicalName;
     }
 }

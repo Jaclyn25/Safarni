@@ -239,12 +239,16 @@ internal static class ItineraryOutputParser
         GenerateItineraryPreferences preferences,
         decimal? budgetAmount,
         IReadOnlyList<ItineraryPlaceCandidate> places,
-        IReadOnlyList<ItineraryCityStop> cityPlan)
+        IReadOnlyList<ItineraryCityStop> cityPlan,
+        ItineraryFlightPlan? flightPlan = null,
+        int? totalTripDays = null)
     {
         ValidateDailyStructure(
             days,
             places,
-            cityPlan);
+            cityPlan,
+            flightPlan,
+            totalTripDays);
         ValidateMealFrequency(
             days,
             places,
@@ -268,46 +272,22 @@ internal static class ItineraryOutputParser
     private static void ValidateDailyStructure(
         IReadOnlyList<AiItineraryDay> days,
         IReadOnlyList<ItineraryPlaceCandidate> places,
-        IReadOnlyList<ItineraryCityStop> cityPlan)
+        IReadOnlyList<ItineraryCityStop> cityPlan,
+        ItineraryFlightPlan? flightPlan,
+        int? totalTripDays)
     {
         foreach (var day in days)
         {
-            var assignedCity =
-                ItineraryCityPlanner.GetStopForDay(
-                    cityPlan,
-                    day.DayNumber).City;
-
-            var activityCandidates = places.Count(candidate =>
-                candidate.Purpose ==
-                ItineraryPlacePurpose.Activity &&
-                string.Equals(
-                    candidate.City,
-                    assignedCity,
-                    StringComparison.OrdinalIgnoreCase));
-
-            var activityCount = day.Items.Count(item =>
-                    ItineraryItemInput.ParseCategory(
-                        item.Category) ==
-                    ItineraryItemCategory.Activity);
-
-            if (activityCandidates > 0 &&
-                activityCount < 1)
+            if (day.Items.Count == 0)
             {
                 throw new ItineraryOutputException(
-                    $"Day {day.DayNumber} must include at least one verified activity.");
+                    $"Day {day.DayNumber} does not contain any supported itinerary items after verification.");
             }
 
             TimeSpan? previousEnd = null;
 
             foreach (var item in day.Items)
             {
-                if (ItineraryItemInput.ParseCategory(
-                        item.Category) ==
-                    ItineraryItemCategory.Accommodation)
-                {
-                    continue;
-                }
-
                 var start =
                     ItineraryItemInput.ParseTime(
                         item.StartTime);
@@ -331,6 +311,94 @@ internal static class ItineraryOutputParser
                 previousEnd = end;
             }
         }
+
+        foreach (var cityStop in cityPlan)
+        {
+            var activityCandidates = places.Count(candidate =>
+                candidate.Purpose ==
+                    ItineraryPlacePurpose.Activity &&
+                string.Equals(
+                    candidate.City,
+                    cityStop.City,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (activityCandidates == 0)
+            {
+                continue;
+            }
+
+            var eligibleDays = days
+                .Where(day =>
+                    day.DayNumber >= cityStop.StartDayNumber &&
+                    day.DayNumber <= cityStop.EndDayNumber &&
+                    HasUsableActivityWindow(
+                        day.DayNumber,
+                        flightPlan,
+                        totalTripDays))
+                .ToList();
+
+            if (eligibleDays.Count == 0)
+            {
+                continue;
+            }
+
+            var actualActivityCount = eligibleDays.Sum(day =>
+                day.Items.Count(item =>
+                    ItineraryItemInput.ParseCategory(
+                        item.Category) ==
+                    ItineraryItemCategory.Activity));
+
+            // Quantity and pacing are prompt-level quality goals. The hard
+            // invariant is grounding: when verified activities and a usable
+            // time window exist, include at least one verified activity in the
+            // city segment. Do not fail because the API catalog is smaller
+            // than the preferred pace target.
+            if (actualActivityCount == 0)
+            {
+                throw new ItineraryOutputException(
+                    $"{cityStop.City} has verified activity candidates and a usable sightseeing window, but the generated segment contains no verified activity.");
+            }
+        }
+    }
+
+    internal static bool HasUsableActivityWindow(
+        int dayNumber,
+        ItineraryFlightPlan? flightPlan,
+        int? totalTripDays)
+    {
+        return HasUsableActivityWindow(
+            dayNumber,
+            totalTripDays,
+            flightPlan?.FirstDayAvailableFrom,
+            flightPlan?.LastDayMustEndBy);
+    }
+
+    internal static bool HasUsableActivityWindow(
+        int dayNumber,
+        int? totalTripDays,
+        TimeSpan? firstDayAvailableFrom,
+        TimeSpan? lastDayMustEndBy)
+    {
+        var windowStart = TimeSpan.FromHours(8);
+        var windowEnd = TimeSpan.FromHours(22);
+
+        if (dayNumber == 1 &&
+            firstDayAvailableFrom is { } availableFrom &&
+            availableFrom > windowStart)
+        {
+            windowStart = availableFrom;
+        }
+
+        if (totalTripDays is { } tripDays &&
+            dayNumber == tripDays &&
+            lastDayMustEndBy is { } mustEndBy &&
+            mustEndBy < windowEnd)
+        {
+            windowEnd = mustEndBy;
+        }
+
+        return windowEnd - windowStart >=
+               TimeSpan.FromMinutes(90);
     }
 
     private static bool PurposeMatchesCategory(
@@ -496,6 +564,7 @@ internal static class ItineraryOutputParser
                         StringComparison.OrdinalIgnoreCase));
 
             if (!alreadyBooked &&
+                cityStop.NightCount > 0 &&
                 hasVerifiedAccommodation &&
                 cityAccommodationItems.Count != 1)
             {
@@ -534,63 +603,79 @@ internal static class ItineraryOutputParser
             RegexOptions.CultureInvariant);
     }
 
-    private static void ValidateLanguage(
+    internal static void ValidateLanguage(
         IEnumerable<AiItineraryDay> days,
         GenerateItineraryPreferences preferences)
     {
-        var visibleTexts = days.SelectMany(day =>
-            new[]
-            {
-                day.Title,
-                day.Notes
-            }.Concat(day.Items.SelectMany(item =>
-                new[]
-                {
-                    item.Title,
-                    item.Description
-                })))
-            .Where(text =>
-                !string.IsNullOrWhiteSpace(text))
-            .Cast<string>()
-            .ToList();
+        var arabicRequested =
+            ItineraryTextPolicy.IsArabicLanguage(
+                preferences.PreferredLanguage);
 
-        var arabicRequested = string.Equals(
-            preferences.PreferredLanguage,
-            "ar",
-            StringComparison.OrdinalIgnoreCase);
+        var forbiddenPlanningWords =
+            new HashSet<string>(
+            [
+                "arrival",
+                "departure",
+                "day",
+                "morning",
+                "afternoon",
+                "evening",
+                "breakfast",
+                "lunch",
+                "dinner",
+                "transport",
+                "transfer",
+                "checkin",
+                "checkout"
+            ],
+            StringComparer.OrdinalIgnoreCase);
 
-        if (arabicRequested)
+        foreach (var day in days)
         {
-            var forbiddenPlanningWords =
-                new HashSet<string>(
-                [
-                    "arrival",
-                    "departure",
-                    "day",
-                    "morning",
-                    "afternoon",
-                    "evening",
-                    "breakfast",
-                    "lunch",
-                    "dinner",
-                    "transport",
-                    "transfer",
-                    "checkin",
-                    "checkout"
-                ],
-                StringComparer.OrdinalIgnoreCase);
+            ValidateVisibleText(
+                $"day {day.DayNumber} title",
+                day.Title);
+            ValidateVisibleText(
+                $"day {day.DayNumber} notes",
+                day.Notes);
 
-            foreach (var text in visibleTexts)
+            for (var itemIndex = 0;
+                 itemIndex < day.Items.Count;
+                 itemIndex++)
             {
-                if (text.Any(char.IsLetter) &&
-                    !ContainsArabic(text))
+                var item = day.Items[itemIndex];
+
+                ValidateVisibleText(
+                    $"day {day.DayNumber}, item {itemIndex + 1} title",
+                    item.Title);
+                ValidateVisibleText(
+                    $"day {day.DayNumber}, item {itemIndex + 1} description",
+                    item.Description);
+            }
+        }
+
+        void ValidateVisibleText(
+            string fieldName,
+            string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
+            var value = text.Trim();
+
+            if (arabicRequested)
+            {
+                if (value.Any(char.IsLetter) &&
+                    !ItineraryTextPolicy.ContainsArabic(value))
                 {
                     throw new ItineraryOutputException(
-                        "Arabic was requested, but some itinerary text is entirely in another language.");
+                        $"Arabic was requested, but {fieldName} is entirely in another language: '{CreatePreview(value)}'.");
                 }
 
                 var latinWords = Regex
-                    .Matches(text, @"[A-Za-z]+")
+                    .Matches(value, @"[A-Za-z]+")
                     .Select(match =>
                         match.Value
                             .Replace("-", string.Empty)
@@ -600,28 +685,27 @@ internal static class ItineraryOutputParser
                         forbiddenPlanningWords.Contains))
                 {
                     throw new ItineraryOutputException(
-                        "Arabic itinerary text contains generic English planning words such as arrival, day or meal names.");
+                        $"Arabic was requested, but {fieldName} contains generic English planning words: '{CreatePreview(value)}'.");
                 }
+
+                return;
             }
 
-            return;
-        }
-
-        if (visibleTexts.Any(ContainsArabic))
-        {
-            throw new ItineraryOutputException(
-                "English was requested, but the itinerary contains Arabic explanatory text.");
+            if (ItineraryTextPolicy.ContainsArabic(value))
+            {
+                throw new ItineraryOutputException(
+                    $"English was requested, but {fieldName} contains Arabic text: '{CreatePreview(value)}'.");
+            }
         }
     }
 
-    private static bool ContainsArabic(string text)
+    private static string CreatePreview(string value)
     {
-        return text.Any(character =>
-            character is >= '\u0600' and <= '\u06FF'
-            or >= '\u0750' and <= '\u077F'
-            or >= '\u08A0' and <= '\u08FF'
-            or >= '\uFB50' and <= '\uFDFF'
-            or >= '\uFE70' and <= '\uFEFF');
+        const int maximumLength = 160;
+
+        return value.Length <= maximumLength
+            ? value
+            : value[..maximumLength] + "...";
     }
 
     private static void ValidateKnownBudget(

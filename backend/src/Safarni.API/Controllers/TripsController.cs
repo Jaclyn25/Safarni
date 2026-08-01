@@ -292,6 +292,29 @@ public sealed class TripsController : ControllerBase
             cancellationToken);
     }
 
+    [HttpPost("{id:guid}/itinerary/items/from-venue")]
+    [ProducesResponseType(
+        typeof(ApiResponse<ItineraryResponse>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> AddRecommendedItineraryItem(
+        Guid id,
+        [FromBody] AddRecommendedItineraryItemRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new AddRecommendedItineraryItemCommand(
+            id,
+            request.DayId,
+            request.Category,
+            request.PlaceId,
+            request.OrderIndex);
+
+        return await SendItineraryMutation(
+            command,
+            "Recommended itinerary item added successfully.",
+            "Failed to add the recommended itinerary item.",
+            cancellationToken);
+    }
+
     [HttpPut("{id:guid}/itinerary/items/{itemId:guid}")]
     [ProducesResponseType(
         typeof(ApiResponse<ItineraryResponse>),
@@ -385,6 +408,34 @@ public sealed class TripsController : ControllerBase
             .SuccessResponse(
                 result.Value!,
                 "Venue suggestions loaded successfully.",
+                StatusCodes.Status200OK));
+    }
+
+    [HttpGet("{id:guid}/itinerary/days/{dayId:guid}/venues")]
+    [ProducesResponseType(
+        typeof(ApiResponse<IReadOnlyList<VenueSuggestionResponse>>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDayVenueSuggestions(
+        Guid id,
+        Guid dayId,
+        [FromQuery] string category,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new GetDayVenueSuggestionsQuery(id, dayId, category),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<IReadOnlyList<VenueSuggestionResponse>>(
+                result.Error,
+                "Failed to load recommendations for this day.");
+        }
+
+        return Ok(ApiResponse<IReadOnlyList<VenueSuggestionResponse>>
+            .SuccessResponse(
+                result.Value!,
+                "Recommendations loaded successfully.",
                 StatusCodes.Status200OK));
     }
 
@@ -505,6 +556,12 @@ public sealed record AddItineraryItemRequest(
     string? Location,
     string Category,
     decimal? EstimatedCost,
+    int? OrderIndex);
+
+public sealed record AddRecommendedItineraryItemRequest(
+    Guid DayId,
+    string Category,
+    string PlaceId,
     int? OrderIndex);
 
 public sealed record UpdateItineraryItemRequest(

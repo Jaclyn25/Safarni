@@ -1,5 +1,6 @@
 using MediatR;
 using Safarni.Application.Abstractions.Authentication;
+using Safarni.Application.Abstractions.BackgroundJobs;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Common.Results;
@@ -24,15 +25,18 @@ public sealed class StartItineraryGenerationCommandHandler
     private readonly ICurrentUserService _currentUser;
     private readonly ITripRepository _trips;
     private readonly IItineraryGenerationJobRepository _jobs;
+    private readonly IItineraryGenerationQueueSignal? _queueSignal;
 
     public StartItineraryGenerationCommandHandler(
         ICurrentUserService currentUser,
         ITripRepository trips,
-        IItineraryGenerationJobRepository jobs)
+        IItineraryGenerationJobRepository jobs,
+        IItineraryGenerationQueueSignal? queueSignal = null)
     {
         _currentUser = currentUser;
         _trips = trips;
         _jobs = jobs;
+        _queueSignal = queueSignal;
     }
 
     public async Task<Result<ItineraryGenerationJobResponse>> Handle(
@@ -64,6 +68,8 @@ public sealed class StartItineraryGenerationCommandHandler
                     return Result<ItineraryGenerationJobResponse>.Failure(
                         ItineraryErrors.IdempotencyKeyReused);
                 }
+
+                WakeWorkerIfPending(existing);
 
                 return Result<ItineraryGenerationJobResponse>.Success(
                     ItineraryGenerationJobResponseMapper.Map(existing));
@@ -147,6 +153,8 @@ public sealed class StartItineraryGenerationCommandHandler
                             ItineraryErrors.IdempotencyKeyReused);
                     }
 
+                    WakeWorkerIfPending(existing);
+
                     return Result<ItineraryGenerationJobResponse>.Success(
                         ItineraryGenerationJobResponseMapper.Map(existing));
                 }
@@ -156,7 +164,20 @@ public sealed class StartItineraryGenerationCommandHandler
                 ItineraryErrors.GenerationAlreadyRunning);
         }
 
+        // The durable row has been committed. Wake the local worker now instead
+        // of waiting for another database-poll interval.
+        _queueSignal?.Signal();
+
         return Result<ItineraryGenerationJobResponse>.Success(
             ItineraryGenerationJobResponseMapper.Map(job));
+    }
+
+    private void WakeWorkerIfPending(ItineraryGenerationJob job)
+    {
+        if (job.IsActive &&
+            job.Status == ItineraryGenerationJobStatus.Pending)
+        {
+            _queueSignal?.Signal();
+        }
     }
 }

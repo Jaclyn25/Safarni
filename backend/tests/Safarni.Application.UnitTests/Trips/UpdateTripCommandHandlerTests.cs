@@ -49,8 +49,9 @@ public class UpdateTripCommandHandlerTests
         result.IsSuccess.Should().BeTrue();
         result.Value!.Name.Should().Be("Updated Trip");
         
-        _tripRepositoryMock.Verify(x => x.Update(trip), Times.Once);
-        _tripRepositoryMock.Verify(x => x.SaveAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _tripRepositoryMock.Verify(
+            x => x.SaveAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]

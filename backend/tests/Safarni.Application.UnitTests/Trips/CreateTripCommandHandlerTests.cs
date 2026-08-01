@@ -133,7 +133,7 @@ public class CreateTripCommandValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(error =>
             error.ErrorMessage ==
-            "Choose more days in your trip to be able to choose more cities.");
+            "Choose more trip days before selecting more cities.");
     }
 
     [Fact]

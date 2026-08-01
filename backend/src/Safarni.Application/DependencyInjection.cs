@@ -65,6 +65,9 @@ public static class DependencyInjection
             ItineraryGenerationProcessor>();
         services.AddScoped<ItineraryVenueSuggestionLoader>();
         services.AddTransient<IValidator<AddItineraryItemCommand>, AddItineraryItemCommandValidator>();
+        services.AddTransient<
+            IValidator<AddRecommendedItineraryItemCommand>,
+            AddRecommendedItineraryItemCommandValidator>();
         services.AddTransient<IValidator<UpdateItineraryItemCommand>, UpdateItineraryItemCommandValidator>();
         services.AddTransient<
             IValidator<MoveItineraryItemCommand>,

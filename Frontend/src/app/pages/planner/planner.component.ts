@@ -62,6 +62,14 @@ interface PreferenceOption {
   description?: string;
 }
 
+interface AddCategoryOption {
+  value: string;
+  label: string;
+  icon: string;
+  description: string;
+  usesRecommendations: boolean;
+}
+
 @Component({
   selector: 'app-planner',
   standalone: true,
@@ -159,6 +167,18 @@ export class PlannerComponent
     Record<string, VenueSuggestion[]> = {};
   activeVenueItemId = '';
 
+  addItemStep: 'category' | 'recommendations' | 'manual' =
+    'category';
+  newItemSuggestions: VenueSuggestion[] = [];
+
+  private readonly loadingNewItemSuggestionsState = signal(false);
+  get loadingNewItemSuggestions(): boolean {
+    return this.loadingNewItemSuggestionsState();
+  }
+  private set loadingNewItemSuggestions(value: boolean) {
+    this.loadingNewItemSuggestionsState.set(value);
+  }
+
   private readonly loadingVenueItemIdState = signal('');
   get loadingVenueItemId(): string {
     return this.loadingVenueItemIdState();
@@ -205,6 +225,44 @@ export class PlannerComponent
     'transport',
     'accommodation',
     'other'
+  ];
+
+  readonly addCategoryOptions: AddCategoryOption[] = [
+    {
+      value: 'activity',
+      label: 'Activity',
+      icon: 'local_activity',
+      description: 'Attractions, tours and experiences nearby',
+      usesRecommendations: true
+    },
+    {
+      value: 'meal',
+      label: 'Restaurant',
+      icon: 'restaurant',
+      description: 'Restaurants and cafes near your day plan',
+      usesRecommendations: true
+    },
+    {
+      value: 'accommodation',
+      label: 'Hotel',
+      icon: 'hotel',
+      description: 'Available stays for this city and date',
+      usesRecommendations: true
+    },
+    {
+      value: 'transport',
+      label: 'Transport',
+      icon: 'directions_transit',
+      description: 'Stations, transit hubs and car rentals',
+      usesRecommendations: true
+    },
+    {
+      value: 'other',
+      label: 'Something else',
+      icon: 'edit_note',
+      description: 'Enter a custom item yourself',
+      usesRecommendations: false
+    }
   ];
 
   readonly currencies = [
@@ -760,12 +818,13 @@ export class PlannerComponent
       return;
     }
 
-    this.activeVenueItemId = item.id;
-
-    if (this.venueSuggestions[item.id]) {
+    if (this.venueSuggestions[item.id]?.length) {
+      this.activeVenueItemId = item.id;
       return;
     }
 
+    this.activeVenueItemId = '';
+    this.errorMessage = '';
     this.loadingVenueItemId = item.id;
 
     try {
@@ -776,8 +835,16 @@ export class PlannerComponent
             item.id
           )
       );
-      this.venueSuggestions[item.id] =
-        response.data ?? [];
+      const suggestions = response.data ?? [];
+      this.venueSuggestions[item.id] = suggestions;
+
+      if (suggestions.length > 0) {
+        this.activeVenueItemId = item.id;
+      } else {
+        delete this.venueSuggestions[item.id];
+        this.errorMessage =
+          `No additional ${this.categoryLabel(item.category).toLowerCase()} recommendations were found nearby.`;
+      }
     } catch (error: unknown) {
       this.errorMessage = this.getErrorMessage(
         error,
@@ -786,6 +853,22 @@ export class PlannerComponent
     } finally {
       this.loadingVenueItemId = '';
     }
+  }
+
+  canRecommendItem(item: ItineraryItem): boolean {
+    return !this.isFlight(item);
+  }
+
+  changeRecommendationLabel(item: ItineraryItem): string {
+    const labels: Record<string, string> = {
+      activity: 'Change activity',
+      meal: 'Change restaurant',
+      accommodation: 'Change hotel',
+      transport: 'Change transport',
+      other: 'Find another place'
+    };
+
+    return labels[item.category] ?? 'Find alternatives';
   }
 
   async chooseVenue(
@@ -926,6 +1009,72 @@ export class PlannerComponent
       day.id,
       day.items.length
     );
+    this.addItemStep = 'category';
+    this.newItemSuggestions = [];
+    this.loadingNewItemSuggestions = false;
+  }
+
+  async selectAddCategory(
+    option: AddCategoryOption
+  ): Promise<void> {
+    this.itemDraft.category = option.value;
+    this.errorMessage = '';
+
+    if (!option.usesRecommendations) {
+      this.addItemStep = 'manual';
+      return;
+    }
+
+    this.addItemStep = 'recommendations';
+    this.newItemSuggestions = [];
+    this.loadingNewItemSuggestions = true;
+
+    try {
+      const response = await firstValueFrom(
+        this.itineraryService.getDayVenueSuggestions(
+          this.tripId,
+          this.addingDayId,
+          option.value
+        )
+      );
+      this.newItemSuggestions = response.data ?? [];
+    } catch (error: unknown) {
+      this.errorMessage = this.getErrorMessage(
+        error,
+        'Recommendations could not be loaded for this day.'
+      );
+    } finally {
+      this.loadingNewItemSuggestions = false;
+    }
+  }
+
+  useManualItemForm(): void {
+    this.addItemStep = 'manual';
+  }
+
+  chooseAnotherAddCategory(): void {
+    this.addItemStep = 'category';
+    this.newItemSuggestions = [];
+  }
+
+  async addRecommendedItem(
+    venue: VenueSuggestion
+  ): Promise<void> {
+    if (!this.addingDayId) {
+      return;
+    }
+
+    await this.runItemRequest(
+      this.itineraryService.addRecommendedItem(
+        this.tripId,
+        {
+          dayId: this.addingDayId,
+          category: this.itemDraft.category,
+          placeId: venue.placeId,
+          orderIndex: this.itemDraft.orderIndex
+        }
+      )
+    );
   }
 
   startEdit(
@@ -952,6 +1101,9 @@ export class PlannerComponent
     this.editingItemId = '';
     this.addingDayId = '';
     this.itemDraft = this.emptyDraft();
+    this.addItemStep = 'category';
+    this.newItemSuggestions = [];
+    this.loadingNewItemSuggestions = false;
   }
 
   async saveNewItem(): Promise<void> {

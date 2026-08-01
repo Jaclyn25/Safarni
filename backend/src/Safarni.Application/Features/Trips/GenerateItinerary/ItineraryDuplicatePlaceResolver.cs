@@ -62,10 +62,15 @@ internal static class ItineraryDuplicatePlaceResolver
 
             item.PlaceReference = replacement.Reference;
             item.Location = replacement.Place.Name;
-            item.Title = replacement.Place.Name;
-            item.Description = BuildDescription(
-                category,
-                languageCode);
+            item.Title = category == ItineraryItemCategory.Meal
+                ? replacement.Place.Name
+                : ItineraryTextPolicy.BuildActivityTitle(
+                    replacement.Place,
+                    languageCode);
+            item.Description =
+                ItineraryTextPolicy.BuildDuplicateReplacementDescription(
+                    category == ItineraryItemCategory.Meal,
+                    languageCode);
 
             usedReferences.Add(replacement.Reference);
             replacements++;
@@ -74,25 +79,4 @@ internal static class ItineraryDuplicatePlaceResolver
         return replacements;
     }
 
-    private static string BuildDescription(
-        ItineraryItemCategory category,
-        string languageCode)
-    {
-        var isArabic = string.Equals(
-            languageCode,
-            "ar",
-            StringComparison.OrdinalIgnoreCase);
-
-        return (category, isArabic) switch
-        {
-            (ItineraryItemCategory.Meal, true) =>
-                "توقف لتناول وجبة في مكان موثّق قريب ضمن برنامج اليوم.",
-            (ItineraryItemCategory.Meal, false) =>
-                "Enjoy a meal at this verified nearby venue.",
-            (_, true) =>
-                "زيارة مكان موثّق ضمن برنامج اليوم.",
-            _ =>
-                "Visit this verified place as part of today's plan."
-        };
-    }
 }

@@ -42,6 +42,17 @@ public class ListTripsQueryHandlerTests
             StartDate = DateTime.UtcNow.AddDays(1),
             EndDate = DateTime.UtcNow.AddDays(3),
             CreatedAt = DateTime.UtcNow,
+            Cities =
+            [
+                new TripCity
+                {
+                    Id = Guid.NewGuid(),
+                    TripId = tripId,
+                    Name = "Paris",
+                    Days = 3,
+                    OrderIndex = 0
+                }
+            ],
             Itineraries =
             [
                 new Itinerary
@@ -106,10 +117,11 @@ public class ListTripsQueryHandlerTests
     {
         // Arrange
         var userId = Guid.NewGuid();
+        var tripId = Guid.NewGuid();
 
         var trip = new Trip
         {
-            Id = Guid.NewGuid(),
+            Id = tripId,
             UserId = userId,
             Name = "Draft Trip",
             Destination = "Italy",
@@ -117,7 +129,18 @@ public class ListTripsQueryHandlerTests
             SelectedCitiesJson = "[]",
             StartDate = DateTime.UtcNow.AddDays(1),
             EndDate = DateTime.UtcNow.AddDays(5),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Cities =
+            [
+                new TripCity
+                {
+                    Id = Guid.NewGuid(),
+                    TripId = tripId,
+                    Name = "Rome",
+                    Days = 5,
+                    OrderIndex = 0
+                }
+            ]
         };
 
         _currentUserServiceMock.Setup(x => x.UserId).Returns(userId);

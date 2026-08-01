@@ -17,6 +17,14 @@ public sealed record AddItineraryItemCommand(
     int? OrderIndex)
     : IRequest<Result<ItineraryResponse>>;
 
+public sealed record AddRecommendedItineraryItemCommand(
+    Guid TripId,
+    Guid DayId,
+    string Category,
+    string PlaceId,
+    int? OrderIndex)
+    : IRequest<Result<ItineraryResponse>>;
+
 public sealed record UpdateItineraryItemCommand(
     Guid TripId,
     Guid ItemId,

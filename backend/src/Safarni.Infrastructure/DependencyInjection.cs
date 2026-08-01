@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Safarni.Application.Abstractions.BackgroundJobs;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Abstractions.Security;
 using Safarni.Application.Abstractions.Storage;
@@ -96,6 +97,9 @@ public static class DependencyInjection
 
         // One durable worker per API process. Database row locks and filtered
         // unique indexes keep processing safe when several API instances run.
+        services.AddSingleton<
+            IItineraryGenerationQueueSignal,
+            ItineraryGenerationQueueSignal>();
         services.AddHostedService<ItineraryGenerationWorker>();
 
         return services;

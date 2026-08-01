@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +15,7 @@ internal sealed class SerpApiFlightAirportService
 
     private readonly HttpClient _httpClient;
     private readonly IMemoryCache _cache;
+    private readonly ITravelLocationCatalog _locationCatalog;
     private readonly ILogger<SerpApiFlightAirportService> _logger;
     private readonly string _apiKey;
 
@@ -21,10 +23,12 @@ internal sealed class SerpApiFlightAirportService
         HttpClient httpClient,
         IConfiguration configuration,
         IMemoryCache cache,
+        ITravelLocationCatalog locationCatalog,
         ILogger<SerpApiFlightAirportService> logger)
     {
         _httpClient = httpClient;
         _cache = cache;
+        _locationCatalog = locationCatalog;
         _logger = logger;
         _apiKey = configuration["SerpApi:ApiKey"] ?? string.Empty;
     }
@@ -41,9 +45,9 @@ internal sealed class SerpApiFlightAirportService
             return [];
         }
 
-        var normalizedQuery = query.Trim();
+        var normalizedCountry = query.Trim();
         var cacheKey =
-            $"flight-airports:{normalizedQuery.ToLowerInvariant()}";
+            $"flight-airports:v2:{normalizedCountry.ToLowerInvariant()}";
 
         if (_cache.TryGetValue(
                 cacheKey,
@@ -53,11 +57,40 @@ internal sealed class SerpApiFlightAirportService
             return cached;
         }
 
+        // The autocomplete endpoint can return several suggestions for one
+        // query. We must not flatten every airport blindly, otherwise airports
+        // from unrelated suggestions can leak into the selected country.
+        var knownCities = await _locationCatalog.GetCitiesAsync(
+            normalizedCountry,
+            cancellationToken);
+        var countries = await _locationCatalog.GetCountriesAsync(
+            cancellationToken);
+        var selectedCountry = countries.FirstOrDefault(country =>
+            string.Equals(
+                country.Name,
+                normalizedCountry,
+                StringComparison.OrdinalIgnoreCase));
+
+        var knownCityKeys = knownCities
+            .Select(NormalizeForMatch)
+            .Where(value => value.Length > 0)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var countryAliases = BuildCountryAliases(
+            normalizedCountry,
+            selectedCountry?.Iso2);
+
         var uri =
             "https://serpapi.com/search.json" +
             "?engine=google_flights_autocomplete" +
-            "&q=" + Uri.EscapeDataString(normalizedQuery) +
-            "&hl=en&api_key=" + Uri.EscapeDataString(_apiKey);
+            "&q=" + Uri.EscapeDataString(normalizedCountry) +
+            "&hl=en" +
+            "&exclude_regions=true" +
+            (string.IsNullOrWhiteSpace(selectedCountry?.Iso2)
+                ? string.Empty
+                : "&gl=" + Uri.EscapeDataString(
+                    selectedCountry.Iso2.ToLowerInvariant())) +
+            "&api_key=" + Uri.EscapeDataString(_apiKey);
 
         await RequestGate.WaitAsync(cancellationToken);
         try
@@ -85,26 +118,75 @@ internal sealed class SerpApiFlightAirportService
                 return [];
             }
 
-            var airports = suggestions
-                .EnumerateArray()
-                .Where(suggestion =>
-                    suggestion.TryGetProperty("airports", out var values) &&
-                    values.ValueKind == JsonValueKind.Array)
-                .SelectMany(suggestion =>
-                    suggestion.GetProperty("airports").EnumerateArray())
-                .Select(airport => new FlightAirportSuggestion(
-                    NormalizeIata(GetString(airport, "id")) ?? string.Empty,
-                    GetString(airport, "name"),
-                    GetString(airport, "city")))
-                .Where(airport =>
-                    IsIata(airport.Code) &&
-                    !string.IsNullOrWhiteSpace(airport.Name))
+            var rawAirportCount = 0;
+            var filtered = new List<FlightAirportSuggestion>();
+
+            foreach (var suggestion in suggestions.EnumerateArray())
+            {
+                if (!suggestion.TryGetProperty(
+                        "airports",
+                        out var airportValues) ||
+                    airportValues.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                var suggestionName = GetString(suggestion, "name");
+                var suggestionDescription =
+                    GetString(suggestion, "description");
+                var suggestionMatchesCountry =
+                    TextMentionsCountry(
+                        $"{suggestionName} {suggestionDescription}",
+                        countryAliases);
+
+                foreach (var airport in airportValues.EnumerateArray())
+                {
+                    rawAirportCount++;
+
+                    var code =
+                        NormalizeIata(GetString(airport, "id"))
+                        ?? string.Empty;
+                    var name = GetString(airport, "name");
+                    var city = GetString(airport, "city");
+
+                    if (!IsIata(code) ||
+                        string.IsNullOrWhiteSpace(name))
+                    {
+                        continue;
+                    }
+
+                    var cityMatchesCountry =
+                        knownCityKeys.Contains(NormalizeForMatch(city));
+
+                    if (!cityMatchesCountry &&
+                        !suggestionMatchesCountry)
+                    {
+                        continue;
+                    }
+
+                    filtered.Add(
+                        new FlightAirportSuggestion(
+                            code,
+                            name,
+                            city));
+                }
+            }
+
+            var airports = filtered
                 .DistinctBy(
                     airport => airport.Code,
                     StringComparer.OrdinalIgnoreCase)
                 .Take(15)
                 .ToList();
 
+            _logger.LogInformation(
+                "Airport autocomplete for {Country}: {RawCount} raw airports, {FilteredCount} matched the selected country.",
+                normalizedCountry,
+                rawAirportCount,
+                airports.Count);
+
+            // Returning an empty list is safer than showing airports from a
+            // different country when the upstream result cannot be verified.
             _cache.Set(cacheKey, airports, TimeSpan.FromHours(24));
             return airports;
         }
@@ -116,8 +198,8 @@ internal sealed class SerpApiFlightAirportService
         {
             _logger.LogWarning(
                 exception,
-                "Failed to suggest airports for {Query}.",
-                normalizedQuery);
+                "Failed to suggest airports for {Country}.",
+                normalizedCountry);
             return [];
         }
         finally
@@ -327,6 +409,87 @@ internal sealed class SerpApiFlightAirportService
         {
             RequestGate.Release();
         }
+    }
+
+    private static IReadOnlySet<string> BuildCountryAliases(
+        string countryName,
+        string? iso2)
+    {
+        var aliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            NormalizeForMatch(countryName)
+        };
+
+        if (!string.IsNullOrWhiteSpace(iso2))
+        {
+            try
+            {
+                var region = new RegionInfo(iso2);
+                aliases.Add(NormalizeForMatch(region.EnglishName));
+                aliases.Add(NormalizeForMatch(region.NativeName));
+                aliases.Add(NormalizeForMatch(region.DisplayName));
+            }
+            catch (ArgumentException)
+            {
+                // The city catalog still provides the primary country check.
+            }
+        }
+
+        aliases.RemoveWhere(string.IsNullOrWhiteSpace);
+        return aliases;
+    }
+
+    private static bool TextMentionsCountry(
+        string text,
+        IReadOnlySet<string> countryAliases)
+    {
+        var normalizedText = NormalizeForMatch(text);
+
+        return countryAliases.Any(alias =>
+            alias.Length > 0 &&
+            normalizedText.Contains(
+                alias,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string NormalizeForMatch(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var decomposed = value
+            .Trim()
+            .Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(decomposed.Length);
+
+        foreach (var character in decomposed)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) ==
+                UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            if (char.IsLetterOrDigit(character))
+            {
+                builder.Append(char.ToLowerInvariant(character));
+            }
+            else
+            {
+                builder.Append(' ');
+            }
+        }
+
+        return string.Join(
+            ' ',
+            builder
+                .ToString()
+                .Split(
+                    ' ',
+                    StringSplitOptions.RemoveEmptyEntries |
+                    StringSplitOptions.TrimEntries));
     }
 
     private static JsonElement? GetMatchingFlightResult(

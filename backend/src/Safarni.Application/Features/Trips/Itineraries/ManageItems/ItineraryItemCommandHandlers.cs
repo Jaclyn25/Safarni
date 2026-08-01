@@ -107,6 +107,118 @@ public sealed class AddItineraryItemCommandHandler
     }
 }
 
+public sealed class AddRecommendedItineraryItemCommandHandler
+    : IRequestHandler<
+        AddRecommendedItineraryItemCommand,
+        Result<ItineraryResponse>>
+{
+    private readonly ItineraryItemCommandContext _context;
+    private readonly ItineraryVenueSuggestionLoader _loader;
+    private readonly IItineraryRouteService? _routeService;
+
+    public AddRecommendedItineraryItemCommandHandler(
+        ICurrentUserService currentUserService,
+        ITripRepository tripRepository,
+        IItineraryRepository itineraryRepository,
+        ItineraryVenueSuggestionLoader loader,
+        IItineraryRouteService? routeService = null)
+    {
+        _context = new ItineraryItemCommandContext(
+            currentUserService,
+            tripRepository,
+            itineraryRepository);
+        _loader = loader;
+        _routeService = routeService;
+    }
+
+    public async Task<Result<ItineraryResponse>> Handle(
+        AddRecommendedItineraryItemCommand request,
+        CancellationToken cancellationToken)
+    {
+        var owned = await _context.GetOwnedAsync(
+            request.TripId,
+            cancellationToken);
+
+        if (owned.Error is not null)
+        {
+            return Result<ItineraryResponse>.Failure(owned.Error);
+        }
+
+        var trip = owned.Trip!;
+        var itinerary = owned.Itinerary!;
+        var day = itinerary.Days.FirstOrDefault(candidate =>
+            candidate.Id == request.DayId);
+
+        if (day is null)
+        {
+            return Result<ItineraryResponse>.Failure(
+                ItineraryErrors.DayNotFound);
+        }
+
+        var category = ItineraryItemInput.ParseCategory(request.Category);
+        LoadedVenueSuggestion? selected;
+
+        try
+        {
+            selected = await _loader.FindByPlaceIdAsync(
+                trip,
+                itinerary,
+                day,
+                category,
+                request.PlaceId,
+                cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return Result<ItineraryResponse>.Failure(
+                TripErrors.CorruptRoute);
+        }
+
+        if (selected is null)
+        {
+            return Result<ItineraryResponse>.Failure(
+                ItineraryErrors.VenueNotFound);
+        }
+
+        var item = new ItineraryItem
+        {
+            Id = Guid.NewGuid(),
+            ItineraryDayId = day.Id,
+            Title = category == ItineraryItemCategory.Meal
+                ? "Meal"
+                : selected.Place.Name.Trim(),
+            Description = string.IsNullOrWhiteSpace(
+                selected.Place.Description)
+                    ? null
+                    : selected.Place.Description.Trim(),
+            Category = category
+        };
+
+        SelectItineraryVenueCommandHandler.ApplyVerifiedVenue(
+            item,
+            selected,
+            isNewItem: true);
+
+        day.Items.Add(item);
+        ItineraryOrder.PlaceItem(
+            day,
+            item,
+            request.OrderIndex ?? day.Items.Count - 1);
+
+        await AddItineraryItemCommandHandler.RebuildRoutesAsync(
+            itinerary,
+            [day],
+            _routeService,
+            cancellationToken);
+
+        itinerary.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveAsync(cancellationToken);
+
+        return Result<ItineraryResponse>.Success(
+            ItineraryResponseMapper.Map(itinerary));
+    }
+}
+
 public sealed class UpdateItineraryItemCommandHandler
     : IRequestHandler<UpdateItineraryItemCommand, Result<ItineraryResponse>>
 {
@@ -420,9 +532,7 @@ public sealed class SelectItineraryVenueCommandHandler
                 ItineraryErrors.ItemNotFound);
         }
 
-        if (item.Category is not
-            (ItineraryItemCategory.Meal or
-             ItineraryItemCategory.Accommodation))
+        if (item.FlightDepartureAirportCode is not null)
         {
             return Result<ItineraryResponse>.Failure(
                 ItineraryErrors.UnsupportedVenueSelection);
@@ -466,9 +576,10 @@ public sealed class SelectItineraryVenueCommandHandler
             ItineraryResponseMapper.Map(itinerary));
     }
 
-    private static void ApplyVerifiedVenue(
+    internal static void ApplyVerifiedVenue(
         ItineraryItem item,
-        LoadedVenueSuggestion selected)
+        LoadedVenueSuggestion selected,
+        bool isNewItem = false)
     {
         var place = selected.Place;
 
@@ -486,6 +597,17 @@ public sealed class SelectItineraryVenueCommandHandler
         item.ExternalUrl = NullIfWhiteSpace(place.ExternalUrl);
         item.Location = place.Name.Trim();
 
+        if (item.Category is not
+            (ItineraryItemCategory.Accommodation or
+             ItineraryItemCategory.Meal))
+        {
+            item.Title = place.Name.Trim();
+            item.Description = NullIfWhiteSpace(place.Description);
+            item.EstimatedCost = null;
+            item.CostSource = null;
+            return;
+        }
+
         if (item.Category == ItineraryItemCategory.Accommodation)
         {
             item.Title = place.Name.Trim();
@@ -498,7 +620,10 @@ public sealed class SelectItineraryVenueCommandHandler
         else
         {
             item.Title =
-                $"{GetMealSlotTitle(item.Title)} — {place.Name.Trim()}";
+                isNewItem
+                    ? $"Meal — {place.Name.Trim()}"
+                    : $"{GetMealSlotTitle(item.Title)} — {place.Name.Trim()}";
+            item.Description = NullIfWhiteSpace(place.Description);
         }
     }
 

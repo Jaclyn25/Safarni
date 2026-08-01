@@ -1,10 +1,12 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Exceptions;
 using ChatBotApi.Application.Common.Interfaces;
@@ -335,14 +337,16 @@ public class GroqProvider : IAIProvider
         {
             ["model"] = settings.Model,
             ["messages"] = messages,
-            ["temperature"] = settings.Temperature,
+            ["temperature"] =
+                options?.Temperature ?? settings.Temperature,
             ["max_tokens"] =
                 options?.MaxTokens is > 0
                     ? Math.Min(
                         options.MaxTokens.Value,
                         settings.MaxTokens)
                     : settings.MaxTokens,
-            ["top_p"] = settings.TopP,
+            ["top_p"] =
+                options?.TopP ?? settings.TopP,
             ["stream"] = stream
         };
 
@@ -477,7 +481,7 @@ public class GroqProvider : IAIProvider
 
             throw new AIProviderRateLimitException(
                 "The AI provider rate limit was exceeded.",
-                GetRetryAfter(response));
+                GetRetryAfter(response, body));
         }
 
         _logger.LogError(
@@ -489,8 +493,9 @@ public class GroqProvider : IAIProvider
             "The AI provider returned an error.");
     }
 
-    private static TimeSpan? GetRetryAfter(
-        HttpResponseMessage response)
+    internal static TimeSpan? GetRetryAfter(
+        HttpResponseMessage response,
+        string? responseBody)
     {
         var retryAfter = response.Headers.RetryAfter;
 
@@ -509,7 +514,29 @@ public class GroqProvider : IAIProvider
                 : TimeSpan.Zero;
         }
 
-        return null;
+        if (string.IsNullOrWhiteSpace(responseBody))
+        {
+            return null;
+        }
+
+        var match = Regex.Match(
+            responseBody,
+            @"(?:try\s+again\s+in|retry\s+after)\s*(?<seconds>\d+(?:\.\d+)?)\s*s",
+            RegexOptions.IgnoreCase |
+            RegexOptions.CultureInvariant);
+
+        if (!match.Success ||
+            !double.TryParse(
+                match.Groups["seconds"].Value,
+                NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture,
+                out var seconds) ||
+            seconds < 0)
+        {
+            return null;
+        }
+
+        return TimeSpan.FromSeconds(seconds);
     }
 
     private static readonly JsonSerializerOptions

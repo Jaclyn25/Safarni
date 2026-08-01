@@ -204,14 +204,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                 List<PlaceDetails>? places = null;
                 try
                 {
-                    places = await _googlePlacesService.TextSearchAsync(
-                        queryToSearch,
-                        cancellationToken,
-                        _promptBuilder.GetGooglePlacesLanguageCode(queryToSearch));
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
+                    places = await _googlePlacesService.TextSearchAsync(request.Message, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -227,12 +220,39 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                 }
                 else
                 {
-                    // STEP 3: Travel intent, but no live/database data. Fall back to the LLM's general travel knowledge.
-                    _logger.LogInformation("No data found in Database or Google Places API. Falling back to general travel knowledge.");
-                    systemPrompt = _promptBuilder.BuildSystemPrompt(new List<DocumentChunk>(), request.Message);
-                }
+                // STEP 3: NEITHER DB NOR GOOGLE PLACES HAS IT -> Refuse to answer from external AI knowledge!
+                _logger.LogInformation("No data found in Database or Google Places API. Returning refusal message.");
+                var refusalText = "عفواً، لا يمكنني العثور على هذه المعلومات في قاعدة المعرفة الخاصة بي ولا عبر Google Places.";
+
+                var refusalMsg = new ConversationMessage
+                {
+                    Id = Guid.NewGuid(),
+                    ConversationId = conversation.Id,
+                    Role = "assistant",
+                    Content = refusalText,
+                    CreatedAt = DateTime.UtcNow
+                };
+                conversation.Messages.Add(refusalMsg);
+                await _repository.AddMessageAsync(refusalMsg, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                return new ConversationDto
+                {
+                    Id = conversation.Id,
+                    Title = conversation.Title,
+                    CreatedAt = conversation.CreatedAt,
+                    Messages = conversation.Messages
+                        .OrderBy(m => m.CreatedAt)
+                        .Select(m => new ChatMessageDto
+                        {
+                            Role = m.Role,
+                            Content = m.Content
+                        })
+                        .ToList()
+                };
             }
         }
+    }
 
         var userPrompt = _promptBuilder.BuildUserPrompt(request.Message);
         _logger.LogInformation("Sending prompt to LLM (System Prompt Length: {Len}).", systemPrompt.Length);

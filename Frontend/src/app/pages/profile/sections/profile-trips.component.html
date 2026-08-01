@@ -1,0 +1,60 @@
+<section class="card" id="trips">
+  <div class="card__header">
+    <h2><span class="material-symbols-outlined">luggage</span> My Trips</h2>
+    <a routerLink="/" [queryParams]="{ createTrip: 1 }" class="btn btn--primary btn--sm">
+      <span class="material-symbols-outlined">add</span>
+      New Trip
+    </a>
+  </div>
+
+  <div *ngIf="isTripsLoading()" class="loading-state">Loading your trips…</div>
+
+  <p class="field__error" *ngIf="tripsError()">{{ tripsError() }}</p>
+
+  <div *ngIf="!isTripsLoading() && !tripsError() && trips().length === 0" class="trips-empty">
+    <span class="material-symbols-outlined">flight_takeoff</span>
+    <p>You haven't created any trips yet.</p>
+    <a routerLink="/" [queryParams]="{ createTrip: 1 }" class="btn btn--primary">
+      Plan your first trip
+    </a>
+  </div>
+
+  <div class="trips-list" *ngIf="!isTripsLoading() && trips().length > 0">
+    <article class="trip" *ngFor="let trip of trips()">
+      <div class="trip__icon">
+        <span class="material-symbols-outlined">flight</span>
+      </div>
+
+      <div class="trip__body">
+        <div class="trip__top">
+          <h3>{{ trip.name }}</h3>
+          <span class="badge" [class]="tripBadge(trip).classes">{{ tripBadge(trip).label }}</span>
+        </div>
+        <p class="trip__destination">
+          <span class="material-symbols-outlined">location_on</span>
+          {{ trip.destination }}
+          <span class="trip__origin" *ngIf="trip.originCountry">· from {{ trip.originCountry }}</span>
+        </p>
+        <p class="trip__meta">
+          <span class="material-symbols-outlined">calendar_month</span>
+          {{ tripDateRange(trip) }}
+        </p>
+        <p class="trip__meta" *ngIf="tripCityNames(trip)">
+          <span class="material-symbols-outlined">map</span>
+          {{ tripCityNames(trip) }}
+        </p>
+        <p class="trip__meta" *ngIf="tripCost(trip) as cost">
+          <span class="material-symbols-outlined">payments</span>
+          {{ cost }} estimated
+        </p>
+      </div>
+
+      <div class="trip__actions">
+        <a [routerLink]="['/planner', trip.id]" class="btn btn--primary btn--sm">
+          <span class="material-symbols-outlined">edit_calendar</span>
+          View Planner
+        </a>
+      </div>
+    </article>
+  </div>
+</section>

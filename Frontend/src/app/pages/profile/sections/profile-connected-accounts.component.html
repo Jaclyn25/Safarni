@@ -1,0 +1,20 @@
+<section class="card" id="connected-accounts">
+  <h2><span class="material-symbols-outlined">link</span> Connected Accounts</h2>
+
+  <div class="accounts">
+    <div class="account-row" *ngFor="let account of connectedAccounts">
+      <div class="account-row__info">
+        <div class="account-row__icon">
+          <span class="material-symbols-outlined">{{ account.provider === 'google' ? 'g_translate' : 'thumb_up' }}</span>
+        </div>
+        <div>
+          <p class="account-row__label">{{ account.label }}</p>
+          <p class="account-row__status">{{ account.status }}</p>
+        </div>
+      </div>
+      <button type="button" class="btn" [class.btn--outline]="account.connected" [class.btn--primary]="!account.connected">
+        {{ account.connected ? 'Disconnect' : 'Connect' }}
+      </button>
+    </div>
+  </div>
+</section>

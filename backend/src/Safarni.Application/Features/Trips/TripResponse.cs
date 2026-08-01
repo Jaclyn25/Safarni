@@ -1,3 +1,5 @@
+using Safarni.Domain.Entities;
+
 namespace Safarni.Application.Features.Trips;
 
 public sealed record TripResponse(
@@ -6,6 +8,10 @@ public sealed record TripResponse(
     string Name,
     string Destination,
     string OriginCountry,
+    string? OriginCountryCode,
+    string? OriginCity,
+    string? OriginAirportCode,
+    string? OriginAirportName,
     IReadOnlyList<TripCitySelection> Cities,
     DateTime StartDate,
     DateTime EndDate,
@@ -13,6 +19,14 @@ public sealed record TripResponse(
     DateTime? UpdatedAt,
     Guid? ActiveItineraryId = null,
     string? ItineraryStatus = null,
-    string? ItineraryCurrency = null,
+    string? ActiveItineraryCurrencyCode = null,
     decimal? EstimatedTotalCost = null,
-    DateTime? ItineraryGeneratedAt = null);
+    DateTime? ActiveItineraryUpdatedAt = null);
+
+internal static class TripResponseMapper
+{
+    public static TripResponse Map(Trip trip)
+    {
+        return TripResponseFactory.Create(trip);
+    }
+}

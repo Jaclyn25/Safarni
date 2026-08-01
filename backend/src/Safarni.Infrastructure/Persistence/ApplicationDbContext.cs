@@ -14,9 +14,12 @@ public sealed class ApplicationDbContext : DbContext
     // Safarni tables
     public DbSet<User> Users => Set<User>();
     public DbSet<Trip> Trips => Set<Trip>();
+    public DbSet<TripCity> TripCities => Set<TripCity>();
     public DbSet<Itinerary> Itineraries => Set<Itinerary>();
     public DbSet<ItineraryDay> ItineraryDays => Set<ItineraryDay>();
     public DbSet<ItineraryItem> ItineraryItems => Set<ItineraryItem>();
+    public DbSet<ItineraryGenerationJob> ItineraryGenerationJobs =>
+        Set<ItineraryGenerationJob>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<TravelPreference> TravelPreferences => Set<TravelPreference>();
     public DbSet<PassportInfo> PassportInfos => Set<PassportInfo>();

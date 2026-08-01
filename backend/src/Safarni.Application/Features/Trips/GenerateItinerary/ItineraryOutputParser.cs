@@ -237,7 +237,7 @@ internal static class ItineraryOutputParser
     public static void ValidatePlanRules(
         IReadOnlyList<AiItineraryDay> days,
         GenerateItineraryPreferences preferences,
-        decimal budgetAmount,
+        decimal? budgetAmount,
         IReadOnlyList<ItineraryPlaceCandidate> places,
         IReadOnlyList<ItineraryCityStop> cityPlan)
     {
@@ -256,10 +256,13 @@ internal static class ItineraryOutputParser
             places,
             cityPlan);
         ValidateLanguage(days, preferences);
-        ValidateKnownBudget(
-            days,
-            budgetAmount,
-            places);
+        if (budgetAmount is not null)
+        {
+            ValidateKnownBudget(
+                days,
+                budgetAmount.Value,
+                places);
+        }
     }
 
     private static void ValidateDailyStructure(
@@ -651,6 +654,41 @@ internal static class ItineraryOutputParser
         {
             throw new ItineraryOutputException(
                 $"The known itinerary estimate ({knownTotal:0.00}) exceeds the total budget ({budgetAmount:0.00}).");
+        }
+    }
+
+    public static void ValidateFlightConstraints(
+        IReadOnlyList<AiItineraryDay> days,
+        ItineraryFlightPlan flightPlan,
+        int totalTripDays)
+    {
+        if (flightPlan.FirstDayAvailableFrom is { } availableFrom)
+        {
+            var firstDay = days.FirstOrDefault(day => day.DayNumber == 1);
+            var invalid = firstDay?.Items.FirstOrDefault(item =>
+                ItineraryItemInput.ParseTime(item.StartTime) is { } start &&
+                start < availableFrom);
+
+            if (invalid is not null)
+            {
+                throw new ItineraryOutputException(
+                    $"Day 1 item '{invalid.Title}' starts before the verified flight arrival window ({availableFrom.ToString(@"hh\:mm")}).");
+            }
+        }
+
+        if (flightPlan.LastDayMustEndBy is { } mustEndBy)
+        {
+            var lastDay = days.FirstOrDefault(day =>
+                day.DayNumber == totalTripDays);
+            var invalid = lastDay?.Items.FirstOrDefault(item =>
+                ItineraryItemInput.ParseTime(item.EndTime) is { } end &&
+                end > mustEndBy);
+
+            if (invalid is not null)
+            {
+                throw new ItineraryOutputException(
+                    $"Final-day item '{invalid.Title}' ends after the verified return-flight cutoff ({mustEndBy.ToString(@"hh\:mm")}).");
+            }
         }
     }
 

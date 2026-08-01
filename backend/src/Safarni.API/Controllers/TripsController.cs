@@ -5,13 +5,14 @@ using Safarni.API.Common;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Features.Trips;
 using Safarni.Application.Features.Trips.CreateTrip;
+using Safarni.Application.Features.Trips.DeleteTrip;
 using Safarni.Application.Features.Trips.GenerateItinerary;
+using Safarni.Application.Features.Trips.GenerateItinerary.Jobs;
+using Safarni.Application.Features.Trips.GetTrip;
+using Safarni.Application.Features.Trips.ListTrips;
 using Safarni.Application.Features.Trips.Itineraries.GetActiveItinerary;
 using Safarni.Application.Features.Trips.Itineraries.ManageItems;
 using Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
-using Safarni.Application.Features.Trips.GetTrip;
-using Safarni.Application.Features.Trips.ListTrips;
-using Safarni.Application.Features.Trips.DeleteTrip;
 using Safarni.Application.Features.Trips.UpdateTrip;
 
 namespace Safarni.API.Controllers;
@@ -28,18 +29,36 @@ public sealed class TripsController : ControllerBase
         _sender = sender;
     }
 
-    // =========================================================
-    // LIST MY TRIPS
-    // GET: /api/trips
-    // =========================================================
+    [HttpPost]
+    [ProducesResponseType(
+        typeof(ApiResponse<TripResponse>),
+        StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateTrip(
+        [FromBody] CreateTripCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<TripResponse>(
+                result.Error,
+                "Failed to create trip.");
+        }
+
+        return CreatedAtAction(
+            nameof(GetTrip),
+            new { id = result.Value!.Id },
+            ApiResponse<TripResponse>.SuccessResponse(
+                result.Value,
+                "Trip created successfully.",
+                StatusCodes.Status201Created));
+    }
 
     [HttpGet]
     [ProducesResponseType(
         typeof(ApiResponse<IReadOnlyCollection<TripResponse>>),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        typeof(ApiResponse<IReadOnlyCollection<TripResponse>>),
-        StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ListTrips(
         CancellationToken cancellationToken)
     {
@@ -54,32 +73,18 @@ public sealed class TripsController : ControllerBase
                 "Failed to load trips.");
         }
 
-        return Ok(
-            ApiResponse<IReadOnlyCollection<TripResponse>>.SuccessResponse(
+        return Ok(ApiResponse<IReadOnlyCollection<TripResponse>>
+            .SuccessResponse(
                 result.Value!,
                 "Trips loaded successfully.",
                 StatusCodes.Status200OK));
     }
 
-    // =========================================================
-    // GET TRIP BY ID
-    // GET: /api/trips/{id}
-    // =========================================================
-
     [HttpGet("{id:guid}")]
     [ProducesResponseType(
         typeof(ApiResponse<TripResponse>),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        typeof(ApiResponse<TripResponse>),
-        StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(
-        typeof(ApiResponse<TripResponse>),
-        StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(
-        typeof(ApiResponse<TripResponse>),
-        StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetTripById(
+    public async Task<IActionResult> GetTrip(
         Guid id,
         CancellationToken cancellationToken)
     {
@@ -94,72 +99,16 @@ public sealed class TripsController : ControllerBase
                 "Failed to load trip.");
         }
 
-        return Ok(
-            ApiResponse<TripResponse>.SuccessResponse(
-                result.Value!,
-                "Trip loaded successfully.",
-                StatusCodes.Status200OK));
+        return Ok(ApiResponse<TripResponse>.SuccessResponse(
+            result.Value!,
+            "Trip loaded successfully.",
+            StatusCodes.Status200OK));
     }
-
-    // =========================================================
-    // CREATE TRIP
-    // POST: /api/trips
-    // =========================================================
-
-    [HttpPost]
-    [ProducesResponseType(
-        typeof(ApiResponse<TripResponse>),
-        StatusCodes.Status201Created)]
-    [ProducesResponseType(
-        typeof(ApiResponse<TripResponse>),
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        typeof(ApiResponse<TripResponse>),
-        StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> CreateTrip(
-        [FromBody] CreateTripCommand command,
-        CancellationToken cancellationToken)
-    {
-        var result = await _sender.Send(
-            command,
-            cancellationToken);
-
-        if (result.IsFailure)
-        {
-            return Failure<TripResponse>(
-                result.Error,
-                "Failed to create trip.");
-        }
-
-        return StatusCode(
-            StatusCodes.Status201Created,
-            ApiResponse<TripResponse>.SuccessResponse(
-                result.Value!,
-                "Trip created successfully.",
-                StatusCodes.Status201Created));
-    }
-
-    // =========================================================
-    // UPDATE TRIP
-    // PUT: /api/trips/{id}
-    // =========================================================
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType(
         typeof(ApiResponse<TripResponse>),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        typeof(ApiResponse<TripResponse>),
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        typeof(ApiResponse<TripResponse>),
-        StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(
-        typeof(ApiResponse<TripResponse>),
-        StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(
-        typeof(ApiResponse<TripResponse>),
-        StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateTrip(
         Guid id,
         [FromBody] UpdateTripRequest request,
@@ -172,11 +121,13 @@ public sealed class TripsController : ControllerBase
             request.StartDate,
             request.EndDate,
             request.OriginCountry,
-            request.Cities);
+            request.Cities,
+            request.OriginCountryCode,
+            request.OriginCity,
+            request.OriginAirportCode,
+            request.OriginAirportName);
 
-        var result = await _sender.Send(
-            command,
-            cancellationToken);
+        var result = await _sender.Send(command, cancellationToken);
 
         if (result.IsFailure)
         {
@@ -185,39 +136,22 @@ public sealed class TripsController : ControllerBase
                 "Failed to update trip.");
         }
 
-        return Ok(
-            ApiResponse<TripResponse>.SuccessResponse(
-                result.Value!,
-                "Trip updated successfully.",
-                StatusCodes.Status200OK));
+        return Ok(ApiResponse<TripResponse>.SuccessResponse(
+            result.Value!,
+            "Trip updated successfully.",
+            StatusCodes.Status200OK));
     }
-
-    // =========================================================
-    // GET ACTIVE ITINERARY
-    // GET: /api/trips/{id}/itinerary
-    // =========================================================
 
     [HttpGet("{id:guid}/itinerary")]
     [ProducesResponseType(
         typeof(ApiResponse<ItineraryResponse>),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetActiveItinerary(
         Guid id,
         CancellationToken cancellationToken)
     {
-        var query = new GetActiveItineraryQuery(id);
-
         var result = await _sender.Send(
-            query,
+            new GetActiveItineraryQuery(id),
             cancellationToken);
 
         if (result.IsFailure)
@@ -227,85 +161,113 @@ public sealed class TripsController : ControllerBase
                 "Failed to load itinerary.");
         }
 
-        return Ok(
-            ApiResponse<ItineraryResponse>.SuccessResponse(
-                result.Value!,
-                "Itinerary loaded successfully.",
-                StatusCodes.Status200OK));
+        return Ok(ApiResponse<ItineraryResponse>.SuccessResponse(
+            result.Value!,
+            "Itinerary loaded successfully.",
+            StatusCodes.Status200OK));
     }
 
-    // =========================================================
-    // GENERATE ITINERARY WITHOUT STREAMING
-    // POST: /api/trips/{id}/itinerary/generate
-    // =========================================================
-
+    /// <summary>
+    /// Queues durable itinerary generation and returns immediately. The client
+    /// polls the job endpoint until status is completed, failed, or cancelled.
+    /// </summary>
     [HttpPost("{id:guid}/itinerary/generate")]
     [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status404NotFound)]
+        typeof(ApiResponse<ItineraryGenerationJobResponse>),
+        StatusCodes.Status202Accepted)]
     public async Task<IActionResult> GenerateItinerary(
         Guid id,
         [FromBody] GenerateItineraryRequest request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken cancellationToken)
     {
-        var command = new GenerateItineraryCommand(
+        var command = new StartItineraryGenerationCommand(
             id,
             request.Preferences,
             request.BudgetAmount,
             request.CurrencyCode,
-            request.TravelerCount);
+            request.TravelerCount,
+            idempotencyKey);
 
+        var result = await _sender.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<ItineraryGenerationJobResponse>(
+                result.Error,
+                "Failed to queue itinerary generation.");
+        }
+
+        var response = ApiResponse<ItineraryGenerationJobResponse>
+            .SuccessResponse(
+                result.Value!,
+                "Itinerary generation queued.",
+                StatusCodes.Status202Accepted);
+
+        return AcceptedAtAction(
+            nameof(GetItineraryGenerationJob),
+            new { id, jobId = result.Value!.Id },
+            response);
+    }
+
+    [HttpGet("{id:guid}/itinerary/generation/{jobId:guid}")]
+    [ProducesResponseType(
+        typeof(ApiResponse<ItineraryGenerationJobResponse>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetItineraryGenerationJob(
+        Guid id,
+        Guid jobId,
+        CancellationToken cancellationToken)
+    {
         var result = await _sender.Send(
-            command,
+            new GetItineraryGenerationJobQuery(id, jobId),
             cancellationToken);
 
         if (result.IsFailure)
         {
-            return Failure<ItineraryResponse>(
+            return Failure<ItineraryGenerationJobResponse>(
                 result.Error,
-                "Failed to generate itinerary.");
+                "Failed to load itinerary generation status.");
         }
 
-        return Ok(
-            ApiResponse<ItineraryResponse>.SuccessResponse(
+        return Ok(ApiResponse<ItineraryGenerationJobResponse>
+            .SuccessResponse(
                 result.Value!,
-                "Itinerary generated and saved successfully.",
+                "Itinerary generation status loaded.",
                 StatusCodes.Status200OK));
     }
 
-    // =========================================================
-    // ADD ITINERARY ITEM
-    // POST: /api/trips/{id}/itinerary/items
-    // =========================================================
+    [HttpDelete("{id:guid}/itinerary/generation/{jobId:guid}")]
+    [ProducesResponseType(
+        typeof(ApiResponse<ItineraryGenerationJobResponse>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> CancelItineraryGeneration(
+        Guid id,
+        Guid jobId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new CancelItineraryGenerationCommand(id, jobId),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<ItineraryGenerationJobResponse>(
+                result.Error,
+                "Failed to cancel itinerary generation.");
+        }
+
+        return Ok(ApiResponse<ItineraryGenerationJobResponse>
+            .SuccessResponse(
+                result.Value!,
+                "Cancellation requested.",
+                StatusCodes.Status200OK));
+    }
 
     [HttpPost("{id:guid}/itinerary/items")]
     [ProducesResponseType(
         typeof(ApiResponse<ItineraryResponse>),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AddItineraryItem(
         Guid id,
         [FromBody] AddItineraryItemRequest request,
@@ -323,45 +285,17 @@ public sealed class TripsController : ControllerBase
             request.EstimatedCost,
             request.OrderIndex);
 
-        var result = await _sender.Send(
+        return await SendItineraryMutation(
             command,
+            "Itinerary item added successfully.",
+            "Failed to add itinerary item.",
             cancellationToken);
-
-        if (result.IsFailure)
-        {
-            return Failure<ItineraryResponse>(
-                result.Error,
-                "Failed to add itinerary item.");
-        }
-
-        return Ok(
-            ApiResponse<ItineraryResponse>.SuccessResponse(
-                result.Value!,
-                "Itinerary item added successfully.",
-                StatusCodes.Status200OK));
     }
-
-    // =========================================================
-    // UPDATE OR MOVE ITINERARY ITEM
-    // PUT: /api/trips/{id}/itinerary/items/{itemId}
-    // =========================================================
 
     [HttpPut("{id:guid}/itinerary/items/{itemId:guid}")]
     [ProducesResponseType(
         typeof(ApiResponse<ItineraryResponse>),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateItineraryItem(
         Guid id,
         Guid itemId,
@@ -371,83 +305,65 @@ public sealed class TripsController : ControllerBase
         var command = new UpdateItineraryItemCommand(
             id,
             itemId,
-            request.TargetDayId,
             request.Title,
             request.Description,
             request.StartTime,
             request.EndTime,
             request.Location,
             request.Category,
-            request.EstimatedCost,
-            request.OrderIndex);
+            request.EstimatedCost);
 
-        var result = await _sender.Send(
+        return await SendItineraryMutation(
             command,
+            "Itinerary item updated successfully.",
+            "Failed to update itinerary item.",
             cancellationToken);
-
-        if (result.IsFailure)
-        {
-            return Failure<ItineraryResponse>(
-                result.Error,
-                "Failed to update itinerary item.");
-        }
-
-        return Ok(
-            ApiResponse<ItineraryResponse>.SuccessResponse(
-                result.Value!,
-                "Itinerary item updated successfully.",
-                StatusCodes.Status200OK));
     }
 
-    // =========================================================
-    // DELETE ITINERARY ITEM
-    // DELETE: /api/trips/{id}/itinerary/items/{itemId}
-    // =========================================================
+    [HttpPut("{id:guid}/itinerary/items/{itemId:guid}/position")]
+    [ProducesResponseType(
+        typeof(ApiResponse<ItineraryResponse>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> MoveItineraryItem(
+        Guid id,
+        Guid itemId,
+        [FromBody] MoveItineraryItemRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new MoveItineraryItemCommand(
+            id,
+            itemId,
+            request.TargetDayId,
+            request.TargetOrderIndex);
+
+        return await SendItineraryMutation(
+            command,
+            "Itinerary item moved successfully.",
+            "Failed to move itinerary item.",
+            cancellationToken);
+    }
 
     [HttpDelete("{id:guid}/itinerary/items/{itemId:guid}")]
     [ProducesResponseType(
         typeof(ApiResponse<ItineraryResponse>),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(
-        typeof(ApiResponse<ItineraryResponse>),
-        StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteItineraryItem(
         Guid id,
         Guid itemId,
         CancellationToken cancellationToken)
     {
-        var command = new DeleteItineraryItemCommand(
-            id,
-            itemId);
+        var command = new DeleteItineraryItemCommand(id, itemId);
 
-        var result = await _sender.Send(
+        return await SendItineraryMutation(
             command,
+            "Itinerary item deleted successfully.",
+            "Failed to delete itinerary item.",
             cancellationToken);
-
-        if (result.IsFailure)
-        {
-            return Failure<ItineraryResponse>(
-                result.Error,
-                "Failed to delete itinerary item.");
-        }
-
-        return Ok(
-            ApiResponse<ItineraryResponse>.SuccessResponse(
-                result.Value!,
-                "Itinerary item deleted successfully.",
-                StatusCodes.Status200OK));
     }
 
     [HttpGet("{id:guid}/itinerary/items/{itemId:guid}/venues")]
     [ProducesResponseType(
-        typeof(ApiResponse<
-            IReadOnlyList<VenueSuggestionResponse>>),
+        typeof(ApiResponse<IReadOnlyList<VenueSuggestionResponse>>),
         StatusCodes.Status200OK)]
     public async Task<IActionResult> GetVenueSuggestions(
         Guid id,
@@ -460,19 +376,16 @@ public sealed class TripsController : ControllerBase
 
         if (result.IsFailure)
         {
-            return Failure<
-                IReadOnlyList<VenueSuggestionResponse>>(
+            return Failure<IReadOnlyList<VenueSuggestionResponse>>(
                 result.Error,
                 "Failed to load venue suggestions.");
         }
 
-        return Ok(
-            ApiResponse<
-                IReadOnlyList<VenueSuggestionResponse>>
-                .SuccessResponse(
-                    result.Value!,
-                    "Venue suggestions loaded successfully.",
-                    StatusCodes.Status200OK));
+        return Ok(ApiResponse<IReadOnlyList<VenueSuggestionResponse>>
+            .SuccessResponse(
+                result.Value!,
+                "Venue suggestions loaded successfully.",
+                StatusCodes.Status200OK));
     }
 
     [HttpPut("{id:guid}/itinerary/items/{itemId:guid}/venue")]
@@ -488,112 +401,82 @@ public sealed class TripsController : ControllerBase
         var command = new SelectItineraryVenueCommand(
             id,
             itemId,
-            request.PlaceId,
-            request.Name,
-            request.Description,
-            request.Address,
-            request.GoogleMapsUrl,
-            request.Rating,
-            request.PhotoUrl,
-            request.PriceLevel,
-            request.RatePerNight,
-            request.TotalRate,
-            request.PriceSource,
-            request.ExternalUrl,
-            request.Latitude,
-            request.Longitude);
+            request.PlaceId);
 
-        var result = await _sender.Send(
+        return await SendItineraryMutation(
             command,
+            "Venue selected successfully.",
+            "Failed to select the venue.",
             cancellationToken);
-
-        if (result.IsFailure)
-        {
-            return Failure<ItineraryResponse>(
-                result.Error,
-                "Failed to select the venue.");
-        }
-
-        return Ok(
-            ApiResponse<ItineraryResponse>
-                .SuccessResponse(
-                    result.Value!,
-                    "Venue selected successfully.",
-                    StatusCodes.Status200OK));
     }
-  
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteTrip(
         Guid id,
         CancellationToken cancellationToken)
     {
-        var command = new DeleteTripCommand(id);
-
-        var result = await _sender.Send(command, cancellationToken);
+        var result = await _sender.Send(
+            new DeleteTripCommand(id),
+            cancellationToken);
 
         if (result.IsFailure)
         {
-            return Failure<object>(result.Error, "Failed to delete trip.");
+            return Failure<object>(
+                result.Error,
+                "Failed to delete trip.");
         }
 
         return NoContent();
     }
 
-    // =========================================================
-    // RESPONSE HELPERS
-    // =========================================================
+    private async Task<IActionResult> SendItineraryMutation<TCommand>(
+        TCommand command,
+        string successMessage,
+        string failureMessage,
+        CancellationToken cancellationToken)
+        where TCommand : IRequest<
+            Safarni.Application.Common.Results.Result<ItineraryResponse>>
+    {
+        var result = await _sender.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<ItineraryResponse>(
+                result.Error,
+                failureMessage);
+        }
+
+        return Ok(ApiResponse<ItineraryResponse>.SuccessResponse(
+            result.Value!,
+            successMessage,
+            StatusCodes.Status200OK));
+    }
 
     private ObjectResult Failure<T>(Error error, string message)
     {
         var statusCode = MapStatusCode(error.Type);
-
         var response = ApiResponse<T>.FailureResponse(
-            [
-                new ApiError(
-                    error.Code,
-                    error.Message)
-            ],
+            [new ApiError(error.Code, error.Message)],
             message,
             statusCode);
 
-        return StatusCode(
-            statusCode,
-            response);
+        return StatusCode(statusCode, response);
     }
 
-    private static int MapStatusCode(
-        ErrorType errorType)
+    private static int MapStatusCode(ErrorType errorType)
     {
         return errorType switch
         {
-            ErrorType.Validation =>
-                StatusCodes.Status400BadRequest,
-
-            ErrorType.Conflict =>
-                StatusCodes.Status409Conflict,
-
-            ErrorType.NotFound =>
-                StatusCodes.Status404NotFound,
-
-            ErrorType.Unauthorized =>
-                StatusCodes.Status401Unauthorized,
-
-            ErrorType.Forbidden =>
-                StatusCodes.Status403Forbidden,
-
-            _ =>
-                StatusCodes.Status500InternalServerError
+            ErrorType.Validation => StatusCodes.Status400BadRequest,
+            ErrorType.Conflict => StatusCodes.Status409Conflict,
+            ErrorType.NotFound => StatusCodes.Status404NotFound,
+            ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+            ErrorType.Forbidden => StatusCodes.Status403Forbidden,
+            _ => StatusCodes.Status500InternalServerError
         };
     }
 }
-
-// =============================================================
-// REQUEST MODELS
-// =============================================================
 
 public sealed record UpdateTripRequest(
     string Name,
@@ -601,11 +484,15 @@ public sealed record UpdateTripRequest(
     DateTime StartDate,
     DateTime EndDate,
     string OriginCountry,
-    IReadOnlyList<TripCitySelection> Cities);
+    IReadOnlyList<TripCitySelection> Cities,
+    string? OriginCountryCode = null,
+    string? OriginCity = null,
+    string? OriginAirportCode = null,
+    string? OriginAirportName = null);
 
 public sealed record GenerateItineraryRequest(
     GenerateItineraryPreferences Preferences,
-    decimal BudgetAmount,
+    decimal? BudgetAmount,
     string CurrencyCode,
     int TravelerCount);
 
@@ -621,28 +508,16 @@ public sealed record AddItineraryItemRequest(
     int? OrderIndex);
 
 public sealed record UpdateItineraryItemRequest(
-    Guid TargetDayId,
     string Title,
     string? Description,
     string? StartTime,
     string? EndTime,
     string? Location,
     string Category,
-    decimal? EstimatedCost,
-    int OrderIndex);
+    decimal? EstimatedCost);
 
-public sealed record SelectVenueRequest(
-    string PlaceId,
-    string Name,
-    string? Description,
-    string? Address,
-    string? GoogleMapsUrl,
-    double? Rating,
-    string? PhotoUrl,
-    string? PriceLevel,
-    decimal? RatePerNight,
-    decimal? TotalRate,
-    string? PriceSource,
-    string? ExternalUrl,
-    double? Latitude,
-    double? Longitude);
+public sealed record MoveItineraryItemRequest(
+    Guid TargetDayId,
+    int TargetOrderIndex);
+
+public sealed record SelectVenueRequest(string PlaceId);

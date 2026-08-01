@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Domain.Entities;
@@ -18,12 +19,20 @@ internal sealed class ItineraryRepository : IItineraryRepository
         Guid tripId,
         CancellationToken cancellationToken = default)
     {
-        return _dbContext.Set<Itinerary>()
-            .Include(i => i.Days)
-                .ThenInclude(d => d.Items)
-            .AsSplitQuery()
+        return QueryWithDetails()
             .FirstOrDefaultAsync(
-                i => i.TripId == tripId && i.IsActive,
+                itinerary => itinerary.TripId == tripId &&
+                             itinerary.IsActive,
+                cancellationToken);
+    }
+
+    public Task<Itinerary?> GetByIdAsync(
+        Guid itineraryId,
+        CancellationToken cancellationToken = default)
+    {
+        return QueryWithDetails()
+            .FirstOrDefaultAsync(
+                itinerary => itinerary.Id == itineraryId,
                 cancellationToken);
     }
 
@@ -31,17 +40,59 @@ internal sealed class ItineraryRepository : IItineraryRepository
         Itinerary itinerary,
         CancellationToken cancellationToken = default)
     {
-        await _dbContext.Set<Itinerary>()
-            .AddAsync(itinerary, cancellationToken);
+        await _dbContext.Itineraries.AddAsync(
+            itinerary,
+            cancellationToken);
+    }
+
+    public async Task ReplaceActiveAsync(
+        Itinerary itinerary,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+
+        var activeItineraries = await _dbContext.Itineraries
+            .Where(existing =>
+                existing.TripId == itinerary.TripId &&
+                existing.IsActive)
+            .ToListAsync(cancellationToken);
+
+        foreach (var active in activeItineraries)
+        {
+            active.IsActive = false;
+            active.UpdatedAt = itinerary.CreatedAt;
+        }
+
+        // Persist deactivation first so the filtered unique index cannot be
+        // violated by SQL command ordering in one SaveChanges batch.
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _dbContext.Itineraries.AddAsync(
+            itinerary,
+            cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public void RemoveItem(ItineraryItem item)
     {
-        _dbContext.Set<ItineraryItem>().Remove(item);
+        _dbContext.ItineraryItems.Remove(item);
     }
 
-    public Task SaveAsync(CancellationToken cancellationToken = default)
+    public Task SaveAsync(
+        CancellationToken cancellationToken = default)
     {
         return _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private IQueryable<Itinerary> QueryWithDetails()
+    {
+        return _dbContext.Itineraries
+            .Include(itinerary => itinerary.Days)
+                .ThenInclude(day => day.Items)
+            .AsSplitQuery();
     }
 }

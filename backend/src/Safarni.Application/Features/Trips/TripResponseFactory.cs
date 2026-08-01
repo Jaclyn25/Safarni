@@ -11,24 +11,33 @@ internal static class TripResponseFactory
             .OrderByDescending(itinerary => itinerary.UpdatedAt)
             .FirstOrDefault();
 
+        decimal? estimatedTotalCost = activeItinerary is null
+            ? null
+            : activeItinerary.Days
+                .SelectMany(day => day.Items)
+                .Sum(item => item.EstimatedCost ?? 0m);
+
         return new TripResponse(
-            trip.Id,
-            trip.UserId,
-            trip.Name,
-            trip.Destination,
-            trip.OriginCountry,
-            TripRouteSerializer.Deserialize(trip.SelectedCitiesJson),
-            trip.StartDate,
-            trip.EndDate,
-            trip.CreatedAt,
-            trip.UpdatedAt,
-            activeItinerary?.Id,
-            activeItinerary?.Status.ToString().ToLowerInvariant(),
-            activeItinerary?.CurrencyCode,
-            activeItinerary is null
-                ? null
-                : activeItinerary.Days.Sum(
-                    day => day.Items.Sum(item => item.EstimatedCost ?? 0)),
-            activeItinerary?.UpdatedAt);
+            Id: trip.Id,
+            UserId: trip.UserId,
+            Name: trip.Name,
+            Destination: trip.Destination,
+            OriginCountry: trip.OriginCountry,
+            OriginCountryCode: trip.OriginCountryCode,
+            OriginCity: trip.OriginCity,
+            OriginAirportCode: trip.OriginAirportCode,
+            OriginAirportName: trip.OriginAirportName,
+            Cities: TripRouteSerializer.ReadFromTrip(trip),
+            StartDate: trip.StartDate,
+            EndDate: trip.EndDate,
+            CreatedAt: trip.CreatedAt,
+            UpdatedAt: trip.UpdatedAt,
+            ActiveItineraryId: activeItinerary?.Id,
+            ItineraryStatus: activeItinerary?.Status
+                .ToString()
+                .ToLowerInvariant(),
+            ActiveItineraryCurrencyCode: activeItinerary?.CurrencyCode,
+            EstimatedTotalCost: estimatedTotalCost,
+            ActiveItineraryUpdatedAt: activeItinerary?.UpdatedAt);
     }
 }

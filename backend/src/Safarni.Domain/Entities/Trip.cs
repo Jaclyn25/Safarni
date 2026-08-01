@@ -12,6 +12,18 @@ public class Trip
 
     public string OriginCountry { get; set; } = string.Empty;
 
+    public string? OriginCountryCode { get; set; }
+
+    public string? OriginCity { get; set; }
+
+    public string? OriginAirportCode { get; set; }
+
+    public string? OriginAirportName { get; set; }
+
+    /// <summary>
+    /// Legacy compatibility copy. New code reads ordered <see cref="Cities"/> rows.
+    /// It is kept during the transition so old records and old clients remain readable.
+    /// </summary>
     public string SelectedCitiesJson { get; set; } = "[]";
 
     public DateTime StartDate { get; set; }
@@ -22,7 +34,14 @@ public class Trip
 
     public DateTime? UpdatedAt { get; set; }
 
+    public byte[] RowVersion { get; set; } = [];
+
     public User User { get; set; } = null!;
 
+    public ICollection<TripCity> Cities { get; set; } = new List<TripCity>();
+
     public ICollection<Itinerary> Itineraries { get; set; } = new List<Itinerary>();
+
+    public ICollection<ItineraryGenerationJob> GenerationJobs { get; set; } =
+        new List<ItineraryGenerationJob>();
 }

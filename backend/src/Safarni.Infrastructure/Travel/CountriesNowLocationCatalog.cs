@@ -62,8 +62,14 @@ internal sealed class CountriesNowLocationCatalog
 
         try
         {
-            using var response = await _httpClient.GetAsync(
-                "countries/positions",
+            using var response = await ExternalHttpResilience.SendAsync(
+                _httpClient,
+                () => new HttpRequestMessage(
+                    HttpMethod.Get,
+                    "countries/positions"),
+                _logger,
+                "CountriesNow",
+                "country catalog",
                 cancellationToken);
 
             response.EnsureSuccessStatusCode();
@@ -135,12 +141,20 @@ internal sealed class CountriesNowLocationCatalog
         try
         {
             using var response =
-                await _httpClient.PostAsJsonAsync(
-                    "countries/cities",
-                    new
+                await ExternalHttpResilience.SendAsync(
+                    _httpClient,
+                    () => new HttpRequestMessage(
+                        HttpMethod.Post,
+                        "countries/cities")
                     {
-                        country = normalizedCountry
+                        Content = JsonContent.Create(new
+                        {
+                            country = normalizedCountry
+                        })
                     },
+                    _logger,
+                    "CountriesNow",
+                    $"city catalog for {normalizedCountry}",
                     cancellationToken);
 
             response.EnsureSuccessStatusCode();

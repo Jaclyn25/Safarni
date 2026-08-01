@@ -152,7 +152,7 @@ namespace Safarni.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("BudgetAmount")
+                    b.Property<decimal?>("BudgetAmount")
                         .HasColumnType("decimal(12,2)");
 
                     b.Property<DateTime>("CreatedAt")
@@ -161,7 +161,8 @@ namespace Safarni.Infrastructure.Migrations
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)");
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
 
                     b.Property<string>("GeneratedBy")
                         .IsRequired()
@@ -175,6 +176,12 @@ namespace Safarni.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -192,7 +199,9 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TripId", "IsActive");
+                    b.HasIndex("TripId")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Itineraries");
                 });
@@ -229,6 +238,103 @@ namespace Safarni.Infrastructure.Migrations
                     b.ToTable("ItineraryDays");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.ItineraryGenerationJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("BudgetAmount")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("ItineraryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Preferences")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("ProgressPercent")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("TravelerCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TripId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("WorkerId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TripId")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
+
+                    b.HasIndex("TripId", "CreatedAt");
+
+                    b.HasIndex("UserId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("[IdempotencyKey] IS NOT NULL");
+
+                    b.ToTable("ItineraryGenerationJobs");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.ItineraryItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -261,6 +367,38 @@ namespace Safarni.Infrastructure.Migrations
                     b.Property<string>("ExternalUrl")
                         .HasMaxLength(1500)
                         .HasColumnType("nvarchar(1500)");
+
+                    b.Property<string>("FlightAirlines")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("FlightArrivalAirportCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("FlightArrivalAirportName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("FlightDepartureAirportCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("FlightDepartureAirportName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("FlightDurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FlightNumbers")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("FlightStopCount")
+                        .HasColumnType("int");
 
                     b.Property<string>("GoogleMapsUrl")
                         .HasMaxLength(1000)
@@ -298,11 +436,11 @@ namespace Safarni.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<double?>("Rating")
-                        .HasColumnType("float");
-
                     b.Property<decimal?>("RatePerNight")
                         .HasColumnType("decimal(12,2)");
+
+                    b.Property<double?>("Rating")
+                        .HasColumnType("float");
 
                     b.Property<int?>("RouteDistanceMeters")
                         .HasColumnType("int");
@@ -318,8 +456,17 @@ namespace Safarni.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<TimeSpan?>("StartTime")
                         .HasColumnType("time");
+
+                    b.Property<int?>("StayNights")
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -459,25 +606,49 @@ namespace Safarni.Infrastructure.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("date");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("OriginAirportCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("OriginAirportName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("OriginCity")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("OriginCountry")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("OriginCountryCode")
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("SelectedCitiesJson")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("date");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -487,9 +658,46 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "CreatedAt");
 
                     b.ToTable("Trips");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.TripCity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AirportCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("AirportName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Days")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TripId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TripId", "OrderIndex")
+                        .IsUnique();
+
+                    b.ToTable("TripCities");
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.User", b =>
@@ -715,6 +923,17 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("Itinerary");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.ItineraryGenerationJob", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.Trip", "Trip")
+                        .WithMany("GenerationJobs")
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Trip");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.ItineraryItem", b =>
                 {
                     b.HasOne("Safarni.Domain.Entities.ItineraryDay", "ItineraryDay")
@@ -770,6 +989,17 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.TripCity", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.Trip", "Trip")
+                        .WithMany("Cities")
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Trip");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.UserSettings", b =>
                 {
                     b.HasOne("Safarni.Domain.Entities.User", "User")
@@ -814,6 +1044,10 @@ namespace Safarni.Infrastructure.Migrations
 
             modelBuilder.Entity("Safarni.Domain.Entities.Trip", b =>
                 {
+                    b.Navigation("Cities");
+
+                    b.Navigation("GenerationJobs");
+
                     b.Navigation("Itineraries");
                 });
 

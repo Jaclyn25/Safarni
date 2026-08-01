@@ -69,8 +69,12 @@ internal sealed class SerpApiTravelDataService
 
         try
         {
-            using var response = await _httpClient.GetAsync(
-                requestUri,
+            using var response = await ExternalHttpResilience.SendAsync(
+                _httpClient,
+                () => new HttpRequestMessage(HttpMethod.Get, requestUri),
+                _logger,
+                "SerpApi",
+                $"local search for {destination}",
                 cancellationToken);
 
             if (!response.IsSuccessStatusCode)
@@ -193,8 +197,12 @@ internal sealed class SerpApiTravelDataService
 
         try
         {
-            using var response = await _httpClient.GetAsync(
-                requestUri,
+            using var response = await ExternalHttpResilience.SendAsync(
+                _httpClient,
+                () => new HttpRequestMessage(HttpMethod.Get, requestUri),
+                _logger,
+                "SerpApi",
+                $"hotel search for {destination}",
                 cancellationToken);
 
             if (!response.IsSuccessStatusCode)

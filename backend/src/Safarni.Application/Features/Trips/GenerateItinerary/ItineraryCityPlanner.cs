@@ -4,43 +4,48 @@ using Safarni.Domain.Entities;
 
 namespace Safarni.Application.Features.Trips.GenerateItinerary;
 
-public sealed record ItineraryCitySelection(
-    string Name,
-    int Days);
-
 internal sealed record ItineraryCityStop(
     string City,
     int StartDayNumber,
-    int EndDayNumber)
+    int EndDayNumber,
+    int NightCount,
+    string? AirportCode,
+    string? AirportName)
 {
-    public int DayCount =>
-        EndDayNumber - StartDayNumber + 1;
+    public int DayCount => EndDayNumber - StartDayNumber + 1;
 
     public DateTime GetStartDate(Trip trip) =>
         trip.StartDate.Date.AddDays(StartDayNumber - 1);
 
     public DateTime GetEndDate(Trip trip) =>
         trip.StartDate.Date.AddDays(EndDayNumber - 1);
+
+    public DateTime? GetCheckOutDate(Trip trip) =>
+        NightCount <= 0
+            ? null
+            : GetStartDate(trip).AddDays(NightCount);
 }
 
 internal static class ItineraryCityPlanner
 {
-    public static async Task<IReadOnlyList<ItineraryCityStop>>
-        ResolveAsync(
-            Trip trip,
-            IGooglePlacesService googlePlacesService,
-            IReadOnlyList<ItineraryCitySelection>? selectedCities,
-            CancellationToken cancellationToken)
+    public static async Task<IReadOnlyList<ItineraryCityStop>> ResolveAsync(
+        Trip trip,
+        IGooglePlacesService googlePlacesService,
+        IReadOnlyList<TripCitySelection>? selectedCities,
+        CancellationToken cancellationToken)
     {
         if (selectedCities is { Count: > 0 })
         {
             var acceptedCities = selectedCities
-                .Where(city =>
-                    !string.IsNullOrWhiteSpace(city.Name))
-                .Select(city =>
-                    new ProposedCity(
-                        city.Name.Trim(),
-                        Math.Max(1, city.Days)))
+                .Where(city => !string.IsNullOrWhiteSpace(city.Name))
+                .Select(city => new ProposedCity(
+                    city.Name.Trim(),
+                    Math.Max(1, city.Days),
+                    TripRouteSerializer.NormalizeAirportCode(
+                        city.AirportCode),
+                    string.IsNullOrWhiteSpace(city.AirportName)
+                        ? null
+                        : city.AirportName.Trim()))
                 .ToList();
 
             if (acceptedCities.Count == 0)
@@ -63,6 +68,7 @@ internal static class ItineraryCityPlanner
         if (destinationResults.Count > 0 &&
             !IsCountryDestination(destinationResults))
         {
+            var totalDays = GetTripDayCount(trip);
             return
             [
                 new ItineraryCityStop(
@@ -70,7 +76,10 @@ internal static class ItineraryCityPlanner
                         trip.Destination,
                         destinationResults),
                     1,
-                    GetTripDayCount(trip))
+                    totalDays,
+                    Math.Max(0, totalDays - 1),
+                    null,
+                    null)
             ];
         }
 
@@ -99,15 +108,57 @@ internal static class ItineraryCityPlanner
                 $"- Days {stop.StartDayNumber}-{stop.EndDayNumber}: " +
                 $"{stop.City} " +
                 $"({stop.GetStartDate(trip):yyyy-MM-dd} to " +
-                $"{stop.GetEndDate(trip):yyyy-MM-dd})"));
+                $"{stop.GetEndDate(trip):yyyy-MM-dd}; " +
+                $"{stop.NightCount} hotel night(s))"));
+    }
+
+    private static IReadOnlyList<ItineraryCityStop>
+        BuildTravelerSelectedStops(
+            IReadOnlyList<ProposedCity> cities,
+            int totalDays)
+    {
+        if (cities.Count > totalDays)
+        {
+            throw new ItineraryOutputException(
+                "Choose more trip days before selecting more cities.");
+        }
+
+        if (cities.Sum(city => city.Days) != totalDays)
+        {
+            throw new ItineraryOutputException(
+                "The city day allocations must equal the trip length.");
+        }
+
+        var stops = new List<ItineraryCityStop>();
+        var nextDay = 1;
+
+        for (var index = 0; index < cities.Count; index++)
+        {
+            var city = cities[index];
+            var endDay = nextDay + city.Days - 1;
+            var isLastCity = index == cities.Count - 1;
+            var nights = isLastCity
+                ? Math.Max(0, city.Days - 1)
+                : city.Days;
+
+            stops.Add(new ItineraryCityStop(
+                city.Name,
+                nextDay,
+                endDay,
+                nights,
+                city.AirportCode,
+                city.AirportName));
+
+            nextDay = endDay + 1;
+        }
+
+        return stops;
     }
 
     private static bool IsCountryDestination(
         IReadOnlyList<PlaceDetails> results)
     {
-        var bestResult = results.FirstOrDefault();
-
-        return bestResult?.Types.Any(type =>
+        return results.FirstOrDefault()?.Types.Any(type =>
             string.Equals(
                 type,
                 "country",
@@ -126,44 +177,7 @@ internal static class ItineraryCityPlanner
             : locality.Name.Trim();
     }
 
-    private static IReadOnlyList<ItineraryCityStop>
-        BuildTravelerSelectedStops(
-        IReadOnlyList<ProposedCity> cities,
-        int totalDays)
-    {
-        if (cities.Count > totalDays)
-        {
-            throw new ItineraryOutputException(
-                "Choose more trip days before selecting more cities.");
-        }
-
-        if (cities.Sum(city => city.Days) != totalDays)
-        {
-            throw new ItineraryOutputException(
-                "The city day allocations must equal the trip length.");
-        }
-
-        var stops = new List<ItineraryCityStop>();
-        var nextDay = 1;
-
-        foreach (var city in cities)
-        {
-            var endDay = nextDay + city.Days - 1;
-
-            stops.Add(
-                new ItineraryCityStop(
-                    city.Name,
-                    nextDay,
-                    endDay));
-
-            nextDay = endDay + 1;
-        }
-
-        return stops;
-    }
-
-    private static bool IsCityOrRegion(
-        IEnumerable<string> types)
+    private static bool IsCityOrRegion(IEnumerable<string> types)
     {
         return types.Any(type =>
             type.Contains(
@@ -181,5 +195,7 @@ internal static class ItineraryCityPlanner
 
     private sealed record ProposedCity(
         string Name,
-        int Days);
+        int Days,
+        string? AirportCode,
+        string? AirportName);
 }

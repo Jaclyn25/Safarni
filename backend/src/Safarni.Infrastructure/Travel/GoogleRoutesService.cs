@@ -80,26 +80,37 @@ internal sealed class GoogleRoutesService
             units = "METRIC"
         };
 
-        using var request = new HttpRequestMessage(
-            HttpMethod.Post,
-            RoutesUrl);
+        var payloadJson = JsonSerializer.Serialize(payload);
 
-        request.Headers.Add("X-Goog-Api-Key", _apiKey);
-        request.Headers.Add(
-            "X-Goog-FieldMask",
-            "routes.distanceMeters,routes.duration," +
-            "routes.legs.steps.travelMode," +
-            "routes.legs.steps.transitDetails");
+        HttpRequestMessage CreateRequest()
+        {
+            var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                RoutesUrl);
 
-        request.Content = new StringContent(
-            JsonSerializer.Serialize(payload),
-            Encoding.UTF8,
-            "application/json");
+            request.Headers.Add("X-Goog-Api-Key", _apiKey);
+            request.Headers.Add(
+                "X-Goog-FieldMask",
+                "routes.distanceMeters,routes.duration," +
+                "routes.legs.steps.travelMode," +
+                "routes.legs.steps.transitDetails");
+
+            request.Content = new StringContent(
+                payloadJson,
+                Encoding.UTF8,
+                "application/json");
+
+            return request;
+        }
 
         try
         {
-            using var response = await _httpClient.SendAsync(
-                request,
+            using var response = await ExternalHttpResilience.SendAsync(
+                _httpClient,
+                CreateRequest,
+                _logger,
+                "GoogleRoutes",
+                $"route calculation using {travelMode}",
                 cancellationToken);
 
             if (!response.IsSuccessStatusCode)

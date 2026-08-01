@@ -25,14 +25,18 @@ public interface IFlightAirportService
 {
     bool IsConfigured { get; }
 
-    Task<IReadOnlyList<FlightAirportSuggestion>>
-        SuggestAirportsAsync(
-            string country,
-            CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<FlightAirportSuggestion>> SuggestAirportsAsync(
+        string query,
+        CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Searches an exact IATA-to-IATA route. The implementation must reject
+    /// any result whose first departure or final arrival code differs from the
+    /// requested codes.
+    /// </summary>
     Task<FlightRecommendation?> RecommendFlightAsync(
-        string originCountry,
-        string destinationCity,
+        string departureAirportCode,
+        string arrivalAirportCode,
         DateTime outboundDate,
         string currencyCode,
         int travelerCount,

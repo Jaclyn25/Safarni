@@ -5,6 +5,7 @@ using Safarni.Application.Abstractions.Travel;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Common.Results;
 using Safarni.Application.Features.Trips.GenerateItinerary;
+using Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
 using Safarni.Domain.Entities;
 
 namespace Safarni.Application.Features.Trips.Itineraries.ManageItems;
@@ -13,198 +14,9 @@ public sealed class AddItineraryItemCommandHandler
     : IRequestHandler<AddItineraryItemCommand, Result<ItineraryResponse>>
 {
     private readonly ItineraryItemCommandContext _context;
-
-    public AddItineraryItemCommandHandler(
-        ICurrentUserService currentUserService,
-        ITripRepository tripRepository,
-        IItineraryRepository itineraryRepository)
-    {
-        _context = new ItineraryItemCommandContext(
-            currentUserService,
-            tripRepository,
-            itineraryRepository);
-    }
-
-    public async Task<Result<ItineraryResponse>> Handle(
-        AddItineraryItemCommand request,
-        CancellationToken cancellationToken)
-    {
-        var access = await _context.GetOwnedItineraryAsync(
-            request.TripId,
-            cancellationToken);
-
-        if (access.Error is not null)
-        {
-            return Result<ItineraryResponse>.Failure(access.Error);
-        }
-
-        var itinerary = access.Itinerary!;
-        var day = itinerary.Days.FirstOrDefault(d => d.Id == request.DayId);
-        if (day is null)
-        {
-            return Result<ItineraryResponse>.Failure(ItineraryErrors.DayNotFound);
-        }
-
-        var item = new ItineraryItem
-        {
-            Id = Guid.NewGuid(),
-            ItineraryDayId = day.Id,
-            Title = request.Title.Trim(),
-            Description = request.Description?.Trim(),
-            StartTime = ItineraryItemInput.ParseTime(request.StartTime),
-            EndTime = ItineraryItemInput.ParseTime(request.EndTime),
-            Location = request.Location?.Trim(),
-            Category = ItineraryItemInput.ParseCategory(request.Category),
-            EstimatedCost = request.EstimatedCost
-        };
-
-        day.Items.Add(item);
-        ItineraryOrder.PlaceItem(
-            day,
-            item,
-            request.OrderIndex ?? day.Items.Count - 1);
-
-        itinerary.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveAsync(cancellationToken);
-
-        return Result<ItineraryResponse>.Success(
-            ItineraryResponseMapper.Map(itinerary));
-    }
-}
-
-public sealed class UpdateItineraryItemCommandHandler
-    : IRequestHandler<UpdateItineraryItemCommand, Result<ItineraryResponse>>
-{
-    private readonly ItineraryItemCommandContext _context;
-
-    public UpdateItineraryItemCommandHandler(
-        ICurrentUserService currentUserService,
-        ITripRepository tripRepository,
-        IItineraryRepository itineraryRepository)
-    {
-        _context = new ItineraryItemCommandContext(
-            currentUserService,
-            tripRepository,
-            itineraryRepository);
-    }
-
-    public async Task<Result<ItineraryResponse>> Handle(
-        UpdateItineraryItemCommand request,
-        CancellationToken cancellationToken)
-    {
-        var access = await _context.GetOwnedItineraryAsync(
-            request.TripId,
-            cancellationToken);
-
-        if (access.Error is not null)
-        {
-            return Result<ItineraryResponse>.Failure(access.Error);
-        }
-
-        var itinerary = access.Itinerary!;
-        var sourceDay = itinerary.Days
-            .FirstOrDefault(d => d.Items.Any(i => i.Id == request.ItemId));
-        var targetDay = itinerary.Days
-            .FirstOrDefault(d => d.Id == request.TargetDayId);
-
-        if (sourceDay is null)
-        {
-            return Result<ItineraryResponse>.Failure(ItineraryErrors.ItemNotFound);
-        }
-
-        if (targetDay is null)
-        {
-            return Result<ItineraryResponse>.Failure(ItineraryErrors.DayNotFound);
-        }
-
-        var item = sourceDay.Items.First(i => i.Id == request.ItemId);
-        item.Title = request.Title.Trim();
-        item.Description = request.Description?.Trim();
-        item.StartTime = ItineraryItemInput.ParseTime(request.StartTime);
-        item.EndTime = ItineraryItemInput.ParseTime(request.EndTime);
-        item.Location = request.Location?.Trim();
-        item.Category = ItineraryItemInput.ParseCategory(request.Category);
-        item.EstimatedCost = request.EstimatedCost;
-
-        if (sourceDay.Id != targetDay.Id)
-        {
-            sourceDay.Items.Remove(item);
-            ItineraryOrder.Normalize(sourceDay);
-
-            item.ItineraryDayId = targetDay.Id;
-            item.ItineraryDay = targetDay;
-            targetDay.Items.Add(item);
-        }
-
-        ItineraryOrder.PlaceItem(targetDay, item, request.OrderIndex);
-        itinerary.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveAsync(cancellationToken);
-
-        return Result<ItineraryResponse>.Success(
-            ItineraryResponseMapper.Map(itinerary));
-    }
-}
-
-public sealed class DeleteItineraryItemCommandHandler
-    : IRequestHandler<DeleteItineraryItemCommand, Result<ItineraryResponse>>
-{
-    private readonly ItineraryItemCommandContext _context;
-
-    public DeleteItineraryItemCommandHandler(
-        ICurrentUserService currentUserService,
-        ITripRepository tripRepository,
-        IItineraryRepository itineraryRepository)
-    {
-        _context = new ItineraryItemCommandContext(
-            currentUserService,
-            tripRepository,
-            itineraryRepository);
-    }
-
-    public async Task<Result<ItineraryResponse>> Handle(
-        DeleteItineraryItemCommand request,
-        CancellationToken cancellationToken)
-    {
-        var access = await _context.GetOwnedItineraryAsync(
-            request.TripId,
-            cancellationToken);
-
-        if (access.Error is not null)
-        {
-            return Result<ItineraryResponse>.Failure(access.Error);
-        }
-
-        var itinerary = access.Itinerary!;
-        var day = itinerary.Days
-            .FirstOrDefault(d => d.Items.Any(i => i.Id == request.ItemId));
-
-        if (day is null)
-        {
-            return Result<ItineraryResponse>.Failure(ItineraryErrors.ItemNotFound);
-        }
-
-        var item = day.Items.First(i => i.Id == request.ItemId);
-        day.Items.Remove(item);
-        _context.RemoveItem(item);
-        ItineraryOrder.Normalize(day);
-
-        itinerary.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveAsync(cancellationToken);
-
-        return Result<ItineraryResponse>.Success(
-            ItineraryResponseMapper.Map(itinerary));
-    }
-}
-
-public sealed class SelectItineraryVenueCommandHandler
-    : IRequestHandler<
-        SelectItineraryVenueCommand,
-        Result<ItineraryResponse>>
-{
-    private readonly ItineraryItemCommandContext _context;
     private readonly IItineraryRouteService? _routeService;
 
-    public SelectItineraryVenueCommandHandler(
+    public AddItineraryItemCommandHandler(
         ICurrentUserService currentUserService,
         ITripRepository tripRepository,
         IItineraryRepository itineraryRepository,
@@ -218,27 +30,391 @@ public sealed class SelectItineraryVenueCommandHandler
     }
 
     public async Task<Result<ItineraryResponse>> Handle(
+        AddItineraryItemCommand request,
+        CancellationToken cancellationToken)
+    {
+        var owned = await _context.GetOwnedAsync(
+            request.TripId,
+            cancellationToken);
+
+        if (owned.Error is not null)
+        {
+            return Result<ItineraryResponse>.Failure(owned.Error);
+        }
+
+        var itinerary = owned.Itinerary!;
+        var day = itinerary.Days.FirstOrDefault(candidate =>
+            candidate.Id == request.DayId);
+
+        if (day is null)
+        {
+            return Result<ItineraryResponse>.Failure(
+                ItineraryErrors.DayNotFound);
+        }
+
+        var item = new ItineraryItem
+        {
+            Id = Guid.NewGuid(),
+            ItineraryDayId = day.Id,
+            Title = request.Title.Trim(),
+            Description = NullIfWhiteSpace(request.Description),
+            StartTime = ItineraryItemInput.ParseTime(request.StartTime),
+            EndTime = ItineraryItemInput.ParseTime(request.EndTime),
+            Location = NullIfWhiteSpace(request.Location),
+            Category = ItineraryItemInput.ParseCategory(request.Category),
+            EstimatedCost = request.EstimatedCost,
+            CostSource = request.EstimatedCost.HasValue
+                ? "manual_estimate"
+                : null
+        };
+
+        day.Items.Add(item);
+        ItineraryOrder.PlaceItem(
+            day,
+            item,
+            request.OrderIndex ?? day.Items.Count - 1);
+
+        await RebuildRoutesAsync(
+            itinerary,
+            [day],
+            _routeService,
+            cancellationToken);
+
+        itinerary.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveAsync(cancellationToken);
+
+        return Result<ItineraryResponse>.Success(
+            ItineraryResponseMapper.Map(itinerary));
+    }
+
+    private static string? NullIfWhiteSpace(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    internal static Task RebuildRoutesAsync(
+        Itinerary itinerary,
+        IEnumerable<ItineraryDay> days,
+        IItineraryRouteService? routeService,
+        CancellationToken cancellationToken)
+    {
+        var preferences = GenerateItineraryPreferencesSerializer
+            .Deserialize(itinerary.Preferences);
+
+        return ItineraryRouteEnricher.EnrichDaysAsync(
+            days,
+            preferences,
+            routeService,
+            cancellationToken);
+    }
+}
+
+public sealed class UpdateItineraryItemCommandHandler
+    : IRequestHandler<UpdateItineraryItemCommand, Result<ItineraryResponse>>
+{
+    private readonly ItineraryItemCommandContext _context;
+    private readonly IItineraryRouteService? _routeService;
+
+    public UpdateItineraryItemCommandHandler(
+        ICurrentUserService currentUserService,
+        ITripRepository tripRepository,
+        IItineraryRepository itineraryRepository,
+        IItineraryRouteService? routeService = null)
+    {
+        _context = new ItineraryItemCommandContext(
+            currentUserService,
+            tripRepository,
+            itineraryRepository);
+        _routeService = routeService;
+    }
+
+    public async Task<Result<ItineraryResponse>> Handle(
+        UpdateItineraryItemCommand request,
+        CancellationToken cancellationToken)
+    {
+        var owned = await _context.GetOwnedAsync(
+            request.TripId,
+            cancellationToken);
+
+        if (owned.Error is not null)
+        {
+            return Result<ItineraryResponse>.Failure(owned.Error);
+        }
+
+        var itinerary = owned.Itinerary!;
+        var (day, item) = FindItem(itinerary, request.ItemId);
+
+        if (day is null || item is null)
+        {
+            return Result<ItineraryResponse>.Failure(
+                ItineraryErrors.ItemNotFound);
+        }
+
+        var newCategory = ItineraryItemInput.ParseCategory(
+            request.Category);
+        var newTitle = request.Title.Trim();
+        var newLocation = NullIfWhiteSpace(request.Location);
+        var identityChanged =
+            !string.Equals(item.Title, newTitle, StringComparison.Ordinal) ||
+            !string.Equals(item.Location, newLocation, StringComparison.Ordinal) ||
+            item.Category != newCategory;
+        var costChanged = item.EstimatedCost != request.EstimatedCost;
+
+        item.Title = newTitle;
+        item.Description = NullIfWhiteSpace(request.Description);
+        item.StartTime = ItineraryItemInput.ParseTime(request.StartTime);
+        item.EndTime = ItineraryItemInput.ParseTime(request.EndTime);
+        item.Location = newLocation;
+        item.Category = newCategory;
+        item.EstimatedCost = request.EstimatedCost;
+
+        if (identityChanged)
+        {
+            ClearVerifiedMetadata(item);
+        }
+
+        if (identityChanged || costChanged)
+        {
+            item.CostSource = request.EstimatedCost.HasValue
+                ? "manual_estimate"
+                : null;
+        }
+
+        await AddItineraryItemCommandHandler.RebuildRoutesAsync(
+            itinerary,
+            [day],
+            _routeService,
+            cancellationToken);
+
+        itinerary.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveAsync(cancellationToken);
+
+        return Result<ItineraryResponse>.Success(
+            ItineraryResponseMapper.Map(itinerary));
+    }
+
+    private static (ItineraryDay? Day, ItineraryItem? Item) FindItem(
+        Itinerary itinerary,
+        Guid itemId)
+    {
+        var day = itinerary.Days.FirstOrDefault(candidate =>
+            candidate.Items.Any(item => item.Id == itemId));
+        return (day, day?.Items.FirstOrDefault(item => item.Id == itemId));
+    }
+
+    private static void ClearVerifiedMetadata(ItineraryItem item)
+    {
+        item.GooglePlaceId = null;
+        item.Address = null;
+        item.GoogleMapsUrl = null;
+        item.Rating = null;
+        item.PhotoUrl = null;
+        item.Latitude = null;
+        item.Longitude = null;
+        item.PriceLevel = null;
+        item.RatePerNight = null;
+        item.StayNights = null;
+        item.PriceSource = null;
+        item.ExternalUrl = null;
+        item.FlightDepartureAirportCode = null;
+        item.FlightDepartureAirportName = null;
+        item.FlightArrivalAirportCode = null;
+        item.FlightArrivalAirportName = null;
+        item.FlightAirlines = null;
+        item.FlightNumbers = null;
+        item.FlightDurationMinutes = null;
+        item.FlightStopCount = null;
+    }
+
+    private static string? NullIfWhiteSpace(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
+public sealed class MoveItineraryItemCommandHandler
+    : IRequestHandler<MoveItineraryItemCommand, Result<ItineraryResponse>>
+{
+    private readonly ItineraryItemCommandContext _context;
+    private readonly IItineraryRouteService? _routeService;
+
+    public MoveItineraryItemCommandHandler(
+        ICurrentUserService currentUserService,
+        ITripRepository tripRepository,
+        IItineraryRepository itineraryRepository,
+        IItineraryRouteService? routeService = null)
+    {
+        _context = new ItineraryItemCommandContext(
+            currentUserService,
+            tripRepository,
+            itineraryRepository);
+        _routeService = routeService;
+    }
+
+    public async Task<Result<ItineraryResponse>> Handle(
+        MoveItineraryItemCommand request,
+        CancellationToken cancellationToken)
+    {
+        var owned = await _context.GetOwnedAsync(
+            request.TripId,
+            cancellationToken);
+
+        if (owned.Error is not null)
+        {
+            return Result<ItineraryResponse>.Failure(owned.Error);
+        }
+
+        var itinerary = owned.Itinerary!;
+        var sourceDay = itinerary.Days.FirstOrDefault(day =>
+            day.Items.Any(item => item.Id == request.ItemId));
+        var targetDay = itinerary.Days.FirstOrDefault(day =>
+            day.Id == request.TargetDayId);
+        var item = sourceDay?.Items.FirstOrDefault(candidate =>
+            candidate.Id == request.ItemId);
+
+        if (sourceDay is null || item is null)
+        {
+            return Result<ItineraryResponse>.Failure(
+                ItineraryErrors.ItemNotFound);
+        }
+
+        if (targetDay is null)
+        {
+            return Result<ItineraryResponse>.Failure(
+                ItineraryErrors.DayNotFound);
+        }
+
+        if (sourceDay.Id != targetDay.Id)
+        {
+            sourceDay.Items.Remove(item);
+            ItineraryOrder.Normalize(sourceDay);
+            targetDay.Items.Add(item);
+            item.ItineraryDayId = targetDay.Id;
+            item.ItineraryDay = targetDay;
+        }
+
+        ItineraryOrder.PlaceItem(
+            targetDay,
+            item,
+            request.TargetOrderIndex);
+
+        await AddItineraryItemCommandHandler.RebuildRoutesAsync(
+            itinerary,
+            sourceDay.Id == targetDay.Id
+                ? [targetDay]
+                : [sourceDay, targetDay],
+            _routeService,
+            cancellationToken);
+
+        itinerary.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveAsync(cancellationToken);
+
+        return Result<ItineraryResponse>.Success(
+            ItineraryResponseMapper.Map(itinerary));
+    }
+}
+
+public sealed class DeleteItineraryItemCommandHandler
+    : IRequestHandler<DeleteItineraryItemCommand, Result<ItineraryResponse>>
+{
+    private readonly ItineraryItemCommandContext _context;
+    private readonly IItineraryRouteService? _routeService;
+
+    public DeleteItineraryItemCommandHandler(
+        ICurrentUserService currentUserService,
+        ITripRepository tripRepository,
+        IItineraryRepository itineraryRepository,
+        IItineraryRouteService? routeService = null)
+    {
+        _context = new ItineraryItemCommandContext(
+            currentUserService,
+            tripRepository,
+            itineraryRepository);
+        _routeService = routeService;
+    }
+
+    public async Task<Result<ItineraryResponse>> Handle(
+        DeleteItineraryItemCommand request,
+        CancellationToken cancellationToken)
+    {
+        var owned = await _context.GetOwnedAsync(
+            request.TripId,
+            cancellationToken);
+
+        if (owned.Error is not null)
+        {
+            return Result<ItineraryResponse>.Failure(owned.Error);
+        }
+
+        var itinerary = owned.Itinerary!;
+        var day = itinerary.Days.FirstOrDefault(candidate =>
+            candidate.Items.Any(item => item.Id == request.ItemId));
+        var item = day?.Items.FirstOrDefault(candidate =>
+            candidate.Id == request.ItemId);
+
+        if (day is null || item is null)
+        {
+            return Result<ItineraryResponse>.Failure(
+                ItineraryErrors.ItemNotFound);
+        }
+
+        day.Items.Remove(item);
+        _context.RemoveItem(item);
+        ItineraryOrder.Normalize(day);
+
+        await AddItineraryItemCommandHandler.RebuildRoutesAsync(
+            itinerary,
+            [day],
+            _routeService,
+            cancellationToken);
+
+        itinerary.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveAsync(cancellationToken);
+
+        return Result<ItineraryResponse>.Success(
+            ItineraryResponseMapper.Map(itinerary));
+    }
+}
+
+public sealed class SelectItineraryVenueCommandHandler
+    : IRequestHandler<SelectItineraryVenueCommand, Result<ItineraryResponse>>
+{
+    private readonly ItineraryItemCommandContext _context;
+    private readonly ItineraryVenueSuggestionLoader _loader;
+    private readonly IItineraryRouteService? _routeService;
+
+    public SelectItineraryVenueCommandHandler(
+        ICurrentUserService currentUserService,
+        ITripRepository tripRepository,
+        IItineraryRepository itineraryRepository,
+        ItineraryVenueSuggestionLoader loader,
+        IItineraryRouteService? routeService = null)
+    {
+        _context = new ItineraryItemCommandContext(
+            currentUserService,
+            tripRepository,
+            itineraryRepository);
+        _loader = loader;
+        _routeService = routeService;
+    }
+
+    public async Task<Result<ItineraryResponse>> Handle(
         SelectItineraryVenueCommand request,
         CancellationToken cancellationToken)
     {
-        var access =
-            await _context.GetOwnedItineraryAsync(
-                request.TripId,
-                cancellationToken);
+        var owned = await _context.GetOwnedAsync(
+            request.TripId,
+            cancellationToken);
 
-        if (access.Error is not null)
+        if (owned.Error is not null)
         {
-            return Result<ItineraryResponse>.Failure(
-                access.Error);
+            return Result<ItineraryResponse>.Failure(owned.Error);
         }
 
-        var itinerary = access.Itinerary!;
-        var item = itinerary.Days
-            .SelectMany(day => day.Items)
-            .FirstOrDefault(candidate =>
-                candidate.Id == request.ItemId);
+        var trip = owned.Trip!;
+        var itinerary = owned.Itinerary!;
+        var day = itinerary.Days.FirstOrDefault(candidate =>
+            candidate.Items.Any(item => item.Id == request.ItemId));
+        var item = day?.Items.FirstOrDefault(candidate =>
+            candidate.Id == request.ItemId);
 
-        if (item is null)
+        if (day is null || item is null)
         {
             return Result<ItineraryResponse>.Failure(
                 ItineraryErrors.ItemNotFound);
@@ -249,47 +425,38 @@ public sealed class SelectItineraryVenueCommandHandler
              ItineraryItemCategory.Accommodation))
         {
             return Result<ItineraryResponse>.Failure(
-                new Error(
-                    "Itinerary.UnsupportedVenueSelection",
-                    "Only meal and accommodation venues can be selected.",
-                    ErrorType.Validation));
+                ItineraryErrors.UnsupportedVenueSelection);
         }
 
-        item.GooglePlaceId = request.PlaceId.Trim();
-        item.Location = request.Name.Trim();
-        item.Address = request.Address?.Trim();
-        item.GoogleMapsUrl =
-            request.GoogleMapsUrl?.Trim();
-        item.Rating = request.Rating;
-        item.PhotoUrl = request.PhotoUrl?.Trim();
-        item.PriceLevel = request.PriceLevel?.Trim();
-        item.RatePerNight = request.RatePerNight;
-        item.PriceSource = request.PriceSource?.Trim();
-        item.ExternalUrl = request.ExternalUrl?.Trim();
-        item.Latitude = request.Latitude;
-        item.Longitude = request.Longitude;
-
-        if (item.Category ==
-            ItineraryItemCategory.Accommodation)
+        LoadedVenueSuggestion? selected;
+        try
         {
-            item.Title = request.Name.Trim();
-            item.Description =
-                request.Description?.Trim();
-            item.EstimatedCost = request.TotalRate;
-            item.CostSource =
-                request.TotalRate is null
-                    ? "planning_estimate"
-                    : "live_hotel_rate";
+            selected = await _loader.FindByPlaceIdAsync(
+                trip,
+                itinerary,
+                day,
+                item,
+                request.PlaceId,
+                cancellationToken);
         }
-        else
+        catch (InvalidOperationException)
         {
-            item.Title =
-                $"{GetMealSlotTitle(item.Title)} — {request.Name.Trim()}";
+            return Result<ItineraryResponse>.Failure(
+                TripErrors.CorruptRoute);
         }
 
-        await RefreshAdjacentRoutesAsync(
+        if (selected is null)
+        {
+            return Result<ItineraryResponse>.Failure(
+                ItineraryErrors.VenueNotFound);
+        }
+
+        ApplyVerifiedVenue(item, selected);
+
+        await AddItineraryItemCommandHandler.RebuildRoutesAsync(
             itinerary,
-            item,
+            [day],
+            _routeService,
             cancellationToken);
 
         itinerary.UpdatedAt = DateTime.UtcNow;
@@ -299,135 +466,53 @@ public sealed class SelectItineraryVenueCommandHandler
             ItineraryResponseMapper.Map(itinerary));
     }
 
-    private static string GetMealSlotTitle(
-        string currentTitle)
+    private static void ApplyVerifiedVenue(
+        ItineraryItem item,
+        LoadedVenueSuggestion selected)
     {
-        var separatorIndex =
-            currentTitle.IndexOf('—');
+        var place = selected.Place;
 
-        if (separatorIndex > 0)
+        item.GooglePlaceId = place.PlaceId;
+        item.Address = NullIfWhiteSpace(place.Address);
+        item.GoogleMapsUrl = NullIfWhiteSpace(place.GoogleMapsLink);
+        item.Rating = place.Rating;
+        item.PhotoUrl = NullIfWhiteSpace(place.PhotoUrl);
+        item.Latitude = place.Latitude;
+        item.Longitude = place.Longitude;
+        item.PriceLevel = NullIfWhiteSpace(place.PriceLevel);
+        item.RatePerNight = place.RatePerNight;
+        item.StayNights = selected.StayNights;
+        item.PriceSource = NullIfWhiteSpace(place.PriceSource);
+        item.ExternalUrl = NullIfWhiteSpace(place.ExternalUrl);
+        item.Location = place.Name.Trim();
+
+        if (item.Category == ItineraryItemCategory.Accommodation)
         {
-            return currentTitle[..separatorIndex].Trim();
+            item.Title = place.Name.Trim();
+            item.Description = NullIfWhiteSpace(place.Description);
+            item.EstimatedCost = place.TotalRate;
+            item.CostSource = place.TotalRate.HasValue
+                ? "live_hotel_rate"
+                : null;
         }
-
-        return currentTitle.Trim();
-    }
-
-    private async Task RefreshAdjacentRoutesAsync(
-        Itinerary itinerary,
-        ItineraryItem selectedItem,
-        CancellationToken cancellationToken)
-    {
-        var items = itinerary.Days
-            .OrderBy(day => day.DayNumber)
-            .SelectMany(day => day.Items
-                .OrderBy(item => item.OrderIndex))
-            .ToList();
-        var selectedIndex =
-            items.FindIndex(item =>
-                item.Id == selectedItem.Id);
-
-        if (selectedIndex < 0)
+        else
         {
-            return;
-        }
-
-        var previousPlace = items
-            .Take(selectedIndex)
-            .LastOrDefault(HasCoordinates);
-        var nextPlace = items
-            .Skip(selectedIndex + 1)
-            .FirstOrDefault(HasCoordinates);
-
-        ClearRoute(selectedItem);
-
-        if (nextPlace is not null)
-        {
-            ClearRoute(nextPlace);
-        }
-
-        if (_routeService?.IsConfigured != true)
-        {
-            return;
-        }
-
-        var preferences =
-            GenerateItineraryPreferencesSerializer
-                .Deserialize(itinerary.Preferences);
-
-        if (previousPlace is not null &&
-            HasCoordinates(selectedItem))
-        {
-            await SetRouteAsync(
-                previousPlace,
-                selectedItem,
-                preferences,
-                cancellationToken);
-        }
-
-        if (nextPlace is not null)
-        {
-            var origin = HasCoordinates(selectedItem)
-                ? selectedItem
-                : previousPlace;
-
-            if (origin is not null)
-            {
-                await SetRouteAsync(
-                    origin,
-                    nextPlace,
-                    preferences,
-                    cancellationToken);
-            }
+            item.Title =
+                $"{GetMealSlotTitle(item.Title)} — {place.Name.Trim()}";
         }
     }
 
-    private async Task SetRouteAsync(
-        ItineraryItem origin,
-        ItineraryItem destination,
-        GenerateItineraryPreferences preferences,
-        CancellationToken cancellationToken)
+    private static string GetMealSlotTitle(string currentTitle)
     {
-        var route = await _routeService!
-            .ComputeRouteAsync(
-                new ItineraryRoutePoint(
-                    origin.Latitude!.Value,
-                    origin.Longitude!.Value),
-                new ItineraryRoutePoint(
-                    destination.Latitude!.Value,
-                    destination.Longitude!.Value),
-                preferences.Transportation,
-                preferences.PreferredLanguage,
-                cancellationToken);
-
-        if (route is null)
-        {
-            return;
-        }
-
-        destination.RouteDistanceMeters =
-            route.DistanceMeters;
-        destination.RouteDurationMinutes =
-            route.DurationMinutes;
-        destination.RouteTravelMode =
-            route.TravelMode;
-        destination.RouteTransitDetails =
-            route.TransitDetails;
+        var separators = new[] { '—', '-', ':' };
+        var separatorIndex = currentTitle.IndexOfAny(separators);
+        return separatorIndex > 0
+            ? currentTitle[..separatorIndex].Trim()
+            : currentTitle.Trim();
     }
 
-    private static bool HasCoordinates(
-        ItineraryItem item) =>
-        item.Latitude is not null &&
-        item.Longitude is not null;
-
-    private static void ClearRoute(
-        ItineraryItem item)
-    {
-        item.RouteDistanceMeters = null;
-        item.RouteDurationMinutes = null;
-        item.RouteTravelMode = null;
-        item.RouteTransitDetails = null;
-    }
+    private static string? NullIfWhiteSpace(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
 internal sealed class ItineraryItemCommandContext
@@ -446,25 +531,33 @@ internal sealed class ItineraryItemCommandContext
         _itineraryRepository = itineraryRepository;
     }
 
-    public async Task<(Itinerary? Itinerary, Error? Error)> GetOwnedItineraryAsync(
+    public async Task<(
+        Trip? Trip,
+        Itinerary? Itinerary,
+        Error? Error)> GetOwnedAsync(
         Guid tripId,
         CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId;
-        if (userId is null)
+        if (_currentUserService.UserId is not { } userId)
         {
-            return (null, AuthenticationErrors.AuthenticationRequired);
+            return (
+                null,
+                null,
+                AuthenticationErrors.AuthenticationRequired);
         }
 
-        var trip = await _tripRepository.GetByIdAsync(tripId, cancellationToken);
+        var trip = await _tripRepository.GetByIdAsync(
+            tripId,
+            cancellationToken);
+
         if (trip is null)
         {
-            return (null, ItineraryErrors.TripNotFound);
+            return (null, null, ItineraryErrors.TripNotFound);
         }
 
-        if (trip.UserId != userId.Value)
+        if (trip.UserId != userId)
         {
-            return (null, ItineraryErrors.Forbidden);
+            return (null, null, ItineraryErrors.Forbidden);
         }
 
         var itinerary = await _itineraryRepository.GetActiveByTripIdAsync(
@@ -472,8 +565,8 @@ internal sealed class ItineraryItemCommandContext
             cancellationToken);
 
         return itinerary is null
-            ? (null, ItineraryErrors.NotFound)
-            : (itinerary, null);
+            ? (trip, null, ItineraryErrors.NotFound)
+            : (trip, itinerary, null);
     }
 
     public void RemoveItem(ItineraryItem item)
@@ -502,7 +595,9 @@ internal static class ItineraryOrder
         var index = Math.Clamp(requestedIndex, 0, ordered.Count);
         ordered.Insert(index, item);
 
-        for (var currentIndex = 0; currentIndex < ordered.Count; currentIndex++)
+        for (var currentIndex = 0;
+             currentIndex < ordered.Count;
+             currentIndex++)
         {
             ordered[currentIndex].OrderIndex = currentIndex;
         }

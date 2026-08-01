@@ -14,6 +14,7 @@ using Safarni.Infrastructure.Security;
 using Safarni.Infrastructure.Storage;
 using Safarni.Application.Abstractions.Travel;
 using Safarni.Infrastructure.Travel;
+using Safarni.Infrastructure.BackgroundJobs;
 
 namespace Safarni.Infrastructure;
 
@@ -47,6 +48,9 @@ public static class DependencyInjection
         services.AddScoped<IVisaApplicationRepository, VisaApplicationRepository>();
         services.AddScoped<ITripRepository, TripRepository>();
         services.AddScoped<IItineraryRepository, ItineraryRepository>();
+        services.AddScoped<
+            IItineraryGenerationJobRepository,
+            ItineraryGenerationJobRepository>();
 
         services.AddScoped<IPasswordHasher, PasswordHasherService>();
         services.AddScoped<ITokenService, JwtTokenService>();
@@ -61,11 +65,17 @@ public static class DependencyInjection
 
         services.AddHttpClient<
             IItineraryTravelDataService,
-            SerpApiTravelDataService>();
+            SerpApiTravelDataService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(25);
+            });
 
         services.AddHttpClient<
             IItineraryRouteService,
-            GoogleRoutesService>();
+            GoogleRoutesService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(15);
+            });
 
         services.AddHttpClient<
             ITravelLocationCatalog,
@@ -79,7 +89,14 @@ public static class DependencyInjection
 
         services.AddHttpClient<
             IFlightAirportService,
-            SerpApiFlightAirportService>();
+            SerpApiFlightAirportService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(25);
+            });
+
+        // One durable worker per API process. Database row locks and filtered
+        // unique indexes keep processing safe when several API instances run.
+        services.AddHostedService<ItineraryGenerationWorker>();
 
         return services;
     }

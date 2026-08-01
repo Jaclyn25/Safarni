@@ -5,160 +5,99 @@ namespace Safarni.Application.Features.Trips.GenerateItinerary;
 public sealed class GenerateItineraryCommandValidator
     : AbstractValidator<GenerateItineraryCommand>
 {
+    public GenerateItineraryCommandValidator()
+    {
+        RuleFor(command => command.TripId).NotEmpty();
+        RuleFor(command => command.Preferences)
+            .NotNull()
+            .SetValidator(new GenerateItineraryPreferencesValidator());
+        RuleFor(command => command.BudgetAmount)
+            .GreaterThan(0)
+            .LessThanOrEqualTo(10_000_000)
+            .When(command => command.BudgetAmount.HasValue);
+        RuleFor(command => command.CurrencyCode)
+            .NotEmpty()
+            .Matches("^[A-Za-z]{3}$")
+            .WithMessage(
+                "Currency code must contain exactly three letters.");
+        RuleFor(command => command.TravelerCount)
+            .InclusiveBetween(1, 20);
+    }
+}
+
+public sealed class GenerateItineraryPreferencesValidator
+    : AbstractValidator<GenerateItineraryPreferences>
+{
     private static readonly HashSet<string> SupportedInterests =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            "adventure",
-            "nature",
-            "culture",
-            "food",
-            "shopping",
-            "nightlife",
-            "relaxation",
-            "family"
+            "adventure", "nature", "culture", "food", "shopping",
+            "nightlife", "relaxation", "family"
         };
 
     private static readonly HashSet<string> SupportedPaces =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            "relaxed",
-            "balanced",
-            "active"
+            "relaxed", "balanced", "active"
         };
 
     private static readonly HashSet<string> SupportedTransportation =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            "walking",
-            "public_transport",
-            "taxi_ride_share",
-            "rental_car",
-            "bicycle",
-            "mixed"
+            "walking", "public_transport", "taxi_ride_share",
+            "rental_car", "bicycle", "mixed"
         };
 
     private static readonly HashSet<string> SupportedAccommodationStyles =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            "already_booked",
-            "budget",
-            "mid_range",
-            "luxury",
-            "boutique",
-            "resort"
-        };
-
-    private static readonly HashSet<string> SupportedDietaryNeeds =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            "vegetarian",
-            "vegan",
-            "halal",
-            "kosher",
-            "gluten_free",
-            "food_allergies"
-        };
-
-    private static readonly HashSet<string> SupportedAccessibilityNeeds =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            "wheelchair_accessible",
-            "limited_walking",
-            "step_free",
-            "visual_support",
-            "hearing_support"
+            "already_booked", "budget", "mid_range", "luxury",
+            "boutique", "resort"
         };
 
     private static readonly HashSet<string> SupportedLanguages =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            "en",
-            "ar"
+            "en", "ar"
         };
 
-    public GenerateItineraryCommandValidator()
+    public GenerateItineraryPreferencesValidator()
     {
-        RuleFor(command => command.TripId)
-            .NotEmpty();
+        RuleFor(preferences => preferences.Interests)
+            .Must(values => HasSupportedUniqueValues(
+                values,
+                SupportedInterests,
+                1,
+                5))
+            .WithMessage(
+                "Select between one and five supported interests.");
 
-        RuleFor(command => command.Preferences)
-            .NotNull();
+        RuleFor(preferences => preferences.Pace)
+            .Must(value => IsSupported(value, SupportedPaces))
+            .WithMessage("Select a supported travel pace.");
 
-        When(command => command.Preferences is not null, () =>
-        {
-            RuleFor(command => command.Preferences.Interests)
-                .Must(interests =>
-                    HasSupportedUniqueValues(
-                        interests,
-                        SupportedInterests,
-                        minimumCount: 1,
-                        maximumCount: 5))
-                .WithMessage(
-                    "Select between one and five supported interests.");
+        RuleFor(preferences => preferences.Transportation)
+            .Must(values => HasSupportedUniqueValues(
+                values,
+                SupportedTransportation,
+                1,
+                3))
+            .WithMessage(
+                "Select between one and three supported transportation options.");
 
-            RuleFor(command => command.Preferences.Pace)
-                .Must(value => IsSupported(value, SupportedPaces))
-                .WithMessage("Select a supported travel pace.");
+        RuleFor(preferences => preferences.AccommodationStyle)
+            .Must(value =>
+                IsSupported(value, SupportedAccommodationStyles))
+            .WithMessage(
+                "Select a supported accommodation style.");
 
-            RuleFor(command => command.Preferences.Transportation)
-                .Must(transportation =>
-                    HasSupportedUniqueValues(
-                        transportation,
-                        SupportedTransportation,
-                        minimumCount: 1,
-                        maximumCount: 3))
-                .WithMessage(
-                    "Select between one and three supported transportation options.");
+        RuleFor(preferences => preferences.PreferredLanguage)
+            .Must(value => IsSupported(value, SupportedLanguages))
+            .WithMessage(
+                "Preferred language must be either 'en' or 'ar'.");
 
-            RuleFor(command => command.Preferences.AccommodationStyle)
-                .Must(value =>
-                    IsSupported(
-                        value,
-                        SupportedAccommodationStyles))
-                .WithMessage(
-                    "Select a supported accommodation style.");
-
-            RuleFor(command => command.Preferences.DietaryNeeds)
-                .Must(values =>
-                    HasSupportedUniqueValues(
-                        values,
-                        SupportedDietaryNeeds,
-                        minimumCount: 0,
-                        maximumCount: 4))
-                .WithMessage(
-                    "Select up to four supported dietary needs.");
-
-            RuleFor(command => command.Preferences.AccessibilityNeeds)
-                .Must(values =>
-                    HasSupportedUniqueValues(
-                        values,
-                        SupportedAccessibilityNeeds,
-                        minimumCount: 0,
-                        maximumCount: 4))
-                .WithMessage(
-                    "Select up to four supported accessibility needs.");
-
-            RuleFor(command => command.Preferences.PreferredLanguage)
-                .Must(value => IsSupported(value, SupportedLanguages))
-                .WithMessage(
-                    "Preferred language must be either 'en' or 'ar'.");
-
-            RuleFor(command => command.Preferences.AdditionalNotes)
-                .MaximumLength(500);
-        });
-
-        RuleFor(command => command.BudgetAmount)
-            .GreaterThan(0)
-            .LessThanOrEqualTo(10_000_000);
-
-        RuleFor(command => command.CurrencyCode)
-            .NotEmpty()
-            .Matches("^[A-Za-z]{3}$")
-            .WithMessage("Currency code must contain exactly three letters.");
-
-        RuleFor(command => command.TravelerCount)
-            .InclusiveBetween(1, 20);
-
+        RuleFor(preferences => preferences.AdditionalNotes)
+            .MaximumLength(500);
     }
 
     private static bool IsSupported(

@@ -20,8 +20,10 @@ using Safarni.Application.Features.Profile.UploadProfilePhoto;
 using Safarni.Application.Features.Settings.UpdateMySettings;
 using Safarni.Application.Features.Trips.CreateTrip;
 using Safarni.Application.Features.Trips.GenerateItinerary;
+using Safarni.Application.Features.Trips.GenerateItinerary.Jobs;
 using Safarni.Application.Features.Trips.UpdateTrip;
 using Safarni.Application.Features.Trips.Itineraries.ManageItems;
+using Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
 using Safarni.Application.Features.VisaApplications.CreateVisaApplication;
 using Safarni.Application.Features.VisaApplications.SelectVisaType;
 
@@ -55,8 +57,18 @@ public static class DependencyInjection
         services.AddTransient<IValidator<CreateTripCommand>, CreateTripCommandValidator>();
         services.AddTransient<IValidator<UpdateTripCommand>, UpdateTripCommandValidator>();
         services.AddTransient<IValidator<GenerateItineraryCommand>, GenerateItineraryCommandValidator>();
+        services.AddTransient<
+            IValidator<StartItineraryGenerationCommand>,
+            StartItineraryGenerationCommandValidator>();
+        services.AddScoped<
+            IItineraryGenerationProcessor,
+            ItineraryGenerationProcessor>();
+        services.AddScoped<ItineraryVenueSuggestionLoader>();
         services.AddTransient<IValidator<AddItineraryItemCommand>, AddItineraryItemCommandValidator>();
         services.AddTransient<IValidator<UpdateItineraryItemCommand>, UpdateItineraryItemCommandValidator>();
+        services.AddTransient<
+            IValidator<MoveItineraryItemCommand>,
+            MoveItineraryItemCommandValidator>();
         services.AddTransient<
             IValidator<SelectItineraryVenueCommand>,
             SelectItineraryVenueCommandValidator>();

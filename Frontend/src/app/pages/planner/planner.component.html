@@ -1,8 +1,5 @@
 <main class="planner-shell min-h-screen px-margin-mobile py-8 md:px-margin-desktop md:py-12">
-  <section
-    *ngIf="!itinerary || isEditingPreferences"
-    class="mx-auto max-w-5xl"
-  >
+  <section *ngIf="!itinerary || isEditingPreferences" class="mx-auto max-w-5xl">
     <span class="text-label-md font-bold uppercase tracking-[0.2em] text-primary">
       Make it yours
     </span>
@@ -14,10 +11,8 @@
       exactly as you selected them.
     </p>
 
-    <div
-      *ngIf="trip"
-      class="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-primary/15 bg-white p-4 shadow-sm"
-    >
+    <div *ngIf="trip"
+      class="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-primary/15 bg-white p-4 shadow-sm">
       <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
         <span class="material-symbols-outlined">luggage</span>
       </span>
@@ -28,22 +23,18 @@
         </span>
       </div>
       <div class="flex flex-wrap gap-2">
-        <span
-          *ngFor="let city of trip.cities; trackBy: trackByCity"
-          class="rounded-full bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface-variant"
-        >
+        <span *ngFor="let city of trip.cities; trackBy: trackByCity"
+          class="rounded-full bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface-variant">
           {{ city.name }} · {{ city.days }} {{ city.days === 1 ? 'day' : 'days' }}
         </span>
       </div>
     </div>
   </section>
 
-  <section
-    id="preferences"
-    *ngIf="!itinerary || isEditingPreferences"
-    class="mx-auto mt-8 max-w-5xl scroll-mt-28 overflow-hidden rounded-[28px] border border-outline-variant/20 bg-surface-container-lowest shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
-  >
-    <div class="border-b border-outline-variant/20 bg-gradient-to-r from-primary/10 via-primary-container/40 to-secondary-container/30 px-6 py-5 md:px-8">
+  <section id="preferences" *ngIf="!itinerary || isEditingPreferences"
+    class="mx-auto mt-8 max-w-5xl scroll-mt-28 overflow-hidden rounded-[28px] border border-outline-variant/20 bg-surface-container-lowest shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+    <div
+      class="border-b border-outline-variant/20 bg-gradient-to-r from-primary/10 via-primary-container/40 to-secondary-container/30 px-6 py-5 md:px-8">
       <div class="flex items-center gap-3">
         <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-on-primary">
           <span class="material-symbols-outlined">tune</span>
@@ -60,10 +51,7 @@
     </div>
 
     <div class="space-y-9 p-6 md:p-8">
-      <div
-        *ngIf="!tripId"
-        class="flex gap-3 rounded-2xl bg-error-container p-4 text-on-error-container"
-      >
+      <div *ngIf="!tripId" class="flex gap-3 rounded-2xl bg-error-container p-4 text-on-error-container">
         <span class="material-symbols-outlined">error</span>
         <p>
           No trip is selected. Open the Planner from one of your saved trips.
@@ -86,19 +74,14 @@
         </div>
 
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <button
-            *ngFor="let option of interestOptions; trackBy: trackByValue"
-            type="button"
-            (click)="toggleInterest(option.value)"
-            [disabled]="isGenerating"
-            [attr.aria-pressed]="isSelected(selectedInterests, option.value)"
-            [ngClass]="
+          <button *ngFor="let option of interestOptions; trackBy: trackByValue" type="button"
+            (click)="toggleInterest(option.value)" [disabled]="isGenerating"
+            [attr.aria-pressed]="isSelected(selectedInterests, option.value)" [ngClass]="
               isSelected(selectedInterests, option.value)
                 ? 'border-primary bg-primary-container text-on-primary-container shadow-sm'
                 : 'border-outline-variant/50 bg-surface text-on-surface-variant hover:border-primary/60 hover:bg-primary/5'
             "
-            class="flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center transition disabled:cursor-not-allowed disabled:opacity-60"
-          >
+            class="flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center transition disabled:cursor-not-allowed disabled:opacity-60">
             <span class="material-symbols-outlined text-[26px]">
               {{ option.icon }}
             </span>
@@ -116,19 +99,13 @@
         </h4>
 
         <div class="grid gap-3 md:grid-cols-3">
-          <button
-            *ngFor="let option of paceOptions; trackBy: trackByValue"
-            type="button"
-            (click)="selectedPace = option.value"
-            [disabled]="isGenerating"
-            [attr.aria-pressed]="selectedPace === option.value"
-            [ngClass]="
+          <button *ngFor="let option of paceOptions; trackBy: trackByValue" type="button"
+            (click)="selectedPace = option.value" [disabled]="isGenerating"
+            [attr.aria-pressed]="selectedPace === option.value" [ngClass]="
               selectedPace === option.value
                 ? 'border-primary bg-primary-container text-on-primary-container shadow-sm'
                 : 'border-outline-variant/50 bg-surface text-on-surface hover:border-primary/60'
-            "
-            class="flex items-start gap-3 rounded-2xl border p-4 text-left transition disabled:opacity-60"
-          >
+            " class="flex items-start gap-3 rounded-2xl border p-4 text-left transition disabled:opacity-60">
             <span class="material-symbols-outlined mt-0.5 text-primary">
               {{ option.icon }}
             </span>
@@ -158,19 +135,14 @@
         </div>
 
         <div class="flex flex-wrap gap-2.5">
-          <button
-            *ngFor="let option of transportationOptions; trackBy: trackByValue"
-            type="button"
-            (click)="toggleTransportation(option.value)"
-            [disabled]="isGenerating"
-            [attr.aria-pressed]="isSelected(selectedTransportation, option.value)"
-            [ngClass]="
+          <button *ngFor="let option of transportationOptions; trackBy: trackByValue" type="button"
+            (click)="toggleTransportation(option.value)" [disabled]="isGenerating"
+            [attr.aria-pressed]="isSelected(selectedTransportation, option.value)" [ngClass]="
               isSelected(selectedTransportation, option.value)
                 ? 'border-primary bg-primary text-on-primary'
                 : 'border-outline-variant/50 bg-surface text-on-surface-variant hover:border-primary/60'
             "
-            class="flex items-center gap-2 rounded-full border px-4 py-2.5 text-label-md transition disabled:opacity-60"
-          >
+            class="flex items-center gap-2 rounded-full border px-4 py-2.5 text-label-md transition disabled:opacity-60">
             <span class="material-symbols-outlined text-[20px]">
               {{ option.icon }}
             </span>
@@ -188,19 +160,13 @@
         </h4>
 
         <div class="grid grid-cols-2 gap-3 md:grid-cols-3">
-          <button
-            *ngFor="let option of accommodationOptions; trackBy: trackByValue"
-            type="button"
-            (click)="accommodationStyle = option.value"
-            [disabled]="isGenerating"
-            [attr.aria-pressed]="accommodationStyle === option.value"
-            [ngClass]="
+          <button *ngFor="let option of accommodationOptions; trackBy: trackByValue" type="button"
+            (click)="accommodationStyle = option.value" [disabled]="isGenerating"
+            [attr.aria-pressed]="accommodationStyle === option.value" [ngClass]="
               accommodationStyle === option.value
                 ? 'border-primary bg-primary-container text-on-primary-container'
                 : 'border-outline-variant/50 bg-surface text-on-surface-variant hover:border-primary/60'
-            "
-            class="flex items-center gap-3 rounded-2xl border p-4 text-left transition disabled:opacity-60"
-          >
+            " class="flex items-center gap-3 rounded-2xl border p-4 text-left transition disabled:opacity-60">
             <span class="material-symbols-outlined text-primary">
               {{ option.icon }}
             </span>
@@ -219,15 +185,9 @@
             <span class="mb-1.5 block text-label-sm text-on-surface">
               Currency
             </span>
-            <select
-              [(ngModel)]="currencyCode"
-              [disabled]="isGenerating"
-              class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-3 text-on-surface outline-none focus:border-primary"
-            >
-              <option
-                *ngFor="let currency of currencies; trackBy: trackByString"
-                [value]="currency"
-              >
+            <select [(ngModel)]="currencyCode" [disabled]="isGenerating"
+              class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-3 text-on-surface outline-none focus:border-primary">
+              <option *ngFor="let currency of currencies; trackBy: trackByString" [value]="currency">
                 {{ currency }}
               </option>
             </select>
@@ -237,26 +197,16 @@
             <span class="mb-1.5 block text-label-sm text-on-surface">
               Travelers
             </span>
-            <input
-              type="number"
-              min="1"
-              max="20"
-              step="1"
-              [(ngModel)]="travelerCount"
-              [disabled]="isGenerating"
-              class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-3 text-on-surface outline-none focus:border-primary"
-            />
+            <input type="number" min="1" max="20" step="1" [(ngModel)]="travelerCount" [disabled]="isGenerating"
+              class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-3 text-on-surface outline-none focus:border-primary" />
           </label>
 
           <label>
             <span class="mb-1.5 block text-label-sm text-on-surface">
               Itinerary language
             </span>
-            <select
-              [(ngModel)]="preferredLanguage"
-              [disabled]="isGenerating"
-              class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-3 text-on-surface outline-none focus:border-primary"
-            >
+            <select [(ngModel)]="preferredLanguage" [disabled]="isGenerating"
+              class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-3 text-on-surface outline-none focus:border-primary">
               <option value="en">English</option>
               <option value="ar">العربية</option>
             </select>
@@ -271,15 +221,9 @@
         <span class="ml-2 text-body-sm text-on-surface-variant">
           Optional
         </span>
-        <textarea
-          [(ngModel)]="additionalNotes"
-          [disabled]="isGenerating"
-          maxlength="500"
-          rows="3"
-          dir="auto"
+        <textarea [(ngModel)]="additionalNotes" [disabled]="isGenerating" maxlength="500" rows="3" dir="auto"
           placeholder="Celebrating an anniversary, avoiding early mornings, or already have a must-see place?"
-          class="mt-3 w-full resize-y rounded-2xl border border-outline-variant bg-surface px-4 py-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
-        ></textarea>
+          class="mt-3 w-full resize-y rounded-2xl border border-outline-variant bg-surface px-4 py-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"></textarea>
         <span class="mt-1 block text-right text-label-sm text-on-surface-variant">
           {{ additionalNotes.length }}/500
         </span>
@@ -292,74 +236,48 @@
         </p>
 
         <div class="flex flex-wrap items-center gap-3">
-          <button
-            *ngIf="itinerary"
-            type="button"
-            (click)="cancelPreferenceEditing()"
-            [disabled]="isGenerating"
-            class="rounded-xl border border-outline-variant px-5 py-3.5 text-label-md font-semibold text-on-surface-variant transition hover:border-primary hover:text-primary"
-          >
+          <button *ngIf="itinerary" type="button" (click)="cancelPreferenceEditing()" [disabled]="isGenerating"
+            class="rounded-xl border border-outline-variant px-5 py-3.5 text-label-md font-semibold text-on-surface-variant transition hover:border-primary hover:text-primary">
             Cancel
           </button>
-          <button
-            type="button"
-            (click)="generateItinerary()"
-            [disabled]="isGenerating || isSaving || !tripId"
-            class="flex min-w-56 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-label-lg text-on-primary shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <span
-              class="material-symbols-outlined"
-              [class.animate-spin]="isGenerating"
-            >
+          <button type="button" (click)="generateItinerary()" [disabled]="isGenerating || isSaving || !tripId"
+            class="flex min-w-56 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-label-lg text-on-primary shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50">
+            <span class="material-symbols-outlined" [class.animate-spin]="isGenerating">
               {{
-                isGenerating
-                  ? 'progress_activity'
-                  : 'route'
+              isGenerating
+              ? 'progress_activity'
+              : 'route'
               }}
             </span>
             {{
-              isGenerating
-                ? 'Building your itinerary...'
-                : itinerary
-                  ? 'Update itinerary'
-                  : 'Build my itinerary'
+            isGenerating
+            ? 'Building your itinerary...'
+            : itinerary
+            ? 'Update itinerary'
+            : 'Build my itinerary'
             }}
           </button>
         </div>
       </div>
 
-      <p
-        *ngIf="errorMessage"
-        role="alert"
-        class="rounded-2xl bg-error-container p-4 text-body-md text-on-error-container"
-      >
+      <p *ngIf="errorMessage" role="alert"
+        class="rounded-2xl bg-error-container p-4 text-body-md text-on-error-container">
         {{ errorMessage }}
       </p>
     </div>
   </section>
 
-  <div
-    *ngIf="isGenerating"
+  <div *ngIf="isGenerating"
     class="generation-overlay fixed inset-0 z-[120] grid place-items-center bg-slate-950/60 p-5 backdrop-blur-md"
-    aria-busy="true"
-  >
-    <section
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="generation-title"
+    aria-busy="true">
+    <section role="dialog" aria-modal="true" aria-labelledby="generation-title"
       aria-describedby="generation-description"
-      class="generation-dialog w-full max-w-[520px] rounded-[28px] bg-white p-6 shadow-[0_35px_100px_rgba(5,16,33,.35)] md:p-8"
-    >
+      class="generation-dialog w-full max-w-[520px] rounded-[28px] bg-white p-6 shadow-[0_35px_100px_rgba(5,16,33,.35)] md:p-8">
       <div class="flex flex-col items-center text-center">
-        <div
-          role="progressbar"
-          aria-label="Itinerary generation progress"
-          aria-valuemin="0"
-          aria-valuemax="100"
+        <div role="progressbar" aria-label="Itinerary generation progress" aria-valuemin="0" aria-valuemax="100"
           [attr.aria-valuenow]="generationProgress"
           class="generation-ring relative grid h-24 w-24 place-items-center rounded-full"
-          [style.--progress]="generationProgress"
-        >
+          [style.--progress]="generationProgress">
           <span class="relative z-10 text-xl font-extrabold text-primary">
             {{ generationProgress }}%
           </span>
@@ -370,58 +288,47 @@
         <h2 id="generation-title" class="mt-2 text-2xl font-bold text-slate-900">
           Your itinerary is taking shape
         </h2>
-        <p
-          id="generation-description"
-          aria-live="polite"
-          class="mt-2 min-h-12 max-w-md text-sm leading-6 text-slate-500"
-        >
+        <p id="generation-description" aria-live="polite"
+          class="mt-2 min-h-12 max-w-md text-sm leading-6 text-slate-500">
           {{ generationMessage }}
         </p>
       </div>
 
       <div class="mt-6 space-y-2">
-        <div
-          *ngFor="let city of generationCities; let cityIndex = index; trackBy: trackByString"
-          class="flex items-center gap-3 rounded-2xl px-4 py-3 transition"
-          [ngClass]="
+        <div *ngFor="let city of generationCities; let cityIndex = index; trackBy: trackByString"
+          class="flex items-center gap-3 rounded-2xl px-4 py-3 transition" [ngClass]="
             generationCityStatus(cityIndex) === 'active'
               ? 'bg-blue-50 text-primary'
               : generationCityStatus(cityIndex) === 'complete'
                 ? 'bg-emerald-50 text-emerald-700'
                 : 'bg-slate-50 text-slate-400'
-          "
-        >
-          <span
-            class="grid h-7 w-7 place-items-center rounded-full"
-            [ngClass]="
+          ">
+          <span class="grid h-7 w-7 place-items-center rounded-full" [ngClass]="
               generationCityStatus(cityIndex) === 'active'
                 ? 'bg-primary text-white'
                 : generationCityStatus(cityIndex) === 'complete'
                   ? 'bg-emerald-500 text-white'
                   : 'bg-slate-200 text-slate-500'
-            "
-          >
-            <span
-              class="material-symbols-outlined text-[17px]"
-              [class.animate-spin]="generationCityStatus(cityIndex) === 'active'"
-            >
+            ">
+            <span class="material-symbols-outlined text-[17px]"
+              [class.animate-spin]="generationCityStatus(cityIndex) === 'active'">
               {{
-                generationCityStatus(cityIndex) === 'complete'
-                  ? 'check'
-                  : generationCityStatus(cityIndex) === 'active'
-                    ? 'progress_activity'
-                    : 'schedule'
+              generationCityStatus(cityIndex) === 'complete'
+              ? 'check'
+              : generationCityStatus(cityIndex) === 'active'
+              ? 'progress_activity'
+              : 'schedule'
               }}
             </span>
           </span>
           <span class="font-semibold">{{ city }}</span>
           <span class="ml-auto text-xs font-bold">
             {{
-              generationCityStatus(cityIndex) === 'complete'
-                ? 'Ready'
-                : generationCityStatus(cityIndex) === 'active'
-                  ? 'In progress'
-                  : 'Waiting'
+            generationCityStatus(cityIndex) === 'complete'
+            ? 'Ready'
+            : generationCityStatus(cityIndex) === 'active'
+            ? 'In progress'
+            : 'Waiting'
             }}
           </span>
         </div>
@@ -432,17 +339,9 @@
           <span class="material-symbols-outlined text-[17px]">cloud_sync</span>
           Generation continues on the server and can resume after a page refresh.
         </p>
-        <button
-          *ngIf="generationJob"
-          type="button"
-          (click)="cancelGeneration()"
-          [disabled]="isCancellingGeneration"
-          class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <span
-            class="material-symbols-outlined text-[17px]"
-            [class.animate-spin]="isCancellingGeneration"
-          >
+        <button *ngIf="generationJob" type="button" (click)="cancelGeneration()" [disabled]="isCancellingGeneration"
+          class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50">
+          <span class="material-symbols-outlined text-[17px]" [class.animate-spin]="isCancellingGeneration">
             {{ isCancellingGeneration ? 'progress_activity' : 'close' }}
           </span>
           {{ isCancellingGeneration ? 'Cancelling…' : 'Cancel generation' }}
@@ -451,26 +350,19 @@
     </section>
   </div>
 
-  <section
-    *ngIf="visibleDays.length"
-    class="mx-auto max-w-7xl space-y-6"
-    [dir]="contentDirection"
-  >
+  <section *ngIf="visibleDays.length" class="mx-auto max-w-7xl space-y-6" [dir]="contentDirection">
     <div
       class="itinerary-hero relative -mx-margin-mobile mb-8 min-h-[430px] overflow-hidden bg-slate-900 bg-cover bg-center px-6 py-8 text-white md:mx-0 md:min-h-[480px] md:rounded-[30px] md:px-10 md:py-10"
-      [style.background-image]="'url(' + itineraryHeroImage + ')'"
-    >
+      [style.background-image]="'url(' + itineraryHeroImage + ')'">
       <div class="flex min-h-[365px] flex-col justify-between md:min-h-[400px]">
         <div class="flex items-center justify-between gap-4">
-          <span class="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur-md">
+          <span
+            class="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur-md">
             <span class="material-symbols-outlined text-[17px]">verified</span>
             Ready for your journey
           </span>
-          <button
-            type="button"
-            (click)="editPreferences()"
-            class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-slate-950/30 px-4 py-2 text-sm font-bold text-white backdrop-blur-md transition hover:bg-white hover:text-slate-900"
-          >
+          <button type="button" (click)="editPreferences()"
+            class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-slate-950/30 px-4 py-2 text-sm font-bold text-white backdrop-blur-md transition hover:bg-white hover:text-slate-900">
             <span class="material-symbols-outlined text-[18px]">tune</span>
             Edit preferences
           </button>
@@ -488,21 +380,125 @@
           </p>
 
           <div class="mt-6 flex flex-wrap gap-2.5">
-            <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-sm font-semibold backdrop-blur-md">
+            <span
+              class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-sm font-semibold backdrop-blur-md">
               <span class="material-symbols-outlined text-[18px]">calendar_month</span>
               {{ tripDateRange }}
             </span>
-            <span
-              *ngFor="let city of tripCities; trackBy: trackByString"
-              class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-2 text-sm font-semibold backdrop-blur-md"
-            >
+            <span *ngFor="let city of tripCities; trackBy: trackByString"
+              class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-2 text-sm font-semibold backdrop-blur-md">
               <span class="material-symbols-outlined text-[17px]">location_on</span>
               {{ city }}
             </span>
-            <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-sm font-semibold backdrop-blur-md">
+            <span
+              class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-2 text-sm font-semibold backdrop-blur-md">
               <span class="material-symbols-outlined text-[18px]">group</span>
               {{ itinerary?.travelerCount }} {{ itinerary?.travelerCount === 1 ? 'traveler' : 'travelers' }}
             </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Trip Map & Nearby Attractions Section -->
+    <div class="mb-8 overflow-hidden rounded-2xl bg-surface shadow-sm">
+      <div
+        class="p-5 border-b border-outline/10 flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-surface-container-lowest">
+        <div>
+          <h3 class="text-title-lg font-bold text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">map</span>
+            Interactive Trip Route
+          </h3>
+          <p class="text-body-sm text-on-surface-variant mt-1">
+            Explore your itinerary and find nearby attractions along the way.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 bg-surface p-1.5 rounded-2xl border border-outline/10 shadow-sm">
+          <select [(ngModel)]="searchCategory"
+            class="rounded-xl border-none bg-transparent px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer hover:bg-surface-container-low transition-colors">
+            <option *ngFor="let cat of nearbyCategories" [value]="cat.value">
+              {{ cat.label }}
+            </option>
+          </select>
+
+          <div class="w-px h-6 bg-outline/20"></div>
+
+          <select [(ngModel)]="searchRadius"
+            class="rounded-xl border-none bg-transparent px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer hover:bg-surface-container-low transition-colors">
+            <option [ngValue]="1000">1 km</option>
+            <option [ngValue]="2000">2 km</option>
+            <option [ngValue]="5000">5 km</option>
+            <option [ngValue]="10000">10 km</option>
+          </select>
+
+          <button type="button" (click)="searchNearby()" [disabled]="isSearchingNearby"
+            class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-on-primary shadow-sm transition-all hover:bg-primary-dark hover:shadow-md hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">search</span>
+            {{ isSearchingNearby ? 'Searching...' : 'Find Nearby' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-col md:flex-row h-[600px] bg-surface">
+        <!-- Leaflet Map Container -->
+        <div id="trip-map" class="h-[300px] w-full md:h-full md:flex-1 z-0 relative"></div>
+
+        <!-- Nearby Attractions List -->
+        <div
+          class="w-full md:w-[35%] lg:w-[30%] bg-surface flex flex-col h-[300px] md:h-full border-t md:border-t-0 md:border-s border-outline/10 relative z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.03)]">
+          <div
+            class="p-4 border-b border-outline/10 bg-surface-container-lowest sticky top-0 z-10 flex justify-between items-center shadow-sm">
+            <h4 class="font-bold text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-[20px]">explore</span>
+              Nearby Discoveries
+            </h4>
+            <span class="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-bold tracking-wide">
+              {{ nearbyAttractions().length }} places
+            </span>
+          </div>
+
+          <div class="flex-1 overflow-y-auto">
+            <div *ngIf="!nearbyAttractions().length && !isSearchingNearby"
+              class="p-8 text-center text-on-surface-variant flex flex-col items-center justify-center h-full">
+              <div class="w-16 h-16 mb-4 rounded-full bg-surface-container flex items-center justify-center">
+                <span class="material-symbols-outlined text-3xl text-on-surface-variant/50">travel_explore</span>
+              </div>
+              <p class="font-medium">Discover Your Surroundings</p>
+              <p class="text-sm mt-1 opacity-80">Click "Find Nearby" to explore places around your itinerary.</p>
+            </div>
+
+            <div *ngIf="isSearchingNearby"
+              class="p-8 text-center text-primary flex flex-col items-center justify-center h-full">
+              <span class="material-symbols-outlined text-4xl mb-4 animate-spin">progress_activity</span>
+              <p class="font-bold">Scanning the area...</p>
+              <p class="text-sm mt-1 text-on-surface-variant">Looking for the best spots</p>
+            </div>
+
+            <div class="divide-y divide-outline/5" *ngIf="!isSearchingNearby && nearbyAttractions().length > 0">
+              <button *ngFor="let place of nearbyAttractions()" (click)="focusAttraction(place)"
+                class="w-full text-left p-4 hover:bg-surface-container-lowest transition-colors flex gap-4 group">
+                <div
+                  class="flex-shrink-0 mt-0.5 h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shadow-sm group-hover:bg-primary group-hover:text-on-primary transition-colors">
+                  <span class="material-symbols-outlined text-[20px]">
+                    {{ getCategoryIcon(place.category) }}
+                  </span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <h5 class="font-bold text-on-surface text-sm group-hover:text-primary transition-colors truncate">{{
+                    place.name }}</h5>
+                  <div class="flex items-center gap-2 mt-1">
+                    <p *ngIf="place.category" class="text-xs text-on-surface-variant capitalize">{{ place.category }}
+                    </p>
+                    <span *ngIf="place.category && place.distance" class="w-1 h-1 rounded-full bg-outline/30"></span>
+                    <p *ngIf="place.distance"
+                      class="text-xs text-on-surface-variant font-medium flex items-center gap-1">
+                      <span class="material-symbols-outlined text-[14px]">straighten</span>
+                      {{ place.distance }}m
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -512,53 +508,50 @@
       <div>
         <span class="text-label-sm uppercase tracking-[0.18em] text-primary">
           {{
-            planText(
-              'Validated itinerary',
-              'خط سير تم التحقق منه'
-            )
+          planText(
+          'Validated itinerary',
+          'خط سير تم التحقق منه'
+          )
           }}
         </span>
         <h3 class="mt-1 text-headline-md text-on-surface">
           {{
-            planText(
-              'Your practical day-by-day plan',
-              'خطتك العملية يوماً بيوم'
-            )
+          planText(
+          'Your practical day-by-day plan',
+          'خطتك العملية يوماً بيوم'
+          )
           }}
         </h3>
       </div>
 
-      <div
-        *ngIf="itinerary"
-        class="rounded-2xl bg-secondary-container px-5 py-3 text-on-secondary-container"
-      >
+      <div *ngIf="itinerary" class="rounded-2xl bg-secondary-container px-5 py-3 text-on-secondary-container">
         <p class="text-label-sm opacity-75">
           {{
-            planText(
-              itinerary.isCompleteCostEstimate
-                ? 'Complete planning estimate'
-                : 'Known-cost estimate',
-              itinerary.isCompleteCostEstimate
-                ? 'التكلفة التقديرية الكاملة'
-                : 'تقدير التكاليف المعروفة'
-            )
+          planText(
+          itinerary.isCompleteCostEstimate
+          ? 'Complete planning estimate'
+          : 'Known-cost estimate',
+          itinerary.isCompleteCostEstimate
+          ? 'التكلفة التقديرية الكاملة'
+          : 'تقدير التكاليف المعروفة'
+          )
           }}
         </p>
         <strong class="text-title-lg">
           {{
-            itinerary.estimatedTotalCost
-              | currency:itinerary.currencyCode
+          itinerary.estimatedTotalCost
+          | currency:itinerary.currencyCode
           }}
         </strong>
         <p class="mt-1 text-xs">
           {{ itinerary.travelerCount }}
           {{
-            planText(
-              itinerary.travelerCount === 1
-                ? 'traveler'
-                : 'travelers',
-              'مسافر'
-            )
+          planText(
+          itinerary.travelerCount === 1
+          ? 'traveler'
+          : 'travelers',
+          'مسافر'
+          )
           }}
           <ng-container *ngIf="itinerary.unknownCostItemCount > 0">
             · {{ itinerary.unknownCostItemCount }}
@@ -568,10 +561,7 @@
       </div>
     </div>
 
-    <div
-      *ngIf="usesQualitySafeguards; else legacyQualityNotice"
-      class="grid gap-3 sm:grid-cols-3"
-    >
+    <div *ngIf="usesQualitySafeguards; else legacyQualityNotice" class="grid gap-3 sm:grid-cols-3">
       <div class="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
         <span class="material-symbols-outlined text-emerald-600">
           location_on
@@ -582,10 +572,10 @@
           </strong>
           <span class="mt-1 block text-body-sm text-on-surface-variant">
             {{
-              planText(
-                'Every suggested venue is matched to the trip destination.',
-                'تمت مطابقة كل مكان مقترح مع وجهة الرحلة.'
-              )
+            planText(
+            'Every suggested venue is matched to the trip destination.',
+            'تمت مطابقة كل مكان مقترح مع وجهة الرحلة.'
+            )
             }}
           </span>
         </div>
@@ -601,10 +591,10 @@
           </strong>
           <span class="mt-1 block text-body-sm text-on-surface-variant">
             {{
-              planText(
-                'Restaurants and attractions are not repeated.',
-                'لا تتكرر المطاعم أو المعالم في الخطة.'
-              )
+            planText(
+            'Restaurants and attractions are not repeated.',
+            'لا تتكرر المطاعم أو المعالم في الخطة.'
+            )
             }}
           </span>
         </div>
@@ -620,10 +610,10 @@
           </strong>
           <span class="mt-1 block text-body-sm text-on-surface-variant">
             {{
-              planText(
-                'Date-specific hotel ranges include a direct booking link.',
-                'نطاقات أسعار الفنادق مرتبطة بالتواريخ وتشمل رابط حجز مباشر.'
-              )
+            planText(
+            'Date-specific hotel ranges include a direct booking link.',
+            'نطاقات أسعار الفنادق مرتبطة بالتواريخ وتشمل رابط حجز مباشر.'
+            )
             }}
           </span>
         </div>
@@ -638,35 +628,30 @@
         <div>
           <strong class="block text-label-lg">
             {{
-              planText(
-                'Regenerate to apply the new accuracy safeguards',
-                'أعد الإنشاء لتطبيق ضوابط الدقة الجديدة'
-              )
+            planText(
+            'Regenerate to apply the new accuracy safeguards',
+            'أعد الإنشاء لتطبيق ضوابط الدقة الجديدة'
+            )
             }}
           </strong>
           <p class="mt-1 text-body-sm text-on-surface-variant">
             {{
-              planText(
-                'This saved plan was created before destination, duplicate-place, language and lodging-price validation was added.',
-                'تم إنشاء هذه الخطة قبل إضافة التحقق من الوجهة وتكرار الأماكن واللغة وأسعار الإقامة.'
-              )
+            planText(
+            'This saved plan was created before destination, duplicate-place, language and lodging-price validation was
+            added.',
+            'تم إنشاء هذه الخطة قبل إضافة التحقق من الوجهة وتكرار الأماكن واللغة وأسعار الإقامة.'
+            )
             }}
           </p>
         </div>
       </div>
     </ng-template>
 
-    <article
-      *ngFor="let day of visibleDays; trackBy: trackById"
-      class="day-card overflow-hidden rounded-[26px] border border-outline-variant/25 bg-surface-container-lowest shadow-sm"
-    >
+    <article *ngFor="let day of visibleDays; trackBy: trackById"
+      class="day-card overflow-hidden rounded-[26px] border border-outline-variant/25 bg-surface-container-lowest shadow-sm">
       <div class="day-cover relative overflow-hidden bg-slate-200">
-        <img
-          [src]="dayImage(day)"
-          [alt]="day.title"
-          loading="lazy"
-          class="absolute inset-0 h-full w-full object-cover"
-        />
+        <img [src]="dayImage(day)" [alt]="day.title" loading="lazy"
+          class="absolute inset-0 h-full w-full object-cover" />
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/10 to-transparent"></div>
         <div class="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 text-white md:p-7">
           <div>
@@ -675,15 +660,18 @@
             </span>
             <h4 class="mt-1 text-2xl font-bold md:text-3xl">{{ day.title }}</h4>
           </div>
-          <span class="shrink-0 rounded-full border border-white/25 bg-slate-950/30 px-3 py-1.5 text-xs font-bold backdrop-blur">
+          <span
+            class="shrink-0 rounded-full border border-white/25 bg-slate-950/30 px-3 py-1.5 text-xs font-bold backdrop-blur">
             {{ formatPlanDate(day.date) }}
           </span>
         </div>
       </div>
 
-      <header class="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant/20 bg-surface-container-low px-5 py-5 md:px-7">
+      <header
+        class="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant/20 bg-surface-container-low px-5 py-5 md:px-7">
         <div class="flex items-start gap-4">
-          <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-title-md font-bold text-on-primary">
+          <span
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-title-md font-bold text-on-primary">
             {{ day.dayNumber }}
           </span>
           <div>
@@ -693,10 +681,7 @@
             <h4 class="mt-1 text-title-lg text-on-surface">
               {{ day.title }}
             </h4>
-            <p
-              *ngIf="day.notes"
-              class="mt-1 text-body-sm text-on-surface-variant"
-            >
+            <p *ngIf="day.notes" class="mt-1 text-body-sm text-on-surface-variant">
               {{ day.notes }}
             </p>
           </div>
@@ -711,16 +696,12 @@
       </header>
 
       <div class="space-y-4 p-5 md:p-7">
-        <ng-container
-          *ngFor="let item of day.items; let itemIndex = index; trackBy: trackById"
-        >
-          <div
-            *ngIf="
+        <ng-container *ngFor="let item of day.items; let itemIndex = index; trackBy: trackById">
+          <div *ngIf="
               item.routeDistanceMeters !== null &&
               item.routeDurationMinutes !== null
             "
-            class="mx-3 flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/25 bg-primary/5 px-4 py-3 text-label-sm text-on-surface-variant"
-          >
+            class="mx-3 flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/25 bg-primary/5 px-4 py-3 text-label-sm text-on-surface-variant">
             <span class="material-symbols-outlined text-[19px] text-primary">
               {{ routeModeIcon(item.routeTravelMode) }}
             </span>
@@ -738,475 +719,368 @@
               {{ item.routeDurationMinutes }}
               {{ planText('min', 'دقيقة') }}
             </span>
-            <span
-              *ngIf="item.routeTransitDetails"
-              class="rounded-full bg-surface px-2.5 py-1"
-            >
+            <span *ngIf="item.routeTransitDetails" class="rounded-full bg-surface px-2.5 py-1">
               {{ item.routeTransitDetails }}
             </span>
           </div>
 
           <article
-            class="group overflow-hidden rounded-2xl border border-outline-variant/25 bg-surface transition hover:border-primary/30 hover:shadow-md md:flex"
-          >
-          <section
-            *ngIf="isFlight(item)"
-            class="flight-ticket min-w-0 flex-1 p-4"
-          >
-            <header class="flex flex-wrap items-center justify-between gap-3">
-              <div class="flex min-w-0 items-center gap-3">
-                <span class="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/15 bg-white text-primary shadow-sm">
-                  <span class="material-symbols-outlined">flight</span>
-                  <img
-                    *ngIf="shouldShowPhoto(item.photoUrl)"
-                    [src]="item.photoUrl"
-                    [alt]="flightDetail(item, 0) || 'Airline'"
-                    (error)="handlePhotoError(item.photoUrl)"
-                    loading="lazy"
-                    referrerpolicy="no-referrer"
-                    class="absolute inset-0 h-full w-full object-contain p-1.5"
-                  />
-                </span>
-                <div class="min-w-0">
-                  <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-primary">
-                    <span class="material-symbols-outlined text-[14px]">airplane_ticket</span>
-                    Flight
+            class="group overflow-hidden rounded-2xl border border-outline-variant/25 bg-surface transition hover:border-primary/30 hover:shadow-md md:flex">
+            <section *ngIf="isFlight(item)" class="flight-ticket min-w-0 flex-1 p-4">
+              <header class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span
+                    class="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/15 bg-white text-primary shadow-sm">
+                    <span class="material-symbols-outlined">flight</span>
+                    <img *ngIf="shouldShowPhoto(item.photoUrl)" [src]="item.photoUrl"
+                      [alt]="flightDetail(item, 0) || 'Airline'" (error)="handlePhotoError(item.photoUrl)"
+                      loading="lazy" referrerpolicy="no-referrer"
+                      class="absolute inset-0 h-full w-full object-contain p-1.5" />
                   </span>
-                  <h5 class="mt-1.5 text-title-md font-bold text-on-surface">
-                    {{ item.title }}
-                  </h5>
+                  <div class="min-w-0">
+                    <span
+                      class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-primary">
+                      <span class="material-symbols-outlined text-[14px]">airplane_ticket</span>
+                      Flight
+                    </span>
+                    <h5 class="mt-1.5 text-title-md font-bold text-on-surface">
+                      {{ item.title }}
+                    </h5>
+                  </div>
                 </div>
-              </div>
 
-              <span
-                class="rounded-full px-3 py-1.5 text-xs font-bold"
-                [ngClass]="
+                <span class="rounded-full px-3 py-1.5 text-xs font-bold" [ngClass]="
                   item.estimatedCost !== null
                     ? 'bg-emerald-50 text-emerald-700'
                     : 'bg-amber-50 text-amber-700'
-                "
-              >
-                {{ item.estimatedCost !== null ? 'Verified fare' : 'Fare unavailable' }}
-              </span>
-            </header>
+                ">
+                  {{ item.estimatedCost !== null ? 'Verified fare' : 'Fare unavailable' }}
+                </span>
+              </header>
 
-            <div class="flight-route-board mt-4 grid grid-cols-[minmax(0,1fr)_minmax(8rem,1.65fr)_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-primary/10 bg-white/85 px-4 py-3 shadow-sm md:gap-5 md:px-5">
-              <div class="min-w-0">
-                <span class="mb-1 block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                  Departure
-                </span>
-                <strong class="block text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
-                  {{ flightDepartureCode(item) }}
-                </strong>
-                <span class="mt-1 block text-sm font-bold text-primary">
-                  {{ item.startTime || '—' }}
-                </span>
-                <span class="mt-1 block truncate text-xs text-slate-500" [title]="item.flightDepartureAirportName || 'Departure'">
-                  {{ item.flightDepartureAirportName || planText('Departure', 'المغادرة') }}
-                </span>
-              </div>
-
-              <div class="min-w-0 px-1 text-center">
-                <span class="inline-flex rounded-full bg-primary/5 px-2.5 py-1 text-[11px] font-bold text-primary">
-                  {{ flightDuration(item) }}
-                </span>
-                <div class="flight-route-line relative my-1 h-12">
-                  <span class="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-primary/20"></span>
-                  <span class="absolute left-0 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-[3px] border-primary bg-white shadow-sm"></span>
-                  <span class="absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-[3px] border-primary bg-white shadow-sm"></span>
-                  <span class="absolute left-1/2 top-1/2 grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-4 border-white bg-primary text-white shadow-lg ring-1 ring-primary/15">
-                    <span class="material-symbols-outlined rotate-90 text-[27px]">flight</span>
+              <div
+                class="flight-route-board mt-4 grid grid-cols-[minmax(0,1fr)_minmax(8rem,1.65fr)_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-primary/10 bg-white/85 px-4 py-3 shadow-sm md:gap-5 md:px-5">
+                <div class="min-w-0">
+                  <span class="mb-1 block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                    Departure
                   </span>
-                </div>
-                <span class="block truncate text-xs font-semibold text-slate-500">
-                  {{ flightStops(item) }}
-                </span>
-              </div>
-
-              <div class="min-w-0 text-right">
-                <span class="mb-1 block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                  Arrival
-                </span>
-                <strong class="block text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
-                  {{ flightArrivalCode(item) }}
-                </strong>
-                <span class="mt-1 block text-sm font-bold text-primary">
-                  {{ item.endTime || '—' }}
-                </span>
-                <span class="mt-1 block truncate text-xs text-slate-500" [title]="item.flightArrivalAirportName || 'Arrival'">
-                  {{ item.flightArrivalAirportName || planText('Arrival', 'الوصول') }}
-                </span>
-              </div>
-            </div>
-
-            <footer class="mt-4 flex flex-wrap items-center gap-2.5 border-t border-primary/15 pt-3">
-              <div class="mr-auto flex flex-wrap items-center gap-3">
-                <div>
-                  <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                    Flight fare
-                  </span>
-                  <strong
-                    *ngIf="item.estimatedCost !== null"
-                    class="text-lg font-extrabold text-primary"
-                  >
-                    {{ item.estimatedCost | currency:displayCurrency }}
+                  <strong class="block text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
+                    {{ flightDepartureCode(item) }}
                   </strong>
-                </div>
-                <div class="flex flex-wrap gap-1.5 text-[11px]">
-                  <span
-                    *ngIf="flightDetail(item, 0)"
-                    class="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-600"
-                  >
-                    {{ flightDetail(item, 0) }}
+                  <span class="mt-1 block text-sm font-bold text-primary">
+                    {{ item.startTime || '—' }}
                   </span>
-                  <span
-                    *ngIf="flightDetail(item, 1)"
-                    class="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-600"
-                  >
-                    {{ flightDetail(item, 1) }}
+                  <span class="mt-1 block truncate text-xs text-slate-500"
+                    [title]="item.flightDepartureAirportName || 'Departure'">
+                    {{ item.flightDepartureAirportName || planText('Departure', 'المغادرة') }}
+                  </span>
+                </div>
+
+                <div class="min-w-0 px-1 text-center">
+                  <span class="inline-flex rounded-full bg-primary/5 px-2.5 py-1 text-[11px] font-bold text-primary">
+                    {{ flightDuration(item) }}
+                  </span>
+                  <div class="flight-route-line relative my-1 h-12">
+                    <span class="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-primary/20"></span>
+                    <span
+                      class="absolute left-0 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-[3px] border-primary bg-white shadow-sm"></span>
+                    <span
+                      class="absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-[3px] border-primary bg-white shadow-sm"></span>
+                    <span
+                      class="absolute left-1/2 top-1/2 grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-4 border-white bg-primary text-white shadow-lg ring-1 ring-primary/15">
+                      <span class="material-symbols-outlined rotate-90 text-[27px]">flight</span>
+                    </span>
+                  </div>
+                  <span class="block truncate text-xs font-semibold text-slate-500">
+                    {{ flightStops(item) }}
+                  </span>
+                </div>
+
+                <div class="min-w-0 text-right">
+                  <span class="mb-1 block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                    Arrival
+                  </span>
+                  <strong class="block text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
+                    {{ flightArrivalCode(item) }}
+                  </strong>
+                  <span class="mt-1 block text-sm font-bold text-primary">
+                    {{ item.endTime || '—' }}
+                  </span>
+                  <span class="mt-1 block truncate text-xs text-slate-500"
+                    [title]="item.flightArrivalAirportName || 'Arrival'">
+                    {{ item.flightArrivalAirportName || planText('Arrival', 'الوصول') }}
                   </span>
                 </div>
               </div>
 
-              <a
-                *ngIf="item.externalUrl"
-                [href]="item.externalUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700"
-              >
-                View flight options
-                <span class="material-symbols-outlined text-[17px]">open_in_new</span>
-              </a>
-
-              <button
-                type="button"
-                (click)="startEdit(day, item)"
-                [disabled]="isSaving"
-                class="inline-flex items-center gap-1.5 rounded-xl border border-primary/25 bg-white px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/5 disabled:opacity-50"
-              >
-                <span class="material-symbols-outlined text-[17px]">edit</span>
-                Change
-              </button>
-              <button
-                type="button"
-                (click)="deleteItem(item)"
-                [disabled]="isSaving"
-                class="grid h-9 w-9 place-items-center rounded-xl border border-red-200 bg-white text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                aria-label="Delete flight"
-              >
-                <span class="material-symbols-outlined text-[18px]">delete</span>
-              </button>
-            </footer>
-          </section>
-
-          <div
-            *ngIf="!isFlight(item) && shouldShowPhoto(item.photoUrl)"
-            class="h-52 w-full shrink-0 overflow-hidden bg-surface-container-high md:h-auto md:min-h-48 md:w-56"
-          >
-            <img
-              [src]="item.photoUrl"
-              [alt]="item.title"
-              (error)="handlePhotoError(item.photoUrl)"
-              loading="lazy"
-              referrerpolicy="no-referrer"
-              class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-            />
-          </div>
-          <div
-            *ngIf="!isFlight(item)"
-            class="min-w-0 flex-1 p-4 md:p-5"
-          >
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="rounded-full bg-primary-container px-2.5 py-1 text-xs font-semibold text-on-primary-container">
-                    <span class="inline-flex items-center gap-1">
-                      <span class="material-symbols-outlined text-[15px]">
-                        {{ categoryIcon(item.category) }}
-                      </span>
-                      {{ categoryLabel(item.category) }}
+              <footer class="mt-4 flex flex-wrap items-center gap-2.5 border-t border-primary/15 pt-3">
+                <div class="mr-auto flex flex-wrap items-center gap-3">
+                  <div>
+                    <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Flight fare
                     </span>
-                  </span>
-                  <span
-                    *ngIf="item.startTime"
-                    class="text-label-sm text-on-surface-variant"
-                  >
-                    {{ item.startTime }}
-                    <ng-container *ngIf="item.endTime">
-                      – {{ item.endTime }}
-                    </ng-container>
-                  </span>
-                  <span
-                    *ngIf="item.rating !== null"
-                    class="flex items-center gap-1 text-label-sm text-on-surface-variant"
-                  >
-                    <span class="material-symbols-outlined text-[17px] text-amber-500">
-                      star
+                    <strong *ngIf="item.estimatedCost !== null" class="text-lg font-extrabold text-primary">
+                      {{ item.estimatedCost | currency:displayCurrency }}
+                    </strong>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5 text-[11px]">
+                    <span *ngIf="flightDetail(item, 0)"
+                      class="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-600">
+                      {{ flightDetail(item, 0) }}
                     </span>
-                    {{ item.rating }}
-                  </span>
+                    <span *ngIf="flightDetail(item, 1)"
+                      class="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-600">
+                      {{ flightDetail(item, 1) }}
+                    </span>
+                  </div>
                 </div>
 
-                <h5 class="mt-2 text-title-md font-semibold text-on-surface">
-                  {{ item.title }}
-                </h5>
-              </div>
+                <a *ngIf="item.externalUrl" [href]="item.externalUrl" target="_blank" rel="noopener noreferrer"
+                  class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700">
+                  View flight options
+                  <span class="material-symbols-outlined text-[17px]">open_in_new</span>
+                </a>
 
-              <strong
-                *ngIf="item.estimatedCost !== null"
-                class="text-right text-primary"
-              >
-                <span class="block">
-                  {{ item.estimatedCost | currency:displayCurrency }}
-                </span>
-                <span
-                  *ngIf="item.costSource === 'live_hotel_rate'"
-                  class="mt-0.5 block text-[11px] font-medium text-on-surface-variant"
-                >
-                  {{
-                    planText(
-                      'live total stay',
-                      'إجمالي الإقامة المباشر'
-                    )
-                  }}
-                </span>
-                <span
-                  *ngIf="item.costSource === 'live_flight_price'"
-                  class="mt-0.5 block text-[11px] font-medium text-on-surface-variant"
-                >
-                  {{
-                    planText(
-                      'live Google Flights fare',
-                      'سعر مباشر من Google Flights'
-                    )
-                  }}
-                </span>
-              </strong>
-              <span
-                *ngIf="item.estimatedCost === null"
-                class="rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-700"
-              >
-                {{ planText('Cost unavailable', 'التكلفة غير متاحة') }}
-              </span>
+                <button type="button" (click)="startEdit(day, item)" [disabled]="isSaving"
+                  class="inline-flex items-center gap-1.5 rounded-xl border border-primary/25 bg-white px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/5 disabled:opacity-50">
+                  <span class="material-symbols-outlined text-[17px]">edit</span>
+                  Change
+                </button>
+                <button type="button" (click)="deleteItem(item)" [disabled]="isSaving"
+                  class="grid h-9 w-9 place-items-center rounded-xl border border-red-200 bg-white text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                  aria-label="Delete flight">
+                  <span class="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+              </footer>
+            </section>
+
+            <div *ngIf="!isFlight(item) && shouldShowPhoto(item.photoUrl)"
+              class="h-52 w-full shrink-0 overflow-hidden bg-surface-container-high md:h-auto md:min-h-48 md:w-56">
+              <img [src]="item.photoUrl" [alt]="item.title" (error)="handlePhotoError(item.photoUrl)" loading="lazy"
+                referrerpolicy="no-referrer"
+                class="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
             </div>
+            <div *ngIf="!isFlight(item)" class="min-w-0 flex-1 p-4 md:p-5">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span
+                      class="rounded-full bg-primary-container px-2.5 py-1 text-xs font-semibold text-on-primary-container">
+                      <span class="inline-flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[15px]">
+                          {{ categoryIcon(item.category) }}
+                        </span>
+                        {{ categoryLabel(item.category) }}
+                      </span>
+                    </span>
+                    <span *ngIf="item.startTime" class="text-label-sm text-on-surface-variant">
+                      {{ item.startTime }}
+                      <ng-container *ngIf="item.endTime">
+                        – {{ item.endTime }}
+                      </ng-container>
+                    </span>
+                    <span *ngIf="item.rating !== null"
+                      class="flex items-center gap-1 text-label-sm text-on-surface-variant">
+                      <span class="material-symbols-outlined text-[17px] text-amber-500">
+                        star
+                      </span>
+                      {{ item.rating }}
+                    </span>
+                  </div>
 
-            <p
-              *ngIf="item.description"
-              class="mt-2 text-body-md text-on-surface-variant"
-            >
-              {{ item.description }}
-            </p>
+                  <h5 class="mt-2 text-title-md font-semibold text-on-surface">
+                    {{ item.title }}
+                  </h5>
+                </div>
 
-            <div
-              *ngIf="
+                <strong *ngIf="item.estimatedCost !== null" class="text-right text-primary">
+                  <span class="block">
+                    {{ item.estimatedCost | currency:displayCurrency }}
+                  </span>
+                  <span *ngIf="item.costSource === 'live_hotel_rate'"
+                    class="mt-0.5 block text-[11px] font-medium text-on-surface-variant">
+                    {{
+                    planText(
+                    'live total stay',
+                    'إجمالي الإقامة المباشر'
+                    )
+                    }}
+                  </span>
+                  <span *ngIf="item.costSource === 'live_flight_price'"
+                    class="mt-0.5 block text-[11px] font-medium text-on-surface-variant">
+                    {{
+                    planText(
+                    'live Google Flights fare',
+                    'سعر مباشر من Google Flights'
+                    )
+                    }}
+                  </span>
+                </strong>
+                <span *ngIf="item.estimatedCost === null"
+                  class="rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-700">
+                  {{ planText('Cost unavailable', 'التكلفة غير متاحة') }}
+                </span>
+              </div>
+
+              <p *ngIf="item.description" class="mt-2 text-body-md text-on-surface-variant">
+                {{ item.description }}
+              </p>
+
+              <div *ngIf="
                 item.priceLevel ||
                 item.ratePerNight !== null ||
                 item.priceSource
-              "
-              class="mt-3 flex flex-wrap items-center gap-2 text-label-sm"
-            >
-              <span
-                *ngIf="item.priceLevel"
-                class="rounded-full bg-emerald-500/10 px-3 py-1.5 font-semibold text-emerald-700"
-              >
-                {{
+              " class="mt-3 flex flex-wrap items-center gap-2 text-label-sm">
+                <span *ngIf="item.priceLevel"
+                  class="rounded-full bg-emerald-500/10 px-3 py-1.5 font-semibold text-emerald-700">
+                  {{
                   planText(
-                    'Local price level',
-                    'مستوى السعر المحلي'
+                  'Local price level',
+                  'مستوى السعر المحلي'
                   )
-                }}:
-                {{ item.priceLevel }}
-              </span>
-              <span
-                *ngIf="item.ratePerNight !== null"
-                class="rounded-full bg-primary/10 px-3 py-1.5 font-semibold text-primary"
-              >
-                {{
+                  }}:
+                  {{ item.priceLevel }}
+                </span>
+                <span *ngIf="item.ratePerNight !== null"
+                  class="rounded-full bg-primary/10 px-3 py-1.5 font-semibold text-primary">
+                  {{
                   planText(
-                    'Approx. nightly range',
-                    'نطاق السعر التقريبي لليلة'
+                  'Approx. nightly range',
+                  'نطاق السعر التقريبي لليلة'
                   )
-                }}:
-                {{
+                  }}:
+                  {{
                   hotelRangeLow(item.ratePerNight)
-                    | currency:displayCurrency
-                }}
-                –
-                {{
+                  | currency:displayCurrency
+                  }}
+                  –
+                  {{
                   hotelRangeHigh(item.ratePerNight)
-                    | currency:displayCurrency
-                }}
-              </span>
-              <span
-                *ngIf="
+                  | currency:displayCurrency
+                  }}
+                </span>
+                <span *ngIf="
                   item.ratePerNight !== null &&
                   item.stayNights !== null
-                "
-                class="rounded-full bg-primary/5 px-3 py-1.5 font-semibold text-primary"
-              >
-                × {{ item.stayNights }}
-                {{
+                " class="rounded-full bg-primary/5 px-3 py-1.5 font-semibold text-primary">
+                  × {{ item.stayNights }}
+                  {{
                   planText(
-                    item.stayNights === 1 ? 'night' : 'nights',
-                    item.stayNights === 1 ? 'ليلة' : 'ليالٍ'
+                  item.stayNights === 1 ? 'night' : 'nights',
+                  item.stayNights === 1 ? 'ليلة' : 'ليالٍ'
                   )
-                }}
-              </span>
-              <span
-                *ngIf="item.priceSource"
-                class="text-on-surface-variant"
-              >
-                {{
+                  }}
+                </span>
+                <span *ngIf="item.priceSource" class="text-on-surface-variant">
+                  {{
                   planText(
-                    'Rate source',
-                    'مصدر السعر'
+                  'Rate source',
+                  'مصدر السعر'
                   )
-                }}:
-                {{ item.priceSource }}
-              </span>
-            </div>
+                  }}:
+                  {{ item.priceSource }}
+                </span>
+              </div>
 
-            <div class="mt-3 space-y-1 text-body-sm text-on-surface-variant">
-              <p *ngIf="item.location" class="flex items-start gap-2">
-                <span class="material-symbols-outlined text-[18px] text-primary">
-                  location_on
-                </span>
-                <span>{{ item.location }}</span>
-              </p>
-              <p *ngIf="item.address" class="flex items-start gap-2">
-                <span class="material-symbols-outlined text-[18px] text-primary">
-                  map
-                </span>
-                <span>{{ item.address }}</span>
-              </p>
-            </div>
+              <div class="mt-3 space-y-1 text-body-sm text-on-surface-variant">
+                <p *ngIf="item.location" class="flex items-start gap-2">
+                  <span class="material-symbols-outlined text-[18px] text-primary">
+                    location_on
+                  </span>
+                  <span>{{ item.location }}</span>
+                </p>
+                <p *ngIf="item.address" class="flex items-start gap-2">
+                  <span class="material-symbols-outlined text-[18px] text-primary">
+                    map
+                  </span>
+                  <span>{{ item.address }}</span>
+                </p>
+              </div>
 
-            <div class="mt-4 flex flex-wrap items-center gap-2">
-              <a
-                *ngIf="item.googleMapsUrl"
-                [href]="item.googleMapsUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="flex items-center gap-1.5 rounded-full bg-primary px-3 py-2 text-label-sm text-on-primary transition hover:opacity-90"
-              >
-                <span class="material-symbols-outlined text-[18px]">
-                  directions
-                </span>
-                Open map
-              </a>
+              <div class="mt-4 flex flex-wrap items-center gap-2">
+                <a *ngIf="item.googleMapsUrl" [href]="item.googleMapsUrl" target="_blank" rel="noopener noreferrer"
+                  class="flex items-center gap-1.5 rounded-full bg-primary px-3 py-2 text-label-sm text-on-primary transition hover:opacity-90">
+                  <span class="material-symbols-outlined text-[18px]">
+                    directions
+                  </span>
+                  Open map
+                </a>
 
-              <a
-                *ngIf="item.externalUrl"
-                [href]="item.externalUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="flex items-center gap-1.5 rounded-full border border-primary/30 px-3 py-2 text-label-sm font-semibold text-primary transition hover:bg-primary/5"
-              >
-                <span class="material-symbols-outlined text-[18px]">
-                  open_in_new
-                </span>
-                {{
+                <a *ngIf="item.externalUrl" [href]="item.externalUrl" target="_blank" rel="noopener noreferrer"
+                  class="flex items-center gap-1.5 rounded-full border border-primary/30 px-3 py-2 text-label-sm font-semibold text-primary transition hover:bg-primary/5">
+                  <span class="material-symbols-outlined text-[18px]">
+                    open_in_new
+                  </span>
+                  {{
                   planText(
-                    item.category === 'accommodation'
-                      ? 'View hotel / booking'
-                      : item.costSource === 'live_flight_price'
-                        ? 'View flight options'
-                        : 'View source',
-                    'عرض المصدر'
+                  item.category === 'accommodation'
+                  ? 'View hotel / booking'
+                  : item.costSource === 'live_flight_price'
+                  ? 'View flight options'
+                  : 'View source',
+                  'عرض المصدر'
                   )
-                }}
-              </a>
+                  }}
+                </a>
 
-              <button
-                *ngIf="canRecommendItem(item)"
-                type="button"
-                (click)="toggleVenueSuggestions(item)"
-                [disabled]="
+                <button *ngIf="canRecommendItem(item)" type="button" (click)="toggleVenueSuggestions(item)" [disabled]="
                   loadingVenueItemId === item.id ||
                   isSaving
                 "
-                class="flex items-center gap-1.5 rounded-full border border-secondary/40 bg-secondary/5 px-3 py-2 text-label-sm font-semibold text-secondary transition hover:bg-secondary/10 disabled:opacity-50"
-              >
-                <span
-                  class="material-symbols-outlined text-[18px]"
-                  [class.animate-spin]="loadingVenueItemId === item.id"
-                >
-                  {{
+                  class="flex items-center gap-1.5 rounded-full border border-secondary/40 bg-secondary/5 px-3 py-2 text-label-sm font-semibold text-secondary transition hover:bg-secondary/10 disabled:opacity-50">
+                  <span class="material-symbols-outlined text-[18px]"
+                    [class.animate-spin]="loadingVenueItemId === item.id">
+                    {{
                     loadingVenueItemId === item.id
-                      ? 'progress_activity'
-                      : categoryIcon(item.category)
-                  }}
-                </span>
-                <span>{{ changeRecommendationLabel(item) }}</span>
-              </button>
+                    ? 'progress_activity'
+                    : categoryIcon(item.category)
+                    }}
+                  </span>
+                  <span>{{ changeRecommendationLabel(item) }}</span>
+                </button>
 
-              <ng-container *ngIf="itinerary">
-                <button
-                  type="button"
-                  (click)="startEdit(day, item)"
-                  [disabled]="isSaving"
-                  class="rounded-full border border-outline-variant px-3 py-2 text-label-sm text-on-surface-variant hover:border-primary hover:text-primary disabled:opacity-50"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  (click)="moveItem(item, day, itemIndex - 1)"
-                  [disabled]="isSaving || itemIndex === 0"
-                  class="rounded-full border border-outline-variant p-2 text-on-surface-variant hover:text-primary disabled:opacity-35"
-                  aria-label="Move item earlier"
-                >
-                  <span class="material-symbols-outlined text-[18px]">
-                    arrow_upward
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  (click)="moveItem(item, day, itemIndex + 1)"
-                  [disabled]="isSaving || itemIndex === day.items.length - 1"
-                  class="rounded-full border border-outline-variant p-2 text-on-surface-variant hover:text-primary disabled:opacity-35"
-                  aria-label="Move item later"
-                >
-                  <span class="material-symbols-outlined text-[18px]">
-                    arrow_downward
-                  </span>
-                </button>
-                <button
-                  *ngIf="previousDay(day) as previous"
-                  type="button"
-                  (click)="moveItem(item, previous, previous.items.length)"
-                  [disabled]="isSaving"
-                  class="rounded-full border border-outline-variant px-3 py-2 text-label-sm text-on-surface-variant hover:text-primary disabled:opacity-50"
-                >
-                  Previous day
-                </button>
-                <button
-                  *ngIf="nextDay(day) as next"
-                  type="button"
-                  (click)="moveItem(item, next, next.items.length)"
-                  [disabled]="isSaving"
-                  class="rounded-full border border-outline-variant px-3 py-2 text-label-sm text-on-surface-variant hover:text-primary disabled:opacity-50"
-                >
-                  Next day
-                </button>
-                <button
-                  type="button"
-                  (click)="deleteItem(item)"
-                  [disabled]="isSaving"
-                  class="rounded-full px-3 py-2 text-label-sm text-error hover:bg-error-container disabled:opacity-50"
-                >
-                  Delete
-                </button>
-              </ng-container>
-            </div>
+                <ng-container *ngIf="itinerary">
+                  <button type="button" (click)="startEdit(day, item)" [disabled]="isSaving"
+                    class="rounded-full border border-outline-variant px-3 py-2 text-label-sm text-on-surface-variant hover:border-primary hover:text-primary disabled:opacity-50">
+                    Edit
+                  </button>
+                  <button type="button" (click)="moveItem(item, day, itemIndex - 1)"
+                    [disabled]="isSaving || itemIndex === 0"
+                    class="rounded-full border border-outline-variant p-2 text-on-surface-variant hover:text-primary disabled:opacity-35"
+                    aria-label="Move item earlier">
+                    <span class="material-symbols-outlined text-[18px]">
+                      arrow_upward
+                    </span>
+                  </button>
+                  <button type="button" (click)="moveItem(item, day, itemIndex + 1)"
+                    [disabled]="isSaving || itemIndex === day.items.length - 1"
+                    class="rounded-full border border-outline-variant p-2 text-on-surface-variant hover:text-primary disabled:opacity-35"
+                    aria-label="Move item later">
+                    <span class="material-symbols-outlined text-[18px]">
+                      arrow_downward
+                    </span>
+                  </button>
+                  <button *ngIf="previousDay(day) as previous" type="button"
+                    (click)="moveItem(item, previous, previous.items.length)" [disabled]="isSaving"
+                    class="rounded-full border border-outline-variant px-3 py-2 text-label-sm text-on-surface-variant hover:text-primary disabled:opacity-50">
+                    Previous day
+                  </button>
+                  <button *ngIf="nextDay(day) as next" type="button" (click)="moveItem(item, next, next.items.length)"
+                    [disabled]="isSaving"
+                    class="rounded-full border border-outline-variant px-3 py-2 text-label-sm text-on-surface-variant hover:text-primary disabled:opacity-50">
+                    Next day
+                  </button>
+                  <button type="button" (click)="deleteItem(item)" [disabled]="isSaving"
+                    class="rounded-full px-3 py-2 text-label-sm text-error hover:bg-error-container disabled:opacity-50">
+                    Delete
+                  </button>
+                </ng-container>
+              </div>
             </div>
           </article>
 
-          <section
-            *ngIf="activeVenueItemId === item.id"
-            class="recommendation-tray overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface p-4 shadow-lg"
-          >
+          <section *ngIf="activeVenueItemId === item.id"
+            class="recommendation-tray overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface p-4 shadow-lg">
             <div class="mb-3 flex items-center justify-between gap-3">
               <div>
                 <h6 class="font-semibold text-on-surface">
@@ -1216,34 +1090,20 @@
                   Live choices matched to this city and the places already in your day.
                 </p>
               </div>
-              <button
-                type="button"
-                (click)="activeVenueItemId = ''"
-                class="rounded-full p-2 hover:bg-surface"
-                aria-label="Close venue choices"
-              >
+              <button type="button" (click)="activeVenueItemId = ''" class="rounded-full p-2 hover:bg-surface"
+                aria-label="Close venue choices">
                 <span class="material-symbols-outlined">close</span>
               </button>
             </div>
 
-            <div
-              *ngIf="venueSuggestions[item.id]?.length"
-              class="flex gap-3 overflow-x-auto pb-2"
-            >
-              <article
-                *ngFor="let venue of venueSuggestions[item.id]; trackBy: trackByVenue"
-                class="w-64 shrink-0 overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface shadow-sm"
-              >
-                <div class="relative flex h-32 items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/15 text-primary">
-                  <img
-                    *ngIf="shouldShowPhoto(venue.photoUrl)"
-                    [src]="venue.photoUrl"
-                    [alt]="venue.name"
-                    (error)="handlePhotoError(venue.photoUrl)"
-                    loading="lazy"
-                    referrerpolicy="no-referrer"
-                    class="absolute inset-0 h-full w-full object-cover transition duration-500 hover:scale-105"
-                  />
+            <div *ngIf="venueSuggestions[item.id]?.length" class="flex gap-3 overflow-x-auto pb-2">
+              <article *ngFor="let venue of venueSuggestions[item.id]; trackBy: trackByVenue"
+                class="w-64 shrink-0 overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface shadow-sm">
+                <div
+                  class="relative flex h-32 items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/15 text-primary">
+                  <img *ngIf="shouldShowPhoto(venue.photoUrl)" [src]="venue.photoUrl" [alt]="venue.name"
+                    (error)="handlePhotoError(venue.photoUrl)" loading="lazy" referrerpolicy="no-referrer"
+                    class="absolute inset-0 h-full w-full object-cover transition duration-500 hover:scale-105" />
                   <span class="material-symbols-outlined text-[34px]">
                     {{ categoryIcon(item.category) }}
                   </span>
@@ -1253,87 +1113,62 @@
                     <strong class="line-clamp-2 text-sm">
                       {{ venue.name }}
                     </strong>
-                    <span
-                      *ngIf="venue.rating !== null"
-                      class="shrink-0 text-xs text-amber-700"
-                    >
+                    <span *ngIf="venue.rating !== null" class="shrink-0 text-xs text-amber-700">
                       ★ {{ venue.rating }}
                     </span>
                   </div>
                   <p class="mt-1 line-clamp-2 text-xs text-on-surface-variant">
                     {{ venue.address }}
                   </p>
-                  <p
-                    *ngIf="venue.totalRate !== null"
-                    class="mt-2 font-semibold text-primary"
-                  >
+                  <p *ngIf="venue.totalRate !== null" class="mt-2 font-semibold text-primary">
                     {{ venue.totalRate | currency:displayCurrency }}
                     {{
-                      planText(
-                        'total stay',
-                        'إجمالي الإقامة'
-                      )
+                    planText(
+                    'total stay',
+                    'إجمالي الإقامة'
+                    )
                     }}
                   </p>
-                  <p
-                    *ngIf="venue.ratePerNight !== null"
-                    class="mt-1 text-xs font-semibold text-primary"
-                  >
+                  <p *ngIf="venue.ratePerNight !== null" class="mt-1 text-xs font-semibold text-primary">
                     {{
-                      hotelRangeLow(venue.ratePerNight)
-                        | currency:displayCurrency
+                    hotelRangeLow(venue.ratePerNight)
+                    | currency:displayCurrency
                     }}
                     –
                     {{
-                      hotelRangeHigh(venue.ratePerNight)
-                        | currency:displayCurrency
+                    hotelRangeHigh(venue.ratePerNight)
+                    | currency:displayCurrency
                     }}
                     {{ planText('per night', 'لليلة') }}
                   </p>
-                  <p
-                    *ngIf="
+                  <p *ngIf="
                       venue.totalRate === null &&
                       venue.priceLevel
-                    "
-                    class="mt-2 text-xs font-semibold text-emerald-700"
-                  >
+                    " class="mt-2 text-xs font-semibold text-emerald-700">
                     {{
-                      planText(
-                        'Price level',
-                        'مستوى السعر'
-                      )
+                    planText(
+                    'Price level',
+                    'مستوى السعر'
+                    )
                     }}:
                     {{ venue.priceLevel }}
                   </p>
                   <div class="mt-3 flex gap-2">
-                    <button
-                      type="button"
-                      (click)="chooseVenue(item, venue)"
-                      [disabled]="isSaving"
-                      class="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary disabled:opacity-50"
-                    >
+                    <button type="button" (click)="chooseVenue(item, venue)" [disabled]="isSaving"
+                      class="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary disabled:opacity-50">
                       {{ item.category === 'accommodation' ? 'Choose hotel' : 'Use this place' }}
                     </button>
-                    <a
-                      *ngIf="venue.googleMapsUrl"
-                      [href]="venue.googleMapsUrl"
-                      target="_blank"
+                    <a *ngIf="venue.googleMapsUrl" [href]="venue.googleMapsUrl" target="_blank"
                       rel="noopener noreferrer"
                       class="rounded-lg border border-outline-variant px-2.5 py-2 text-primary"
-                      aria-label="Open venue map"
-                    >
+                      aria-label="Open venue map">
                       <span class="material-symbols-outlined text-[18px]">
                         map
                       </span>
                     </a>
-                    <a
-                      *ngIf="venue.externalUrl"
-                      [href]="venue.externalUrl"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <a *ngIf="venue.externalUrl" [href]="venue.externalUrl" target="_blank" rel="noopener noreferrer"
                       class="rounded-lg border border-primary/30 px-2.5 py-2 text-primary"
-                      aria-label="Open booking link"
-                    >
+                      aria-label="Open booking link">
                       <span class="material-symbols-outlined text-[18px]">
                         open_in_new
                       </span>
@@ -1345,21 +1180,14 @@
 
           </section>
 
-          <ng-container
-            *ngIf="editingItemId === item.id"
-            [ngTemplateOutlet]="itemEditor"
-          ></ng-container>
+          <ng-container *ngIf="editingItemId === item.id" [ngTemplateOutlet]="itemEditor"></ng-container>
         </ng-container>
 
-        <ng-container
-          *ngIf="addingDayId === day.id && addItemStep === 'manual'"
-          [ngTemplateOutlet]="itemEditor"
-        ></ng-container>
+        <ng-container *ngIf="addingDayId === day.id && addItemStep === 'manual'"
+          [ngTemplateOutlet]="itemEditor"></ng-container>
 
-        <section
-          *ngIf="addingDayId === day.id && addItemStep === 'category'"
-          class="add-item-panel rounded-3xl border border-primary/15 bg-surface p-5 shadow-sm md:p-6"
-        >
+        <section *ngIf="addingDayId === day.id && addItemStep === 'category'"
+          class="add-item-panel rounded-3xl border border-primary/15 bg-surface p-5 shadow-sm md:p-6">
           <header class="flex items-start justify-between gap-4">
             <div>
               <span class="text-xs font-bold uppercase tracking-[0.18em] text-primary">
@@ -1372,25 +1200,19 @@
                 Choose a category and we will find live options around this day's route.
               </p>
             </div>
-            <button
-              type="button"
-              (click)="cancelItemForm()"
+            <button type="button" (click)="cancelItemForm()"
               class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-on-surface-variant hover:bg-surface-container"
-              aria-label="Close add item panel"
-            >
+              aria-label="Close add item panel">
               <span class="material-symbols-outlined">close</span>
             </button>
           </header>
 
           <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <button
-              *ngFor="let option of addCategoryOptions; trackBy: trackByValue"
-              type="button"
-              (click)="selectAddCategory(option)"
-              [disabled]="loadingNewItemSuggestions || isSaving"
-              class="category-choice group/category flex min-h-36 flex-col items-start rounded-2xl border border-outline-variant/35 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-md disabled:opacity-50"
-            >
-              <span class="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary transition group-hover/category:bg-primary group-hover/category:text-white">
+            <button *ngFor="let option of addCategoryOptions; trackBy: trackByValue" type="button"
+              (click)="selectAddCategory(option)" [disabled]="loadingNewItemSuggestions || isSaving"
+              class="category-choice group/category flex min-h-36 flex-col items-start rounded-2xl border border-outline-variant/35 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-md disabled:opacity-50">
+              <span
+                class="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary transition group-hover/category:bg-primary group-hover/category:text-white">
                 <span class="material-symbols-outlined">{{ option.icon }}</span>
               </span>
               <strong class="mt-3 text-sm text-on-surface">{{ option.label }}</strong>
@@ -1401,18 +1223,13 @@
           </div>
         </section>
 
-        <section
-          *ngIf="addingDayId === day.id && addItemStep === 'recommendations'"
-          class="add-item-panel rounded-3xl border border-primary/15 bg-surface p-5 shadow-sm md:p-6"
-        >
+        <section *ngIf="addingDayId === day.id && addItemStep === 'recommendations'"
+          class="add-item-panel rounded-3xl border border-primary/15 bg-surface p-5 shadow-sm md:p-6">
           <header class="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <button
-                type="button"
-                (click)="chooseAnotherAddCategory()"
+              <button type="button" (click)="chooseAnotherAddCategory()"
                 [disabled]="loadingNewItemSuggestions || isSaving"
-                class="mb-2 inline-flex items-center gap-1 text-xs font-bold text-primary disabled:opacity-50"
-              >
+                class="mb-2 inline-flex items-center gap-1 text-xs font-bold text-primary disabled:opacity-50">
                 <span class="material-symbols-outlined text-[17px]">arrow_back</span>
                 Change category
               </button>
@@ -1423,23 +1240,15 @@
                 Matched to the destination and the verified places already planned for this day.
               </p>
             </div>
-            <button
-              type="button"
-              (click)="cancelItemForm()"
-              [disabled]="isSaving"
+            <button type="button" (click)="cancelItemForm()" [disabled]="isSaving"
               class="grid h-9 w-9 place-items-center rounded-full text-on-surface-variant hover:bg-surface-container disabled:opacity-50"
-              aria-label="Close recommendations"
-            >
+              aria-label="Close recommendations">
               <span class="material-symbols-outlined">close</span>
             </button>
           </header>
 
-          <div
-            *ngIf="loadingNewItemSuggestions"
-            class="grid min-h-48 place-items-center"
-            role="status"
-            aria-live="polite"
-          >
+          <div *ngIf="loadingNewItemSuggestions" class="grid min-h-48 place-items-center" role="status"
+            aria-live="polite">
             <div class="text-center">
               <span class="material-symbols-outlined animate-spin text-4xl text-primary">
                 progress_activity
@@ -1450,36 +1259,22 @@
             </div>
           </div>
 
-          <div
-            *ngIf="!loadingNewItemSuggestions && newItemSuggestions.length > 0"
-            class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-          >
-            <article
-              *ngFor="let venue of newItemSuggestions; trackBy: trackByVenue"
-              class="recommendation-card overflow-hidden rounded-2xl border border-outline-variant/30 bg-white"
-            >
+          <div *ngIf="!loadingNewItemSuggestions && newItemSuggestions.length > 0"
+            class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <article *ngFor="let venue of newItemSuggestions; trackBy: trackByVenue"
+              class="recommendation-card overflow-hidden rounded-2xl border border-outline-variant/30 bg-white">
               <div class="relative h-36 overflow-hidden bg-gradient-to-br from-primary/10 to-sky-100">
-                <img
-                  *ngIf="shouldShowPhoto(venue.photoUrl)"
-                  [src]="venue.photoUrl"
-                  [alt]="venue.name"
-                  (error)="handlePhotoError(venue.photoUrl)"
-                  loading="lazy"
-                  referrerpolicy="no-referrer"
-                  class="h-full w-full object-cover"
-                />
-                <span
-                  *ngIf="!shouldShowPhoto(venue.photoUrl)"
-                  class="absolute inset-0 grid place-items-center text-primary"
-                >
+                <img *ngIf="shouldShowPhoto(venue.photoUrl)" [src]="venue.photoUrl" [alt]="venue.name"
+                  (error)="handlePhotoError(venue.photoUrl)" loading="lazy" referrerpolicy="no-referrer"
+                  class="h-full w-full object-cover" />
+                <span *ngIf="!shouldShowPhoto(venue.photoUrl)"
+                  class="absolute inset-0 grid place-items-center text-primary">
                   <span class="material-symbols-outlined text-4xl">
                     {{ categoryIcon(itemDraft.category) }}
                   </span>
                 </span>
-                <span
-                  *ngIf="venue.rating !== null"
-                  class="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-amber-700 shadow-sm"
-                >
+                <span *ngIf="venue.rating !== null"
+                  class="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-amber-700 shadow-sm">
                   ★ {{ venue.rating }}
                 </span>
               </div>
@@ -1491,26 +1286,18 @@
                 <p *ngIf="venue.totalRate !== null" class="mt-2 text-sm font-bold text-primary">
                   {{ venue.totalRate | currency:displayCurrency }} total stay
                 </p>
-                <p *ngIf="venue.totalRate === null && venue.priceLevel" class="mt-2 text-xs font-semibold text-emerald-700">
+                <p *ngIf="venue.totalRate === null && venue.priceLevel"
+                  class="mt-2 text-xs font-semibold text-emerald-700">
                   Price level: {{ venue.priceLevel }}
                 </p>
                 <div class="mt-4 flex items-center gap-2">
-                  <button
-                    type="button"
-                    (click)="addRecommendedItem(venue)"
-                    [disabled]="isSaving"
-                    class="flex-1 rounded-xl bg-primary px-3 py-2.5 text-xs font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
-                  >
+                  <button type="button" (click)="addRecommendedItem(venue)" [disabled]="isSaving"
+                    class="flex-1 rounded-xl bg-primary px-3 py-2.5 text-xs font-bold text-white transition hover:bg-blue-700 disabled:opacity-50">
                     {{ isSaving ? 'Adding...' : 'Add to this day' }}
                   </button>
-                  <a
-                    *ngIf="venue.googleMapsUrl"
-                    [href]="venue.googleMapsUrl"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <a *ngIf="venue.googleMapsUrl" [href]="venue.googleMapsUrl" target="_blank" rel="noopener noreferrer"
                     class="grid h-10 w-10 place-items-center rounded-xl border border-outline-variant text-primary"
-                    aria-label="Open recommendation map"
-                  >
+                    aria-label="Open recommendation map">
                     <span class="material-symbols-outlined text-[18px]">map</span>
                   </a>
                 </div>
@@ -1518,208 +1305,138 @@
             </article>
           </div>
 
-          <div
-            *ngIf="!loadingNewItemSuggestions && newItemSuggestions.length === 0"
-            class="mt-5 rounded-2xl border border-dashed border-outline-variant p-7 text-center"
-          >
+          <div *ngIf="!loadingNewItemSuggestions && newItemSuggestions.length === 0"
+            class="mt-5 rounded-2xl border border-dashed border-outline-variant p-7 text-center">
             <span class="material-symbols-outlined text-3xl text-on-surface-variant">travel_explore</span>
             <h6 class="mt-2 font-bold text-on-surface">No live options found this time</h6>
             <p class="mt-1 text-sm text-on-surface-variant">
               You can still add this item with only the details you know.
             </p>
-            <button
-              type="button"
-              (click)="useManualItemForm()"
-              class="mt-4 rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
-            >
+            <button type="button" (click)="useManualItemForm()"
+              class="mt-4 rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary">
               Add details manually
             </button>
           </div>
 
-          <button
-            *ngIf="!loadingNewItemSuggestions && newItemSuggestions.length > 0"
-            type="button"
+          <button *ngIf="!loadingNewItemSuggestions && newItemSuggestions.length > 0" type="button"
             (click)="useManualItemForm()"
-            class="mt-4 text-xs font-semibold text-on-surface-variant underline-offset-4 hover:text-primary hover:underline"
-          >
+            class="mt-4 text-xs font-semibold text-on-surface-variant underline-offset-4 hover:text-primary hover:underline">
             I want to enter this item manually
           </button>
         </section>
 
         <ng-template #itemEditor>
-        <section
-          class="rounded-2xl border border-primary/25 bg-primary-container/20 p-5"
-        >
-          <div class="mb-4 flex items-center justify-between">
-            <h5 class="text-title-md font-semibold text-on-surface">
-              {{ editingItemId ? 'Edit itinerary item' : 'Add itinerary item' }}
-            </h5>
-            <button
-              type="button"
-              (click)="cancelItemForm()"
-              class="rounded-full p-1.5 text-on-surface-variant hover:bg-surface"
-              aria-label="Close item form"
-            >
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
+          <section class="rounded-2xl border border-primary/25 bg-primary-container/20 p-5">
+            <div class="mb-4 flex items-center justify-between">
+              <h5 class="text-title-md font-semibold text-on-surface">
+                {{ editingItemId ? 'Edit itinerary item' : 'Add itinerary item' }}
+              </h5>
+              <button type="button" (click)="cancelItemForm()"
+                class="rounded-full p-1.5 text-on-surface-variant hover:bg-surface" aria-label="Close item form">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
 
-          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <label class="md:col-span-2">
-              <span class="mb-1 block text-label-sm">Title</span>
-              <input
-                [(ngModel)]="itemDraft.title"
-                [disabled]="isSaving"
-                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
-              />
-            </label>
-            <label>
-              <span class="mb-1 block text-label-sm">Start time</span>
-              <input
-                type="time"
-                [(ngModel)]="itemDraft.startTime"
-                [disabled]="isSaving"
-                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
-              />
-            </label>
-            <label>
-              <span class="mb-1 block text-label-sm">End time</span>
-              <input
-                type="time"
-                [(ngModel)]="itemDraft.endTime"
-                [disabled]="isSaving"
-                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
-              />
-            </label>
-            <label>
-              <span class="mb-1 block text-label-sm">Category</span>
-              <select
-                [(ngModel)]="itemDraft.category"
-                [disabled]="isSaving"
-                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
-              >
-                <option
-                  *ngFor="let category of categories; trackBy: trackByString"
-                  [value]="category"
-                >
-                  {{ category | titlecase }}
-                </option>
-              </select>
-            </label>
-            <label>
-              <span class="mb-1 block text-label-sm">Estimated cost</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                [(ngModel)]="itemDraft.estimatedCost"
-                [disabled]="isSaving"
-                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
-              />
-            </label>
-            <label>
-              <span class="mb-1 block text-label-sm">Day</span>
-              <select
-                [(ngModel)]="itemDraft.targetDayId"
-                [disabled]="isSaving || !!editingItemId"
-                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
-              >
-                <option
-                  *ngFor="let optionDay of visibleDays; trackBy: trackById"
-                  [value]="optionDay.id"
-                >
-                  Day {{ optionDay.dayNumber }}
-                </option>
-              </select>
-            </label>
-            <label>
-              <span class="mb-1 block text-label-sm">Order</span>
-              <input
-                type="number"
-                min="0"
-                [(ngModel)]="itemDraft.orderIndex"
-                [disabled]="isSaving || !!editingItemId"
-                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
-              />
-            </label>
-            <label class="md:col-span-2">
-              <span class="mb-1 block text-label-sm">Location</span>
-              <input
-                [(ngModel)]="itemDraft.location"
-                [disabled]="isSaving"
-                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
-              />
-            </label>
-            <label class="md:col-span-2">
-              <span class="mb-1 block text-label-sm">Description</span>
-              <textarea
-                [(ngModel)]="itemDraft.description"
-                [disabled]="isSaving"
-                rows="2"
-                class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"
-              ></textarea>
-            </label>
-          </div>
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <label class="md:col-span-2">
+                <span class="mb-1 block text-label-sm">Title</span>
+                <input [(ngModel)]="itemDraft.title" [disabled]="isSaving"
+                  class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5" />
+              </label>
+              <label>
+                <span class="mb-1 block text-label-sm">Start time</span>
+                <input type="time" [(ngModel)]="itemDraft.startTime" [disabled]="isSaving"
+                  class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5" />
+              </label>
+              <label>
+                <span class="mb-1 block text-label-sm">End time</span>
+                <input type="time" [(ngModel)]="itemDraft.endTime" [disabled]="isSaving"
+                  class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5" />
+              </label>
+              <label>
+                <span class="mb-1 block text-label-sm">Category</span>
+                <select [(ngModel)]="itemDraft.category" [disabled]="isSaving"
+                  class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5">
+                  <option *ngFor="let category of categories; trackBy: trackByString" [value]="category">
+                    {{ category | titlecase }}
+                  </option>
+                </select>
+              </label>
+              <label>
+                <span class="mb-1 block text-label-sm">Estimated cost</span>
+                <input type="number" min="0" step="0.01" [(ngModel)]="itemDraft.estimatedCost" [disabled]="isSaving"
+                  class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5" />
+              </label>
+              <label>
+                <span class="mb-1 block text-label-sm">Day</span>
+                <select [(ngModel)]="itemDraft.targetDayId" [disabled]="isSaving || !!editingItemId"
+                  class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5">
+                  <option *ngFor="let optionDay of visibleDays; trackBy: trackById" [value]="optionDay.id">
+                    Day {{ optionDay.dayNumber }}
+                  </option>
+                </select>
+              </label>
+              <label>
+                <span class="mb-1 block text-label-sm">Order</span>
+                <input type="number" min="0" [(ngModel)]="itemDraft.orderIndex" [disabled]="isSaving || !!editingItemId"
+                  class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5" />
+              </label>
+              <label class="md:col-span-2">
+                <span class="mb-1 block text-label-sm">Location</span>
+                <input [(ngModel)]="itemDraft.location" [disabled]="isSaving"
+                  class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5" />
+              </label>
+              <label class="md:col-span-2">
+                <span class="mb-1 block text-label-sm">Description</span>
+                <textarea [(ngModel)]="itemDraft.description" [disabled]="isSaving" rows="2"
+                  class="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5"></textarea>
+              </label>
+            </div>
 
-          <p
-            *ngIf="editingItemId"
-            class="mt-3 text-xs text-on-surface-variant"
-          >
-            Use the move controls on the itinerary card to change the day or order. Editing only changes item content.
-          </p>
+            <p *ngIf="editingItemId" class="mt-3 text-xs text-on-surface-variant">
+              Use the move controls on the itinerary card to change the day or order. Editing only changes item content.
+            </p>
 
-          <div class="mt-4 flex gap-3">
-            <button
-              type="button"
-              (click)="editingItemId ? saveEditedItem() : saveNewItem()"
-              [disabled]="isSaving"
-              class="rounded-xl bg-primary px-5 py-2.5 font-semibold text-on-primary disabled:opacity-50"
-            >
-              {{ isSaving ? 'Saving...' : 'Save item' }}
-            </button>
-            <button
-              type="button"
-              (click)="cancelItemForm()"
-              [disabled]="isSaving"
-              class="rounded-xl border border-outline-variant px-5 py-2.5 text-on-surface-variant"
-            >
-              Cancel
-            </button>
-          </div>
-        </section>
+            <div class="mt-4 flex gap-3">
+              <button type="button" (click)="editingItemId ? saveEditedItem() : saveNewItem()" [disabled]="isSaving"
+                class="rounded-xl bg-primary px-5 py-2.5 font-semibold text-on-primary disabled:opacity-50">
+                {{ isSaving ? 'Saving...' : 'Save item' }}
+              </button>
+              <button type="button" (click)="cancelItemForm()" [disabled]="isSaving"
+                class="rounded-xl border border-outline-variant px-5 py-2.5 text-on-surface-variant">
+                Cancel
+              </button>
+            </div>
+          </section>
         </ng-template>
 
-        <button
-          *ngIf="itinerary && addingDayId !== day.id"
-          type="button"
-          (click)="startAdd(day)"
+        <button *ngIf="itinerary && addingDayId !== day.id" type="button" (click)="startAdd(day)"
           [disabled]="isSaving || editingItemId !== ''"
-          class="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 py-3 text-label-md font-semibold text-primary transition hover:bg-primary/5 disabled:opacity-50"
-        >
+          class="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 py-3 text-label-md font-semibold text-primary transition hover:bg-primary/5 disabled:opacity-50">
           <span class="material-symbols-outlined">add</span>
           Add an item to day {{ day.dayNumber }}
         </button>
       </div>
     </article>
 
-    <div
-      *ngIf="visibleDays.length > 0"
-      class="rounded-2xl border border-outline-variant/30 bg-surface-container-low px-4 py-3 text-xs text-on-surface-variant"
-    >
+    <div *ngIf="visibleDays.length > 0"
+      class="rounded-2xl border border-outline-variant/30 bg-surface-container-low px-4 py-3 text-xs text-on-surface-variant">
       <p>
         {{
-          planText(
-            'Route distance and duration: Google Maps. Hotel rates are date-specific search results; local venue costs remain planning estimates unless an exact numeric price is shown.',
-            'المسافة والمدة من خرائط Google. أسعار الفنادق نتائج بحث مرتبطة بالتواريخ، وتكاليف الأماكن المحلية تظل تقديرية ما لم يظهر سعر رقمي واضح.'
-          )
+        planText(
+        'Route distance and duration: Google Maps. Hotel rates are date-specific search results; local venue costs
+        remain planning estimates unless an exact numeric price is shown.',
+        'المسافة والمدة من خرائط Google. أسعار الفنادق نتائج بحث مرتبطة بالتواريخ، وتكاليف الأماكن المحلية تظل تقديرية
+        ما لم يظهر سعر رقمي واضح.'
+        )
         }}
       </p>
       <p class="mt-1">
         {{
-          planText(
-            'Walking and bicycle routes are beta and may not always include complete pedestrian or cycling paths.',
-            'مسارات المشي والدراجات تجريبية وقد لا تعرض دائماً جميع ممرات المشاة أو الدراجات.'
-          )
+        planText(
+        'Walking and bicycle routes are beta and may not always include complete pedestrian or cycling paths.',
+        'مسارات المشي والدراجات تجريبية وقد لا تعرض دائماً جميع ممرات المشاة أو الدراجات.'
+        )
         }}
       </p>
     </div>

@@ -21,6 +21,7 @@ import {
   map
 } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import * as L from 'leaflet';
 
 import {
   GenerateItineraryPreferences,
@@ -40,6 +41,9 @@ import {
 } from '../../services/itinerary-generation.service';
 import {
   TripResponse,
+  TripRouteResponse,
+  TripRouteActivityDto,
+  NearbyAttractionDto,
   TripService
 } from '../../services/trip.service';
 
@@ -94,6 +98,33 @@ export class PlannerComponent
   }
 
   isEditingPreferences = false;
+
+  // Map state
+  tripRoute = signal<TripRouteActivityDto[]>([]);
+  nearbyAttractions = signal<NearbyAttractionDto[]>([]);
+  map: L.Map | null = null;
+  mapMarkers: L.Marker[] = [];
+  routePolyline: L.Polyline | null = null;
+
+  searchRadius = 2000;
+  searchCategory = '';
+  private readonly isSearchingNearbyState = signal(false);
+  get isSearchingNearby(): boolean {
+    return this.isSearchingNearbyState();
+  }
+  private set isSearchingNearby(value: boolean) {
+    this.isSearchingNearbyState.set(value);
+  }
+  nearbyCategories = [
+    { value: '', label: 'All' },
+    { value: 'catering.restaurant', label: 'Restaurants' },
+    { value: 'catering.cafe', label: 'Cafes' },
+    { value: 'accommodation.hotel', label: 'Hotels' },
+    { value: 'entertainment.museum', label: 'Museums' },
+    { value: 'leisure.park', label: 'Parks' },
+    { value: 'commercial', label: 'Shopping' },
+    { value: 'tourism', label: 'Tourism' }
+  ];
 
   private readonly generationJobState =
     signal<ItineraryGenerationJob | null>(null);
@@ -414,7 +445,7 @@ export class PlannerComponent
     private readonly generationService: ItineraryGenerationService,
     private readonly tripService: TripService,
     private readonly destroyRef: DestroyRef
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     combineLatest([
@@ -459,11 +490,10 @@ export class PlannerComponent
       !this.trip?.startDate ||
       !this.trip?.endDate
     ) {
-      return `${this.visibleDays.length} ${
-        this.visibleDays.length === 1
+      return `${this.visibleDays.length} ${this.visibleDays.length === 1
           ? 'day'
           : 'days'
-      }`;
+        }`;
     }
 
     const start = this.parseDateOnly(this.trip.startDate);
@@ -475,7 +505,7 @@ export class PlannerComponent
         day: 'numeric',
         year:
           start.getFullYear() !==
-          end.getFullYear()
+            end.getFullYear()
             ? 'numeric'
             : undefined
       }
@@ -487,9 +517,9 @@ export class PlannerComponent
   get itineraryHeroImage(): string {
     return this.destinationImage(
       this.trip?.destination ||
-        this.tripCities[0] ||
-        this.visibleDays[0]?.title ||
-        ''
+      this.tripCities[0] ||
+      this.visibleDays[0]?.title ||
+      ''
     );
   }
 
@@ -1236,6 +1266,7 @@ export class PlannerComponent
       this.loadExistingItinerary()
     ]);
 
+    await this.loadTripRoute();
     await this.resumeGenerationIfNeeded();
   }
 
@@ -1613,62 +1644,62 @@ export class PlannerComponent
     const images: Array<
       [string[], string]
     > = [
-      [
         [
-          'turkey',
-          'turkiye',
-          'istanbul',
-          'izmir',
-          'antalya',
-          'cappadocia'
+          [
+            'turkey',
+            'turkiye',
+            'istanbul',
+            'izmir',
+            'antalya',
+            'cappadocia'
+          ],
+          'assets/countries/turkey.png'
         ],
-        'assets/countries/turkey.png'
-      ],
-      [
-        ['thailand', 'bangkok', 'phuket'],
-        'assets/countries/thailand.png'
-      ],
-      [
-        ['maldives', 'male'],
-        'assets/countries/maldives.png'
-      ],
-      [
-        ['dubai', 'united arab emirates', 'uae'],
-        'assets/countries/dubai.png'
-      ],
-      [
-        ['japan', 'tokyo', 'kyoto', 'osaka'],
-        'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1800&q=88&auto=format'
-      ],
-      [
-        ['france', 'paris', 'lyon', 'nice'],
-        'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1800&q=88&auto=format'
-      ],
-      [
-        ['italy', 'rome', 'florence', 'venice', 'amalfi'],
-        'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=1800&q=88&auto=format'
-      ],
-      [
-        ['egypt', 'cairo', 'luxor', 'aswan', 'hurghada', 'dahab', 'sharm'],
-        'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=1800&q=88&auto=format'
-      ],
-      [
-        ['spain', 'barcelona', 'madrid', 'seville'],
-        'https://images.unsplash.com/photo-1509840841025-9088ba78a826?w=1800&q=88&auto=format'
-      ],
-      [
-        ['morocco', 'marrakech', 'casablanca', 'fes'],
-        'https://images.unsplash.com/photo-1489493585363-d69421e0edd3?w=1800&q=88&auto=format'
-      ],
-      [
-        ['united kingdom', 'england', 'london'],
-        'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1800&q=88&auto=format'
-      ],
-      [
-        ['poland', 'krakow', 'warsaw'],
-        'https://images.unsplash.com/photo-1519197924294-4ba991a11128?w=1800&q=88&auto=format'
-      ]
-    ];
+        [
+          ['thailand', 'bangkok', 'phuket'],
+          'assets/countries/thailand.png'
+        ],
+        [
+          ['maldives', 'male'],
+          'assets/countries/maldives.png'
+        ],
+        [
+          ['dubai', 'united arab emirates', 'uae'],
+          'assets/countries/dubai.png'
+        ],
+        [
+          ['japan', 'tokyo', 'kyoto', 'osaka'],
+          'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1800&q=88&auto=format'
+        ],
+        [
+          ['france', 'paris', 'lyon', 'nice'],
+          'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1800&q=88&auto=format'
+        ],
+        [
+          ['italy', 'rome', 'florence', 'venice', 'amalfi'],
+          'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=1800&q=88&auto=format'
+        ],
+        [
+          ['egypt', 'cairo', 'luxor', 'aswan', 'hurghada', 'dahab', 'sharm'],
+          'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=1800&q=88&auto=format'
+        ],
+        [
+          ['spain', 'barcelona', 'madrid', 'seville'],
+          'https://images.unsplash.com/photo-1509840841025-9088ba78a826?w=1800&q=88&auto=format'
+        ],
+        [
+          ['morocco', 'marrakech', 'casablanca', 'fes'],
+          'https://images.unsplash.com/photo-1489493585363-d69421e0edd3?w=1800&q=88&auto=format'
+        ],
+        [
+          ['united kingdom', 'england', 'london'],
+          'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1800&q=88&auto=format'
+        ],
+        [
+          ['poland', 'krakow', 'warsaw'],
+          'https://images.unsplash.com/photo-1519197924294-4ba991a11128?w=1800&q=88&auto=format'
+        ]
+      ];
 
     return (
       images.find(([keys]) =>
@@ -1828,5 +1859,164 @@ export class PlannerComponent
     return error instanceof Error
       ? error.message
       : fallback;
+  }
+
+  // --- Map and Nearby Logic ---
+
+  getCategoryIcon(category?: string | null): string {
+    if (!category) return 'place';
+    const lower = category.toLowerCase();
+    if (lower.includes('restaurant') || lower.includes('catering')) return 'restaurant';
+    if (lower.includes('cafe') || lower.includes('coffee')) return 'local_cafe';
+    if (lower.includes('hotel') || lower.includes('accommodation')) return 'hotel';
+    if (lower.includes('museum') || lower.includes('heritage')) return 'museum';
+    if (lower.includes('park') || lower.includes('nature') || lower.includes('forest')) return 'park';
+    if (lower.includes('shopping') || lower.includes('commercial')) return 'shopping_bag';
+    if (lower.includes('tourism') || lower.includes('entertainment')) return 'attractions';
+    return 'place';
+  }
+
+  private initMap(): void {
+    if (this.map) return; // already initialized
+
+    const mapEl = document.getElementById('trip-map');
+    if (!mapEl) return;
+
+    this.map = L.map(mapEl).setView([0, 0], 2);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(this.map);
+  }
+
+  private async loadTripRoute(): Promise<void> {
+    if (!this.tripId) return;
+
+    try {
+      const response = await firstValueFrom(this.tripService.getTripRoute(this.tripId));
+      if (response.data) {
+        this.tripRoute.set(response.data.activities);
+        setTimeout(() => {
+          this.initMap();
+          this.drawRouteOnMap();
+        }, 100);
+      }
+    } catch (err) {
+      console.error('Failed to load trip route', err);
+    }
+  }
+
+  private drawRouteOnMap(): void {
+    if (!this.map) return;
+
+    // Clear existing markers and polyline
+    this.mapMarkers.forEach(m => m.remove());
+    this.mapMarkers = [];
+    if (this.routePolyline) {
+      this.routePolyline.remove();
+      this.routePolyline = null;
+    }
+
+    const route = this.tripRoute();
+    if (!route.length) return;
+
+    const latlngs: L.LatLngExpression[] = [];
+
+    route.forEach((activity, index) => {
+      if (activity.latitude != null && activity.longitude != null) {
+        const latlng: L.LatLngExpression = [activity.latitude, activity.longitude];
+        latlngs.push(latlng);
+
+        const marker = L.marker(latlng)
+          .bindPopup(`<b>${index + 1}. ${activity.name}</b><br>${activity.address || ''}`)
+          .addTo(this.map!);
+        this.mapMarkers.push(marker);
+      }
+    });
+
+    if (latlngs.length > 0) {
+      this.routePolyline = L.polyline(latlngs, { color: '#0ea5e9', weight: 4, opacity: 0.7 }).addTo(this.map);
+      this.map.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50] });
+    }
+  }
+
+  async searchNearby(): Promise<void> {
+    if (!this.tripId || this.isSearchingNearby) return;
+
+    this.isSearchingNearby = true;
+    try {
+      const response = await firstValueFrom(
+        this.tripService.getNearbyAttractions(this.tripId, this.searchRadius, this.searchCategory)
+      );
+      if (response.data) {
+        this.nearbyAttractions.set(response.data);
+        this.drawNearbyOnMap();
+      }
+    } catch (err: any) {
+      console.error('Failed to search nearby attractions', err);
+      const code = err?.error?.errors?.[0]?.code;
+      if (code === 'Trip.NoLocation') {
+        this.errorMessage = 'Please add at least one activity with a location to your itinerary before searching for nearby attractions.';
+      } else {
+        this.errorMessage = 'Failed to search for nearby attractions. Please try again.';
+      }
+      setTimeout(() => this.errorMessage = '', 5000);
+    } finally {
+      this.isSearchingNearby = false;
+    }
+  }
+
+  private drawNearbyOnMap(): void {
+    if (!this.map) return;
+
+    // Remove old nearby markers (keep route markers)
+    this.mapMarkers = this.mapMarkers.filter(m => {
+      if ((m as any).isNearby) {
+        m.remove();
+        return false;
+      }
+      return true;
+    });
+
+    const attractions = this.nearbyAttractions();
+
+    // Custom icon for nearby attractions
+    const nearbyIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: `<div style="background-color: #f43f5e; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.4);"></div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6]
+    });
+
+    attractions.forEach(attr => {
+      if (attr.latitude != null && attr.longitude != null) {
+        const latlng: L.LatLngExpression = [attr.latitude, attr.longitude];
+        const marker = L.marker(latlng, { icon: nearbyIcon })
+          .bindPopup(`<b>${attr.name}</b><br><span style="text-transform: capitalize; font-size: 0.8em; color: #666;">${attr.category || ''}</span><br>${attr.address || ''}`)
+          .addTo(this.map!);
+
+        (marker as any).isNearby = true;
+        this.mapMarkers.push(marker);
+      }
+    });
+  }
+
+  focusAttraction(attraction: NearbyAttractionDto): void {
+    if (!this.map || attraction.latitude == null || attraction.longitude == null) return;
+
+    const latlng: L.LatLngExpression = [attraction.latitude, attraction.longitude];
+    this.map.flyTo(latlng, 16, { duration: 1 });
+
+    // Find and open popup
+    const marker = this.mapMarkers.find(m => {
+      const pos = m.getLatLng();
+      return pos.lat === attraction.latitude && pos.lng === attraction.longitude;
+    });
+
+    if (marker) {
+      setTimeout(() => marker.openPopup(), 1000);
+    }
   }
 }

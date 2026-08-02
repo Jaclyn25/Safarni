@@ -1,0 +1,421 @@
+<div class="space-y-6">
+  <!-- Hero System Operational Header -->
+  <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm">
+    <div class="flex items-center gap-4">
+      <div class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-container-high">
+        <span class="material-symbols-outlined text-primary" style="font-size: 24px">admin_panel_settings</span>
+        <span
+          class="absolute -top-1 -right-1 flex h-3.5 w-3.5"
+          [title]="overallSystemHealthy ? 'All systems nominal' : 'Subsystem degradation detected'"
+        >
+          <span
+            class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+            [class.bg-emerald-400]="overallSystemHealthy"
+            [class.bg-amber-400]="!overallSystemHealthy"
+          ></span>
+          <span
+            class="relative inline-flex rounded-full h-3.5 w-3.5"
+            [class.bg-emerald-500]="overallSystemHealthy"
+            [class.bg-amber-500]="!overallSystemHealthy"
+          ></span>
+        </span>
+      </div>
+
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-heading text-xl font-bold text-on-surface">Safarni Command Center</h1>
+          <span
+            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider border"
+            [class.bg-emerald-50]="overallSystemHealthy"
+            [class.text-emerald-800]="overallSystemHealthy"
+            [class.border-emerald-200]="overallSystemHealthy"
+            [class.bg-amber-50]="!overallSystemHealthy"
+            [class.text-amber-800]="!overallSystemHealthy"
+            [class.border-amber-200]="!overallSystemHealthy"
+          >
+            {{ overallSystemHealthy ? 'Systems Nominal' : 'Attention Required' }}
+          </span>
+        </div>
+        <p class="mt-0.5 text-xs text-on-surface-variant">
+          Live monitoring &bull; Refreshed: {{ (lastRefreshedAt | date:'mediumTime') || '—' }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Actions & Quick Operations Rail -->
+    <div class="flex flex-wrap items-center gap-2">
+      <button
+        (click)="quickReindex()"
+        [disabled]="isReindexing()"
+        class="flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-50"
+      >
+        <span class="material-symbols-outlined text-primary" [class.animate-spin]="isReindexing()" style="font-size: 16px">sync</span>
+        {{ isReindexing() ? 'Reindexing RAG...' : 'Reindex Vectors' }}
+      </button>
+
+      <a
+        routerLink="/admin/knowledge"
+        class="flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors"
+      >
+        <span class="material-symbols-outlined text-primary" style="font-size: 16px">add_box</span>
+        New Article
+      </a>
+
+      <button
+        (click)="load()"
+        class="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-on-primary shadow-sm hover:opacity-95 transition-opacity"
+      >
+        <span class="material-symbols-outlined" style="font-size: 16px">refresh</span>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Action Feedback Notification -->
+  <div
+    *ngIf="actionNotice()"
+    class="rounded-xl p-3.5 text-xs font-semibold flex items-center justify-between shadow-xs"
+    [class.bg-emerald-100]="actionNotice()?.kind === 'success'"
+    [class.text-emerald-800]="actionNotice()?.kind === 'success'"
+    [class.bg-red-100]="actionNotice()?.kind === 'error'"
+    [class.text-red-800]="actionNotice()?.kind === 'error'"
+  >
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined" style="font-size: 18px">
+        {{ actionNotice()?.kind === 'success' ? 'check_circle' : 'error' }}
+      </span>
+      {{ actionNotice()?.text }}
+    </div>
+    <button (click)="actionNotice.set(null)" aria-label="Dismiss notice" class="text-xs opacity-75 hover:opacity-100 font-bold">Dismiss</button>
+  </div>
+
+  <!-- Loading Skeleton -->
+  <div *ngIf="isLoading()" class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+    <div *ngFor="let _ of [].constructor(8)" class="h-32 animate-pulse rounded-xl bg-surface-container-high"></div>
+  </div>
+
+  <!-- Error Alert -->
+  <div *ngIf="!isLoading() && loadError()" class="rounded-xl border border-error-container bg-error-container/20 p-6 text-center">
+    <span class="material-symbols-outlined text-error" style="font-size: 36px">error_outline</span>
+    <p class="mt-2 font-medium text-on-error-container">{{ loadError() }}</p>
+    <button (click)="load()" class="mt-4 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary">
+      Try again
+    </button>
+  </div>
+
+  <!-- Main Content Body -->
+  <ng-container *ngIf="!isLoading() && !loadError() && summary">
+    <!-- Urgent Issues Alert Bar -->
+    <div
+      *ngIf="summary.degradedServiceCount > 0 || !summary.qdrantHealthy || summary.recentAiFailuresLast24Hours > 0 || summary.itineraryJobsFailed > 0"
+      class="rounded-xl border border-amber-300/80 bg-amber-500/10 p-4 shadow-sm"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-amber-600">warning</span>
+          <div>
+            <h3 class="text-xs font-bold text-on-surface uppercase tracking-wider">Operational Attention Required</h3>
+            <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-on-surface-variant font-medium">
+              <span *ngIf="summary.degradedServiceCount > 0" class="text-amber-700 font-semibold">
+                &bull; {{ summary.degradedServiceCount }} degraded service(s)
+              </span>
+              <span *ngIf="summary.recentAiFailuresLast24Hours > 0" class="text-amber-700 font-semibold">
+                &bull; {{ summary.recentAiFailuresLast24Hours }} AI model error(s) (24h)
+              </span>
+              <span *ngIf="!summary.qdrantHealthy" class="text-red-700 font-semibold">
+                &bull; Qdrant vector database offline
+              </span>
+              <span *ngIf="summary.itineraryJobsFailed > 0" class="text-amber-700 font-semibold">
+                &bull; {{ summary.itineraryJobsFailed }} failed itinerary job(s)
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <a
+            routerLink="/admin/integrations"
+            class="rounded-lg border border-amber-400/40 bg-surface px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 shadow-2xs"
+          >
+            Check Integrations
+          </a>
+          <a
+            routerLink="/admin/ai-activity"
+            class="rounded-lg border border-amber-400/40 bg-surface px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 shadow-2xs"
+          >
+            Check AI Activity
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enhanced Grouped KPI Cards -->
+    <div class="space-y-6">
+      <!-- People & User Accounts -->
+      <div>
+        <h2 class="text-xs font-extrabold uppercase tracking-wider text-on-surface-variant mb-3 flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-primary" style="font-size: 16px">group</span>
+          People & Accounts
+        </h2>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <a
+            *ngFor="let kpi of peopleKpis"
+            [routerLink]="kpi.link"
+            class="group relative block rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm transition-all hover:border-primary hover:shadow-md"
+          >
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-semibold text-on-surface-variant group-hover:text-primary transition-colors">{{ kpi.label }}</p>
+              <span class="material-symbols-outlined text-primary text-xl transition-transform group-hover:scale-110">{{ kpi.icon }}</span>
+            </div>
+            <p class="mt-2 font-heading text-3xl font-extrabold text-on-surface">{{ kpi.value }}</p>
+            <p class="mt-2 text-[11px] font-medium text-emerald-600 flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs">trending_up</span>
+              {{ kpi.trend }}
+            </p>
+          </a>
+        </div>
+      </div>
+
+      <!-- Travel Activity -->
+      <div>
+        <h2 class="text-xs font-extrabold uppercase tracking-wider text-on-surface-variant mb-3 flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-primary" style="font-size: 16px">luggage</span>
+          Travel Activity
+        </h2>
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <a
+            *ngFor="let kpi of travelKpis"
+            [routerLink]="kpi.link"
+            class="group relative block rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm transition-all hover:border-primary hover:shadow-md"
+          >
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-semibold text-on-surface-variant group-hover:text-primary transition-colors">{{ kpi.label }}</p>
+              <span
+                class="material-symbols-outlined text-xl transition-transform group-hover:scale-110"
+                [class]="{
+                  'text-primary': kpi.tone === 'default',
+                  'text-emerald-600': kpi.tone === 'positive',
+                  'text-amber-600': kpi.tone === 'warning',
+                  'text-error': kpi.tone === 'negative'
+                }"
+              >{{ kpi.icon }}</span>
+            </div>
+            <p class="mt-2 font-heading text-3xl font-extrabold text-on-surface">{{ kpi.value }}</p>
+            <p
+              class="mt-2 text-[11px] font-medium"
+              [class.text-emerald-600]="kpi.tone === 'positive' || kpi.tone === 'default'"
+              [class.text-amber-600]="kpi.tone === 'warning'"
+              [class.text-red-600]="kpi.tone === 'negative'"
+            >
+              {{ kpi.trend }}
+            </p>
+          </a>
+        </div>
+      </div>
+
+      <!-- AI & Subsystem Operations -->
+      <div>
+        <h2 class="text-xs font-extrabold uppercase tracking-wider text-on-surface-variant mb-3 flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-primary" style="font-size: 16px">smart_toy</span>
+          AI & Subsystems
+        </h2>
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <a
+            *ngFor="let kpi of operationsKpis"
+            [routerLink]="kpi.link"
+            class="group relative block rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm transition-all hover:border-primary hover:shadow-md"
+          >
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-semibold text-on-surface-variant group-hover:text-primary transition-colors">{{ kpi.label }}</p>
+              <span
+                class="material-symbols-outlined text-xl transition-transform group-hover:scale-110"
+                [class]="{
+                  'text-primary': kpi.tone === 'default',
+                  'text-emerald-600': kpi.tone === 'positive',
+                  'text-amber-600': kpi.tone === 'warning',
+                  'text-error': kpi.tone === 'negative'
+                }"
+              >{{ kpi.icon }}</span>
+            </div>
+            <p class="mt-2 font-heading text-3xl font-extrabold text-on-surface">{{ kpi.value }}</p>
+            <p
+              class="mt-2 text-[11px] font-medium"
+              [class.text-emerald-600]="kpi.tone === 'positive' || kpi.tone === 'default'"
+              [class.text-amber-600]="kpi.tone === 'warning'"
+              [class.text-red-600]="kpi.tone === 'negative'"
+            >
+              {{ kpi.trend }}
+            </p>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dynamic Trend Chart + Subsystem Health Matrix Grid -->
+    <div class="grid gap-6 xl:grid-cols-3">
+      <!-- Interactive Trend Line Chart (2 cols) -->
+      <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm xl:col-span-2">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="font-heading text-base font-bold text-on-surface">Growth & Activity Volume</h2>
+            <p class="text-xs text-on-surface-variant">Daily user registrations, trip creation, and AI sessions.</p>
+          </div>
+
+          <!-- Time Range Pill Controls -->
+          <div class="flex items-center gap-2">
+            <div class="flex rounded-lg border border-outline-variant bg-surface-container-low p-1 text-xs font-semibold">
+              <button
+                (click)="changeRange('7d')"
+                [class.bg-surface]="activeRange === '7d'"
+                [class.text-primary]="activeRange === '7d'"
+                [class.shadow-xs]="activeRange === '7d'"
+                class="rounded-md px-2.5 py-1 transition-colors text-on-surface-variant hover:text-on-surface"
+              >
+                7 Days
+              </button>
+              <button
+                (click)="changeRange('14d')"
+                [class.bg-surface]="activeRange === '14d'"
+                [class.text-primary]="activeRange === '14d'"
+                [class.shadow-xs]="activeRange === '14d'"
+                class="rounded-md px-2.5 py-1 transition-colors text-on-surface-variant hover:text-on-surface"
+              >
+                14 Days
+              </button>
+              <button
+                (click)="changeRange('30d')"
+                [class.bg-surface]="activeRange === '30d'"
+                [class.text-primary]="activeRange === '30d'"
+                [class.shadow-xs]="activeRange === '30d'"
+                class="rounded-md px-2.5 py-1 transition-colors text-on-surface-variant hover:text-on-surface"
+              >
+                30 Days
+              </button>
+            </div>
+            <a routerLink="/admin/analytics" class="text-xs font-semibold text-primary hover:underline">Full Analytics &rarr;</a>
+          </div>
+        </div>
+
+        <div class="mt-4 h-64 w-full">
+          <canvas
+            baseChart
+            [data]="trendChartData"
+            [options]="trendChartOptions"
+            [type]="trendChartType"
+          ></canvas>
+        </div>
+      </section>
+
+      <!-- Subsystem Health Matrix Widget (1 col) -->
+      <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b border-outline-variant pb-3 mb-3">
+            <h2 class="font-heading text-base font-bold text-on-surface">Subsystem Health</h2>
+            <a routerLink="/admin/integrations" class="text-xs font-semibold text-primary hover:underline">Manage &rarr;</a>
+          </div>
+
+          <div *ngIf="subsystems.length === 0" class="py-10 text-center text-xs text-on-surface-variant">
+            Loading subsystem status...
+          </div>
+
+          <ul *ngIf="subsystems.length > 0" class="space-y-3">
+            <li *ngFor="let s of subsystems" class="flex items-center justify-between rounded-xl border border-outline-variant/60 bg-surface-container-low p-2.5 text-xs">
+              <div>
+                <p class="font-semibold text-on-surface">{{ s.displayName }}</p>
+                <p class="text-[11px] text-on-surface-variant">Affects: {{ s.affectedFeature }}</p>
+              </div>
+              <div class="text-right">
+                <span [class]="'inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold ' + statusBadgeClass(s.status)">
+                  {{ s.status }}
+                </span>
+                <p class="mt-0.5 font-mono text-[10px] text-on-surface-variant">{{ s.latencyMs }} ms</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="mt-4 border-t border-outline-variant/60 pt-3 text-center text-xs">
+          <a routerLink="/admin/integrations" class="font-semibold text-primary hover:underline">
+            Test Connection Credentials &rarr;
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <!-- Filtered Categorized Recent Activity Feed -->
+    <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-sm">
+      <div class="border-b border-outline-variant px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-heading text-base font-bold text-on-surface">Live Audit Log Feed</h2>
+          <p class="text-xs text-on-surface-variant">Real-time system events, administrative changes, and user actions.</p>
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="flex rounded-lg border border-outline-variant bg-surface-container-low p-1 text-xs font-semibold">
+          <button
+            (click)="activityCategory = 'all'"
+            [class.bg-surface]="activityCategory === 'all'"
+            [class.text-primary]="activityCategory === 'all'"
+            [class.shadow-xs]="activityCategory === 'all'"
+            class="rounded-md px-2.5 py-1 transition-colors text-on-surface-variant hover:text-on-surface"
+          >
+            All
+          </button>
+          <button
+            (click)="activityCategory = 'user'"
+            [class.bg-surface]="activityCategory === 'user'"
+            [class.text-primary]="activityCategory === 'user'"
+            [class.shadow-xs]="activityCategory === 'user'"
+            class="rounded-md px-2.5 py-1 transition-colors text-on-surface-variant hover:text-on-surface"
+          >
+            Users
+          </button>
+          <button
+            (click)="activityCategory = 'trip'"
+            [class.bg-surface]="activityCategory === 'trip'"
+            [class.text-primary]="activityCategory === 'trip'"
+            [class.shadow-xs]="activityCategory === 'trip'"
+            class="rounded-md px-2.5 py-1 transition-colors text-on-surface-variant hover:text-on-surface"
+          >
+            Trips
+          </button>
+          <button
+            (click)="activityCategory = 'ai'"
+            [class.bg-surface]="activityCategory === 'ai'"
+            [class.text-primary]="activityCategory === 'ai'"
+            [class.shadow-xs]="activityCategory === 'ai'"
+            class="rounded-md px-2.5 py-1 transition-colors text-on-surface-variant hover:text-on-surface"
+          >
+            AI Logs
+          </button>
+        </div>
+      </div>
+
+      <!-- Feed List -->
+      <div *ngIf="filteredActivity.length === 0" class="px-5 py-12 text-center text-xs text-on-surface-variant flex flex-col items-center justify-center">
+        <span class="material-symbols-outlined text-outline" style="font-size: 36px">inbox</span>
+        <p class="mt-2 font-medium">No activity items matching this filter.</p>
+      </div>
+
+      <ul *ngIf="filteredActivity.length > 0" class="divide-y divide-outline-variant max-h-80 overflow-y-auto">
+        <li *ngFor="let item of filteredActivity" class="flex items-center gap-3 px-5 py-3.5 hover:bg-surface-container-low transition-colors">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-container/20 text-primary">
+            <span class="material-symbols-outlined" style="font-size: 18px">
+              {{ activityIcon(item.type) }}
+            </span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-xs font-semibold text-on-surface">{{ item.title }}</p>
+            <p *ngIf="item.detail" class="truncate text-[11px] text-on-surface-variant">{{ item.detail }}</p>
+          </div>
+          <span class="shrink-0 text-[11px] font-mono text-on-surface-variant">{{ formatTime(item.timestamp) }}</span>
+        </li>
+      </ul>
+
+      <div class="border-t border-outline-variant p-3 text-center bg-surface-container-low/50">
+        <a routerLink="/admin/audit-logs" class="text-xs font-bold text-primary hover:underline">
+          View Complete System Audit Log &rarr;
+        </a>
+      </div>
+    </section>
+  </ng-container>
+</div>

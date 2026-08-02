@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Exceptions;
 using ChatBotApi.Application.Common.Interfaces;
 using ChatBotApi.Application.Common.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Safarni.Application.Abstractions.AI;
 using Safarni.Application.Abstractions.Authentication;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Abstractions.Travel;
@@ -92,6 +94,7 @@ public sealed class ItineraryGenerationProcessor
     private readonly IItineraryTravelDataService? _travelDataService;
     private readonly IItineraryRouteService? _routeService;
     private readonly IFlightAirportService? _flightService;
+    private readonly IAIRequestLogWriter? _telemetryWriter;
     private readonly ILogger<ItineraryGenerationProcessor> _logger;
 
     public ItineraryGenerationProcessor(
@@ -103,7 +106,8 @@ public sealed class ItineraryGenerationProcessor
         IItineraryGenerationJobRepository? jobs = null,
         IItineraryTravelDataService? travelDataService = null,
         IItineraryRouteService? routeService = null,
-        IFlightAirportService? flightService = null)
+        IFlightAirportService? flightService = null,
+        IAIRequestLogWriter? telemetryWriter = null)
     {
         _tripRepository = tripRepository;
         _itineraryRepository = itineraryRepository;
@@ -114,6 +118,7 @@ public sealed class ItineraryGenerationProcessor
         _travelDataService = travelDataService;
         _routeService = routeService;
         _flightService = flightService;
+        _telemetryWriter = telemetryWriter;
     }
 
     public async Task<Result<ItineraryResponse>> GenerateAsync(
@@ -211,9 +216,11 @@ public sealed class ItineraryGenerationProcessor
 
             var activitySuggestions =
                 await GenerateActivitySuggestionsAsync(
+                    userId,
                     tripId,
                     cityPlan,
                     preferences,
+                    generationJobId,
                     cancellationToken);
 
             await ReportProgressAsync(
@@ -270,6 +277,7 @@ public sealed class ItineraryGenerationProcessor
             }
 
             var generatedDays = await GenerateValidatedDaysAsync(
+                userId,
                 trip,
                 tripId,
                 preferences,
@@ -370,6 +378,7 @@ public sealed class ItineraryGenerationProcessor
 
     private async Task<IReadOnlyList<AiItineraryDay>>
         GenerateValidatedDaysAsync(
+            Guid userId,
             Trip trip,
             Guid tripId,
             GenerateItineraryPreferences preferences,
@@ -423,6 +432,7 @@ public sealed class ItineraryGenerationProcessor
                 cancellationToken);
 
             var cityDays = await GenerateValidatedCitySegmentAsync(
+                userId,
                 trip,
                 tripId,
                 preferences,
@@ -436,6 +446,7 @@ public sealed class ItineraryGenerationProcessor
                 segmentBudget,
                 usedMealSuggestions,
                 flightPlan,
+                generationJobId,
                 cancellationToken);
 
             var adjustedMealCount = ItineraryMealVarietyResolver
@@ -480,6 +491,7 @@ public sealed class ItineraryGenerationProcessor
 
     private async Task<IReadOnlyList<AiItineraryDay>>
         GenerateValidatedCitySegmentAsync(
+            Guid userId,
             Trip trip,
             Guid tripId,
             GenerateItineraryPreferences preferences,
@@ -491,6 +503,7 @@ public sealed class ItineraryGenerationProcessor
             decimal? segmentBudget,
             IReadOnlyCollection<string> usedMealSuggestions,
             ItineraryFlightPlan flightPlan,
+            Guid? generationJobId,
             CancellationToken cancellationToken)
     {
         var originalUserMessage = ItineraryPromptBuilder.BuildUserMessage(
@@ -525,7 +538,9 @@ public sealed class ItineraryGenerationProcessor
                 ItineraryPromptBuilder.SystemPrompt,
                 userMessage,
                 completionOptions,
+                userId,
                 tripId,
+                generationJobId,
                 $"itinerary generation for {cityStop.City}",
                 cancellationToken);
 
@@ -664,9 +679,11 @@ public sealed class ItineraryGenerationProcessor
 
     private async Task<IReadOnlyList<ItineraryActivitySuggestion>>
         GenerateActivitySuggestionsAsync(
+            Guid userId,
             Guid tripId,
             IReadOnlyList<ItineraryCityStop> cityPlan,
             GenerateItineraryPreferences preferences,
+            Guid? generationJobId,
             CancellationToken cancellationToken)
     {
         var userMessage =
@@ -691,7 +708,9 @@ public sealed class ItineraryGenerationProcessor
                     ItineraryActivityDiscovery.SystemPrompt,
                     userMessage,
                     options,
+                    userId,
                     tripId,
+                    generationJobId,
                     "activity discovery",
                     cancellationToken);
 
@@ -724,7 +743,9 @@ public sealed class ItineraryGenerationProcessor
         string systemPrompt,
         string userMessage,
         AICompletionOptions options,
+        Guid userId,
         Guid tripId,
+        Guid? generationJobId,
         string operation,
         CancellationToken cancellationToken)
     {
@@ -736,12 +757,54 @@ public sealed class ItineraryGenerationProcessor
         {
             try
             {
-                return await _aiProvider.GetChatCompletionAsync(
-                    systemPrompt,
-                    new List<ChatMessageDto>(),
-                    userMessage,
-                    options,
-                    cancellationToken);
+                var stopwatch = Stopwatch.StartNew();
+
+                try
+                {
+                    var output = await _aiProvider.GetChatCompletionAsync(
+                        systemPrompt,
+                        new List<ChatMessageDto>(),
+                        userMessage,
+                        options,
+                        cancellationToken);
+
+                    stopwatch.Stop();
+
+                    await AIRequestTelemetry.RecordAsync(
+                        _telemetryWriter,
+                        new AIRequestLogEntry(
+                            userId,
+                            ConversationId: null,
+                            generationJobId,
+                            _aiProvider.ProviderName,
+                            _aiProvider.ModelName,
+                            operation,
+                            Status: "Success",
+                            stopwatch.ElapsedMilliseconds),
+                        cancellationToken);
+
+                    return output;
+                }
+                catch (Exception exception)
+                {
+                    stopwatch.Stop();
+
+                    await AIRequestTelemetry.RecordAsync(
+                        _telemetryWriter,
+                        new AIRequestLogEntry(
+                            userId,
+                            ConversationId: null,
+                            generationJobId,
+                            _aiProvider.ProviderName,
+                            _aiProvider.ModelName,
+                            operation,
+                            Status: "Failure",
+                            stopwatch.ElapsedMilliseconds,
+                            ErrorCode: exception.GetType().Name),
+                        cancellationToken);
+
+                    throw;
+                }
             }
             catch (AIProviderRateLimitException exception)
             {
@@ -795,7 +858,7 @@ public sealed class ItineraryGenerationProcessor
             "The itinerary AI request ended without a result.");
     }
 
-    private static AICompletionOptions BuildCompletionOptions(
+    internal static AICompletionOptions BuildCompletionOptions(
         int dayCount)
     {
         var normalizedDayCount = Math.Max(1, dayCount);

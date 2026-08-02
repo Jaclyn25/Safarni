@@ -1,0 +1,273 @@
+<div class="space-y-6">
+  <!-- Header & Toolbar -->
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-heading text-2xl font-semibold text-on-surface">Analytics & Growth Metrics</h1>
+      <p class="mt-1 text-sm text-on-surface-variant">Track user registrations, travel activity volume, and conversion funnels.</p>
+    </div>
+
+    <!-- Date Presets & Inputs Bar -->
+    <div class="flex flex-wrap items-center gap-3">
+      <!-- Quick Presets -->
+      <div class="flex rounded-lg border border-outline-variant bg-surface-container-low p-1 text-xs font-semibold">
+        <button
+          (click)="selectPreset('7d')"
+          [class.bg-surface]="activePreset === '7d'"
+          [class.text-primary]="activePreset === '7d'"
+          [class.shadow-xs]="activePreset === '7d'"
+          class="rounded-md px-3 py-1.5 transition-colors text-on-surface-variant hover:text-on-surface"
+        >
+          7 Days
+        </button>
+        <button
+          (click)="selectPreset('30d')"
+          [class.bg-surface]="activePreset === '30d'"
+          [class.text-primary]="activePreset === '30d'"
+          [class.shadow-xs]="activePreset === '30d'"
+          class="rounded-md px-3 py-1.5 transition-colors text-on-surface-variant hover:text-on-surface"
+        >
+          30 Days
+        </button>
+        <button
+          (click)="selectPreset('90d')"
+          [class.bg-surface]="activePreset === '90d'"
+          [class.text-primary]="activePreset === '90d'"
+          [class.shadow-xs]="activePreset === '90d'"
+          class="rounded-md px-3 py-1.5 transition-colors text-on-surface-variant hover:text-on-surface"
+        >
+          90 Days
+        </button>
+      </div>
+
+      <!-- Custom Date Inputs -->
+      <div class="flex items-center gap-2">
+        <input
+          [(ngModel)]="from"
+          (change)="activePreset = 'custom'"
+          type="date"
+          class="rounded-lg border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs text-on-surface focus:outline-none"
+        />
+        <span class="text-xs text-on-surface-variant">&rarr;</span>
+        <input
+          [(ngModel)]="to"
+          (change)="activePreset = 'custom'"
+          type="date"
+          class="rounded-lg border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs text-on-surface focus:outline-none"
+        />
+        <button
+          (click)="load()"
+          class="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-on-primary shadow-sm hover:opacity-95"
+        >
+          <span class="material-symbols-outlined" style="font-size: 16px">refresh</span>
+          Apply
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Engagement Summary Metric Cards -->
+  <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">New Registrations</p>
+        <span class="material-symbols-outlined text-primary text-xl">person_add</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-on-surface">{{ totalRangeUsers }}</p>
+      <p class="mt-1 text-[11px] font-medium text-emerald-600">In selected period</p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Trips Created</p>
+        <span class="material-symbols-outlined text-blue-600 text-xl">luggage</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-on-surface">{{ totalRangeTrips }}</p>
+      <p class="mt-1 text-[11px] font-medium text-blue-600">Travel plans created</p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Visa Applications</p>
+        <span class="material-symbols-outlined text-amber-600 text-xl">badge</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-on-surface">{{ totalRangeVisas }}</p>
+      <p class="mt-1 text-[11px] font-medium text-amber-600">Visa assistance calls</p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">AI Messages Volume</p>
+        <span class="material-symbols-outlined text-purple-600 text-xl">chat</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-purple-700">{{ totalRangeMessages }}</p>
+      <p class="mt-1 text-[11px] font-medium text-purple-600">LLM chat engagement</p>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="grid gap-6 md:grid-cols-3">
+    <div *ngFor="let _ of [].constructor(3)" class="h-64 animate-pulse rounded-2xl bg-surface-container-high"></div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="!isLoading() && loadError()" class="rounded-xl border border-error-container bg-error-container/20 p-6 text-center">
+    <span class="material-symbols-outlined text-error" style="font-size: 36px">error_outline</span>
+    <p class="mt-2 font-medium text-on-error-container">{{ loadError() }}</p>
+    <button (click)="load()" class="mt-4 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary">
+      Try again
+    </button>
+  </div>
+
+  <!-- Main Analytics Body -->
+  <ng-container *ngIf="!isLoading() && !loadError()">
+    <div class="grid gap-6 xl:grid-cols-3">
+      <!-- Daily Activity Breakdown Section (2 cols) -->
+      <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm xl:col-span-2">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="font-heading text-base font-bold text-on-surface">Daily Activity Breakdown</h2>
+            <p class="text-xs text-on-surface-variant">Combined daily volume of users, trips, visas, messages, and itinerary jobs.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- Chart View Mode Switcher -->
+            <div class="flex rounded-lg border border-outline-variant bg-surface-container-low p-1 text-xs font-semibold">
+              <button
+                (click)="setChartViewMode('bar')"
+                [class.bg-surface]="chartViewMode === 'bar'"
+                [class.text-primary]="chartViewMode === 'bar'"
+                [class.shadow-xs]="chartViewMode === 'bar'"
+                class="rounded-md px-2.5 py-1 transition-colors text-on-surface-variant"
+              >
+                Stacked Bar
+              </button>
+              <button
+                (click)="setChartViewMode('line')"
+                [class.bg-surface]="chartViewMode === 'line'"
+                [class.text-primary]="chartViewMode === 'line'"
+                [class.shadow-xs]="chartViewMode === 'line'"
+                class="rounded-md px-2.5 py-1 transition-colors text-on-surface-variant"
+              >
+                Smooth Line
+              </button>
+            </div>
+
+            <span class="rounded bg-surface-container-high px-2 py-1 text-xs font-medium text-on-surface-variant">
+              {{ overview?.points?.length || 0 }} day(s)
+            </span>
+          </div>
+        </div>
+
+        <div *ngIf="!overview || overview.points.length === 0" class="flex h-64 flex-col items-center justify-center text-sm text-on-surface-variant">
+          <span class="material-symbols-outlined text-on-surface-variant/40" style="font-size: 40px">bar_chart</span>
+          <p class="mt-2 font-medium">No activity recorded in this date range.</p>
+        </div>
+
+        <div *ngIf="overview && overview.points.length > 0" class="mt-4 h-64 w-full">
+          <canvas
+            baseChart
+            [data]="activityChartData"
+            [options]="activityChartOptions"
+            [type]="activityChartType"
+          ></canvas>
+        </div>
+      </section>
+
+      <!-- Conversion Funnel Section (1 col) -->
+      <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b border-outline-variant pb-3 mb-3">
+            <h2 class="font-heading text-base font-bold text-on-surface">Conversion Funnel</h2>
+            <span class="text-xs font-semibold text-primary">Sign up to Visa</span>
+          </div>
+
+          <div *ngIf="funnelStages.length === 0" class="flex h-64 flex-col items-center justify-center text-sm text-on-surface-variant">
+            <span class="material-symbols-outlined text-on-surface-variant/40" style="font-size: 40px">filter_alt</span>
+            <p class="mt-2 font-medium">No registered users in system yet.</p>
+          </div>
+
+          <div *ngIf="funnelStages.length > 0" class="space-y-3">
+            <div *ngFor="let stage of funnelStages; let i = index" class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-2.5 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-on-surface">{{ i + 1 }}. {{ stage.label }}</span>
+                <span class="font-bold text-primary">{{ stage.value }} ({{ stage.percentage }}%)</span>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="mt-1.5 h-1.5 w-full rounded-full bg-surface-container-high overflow-hidden">
+                <div class="h-full bg-primary rounded-full" [style.width.%]="stage.percentage"></div>
+              </div>
+
+              <div *ngIf="stage.dropoff !== undefined && stage.dropoff > 0" class="mt-1 flex justify-end text-[10px] font-medium text-amber-700">
+                <span>Drop-off: -{{ stage.dropoff }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Top Destinations Rank Grid Section -->
+    <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm">
+      <div class="flex items-center justify-between border-b border-outline-variant pb-4 mb-4">
+        <div>
+          <h2 class="font-heading text-base font-bold text-on-surface">Top Destinations</h2>
+          <p class="text-xs text-on-surface-variant">Most popular trip destinations created by travelers.</p>
+        </div>
+        <span class="rounded bg-teal-50 border border-teal-200 px-2.5 py-1 text-xs font-bold text-teal-800">
+          {{ destinations.length }} destination(s)
+        </span>
+      </div>
+
+      <div *ngIf="destinations.length === 0" class="flex h-56 flex-col items-center justify-center text-sm text-on-surface-variant">
+        <span class="material-symbols-outlined text-on-surface-variant/40" style="font-size: 40px">map</span>
+        <p class="mt-2 font-medium">No trip destinations tracked yet.</p>
+      </div>
+
+      <div *ngIf="destinations.length > 0" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div class="h-64 w-full">
+          <canvas
+            baseChart
+            [data]="destinationsChartData"
+            [options]="destinationsChartOptions"
+            [type]="destinationsChartType"
+          ></canvas>
+        </div>
+
+        <!-- Rank List Cards -->
+        <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+          <div
+            *ngFor="let d of destinations; let i = index"
+            class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3 text-xs space-y-1.5"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span
+                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold shadow-2xs"
+                  [class.bg-amber-400]="i === 0"
+                  [class.text-amber-950]="i === 0"
+                  [class.bg-slate-300]="i === 1"
+                  [class.text-slate-900]="i === 1"
+                  [class.bg-amber-700]="i === 2"
+                  [class.text-white]="i === 2"
+                  [class.bg-surface-container-high]="i > 2"
+                  [class.text-on-surface-variant]="i > 2"
+                >
+                  #{{ i + 1 }}
+                </span>
+                <span class="font-bold text-on-surface text-xs">{{ d.name }}</span>
+              </div>
+
+              <span class="font-mono text-xs font-bold text-teal-700">{{ d.tripCount }} trip(s)</span>
+            </div>
+
+            <!-- Percentage Bar -->
+            <div class="h-1.5 w-full rounded-full bg-surface-container-high overflow-hidden">
+              <div class="h-full bg-teal-600 rounded-full" [style.width.%]="destinationPercentage(d.tripCount)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+</div>

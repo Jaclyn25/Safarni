@@ -192,6 +192,37 @@ export class AuthService {
     return user ? (JSON.parse(user) as { userId: string; fullName: string; email: string }) : null;
   }
 
+  getUserRole(): string | null {
+    const token = localStorage.getItem('access_token');
+    if (!token) return null;
+    try {
+      const payloadPart = token.split('.')[1];
+      if (!payloadPart) return null;
+      const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
+      const payload = JSON.parse(
+        decodeURIComponent(
+          atob(padded)
+            .split('')
+            .map((char) => '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        )
+      );
+      const roleClaim = payload.role ?? payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+      if (Array.isArray(roleClaim)) {
+        return roleClaim.find((r: string) => ['Admin', 'Support', 'ContentManager', 'Analyst'].includes(r)) ?? roleClaim[0] ?? null;
+      }
+      return typeof roleClaim === 'string' ? roleClaim : null;
+    } catch {
+      return null;
+    }
+  }
+
+  hasAdminRole(): boolean {
+    const role = this.getUserRole();
+    return Boolean(role && ['Admin', 'Support', 'ContentManager', 'Analyst'].includes(role));
+  }
+
   private saveSession(data: LoginResponse): void {
     localStorage.setItem('access_token', data.accessToken);
     localStorage.setItem('refresh_token', data.refreshToken);

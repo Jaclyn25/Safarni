@@ -1,4 +1,4 @@
-<header [ngClass]="navbarBgClass" class="backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm transition-colors duration-300">
+<header *ngIf="!isAdminPage" [ngClass]="navbarBgClass" class="backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm transition-colors duration-300">
   <div
     class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto">
 
@@ -45,13 +45,15 @@
 
       <div class="flex items-center gap-3">
 
-        <a routerLink="/profile" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+        <a [routerLink]="isAdmin ? '/admin' : '/profile'" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
 
-          <div class="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center font-semibold">
-            {{ user.fullName.charAt(0) }}
+          <div class="h-9 w-9 rounded-full flex items-center justify-center font-semibold text-white shadow-sm"
+               [ngClass]="isAdmin ? 'bg-gradient-to-br from-slate-800 to-slate-950 shadow-md ring-1 ring-slate-800/20' : 'bg-primary'">
+            <span *ngIf="isAdmin" class="material-symbols-outlined" style="font-size: 18px">admin_panel_settings</span>
+            <span *ngIf="!isAdmin">{{ user.fullName.charAt(0) }}</span>
           </div>
 
-          <div class="flex flex-col">
+          <div *ngIf="!isAdmin" class="flex flex-col">
             <span class="text-label-md font-semibold">
               {{ user.fullName }}
             </span>
@@ -84,9 +86,11 @@
 
       } @else {
 
-      <a routerLink="/profile"
-        class="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center font-semibold cursor-pointer">
-        {{ user.fullName.charAt(0) }}
+      <a [routerLink]="isAdmin ? '/admin' : '/profile'"
+        class="h-9 w-9 rounded-full text-white flex items-center justify-center font-semibold cursor-pointer shadow-sm transition-colors"
+        [ngClass]="isAdmin ? 'bg-gradient-to-br from-slate-800 to-slate-950 ring-1 ring-slate-800/20' : 'bg-primary'">
+        <span *ngIf="isAdmin" class="material-symbols-outlined" style="font-size: 18px">admin_panel_settings</span>
+        <span *ngIf="!isAdmin">{{ user.fullName.charAt(0) }}</span>
       </a>
 
       }

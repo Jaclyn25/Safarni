@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { adminGuard } from './guards/admin.guard';
+import { noAdminGuard } from './guards/no-admin.guard';
 
 export const routes: Routes = [
   {
@@ -102,7 +104,7 @@ export const routes: Routes = [
       import('./pages/profile/layout/profile-layout.component').then(
         (m) => m.ProfileLayoutComponent
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, noAdminGuard],
     title: 'Safarni | My Profile',
     children: [
       { path: '', redirectTo: 'account', pathMatch: 'full' },
@@ -203,6 +205,25 @@ export const routes: Routes = [
         (m) => m.DestinationComponent
       ),
     title: 'Safarni | Destination Guide'
+  },
+  {
+    path: 'admin',
+    loadComponent: () =>
+      import('./pages/admin/layout/admin-layout.component').then(
+        (m) => m.AdminLayoutComponent
+      ),
+    canActivate: [authGuard, adminGuard],
+    title: 'Safarni | Admin',
+    children: [
+      { path: '', pathMatch: 'full', loadComponent: () => import('./pages/admin/dashboard/dashboard.component').then((m) => m.AdminDashboardComponent) },
+      { path: 'users', loadComponent: () => import('./pages/admin/users/users.component').then((m) => m.AdminUsersComponent) },
+      { path: 'knowledge', loadComponent: () => import('./pages/admin/knowledge/knowledge.component').then((m) => m.AdminKnowledgeComponent) },
+      { path: 'ai-activity', loadComponent: () => import('./pages/admin/ai-activity/ai-activity.component').then((m) => m.AdminAiActivityComponent) },
+      { path: 'integrations', loadComponent: () => import('./pages/admin/integrations/integrations.component').then((m) => m.AdminIntegrationsComponent) },
+      { path: 'analytics', loadComponent: () => import('./pages/admin/analytics/analytics.component').then((m) => m.AdminAnalyticsComponent) },
+      { path: 'roles', loadComponent: () => import('./pages/admin/roles/roles.component').then((m) => m.AdminRolesComponent) },
+      { path: 'audit-logs', loadComponent: () => import('./pages/admin/audit-logs/audit-logs.component').then((m) => m.AdminAuditLogsComponent) }
+    ]
   },
   { path: '**', redirectTo: '' }
 ];

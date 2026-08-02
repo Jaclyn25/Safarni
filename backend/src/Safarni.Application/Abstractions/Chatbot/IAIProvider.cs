@@ -5,6 +5,10 @@ namespace ChatBotApi.Application.Common.Interfaces;
 
 public interface IItineraryAIProvider
 {
+    string ProviderName { get; }
+
+    string ModelName { get; }
+
     Task<string> GetChatCompletionAsync(
         string systemPrompt,
         List<ChatMessageDto> history,

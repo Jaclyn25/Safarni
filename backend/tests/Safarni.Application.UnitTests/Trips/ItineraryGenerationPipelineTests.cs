@@ -383,7 +383,8 @@ public sealed class ItineraryGenerationPipelineTests
         int expected)
     {
         ItineraryGenerationProcessor
-            .GetRecommendedCompletionMaxTokens(dayCount)
+            .BuildCompletionOptions(dayCount)
+            .MaxTokens
             .Should()
             .Be(expected);
     }

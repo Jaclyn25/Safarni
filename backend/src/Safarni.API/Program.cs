@@ -36,7 +36,12 @@ var builder = WebApplication.CreateBuilder(args);
 // ================= Original Safarni Configuration =================
 
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 
 
 builder.Services.AddCors(options =>
@@ -167,6 +172,8 @@ builder.Services.AddScoped<IPromptBuilder, PromptBuilder>();
 // Database Seeder
 builder.Services.AddScoped<ChatDbSeeder>();
 
+builder.Services.AddScoped<AdminAccountSeeder>();
+
 
 // Intent Detection
 builder.Services.AddScoped<IIntentDetectionService, IntentDetectionService>();
@@ -246,6 +253,13 @@ using (var scope = app.Services.CreateScope())
         .GetRequiredService<ChatDbSeeder>();
 
     await seeder.SeedAsync();
+
+
+    // Controlled first admin account (Admin:Email / Admin:Password)
+    var adminSeeder = scope.ServiceProvider
+        .GetRequiredService<AdminAccountSeeder>();
+
+    await adminSeeder.SeedAsync();
 
 
 

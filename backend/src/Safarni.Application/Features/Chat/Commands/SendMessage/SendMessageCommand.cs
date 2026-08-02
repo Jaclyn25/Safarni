@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using ChatBotApi.Domain.Entities;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Safarni.Application.Abstractions.AI;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.SendMessage;
 
@@ -31,6 +33,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
     private readonly IChatScopeClassifier _scopeClassifier;
     private readonly IGooglePlacesService _googlePlacesService;
     private readonly ILogger<SendMessageCommandHandler> _logger;
+    private readonly IAIRequestLogWriter? _telemetryWriter;
 
     public SendMessageCommandHandler(
         IChatRepository repository, 
@@ -43,7 +46,8 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
         IIntentDetectionService intentDetectionService,
         IChatScopeClassifier scopeClassifier,
         IGooglePlacesService googlePlacesService,
-        ILogger<SendMessageCommandHandler> logger)
+        ILogger<SendMessageCommandHandler> logger,
+        IAIRequestLogWriter? telemetryWriter = null)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
@@ -56,6 +60,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
         _scopeClassifier = scopeClassifier;
         _googlePlacesService = googlePlacesService;
         _logger = logger;
+        _telemetryWriter = telemetryWriter;
     }
 
     public async Task<ConversationDto> Handle(SendMessageCommand request, CancellationToken cancellationToken)
@@ -128,10 +133,13 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                 "Sending Social intent directly to the model without RAG or Places lookup.");
             var directSystemPrompt = _promptBuilder.BuildDirectSystemPrompt(intent, request.Message);
             var directUserPrompt = _promptBuilder.BuildUserPrompt(request.Message);
-            var generatedResponse = await _aiProvider.GetChatCompletionAsync(
+            var generatedResponse = await GetCompletionWithTelemetryAsync(
+                request.UserId,
+                request.ConversationId,
                 directSystemPrompt,
                 history,
                 directUserPrompt,
+                "Chat.Completion",
                 cancellationToken);
 
             var directResponseMessage = new ConversationMessage
@@ -256,7 +264,14 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
 
         var userPrompt = _promptBuilder.BuildUserPrompt(request.Message);
         _logger.LogInformation("Sending prompt to LLM (System Prompt Length: {Len}).", systemPrompt.Length);
-        var aiResponse = await _aiProvider.GetChatCompletionAsync(systemPrompt, history, userPrompt, cancellationToken);
+        var aiResponse = await GetCompletionWithTelemetryAsync(
+            request.UserId,
+            request.ConversationId,
+            systemPrompt,
+            history,
+            userPrompt,
+            "Chat.Completion",
+            cancellationToken);
 
         var assistantMsg = new ConversationMessage
         {
@@ -272,6 +287,67 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ToConversationDto(conversation);
+    }
+
+    private async Task<string> GetCompletionWithTelemetryAsync(
+        string userId,
+        Guid conversationId,
+        string systemPrompt,
+        List<ChatMessageDto> history,
+        string userMessage,
+        string operation,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        Guid? parsedUserId = Guid.TryParse(userId, out var userIdGuid)
+            ? userIdGuid
+            : null;
+
+        try
+        {
+            var reply = await _aiProvider.GetChatCompletionAsync(
+                systemPrompt,
+                history,
+                userMessage,
+                cancellationToken);
+
+            stopwatch.Stop();
+
+            await AIRequestTelemetry.RecordAsync(
+                _telemetryWriter,
+                new AIRequestLogEntry(
+                    parsedUserId,
+                    conversationId,
+                    ItineraryJobId: null,
+                    _aiProvider.ProviderName,
+                    _aiProvider.ModelName,
+                    operation,
+                    Status: "Success",
+                    stopwatch.ElapsedMilliseconds),
+                cancellationToken);
+
+            return reply;
+        }
+        catch (Exception exception)
+        {
+            stopwatch.Stop();
+
+            await AIRequestTelemetry.RecordAsync(
+                _telemetryWriter,
+                new AIRequestLogEntry(
+                    parsedUserId,
+                    conversationId,
+                    ItineraryJobId: null,
+                    _aiProvider.ProviderName,
+                    _aiProvider.ModelName,
+                    operation,
+                    Status: "Failure",
+                    stopwatch.ElapsedMilliseconds,
+                    ErrorCode: exception.GetType().Name),
+                cancellationToken);
+
+            throw;
+        }
     }
 
     private static ConversationDto ToConversationDto(Conversation conversation)

@@ -124,7 +124,7 @@ export class RegisterComponent
 
     // Already signed in? Send the user where they wanted to go.
     if (this.authService.isAuthenticated()) {
-      void this.router.navigate([this.returnUrl ?? '/']);
+      void this.router.navigate([this.defaultRedirectUrl]);
     }
   }
 
@@ -199,7 +199,7 @@ export class RegisterComponent
           );
 
           window.setTimeout(() => {
-            void this.router.navigate([this.returnUrl ?? '/']);
+            void this.router.navigate([this.defaultRedirectUrl]);
           }, 700);
         },
 
@@ -415,7 +415,7 @@ export class RegisterComponent
            * - Refresh token
            * - Current user
            */
-          void this.router.navigate([this.returnUrl ?? '/']);
+          void this.router.navigate([this.defaultRedirectUrl]);
         },
 
         error: (error: unknown) => {
@@ -535,5 +535,18 @@ export class RegisterComponent
     return active
       ? 'flex items-center gap-2 opacity-100 text-tertiary transition-opacity'
       : 'flex items-center gap-2 opacity-60 text-on-surface-variant transition-opacity';
+  }
+
+  private get defaultRedirectUrl(): string {
+    const isAdmin = this.authService.hasAdminRole();
+    if (this.returnUrl) {
+      if (isAdmin && this.returnUrl.startsWith('/admin')) {
+        return this.returnUrl;
+      }
+      if (!isAdmin && !this.returnUrl.startsWith('/admin')) {
+        return this.returnUrl;
+      }
+    }
+    return isAdmin ? '/admin' : '/';
   }
 }

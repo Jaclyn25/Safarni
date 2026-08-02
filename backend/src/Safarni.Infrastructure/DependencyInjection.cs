@@ -1,12 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Safarni.Application.Abstractions.AI;
+using Safarni.Application.Abstractions.Auditing;
 using Safarni.Application.Abstractions.BackgroundJobs;
+using Safarni.Application.Abstractions.Integrations;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Abstractions.Security;
 using Safarni.Application.Abstractions.Storage;
 using Safarni.Application.Features.Auth.GoogleLogin;
+using Safarni.Infrastructure.AI;
+using Safarni.Infrastructure.Auditing;
 using Safarni.Infrastructure.Authentication;
+using Safarni.Infrastructure.Integrations;
 using Safarni.Infrastructure.Email;
 using Safarni.Infrastructure.Links;
 using Safarni.Infrastructure.Persistence;
@@ -52,9 +58,16 @@ public static class DependencyInjection
         services.AddScoped<
             IItineraryGenerationJobRepository,
             ItineraryGenerationJobRepository>();
+        services.AddScoped<IAdminRepository, AdminRepository>();
 
         services.AddScoped<IPasswordHasher, PasswordHasherService>();
         services.AddScoped<ITokenService, JwtTokenService>();
+
+        services.AddScoped<IAuditLogWriter, AuditLogWriter>();
+        services.AddScoped<IAIRequestLogWriter, AIRequestLogWriter>();
+        services.AddScoped<
+            IExternalServiceHealthChecker,
+            ExternalServiceHealthChecker>();
 
         services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
         services.Configure<FrontendSettings>(configuration.GetSection("Frontend"));

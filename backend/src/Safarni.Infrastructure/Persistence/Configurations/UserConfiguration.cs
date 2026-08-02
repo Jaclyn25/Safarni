@@ -41,6 +41,12 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.PasswordHash)
             .IsRequired();
 
+        builder.Property(user => user.Role)
+            .HasConversion<string>()
+            .HasMaxLength(50)
+            .HasDefaultValue(Safarni.Domain.Enums.UserRole.User)
+            .IsRequired();
+
         builder.Property(user => user.CreatedAt)
             .IsRequired();
         builder.Property(user => user.UpdatedAt);

@@ -36,6 +36,12 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
         _logger = logger;
     }
 
+    public string ProviderName => "GeminiItinerary";
+
+    public string ModelName =>
+        _configuration[$"{ConfigurationSection}:Model"] ??
+        "gemini-2.5-flash";
+
     public Task<string> GetChatCompletionAsync(
         string systemPrompt,
         List<ChatMessageDto> history,

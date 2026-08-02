@@ -92,6 +92,10 @@ public class ChatScopeClassifierTests
             _response = response;
         }
 
+        public string ProviderName => "TestProvider";
+
+        public string ModelName => "test-model";
+
         public Task<string> GetChatCompletionAsync(
             string systemPrompt,
             List<ChatMessageDto> history,

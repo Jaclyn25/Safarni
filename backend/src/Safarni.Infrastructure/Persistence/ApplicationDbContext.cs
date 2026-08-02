@@ -25,6 +25,8 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<PassportInfo> PassportInfos => Set<PassportInfo>();
     public DbSet<VisaApplication> VisaApplications => Set<VisaApplication>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<AIRequestLog> AIRequestLogs => Set<AIRequestLog>();
 
     // Chatbot tables
     public DbSet<Conversation> Conversations => Set<Conversation>();
@@ -114,7 +116,76 @@ public sealed class ApplicationDbContext : DbContext
             entity.Property(e => e.Content)
                 .IsRequired();
 
+            entity.Property(e => e.SourceUrl)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.IsArchived)
+                .HasDefaultValue(false)
+                .IsRequired();
+
             entity.Ignore(e => e.Embedding);
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Action)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.TargetType)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.TargetId)
+                .HasMaxLength(100);
+
+            entity.Property(e => e.MetadataJson)
+                .IsRequired();
+
+            entity.Property(e => e.IpAddress)
+                .HasMaxLength(64);
+
+            entity.Property(e => e.UserAgent)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.Severity)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.Action);
+            entity.HasIndex(e => e.ActorUserId);
+        });
+
+        modelBuilder.Entity<AIRequestLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Provider)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.Model)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Operation)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Status)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.Property(e => e.ErrorCode)
+                .HasMaxLength(100);
+
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.Provider);
+            entity.HasIndex(e => e.UserId);
         });
     }
 }

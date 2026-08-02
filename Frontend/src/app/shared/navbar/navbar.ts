@@ -14,6 +14,7 @@ import { CommonModule } from '@angular/common';
 export class NavbarComponent implements OnInit {
   isScrolled = false;
   isExplorePage = false;
+  isAdminPage = false;
   navbarBgClass = 'bg-surface/80 dark:bg-surface/80';
   isLogoutModalOpen = false;
 
@@ -27,13 +28,15 @@ export class NavbarComponent implements OnInit {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
-      const url = event.urlAfterRedirects.split('?')[0];
+      const url = (event.urlAfterRedirects || event.url).split('?')[0];
       this.isExplorePage = url === '/' || url === '';
+      this.isAdminPage = url.startsWith('/admin');
       this.updateBgClass();
     });
     
     const currentUrl = window.location.pathname;
     this.isExplorePage = currentUrl === '/' || currentUrl === '';
+    this.isAdminPage = currentUrl.startsWith('/admin');
     this.updateBgClass();
   }
 
@@ -54,6 +57,10 @@ export class NavbarComponent implements OnInit {
 
   get user() {
     return this.authService.getCurrentUser();
+  }
+
+  get isAdmin(): boolean {
+    return this.authService.hasAdminRole();
   }
 
   logout(): void {

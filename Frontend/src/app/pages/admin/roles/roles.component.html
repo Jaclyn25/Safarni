@@ -1,0 +1,526 @@
+<div class="space-y-6">
+  <!-- Header & Toolbar -->
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h1 class="font-heading text-2xl font-bold text-on-surface">Roles & Capability Matrix</h1>
+      <p class="mt-1 text-sm text-on-surface-variant">System access privileges, module capability matrix, and RBAC token claim governance.</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <button
+        (click)="exportMatrix()"
+        class="flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface-container-lowest px-3.5 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors shadow-2xs"
+      >
+        <span class="material-symbols-outlined text-primary" style="font-size: 18px">file_download</span>
+        Export Audit Matrix
+      </button>
+
+      <a
+        routerLink="/admin/users"
+        class="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary shadow-sm hover:opacity-90 transition-opacity"
+      >
+        <span class="material-symbols-outlined" style="font-size: 18px">manage_accounts</span>
+        Assign Roles in Users &rarr;
+      </a>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div *ngIf="notice()" class="rounded-xl p-3.5 text-xs font-semibold flex items-center justify-between shadow-2xs bg-emerald-100 text-emerald-800">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined" style="font-size: 18px">check_circle</span>
+      {{ notice()?.text }}
+    </div>
+    <button (click)="notice.set(null)" aria-label="Dismiss notice" class="text-xs font-bold opacity-75 hover:opacity-100">Dismiss</button>
+  </div>
+
+  <!-- Top Role Governance Metric Cards -->
+  <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">System Roles Catalog</p>
+        <span class="material-symbols-outlined text-primary text-xl">admin_panel_settings</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-on-surface">5 Roles</p>
+      <p class="mt-1 text-[11px] font-medium text-emerald-600">Active RBAC catalog</p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Super Admin Role</p>
+        <span class="material-symbols-outlined text-purple-600 text-xl">shield</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-purple-700">1 Full Admin</p>
+      <p class="mt-1 text-[11px] font-medium text-purple-600">Unrestricted access</p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Operational Staff</p>
+        <span class="material-symbols-outlined text-blue-600 text-xl">badge</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-blue-700">3 Specialized</p>
+      <p class="mt-1 text-[11px] font-medium text-blue-600">Support, Content, Analyst</p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Base Traveler</p>
+        <span class="material-symbols-outlined text-slate-600 text-xl">person</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-on-surface">1 End User</p>
+      <p class="mt-1 text-[11px] font-medium text-on-surface-variant">Public product features</p>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="space-y-4">
+    <div *ngFor="let _ of [].constructor(4)" class="h-24 animate-pulse rounded-2xl bg-surface-container-high"></div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="!isLoading() && loadError()" class="rounded-2xl border border-error-container bg-error-container/20 p-6 text-center">
+    <span class="material-symbols-outlined text-error" style="font-size: 36px">error_outline</span>
+    <p class="mt-2 font-medium text-on-error-container">{{ loadError() }}</p>
+    <button (click)="load()" class="mt-4 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary">
+      Try again
+    </button>
+  </div>
+
+  <!-- Main Content Body -->
+  <ng-container *ngIf="!isLoading() && !loadError()">
+    <!-- Enriched Role Catalog Cards Grid -->
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div *ngFor="let role of roles" class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs flex flex-col justify-between hover:border-primary transition-all group">
+        <div class="space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <span [class]="'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs ' + roleBadgeClass(role.name)">
+              <span class="material-symbols-outlined text-xs">{{ roleIcon(role.name) }}</span>
+              {{ labelFor(role.name) }}
+            </span>
+          </div>
+
+          <div>
+            <p class="text-xs font-bold text-on-surface">{{ privilegeLevel(role.name) }}</p>
+            <p class="mt-1 text-xs text-on-surface-variant line-clamp-2 leading-relaxed">{{ role.description }}</p>
+          </div>
+
+          <!-- Capability Progress Bar -->
+          <div class="space-y-1 pt-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-on-surface-variant font-medium">Capability Level</span>
+              <span class="font-bold text-primary font-mono">{{ roleCapabilityPercent(role.name) }}%</span>
+            </div>
+            <div class="h-1.5 w-full rounded-full bg-surface-container-high overflow-hidden">
+              <div
+                class="h-full rounded-full bg-primary transition-all duration-500"
+                [style.width.%]="roleCapabilityPercent(role.name)"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 border-t border-outline-variant/40 pt-3 text-xs flex items-center justify-between">
+          <span class="font-mono text-[11px] text-on-surface-variant font-semibold">
+            {{ roleGrantedCount(role.name) }} / 7 modules
+          </span>
+          <button
+            (click)="openRoleDetail(role)"
+            class="rounded-xl border border-outline-variant bg-surface px-2.5 py-1 text-xs font-semibold text-primary group-hover:bg-primary-container/20 transition-colors shadow-2xs"
+          >
+            Inspect Role
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Side-by-Side Role Permission Comparer Section -->
+    <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-2xs space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant pb-3">
+        <div>
+          <h2 class="font-heading text-base font-bold text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary" style="font-size: 20px">compare_arrows</span>
+            Side-by-Side Role Permission Comparer
+          </h2>
+          <p class="text-xs text-on-surface-variant">Compare capability differences between any two system roles.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <!-- Role A Selector -->
+          <div class="flex items-center gap-1.5 text-xs font-semibold">
+            <span class="text-on-surface-variant">Role A:</span>
+            <select
+              [(ngModel)]="compareRoleA"
+              class="rounded-xl border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-bold text-on-surface focus:outline-none"
+            >
+              <option value="Admin">Admin</option>
+              <option value="Support">Support</option>
+              <option value="ContentManager">Content Manager</option>
+              <option value="Analyst">Analyst</option>
+              <option value="User">User</option>
+            </select>
+          </div>
+
+          <span class="text-xs text-on-surface-variant font-bold">VS</span>
+
+          <!-- Role B Selector -->
+          <div class="flex items-center gap-1.5 text-xs font-semibold">
+            <span class="text-on-surface-variant">Role B:</span>
+            <select
+              [(ngModel)]="compareRoleB"
+              class="rounded-xl border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-bold text-on-surface focus:outline-none"
+            >
+              <option value="Admin">Admin</option>
+              <option value="Support">Support</option>
+              <option value="ContentManager">Content Manager</option>
+              <option value="Analyst">Analyst</option>
+              <option value="User">User</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparison Grid -->
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          *ngFor="let row of comparisonRows"
+          class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 text-xs space-y-2.5"
+        >
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-on-surface text-xs">{{ row.moduleName }}</span>
+            <span class="rounded-md bg-surface-container-high px-2 py-0.5 text-[10px] font-bold text-on-surface-variant">
+              {{ row.category }}
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-outline-variant/40 text-[11px]">
+            <div class="flex items-center gap-1 font-semibold" [class.text-emerald-700]="row.roleAHas" [class.text-on-surface-variant/50]="!row.roleAHas">
+              <span class="material-symbols-outlined text-xs">{{ row.roleAHas ? 'check_circle' : 'cancel' }}</span>
+              <span>{{ labelFor(compareRoleA) }}</span>
+            </div>
+
+            <div class="flex items-center gap-1 font-semibold" [class.text-emerald-700]="row.roleBHas" [class.text-on-surface-variant/50]="!row.roleBHas">
+              <span class="material-symbols-outlined text-xs">{{ row.roleBHas ? 'check_circle' : 'cancel' }}</span>
+              <span>{{ labelFor(compareRoleB) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Module Category Filter Chips Bar -->
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-3.5 shadow-2xs">
+      <div class="flex items-center gap-2 overflow-x-auto">
+        <span class="text-xs font-semibold text-on-surface-variant shrink-0">Filter Modules:</span>
+        <button
+          (click)="activeCategory = ''"
+          [class.bg-primary]="activeCategory === ''"
+          [class.text-on-primary]="activeCategory === ''"
+          [class.bg-surface-container-high]="activeCategory !== ''"
+          class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0"
+        >
+          All Modules
+        </button>
+        <button
+          (click)="activeCategory = 'Core Operations'"
+          [class.bg-primary]="activeCategory === 'Core Operations'"
+          [class.text-on-primary]="activeCategory === 'Core Operations'"
+          [class.bg-surface-container-high]="activeCategory !== 'Core Operations'"
+          class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0"
+        >
+          Core Operations
+        </button>
+        <button
+          (click)="activeCategory = 'User & Security'"
+          [class.bg-primary]="activeCategory === 'User & Security'"
+          [class.text-on-primary]="activeCategory === 'User & Security'"
+          [class.bg-surface-container-high]="activeCategory !== 'User & Security'"
+          class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0"
+        >
+          User & Security
+        </button>
+        <button
+          (click)="activeCategory = 'Content & RAG'"
+          [class.bg-primary]="activeCategory === 'Content & RAG'"
+          [class.text-on-primary]="activeCategory === 'Content & RAG'"
+          [class.bg-surface-container-high]="activeCategory !== 'Content & RAG'"
+          class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0"
+        >
+          Content & RAG
+        </button>
+        <button
+          (click)="activeCategory = 'AI Observability'"
+          [class.bg-primary]="activeCategory === 'AI Observability'"
+          [class.text-on-primary]="activeCategory === 'AI Observability'"
+          [class.bg-surface-container-high]="activeCategory !== 'AI Observability'"
+          class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0"
+        >
+          AI Observability
+        </button>
+        <button
+          (click)="activeCategory = 'Analytics'"
+          [class.bg-primary]="activeCategory === 'Analytics'"
+          [class.text-on-primary]="activeCategory === 'Analytics'"
+          [class.bg-surface-container-high]="activeCategory !== 'Analytics'"
+          class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0"
+        >
+          Analytics
+        </button>
+      </div>
+    </div>
+
+    <!-- High-Density Module Permission Matrix Table -->
+    <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xs overflow-hidden">
+      <div class="border-b border-outline-variant px-5 py-4 flex items-center justify-between">
+        <div>
+          <h2 class="font-heading text-base font-bold text-on-surface">Module Permission Matrix</h2>
+          <p class="text-xs text-on-surface-variant">Capabilities granted to each system role across operational modules.</p>
+        </div>
+        <span class="rounded-xl bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-bold text-purple-800">
+          Showing {{ filteredMatrix.length }} module(s)
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-on-surface">
+          <thead class="border-b border-outline-variant bg-surface-container-low font-bold text-on-surface-variant uppercase tracking-wider text-[10px]">
+            <tr>
+              <th class="px-5 py-3.5 min-w-[220px]">Module & Description</th>
+              <th class="px-4 py-3.5 text-center">Admin</th>
+              <th class="px-4 py-3.5 text-center">Support</th>
+              <th class="px-4 py-3.5 text-center">Content Mgr</th>
+              <th class="px-4 py-3.5 text-center">Analyst</th>
+              <th class="px-4 py-3.5 text-center">User</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-outline-variant/60">
+            <tr *ngFor="let row of filteredMatrix" class="hover:bg-surface-container-low transition-colors">
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-2">
+                  <p class="font-bold text-on-surface text-xs">{{ row.moduleName }}</p>
+                  <span class="rounded-md bg-surface-container-high px-2 py-0.5 text-[10px] font-semibold text-on-surface-variant">
+                    {{ row.category }}
+                  </span>
+                </div>
+                <p class="text-on-surface-variant text-[11px] mt-0.5 leading-relaxed">{{ row.description }}</p>
+              </td>
+              <td class="px-4 py-3.5 text-center">
+                <span class="material-symbols-outlined font-bold" [class.text-emerald-600]="row.admin" [class.text-slate-300]="!row.admin" style="font-size: 20px">
+                  {{ row.admin ? 'check_circle' : 'cancel' }}
+                </span>
+              </td>
+              <td class="px-4 py-3.5 text-center">
+                <span class="material-symbols-outlined font-bold" [class.text-emerald-600]="row.support" [class.text-slate-300]="!row.support" style="font-size: 20px">
+                  {{ row.support ? 'check_circle' : 'cancel' }}
+                </span>
+              </td>
+              <td class="px-4 py-3.5 text-center">
+                <span class="material-symbols-outlined font-bold" [class.text-emerald-600]="row.contentManager" [class.text-slate-300]="!row.contentManager" style="font-size: 20px">
+                  {{ row.contentManager ? 'check_circle' : 'cancel' }}
+                </span>
+              </td>
+              <td class="px-4 py-3.5 text-center">
+                <span class="material-symbols-outlined font-bold" [class.text-emerald-600]="row.analyst" [class.text-slate-300]="!row.analyst" style="font-size: 20px">
+                  {{ row.analyst ? 'check_circle' : 'cancel' }}
+                </span>
+              </td>
+              <td class="px-4 py-3.5 text-center">
+                <span class="material-symbols-outlined font-bold" [class.text-emerald-600]="row.user" [class.text-slate-300]="!row.user" style="font-size: 20px">
+                  {{ row.user ? 'check_circle' : 'cancel' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- RBAC Security Compliance Banner -->
+    <div class="rounded-2xl border border-purple-300 bg-purple-50 p-5 text-xs text-purple-950 shadow-2xs dark:bg-purple-950/40">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-purple-600 mt-0.5" style="font-size: 22px">verified_user</span>
+        <div>
+          <h3 class="font-bold text-sm text-purple-900">Role-Based Access Control (RBAC) Governance</h3>
+          <p class="mt-1 text-xs text-purple-800 leading-relaxed">
+            All backend ASP.NET Core API endpoints enforce strict role claims using <code class="rounded-md bg-purple-200/60 px-1.5 py-0.5 font-mono text-[11px] text-purple-900">[Authorize(Roles = "...")]</code> policies. Assigning roles in User Management takes effect immediately upon the user's next token issuance.
+          </p>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Spacious Centered Inspect Role Modal Window (max-w-3xl) -->
+  <div *ngIf="selectedRole()" class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-black/50 backdrop-blur-xs" (click)="closeRoleDetail()"></div>
+
+      <!-- Centered Modal Card -->
+      <div class="relative w-full max-w-3xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-2xl space-y-6">
+        <!-- Hero Header Banner -->
+        <div class="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant pb-4">
+          <div class="flex items-center gap-4">
+            <div [class]="'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-bold ' + roleAvatarGradient(selectedRole()?.name || '')">
+              <span class="material-symbols-outlined text-2xl">{{ roleIcon(selectedRole()?.name || '') }}</span>
+            </div>
+
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="font-heading text-lg font-bold text-on-surface">{{ labelFor(selectedRole()?.name || '') }}</h2>
+                <span [class]="'inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs ' + roleBadgeClass(selectedRole()?.name || '')">
+                  {{ privilegeLevel(selectedRole()?.name || '') }}
+                </span>
+                <span [class]="'inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] ' + roleRiskLevel(selectedRole()?.name || '').badgeClass">
+                  {{ roleRiskLevel(selectedRole()?.name || '').label }}
+                </span>
+              </div>
+              <p class="mt-1 text-xs text-on-surface-variant font-medium leading-relaxed">{{ selectedRole()?.description }}</p>
+            </div>
+          </div>
+
+          <button (click)="closeRoleDetail()" aria-label="Close modal" class="rounded-xl p-2 text-on-surface-variant hover:bg-surface-container-high transition-colors">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <!-- Capability Progress Level Bar -->
+        <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 space-y-1.5">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-on-surface">Capability Granted Level</span>
+            <span class="font-bold text-primary font-mono">{{ roleCapabilityPercent(selectedRole()?.name || '') }}% ({{ roleGrantedCount(selectedRole()?.name || '') }} / 7 Modules)</span>
+          </div>
+          <div class="h-2 w-full rounded-full bg-surface-container-high overflow-hidden">
+            <div
+              class="h-full rounded-full bg-primary transition-all duration-500"
+              [style.width.%]="roleCapabilityPercent(selectedRole()?.name || '')"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Tabbed Navigation Header Bar -->
+        <div class="flex items-center gap-2 border-b border-outline-variant/60 pb-2">
+          <button
+            (click)="activeModalTab = 'capabilities'"
+            [class.bg-primary]="activeModalTab === 'capabilities'"
+            [class.text-on-primary]="activeModalTab === 'capabilities'"
+            [class.bg-surface-container-high]="activeModalTab !== 'capabilities'"
+            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors"
+          >
+            Granted Capabilities
+          </button>
+          <button
+            (click)="activeModalTab = 'security'"
+            [class.bg-primary]="activeModalTab === 'security'"
+            [class.text-on-primary]="activeModalTab === 'security'"
+            [class.bg-surface-container-high]="activeModalTab !== 'security'"
+            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors"
+          >
+            ASP.NET Security Audit
+          </button>
+          <button
+            (click)="activeModalTab = 'users'"
+            [class.bg-primary]="activeModalTab === 'users'"
+            [class.text-on-primary]="activeModalTab === 'users'"
+            [class.bg-surface-container-high]="activeModalTab !== 'users'"
+            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors"
+          >
+            Assigned Users & Governance
+          </button>
+        </div>
+
+        <!-- TAB 1: GRANTED CAPABILITIES -->
+        <div *ngIf="activeModalTab === 'capabilities'" class="space-y-3 text-xs">
+          <div class="max-h-72 overflow-y-auto pr-1 space-y-2.5">
+            <div
+              *ngFor="let m of permissionMatrix"
+              class="flex items-center justify-between rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5"
+            >
+              <div class="space-y-0.5">
+                <div class="flex items-center gap-2">
+                  <p class="font-bold text-on-surface text-xs">{{ m.moduleName }}</p>
+                  <span class="rounded-md bg-surface-container-high px-2 py-0.5 text-[10px] font-semibold text-on-surface-variant">
+                    {{ m.category }}
+                  </span>
+                </div>
+                <p class="text-on-surface-variant text-[11px] leading-relaxed">{{ m.description }}</p>
+              </div>
+
+              <span
+                class="inline-flex items-center gap-1 shrink-0 rounded-full px-3 py-1 text-[11px] font-bold border"
+                [class.bg-emerald-50]="hasPermission(m, selectedRole()?.name || '')"
+                [class.text-emerald-700]="hasPermission(m, selectedRole()?.name || '')"
+                [class.border-emerald-200]="hasPermission(m, selectedRole()?.name || '')"
+                [class.bg-slate-100]="!hasPermission(m, selectedRole()?.name || '')"
+                [class.text-slate-600]="!hasPermission(m, selectedRole()?.name || '')"
+                [class.border-slate-200]="!hasPermission(m, selectedRole()?.name || '')"
+              >
+                <span class="material-symbols-outlined text-xs">{{ hasPermission(m, selectedRole()?.name || '') ? 'check_circle' : 'block' }}</span>
+                {{ hasPermission(m, selectedRole()?.name || '') ? 'Granted' : 'Restricted' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: ASP.NET SECURITY AUDIT -->
+        <div *ngIf="activeModalTab === 'security'" class="space-y-4 text-xs">
+          <div class="rounded-xl border border-purple-300 bg-purple-50 p-4 text-purple-950 space-y-2 dark:bg-purple-950/40">
+            <h3 class="font-bold text-xs text-purple-900 uppercase tracking-wider">Backend API Controller Guard</h3>
+            <p class="text-xs text-purple-800 leading-relaxed">
+              ASP.NET Core controllers require the specified claim type in the JWT token header:
+            </p>
+            <div class="rounded-lg bg-surface p-3 font-mono text-xs text-purple-900 border border-purple-200 shadow-2xs">
+              <code>[Authorize(Roles = "{{ selectedRole()?.name }}")]</code>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 space-y-1">
+              <p class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">JWT Role Claim Type</p>
+              <p class="font-mono text-[11px] font-semibold text-on-surface break-all">http://schemas.microsoft.com/ws/2008/06/identity/claims/role</p>
+            </div>
+
+            <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 space-y-1">
+              <p class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Security Risk Rating</p>
+              <span [class]="'inline-flex items-center rounded-md border px-2 py-0.5 text-xs ' + roleRiskLevel(selectedRole()?.name || '').badgeClass">
+                {{ roleRiskLevel(selectedRole()?.name || '').label }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: ASSIGNED USERS & GOVERNANCE -->
+        <div *ngIf="activeModalTab === 'users'" class="space-y-4 text-xs">
+          <div class="flex items-center justify-between rounded-xl border border-outline-variant/60 bg-surface-container-low p-4">
+            <div>
+              <p class="font-bold text-on-surface text-sm">Assigned User Accounts</p>
+              <p class="text-xs text-on-surface-variant mt-0.5">Filter all registered travelers and staff holding the {{ selectedRole()?.name }} role.</p>
+            </div>
+
+            <a
+              routerLink="/admin/users"
+              (click)="closeRoleDetail()"
+              class="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary shadow-sm hover:opacity-90 transition-opacity"
+            >
+              <span class="material-symbols-outlined" style="font-size: 16px">group</span>
+              View Users with Role &rarr;
+            </a>
+          </div>
+
+          <div *ngIf="selectedRole()?.name === 'Admin'" class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+            <h4 class="font-bold text-xs text-amber-900">Admin Lockout Prevention Protocol</h4>
+            <p class="mt-1 text-xs text-amber-800 leading-relaxed">
+              At least one active user account must retain the Super Admin role at all times. Self-demotion is strictly enforced to prevent administrative lockout.
+            </p>
+          </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="flex justify-end pt-2 border-t border-outline-variant">
+          <button (click)="closeRoleDetail()" class="rounded-xl bg-surface-container-high px-5 py-2 text-xs font-bold text-on-surface hover:bg-surface-container-highest transition-colors">
+            Close Panel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -39,6 +39,12 @@ public class GroqProvider : IAIProvider
             configurationSectionName;
     }
 
+    public string ProviderName => _configurationSectionName;
+
+    public string ModelName =>
+        _configuration[$"{_configurationSectionName}:Model"]
+        ?? "llama-3.3-70b-versatile";
+
     public Task<string> GetChatCompletionAsync(
         string systemPrompt,
         List<ChatMessageDto> history,

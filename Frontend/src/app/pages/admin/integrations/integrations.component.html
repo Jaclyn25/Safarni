@@ -1,0 +1,412 @@
+<div class="space-y-6">
+  <!-- Header & Toolbar -->
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h1 class="font-heading text-2xl font-bold text-on-surface">Integrations & Services</h1>
+      <p class="mt-1 text-sm text-on-surface-variant">Monitor third-party APIs, AI models, vector stores, and external service credentials.</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <button
+        (click)="toggleAutoRefresh()"
+        class="flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-colors shadow-2xs"
+        [class.border-emerald-300]="autoRefreshEnabled"
+        [class.bg-emerald-50]="autoRefreshEnabled"
+        [class.text-emerald-800]="autoRefreshEnabled"
+        [class.border-outline-variant]="!autoRefreshEnabled"
+        [class.bg-surface-container-lowest]="!autoRefreshEnabled"
+        [class.text-on-surface-variant]="!autoRefreshEnabled"
+      >
+        <span class="relative flex h-2 w-2" *ngIf="autoRefreshEnabled">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+        <span class="material-symbols-outlined text-xs" *ngIf="!autoRefreshEnabled">sync_disabled</span>
+        {{ autoRefreshEnabled ? 'Auto-Refresh ON (30s)' : 'Auto-Refresh OFF' }}
+      </button>
+
+      <button
+        (click)="testAllServices()"
+        [disabled]="isTestingAll()"
+        class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary shadow-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+      >
+        <span class="material-symbols-outlined" [class.animate-spin]="isTestingAll()" style="font-size: 18px">
+          {{ isTestingAll() ? 'sync' : 'bolt' }}
+        </span>
+        {{ isTestingAll() ? 'Testing All...' : 'Run Diagnostics' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div *ngIf="notice()" class="rounded-xl p-3.5 text-xs font-semibold flex items-center justify-between shadow-2xs"
+    [class.bg-emerald-100]="notice()?.kind === 'success'"
+    [class.text-emerald-800]="notice()?.kind === 'success'"
+    [class.bg-red-100]="notice()?.kind === 'error'"
+    [class.text-red-800]="notice()?.kind === 'error'"
+  >
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined" style="font-size: 18px">
+        {{ notice()?.kind === 'success' ? 'check_circle' : 'error' }}
+      </span>
+      {{ notice()?.text }}
+    </div>
+    <button (click)="notice.set(null)" aria-label="Dismiss notice" class="text-xs font-bold opacity-75 hover:opacity-100">Dismiss</button>
+  </div>
+
+  <!-- Top Service Reliability Metric Cards -->
+  <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Connected Services</p>
+        <span class="material-symbols-outlined text-primary text-xl">api</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-on-surface">{{ totalServicesCount }}</p>
+      <p class="mt-1 text-[11px] font-medium text-emerald-600">Configured providers</p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Healthy Ratio</p>
+        <span class="material-symbols-outlined text-emerald-600 text-xl">check_circle</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-emerald-700">{{ healthyServicesCount }} / {{ totalServicesCount }}</p>
+      <p class="mt-1 text-[11px] font-medium text-emerald-600">Fully operational</p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Degraded Alerts</p>
+        <span class="material-symbols-outlined text-amber-600 text-xl">warning</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold" [class.text-amber-600]="unhealthyServicesCount > 0" [class.text-on-surface]="unhealthyServicesCount === 0">
+        {{ unhealthyServicesCount }}
+      </p>
+      <p class="mt-1 text-[11px] font-medium" [class.text-amber-600]="unhealthyServicesCount > 0" [class.text-emerald-600]="unhealthyServicesCount === 0">
+        {{ unhealthyServicesCount > 0 ? 'Requires attention' : 'Optimal status' }}
+      </p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Mean Latency</p>
+        <span class="material-symbols-outlined text-purple-600 text-xl">speed</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-purple-700">{{ meanLatencyMs }}<span class="text-xs font-normal text-on-surface-variant ml-1">ms</span></p>
+      <p class="mt-1 text-[11px] font-medium text-purple-600">Average response time</p>
+    </div>
+  </div>
+
+  <!-- Category Filter Chips Bar -->
+  <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-3.5 shadow-2xs">
+    <div class="flex items-center gap-2 overflow-x-auto">
+      <span class="text-xs font-semibold text-on-surface-variant shrink-0">Filter Category:</span>
+      <button (click)="applyGroupPill('')" [class.bg-primary]="activeGroupFilter === ''" [class.text-on-primary]="activeGroupFilter === ''" [class.bg-surface-container-high]="activeGroupFilter !== ''" class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0">All Services</button>
+      <button (click)="applyGroupPill('AI & Language Models')" [class.bg-primary]="activeGroupFilter === 'AI & Language Models'" [class.text-on-primary]="activeGroupFilter === 'AI & Language Models'" [class.bg-surface-container-high]="activeGroupFilter !== 'AI & Language Models'" class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0">AI & Language Models</button>
+      <button (click)="applyGroupPill('RAG & Vector Database')" [class.bg-primary]="activeGroupFilter === 'RAG & Vector Database'" [class.text-on-primary]="activeGroupFilter === 'RAG & Vector Database'" [class.bg-surface-container-high]="activeGroupFilter !== 'RAG & Vector Database'" class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0">RAG & Vector Database</button>
+      <button (click)="applyGroupPill('Search & Travel APIs')" [class.bg-primary]="activeGroupFilter === 'Search & Travel APIs'" [class.text-on-primary]="activeGroupFilter === 'Search & Travel APIs'" [class.bg-surface-container-high]="activeGroupFilter !== 'Search & Travel APIs'" class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0">Search & Travel APIs</button>
+      <button (click)="applyGroupPill('Email & Notifications')" [class.bg-primary]="activeGroupFilter === 'Email & Notifications'" [class.text-on-primary]="activeGroupFilter === 'Email & Notifications'" [class.bg-surface-container-high]="activeGroupFilter !== 'Email & Notifications'" class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0">Email & Notifications</button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div *ngFor="let _ of [].constructor(6)" class="h-44 animate-pulse rounded-2xl bg-surface-container-high"></div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="!isLoading() && loadError()" class="rounded-2xl border border-error-container bg-error-container/20 p-6 text-center">
+    <span class="material-symbols-outlined text-error" style="font-size: 36px">error_outline</span>
+    <p class="mt-2 font-medium text-on-error-container">{{ loadError() }}</p>
+    <button (click)="load()" class="mt-4 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary">Try again</button>
+  </div>
+
+  <!-- Main Content -->
+  <ng-container *ngIf="!isLoading() && !loadError()">
+    <!-- Charts Row -->
+    <div class="grid gap-5 xl:grid-cols-3">
+      <!-- Latency Benchmark Bar Chart -->
+      <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-2xs xl:col-span-2">
+        <div class="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+          <div>
+            <h2 class="font-heading text-base font-bold text-on-surface">API Latency Benchmark</h2>
+            <p class="text-xs text-on-surface-variant">Comparative response times across connected API providers (ms).</p>
+          </div>
+          <span class="rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800">Target &lt;500ms</span>
+        </div>
+        <div class="mt-4 h-52 w-full">
+          <canvas baseChart [data]="latencyChartData" [options]="latencyChartOptions" [type]="latencyChartType"></canvas>
+        </div>
+      </section>
+
+      <!-- Health Availability Doughnut -->
+      <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-2xs">
+        <div class="border-b border-outline-variant/60 pb-3">
+          <h2 class="font-heading text-base font-bold text-on-surface">Health Availability</h2>
+          <p class="text-xs text-on-surface-variant">Overall availability ratio across all registered providers.</p>
+        </div>
+        <div class="mt-4 h-52 w-full">
+          <canvas baseChart [data]="healthChartData" [options]="healthChartOptions" [type]="healthChartType"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <!-- System Feature Topology -->
+    <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-2xs">
+      <div class="flex items-center justify-between border-b border-outline-variant pb-3 mb-4">
+        <div>
+          <h2 class="font-heading text-base font-bold text-on-surface">System Feature Topology</h2>
+          <p class="text-xs text-on-surface-variant">Mapping traveler product capabilities to backing integration APIs.</p>
+        </div>
+        <span class="text-xs font-bold text-primary">Active Subsystems</span>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div *ngFor="let topo of featureTopology" class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="material-symbols-outlined text-primary" style="font-size: 22px">{{ topo.icon }}</span>
+            <span
+              class="inline-flex items-center gap-1 rounded-lg border px-2.5 py-0.5 text-[10px] font-bold"
+              [class.bg-emerald-50]="topo.status === 'Healthy'"
+              [class.text-emerald-700]="topo.status === 'Healthy'"
+              [class.border-emerald-200]="topo.status === 'Healthy'"
+              [class.bg-amber-50]="topo.status === 'Degraded'"
+              [class.text-amber-700]="topo.status === 'Degraded'"
+              [class.border-amber-200]="topo.status === 'Degraded'"
+            >
+              {{ topo.status }}
+            </span>
+          </div>
+
+          <div>
+            <h3 class="font-bold text-xs text-on-surface">{{ topo.featureName }}</h3>
+            <p class="text-[11px] text-on-surface-variant line-clamp-2 leading-relaxed mt-0.5">{{ topo.description }}</p>
+          </div>
+
+          <div class="pt-2 border-t border-outline-variant/40 space-y-1">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Backing Services:</p>
+            <div class="flex flex-wrap gap-1">
+              <span *ngFor="let b of topo.backends" class="rounded-md border border-outline-variant/40 bg-surface px-2 py-0.5 text-[10px] font-mono text-on-surface">
+                {{ b }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Categorized Service Health Cards -->
+    <div class="space-y-6">
+      <div *ngFor="let group of groupedIntegrations" class="space-y-3">
+        <!-- Group Header -->
+        <div class="flex items-center gap-2.5 border-b border-outline-variant/60 pb-2">
+          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-container text-primary">
+            <span class="material-symbols-outlined text-base">{{ group.icon }}</span>
+          </div>
+          <h2 class="font-heading text-xs font-bold uppercase tracking-wider text-on-surface">{{ group.category }}</h2>
+          <span class="ml-auto text-[11px] font-medium text-on-surface-variant">{{ group.items.length }} service(s)</span>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div
+            *ngFor="let item of group.items"
+            class="flex flex-col justify-between rounded-2xl border bg-surface-container-lowest p-5 shadow-2xs transition-all hover:shadow-sm hover:border-primary"
+            [class.border-emerald-200/70]="item.status === 'Healthy'"
+            [class.border-red-200/70]="item.status === 'Unhealthy'"
+            [class.border-outline-variant]="item.status !== 'Healthy' && item.status !== 'Unhealthy'"
+          >
+            <div class="space-y-3">
+              <!-- Card Header -->
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h3 class="font-heading text-base font-bold text-on-surface tracking-tight">{{ item.displayName }}</h3>
+                  <span class="mt-1 inline-flex items-center gap-1 rounded-lg bg-surface-container-high px-2.5 py-0.5 text-[11px] font-semibold text-on-surface-variant">
+                    <span class="material-symbols-outlined text-xs">electrical_services</span>
+                    Affects: {{ item.affectedFeature }}
+                  </span>
+                </div>
+                <span [class]="'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ' + statusBadgeClass(item.status)">
+                  <span class="h-2 w-2 rounded-full"
+                    [class.bg-emerald-500]="item.status === 'Healthy'"
+                    [class.bg-red-500]="item.status === 'Unhealthy'"
+                    [class.bg-slate-400]="item.status !== 'Healthy' && item.status !== 'Unhealthy'"
+                    [class.animate-pulse]="item.status === 'Healthy'"
+                  ></span>
+                  {{ item.status }}
+                </span>
+              </div>
+
+              <!-- Service Detail -->
+              <div class="rounded-xl border border-outline-variant/40 bg-surface-container-low/70 p-3">
+                <p class="text-xs text-on-surface font-medium leading-relaxed">{{ item.detail }}</p>
+              </div>
+
+              <!-- Latency Progress Bar -->
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="text-on-surface-variant font-medium">Response Latency</span>
+                  <span class="font-bold font-mono" [class]="latencyBadgeClass(item.latencyMs)">{{ item.latencyMs }} ms</span>
+                </div>
+                <div class="h-1.5 w-full rounded-full bg-surface-container-high overflow-hidden">
+                  <div
+                    class="h-full rounded-full transition-all duration-500"
+                    [class.bg-emerald-500]="item.latencyMs < 200"
+                    [class.bg-amber-500]="item.latencyMs >= 200 && item.latencyMs < 800"
+                    [class.bg-red-500]="item.latencyMs >= 800"
+                    [style.width.%]="Math.min(100, item.latencyMs / 20)"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant/60 pt-3 text-xs">
+              <span class="font-mono text-[11px] text-on-surface-variant">
+                Last checked: {{ formatTime(item.checkedAt) }}
+              </span>
+
+              <button
+                (click)="test(item.name)"
+                [disabled]="testingName() === item.name"
+                class="flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-container/20 disabled:opacity-50 transition-colors shadow-2xs"
+              >
+                <span class="material-symbols-outlined text-xs" [class.animate-spin]="testingName() === item.name">
+                  {{ testingName() === item.name ? 'sync' : 'bolt' }}
+                </span>
+                {{ testingName() === item.name ? 'Testing...' : 'Test Connection' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Masked Environment Secrets Audit Section -->
+    <section *ngIf="config.length > 0" class="rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xs overflow-hidden">
+      <div class="border-b border-outline-variant px-5 py-4 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="font-heading text-base font-bold text-on-surface">Masked Integration Secrets & Keys</h2>
+          <p class="text-xs text-on-surface-variant">Security audit of configured environment variable credentials (values masked).</p>
+        </div>
+        <span class="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+          {{ config.length }} key(s) verified
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-on-surface">
+          <thead class="border-b border-outline-variant bg-surface-container-low font-bold text-on-surface-variant uppercase tracking-wider text-[10px]">
+            <tr>
+              <th class="px-5 py-3.5">Integration Service</th>
+              <th class="px-4 py-3.5">Configuration Key Name</th>
+              <th class="px-4 py-3.5">Config Status</th>
+              <th class="px-4 py-3.5 font-mono">Masked Secret Preview</th>
+              <th class="px-5 py-3.5 text-right">Inspect</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-outline-variant/60">
+            <tr *ngFor="let entry of config" class="hover:bg-surface-container-low transition-colors group">
+              <td class="px-5 py-3.5 font-bold text-on-surface">{{ entry.integration }}</td>
+              <td class="px-4 py-3.5 font-mono text-[11px] text-on-surface-variant font-semibold">{{ entry.key }}</td>
+              <td class="px-4 py-3.5">
+                <span
+                  class="inline-flex items-center gap-1 rounded-lg border px-2.5 py-0.5 text-[11px] font-bold"
+                  [class.bg-emerald-50]="entry.isConfigured"
+                  [class.text-emerald-700]="entry.isConfigured"
+                  [class.border-emerald-200]="entry.isConfigured"
+                  [class.bg-amber-50]="!entry.isConfigured"
+                  [class.text-amber-700]="!entry.isConfigured"
+                  [class.border-amber-200]="!entry.isConfigured"
+                >
+                  <span class="material-symbols-outlined text-xs">{{ entry.isConfigured ? 'check_circle' : 'warning' }}</span>
+                  {{ entry.isConfigured ? 'Configured' : 'Missing Key' }}
+                </span>
+              </td>
+              <td class="px-4 py-3.5 font-mono text-[11px] text-on-surface-variant">
+                {{ entry.maskedValue || '••••••••••••••••' }}
+              </td>
+              <td class="px-5 py-3.5 text-right">
+                <button
+                  (click)="openConfigDetail(entry)"
+                  class="inline-flex items-center gap-1 rounded-xl border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-primary group-hover:bg-primary-container/20 group-hover:border-primary transition-all shadow-2xs"
+                >
+                  <span class="material-symbols-outlined text-xs">key</span>
+                  Inspect Key
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+
+  <!-- Secret Configuration Inspector Modal -->
+  <div *ngIf="selectedConfig()" class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="fixed inset-0 bg-black/50 backdrop-blur-xs" (click)="closeConfigDetail()"></div>
+
+      <div class="relative w-full max-w-lg rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xl overflow-hidden">
+        <!-- Modal Header -->
+        <div class="flex items-start justify-between gap-4 border-b border-outline-variant bg-surface-container-low p-5">
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-container text-primary">
+              <span class="material-symbols-outlined">key</span>
+            </div>
+            <div>
+              <h2 class="font-heading text-base font-bold text-on-surface">Secret Configuration Details</h2>
+              <p class="text-xs text-on-surface-variant mt-0.5">{{ selectedConfig()?.integration }} Service Key</p>
+            </div>
+          </div>
+          <button (click)="closeConfigDetail()" aria-label="Close modal" class="rounded-xl p-2 text-on-surface-variant hover:bg-surface-container-high transition-colors">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-5 space-y-4">
+          <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low divide-y divide-outline-variant/40">
+            <div class="flex items-center justify-between px-4 py-3">
+              <span class="text-xs text-on-surface-variant font-medium">Key Name</span>
+              <span class="font-mono text-xs font-bold text-on-surface">{{ selectedConfig()?.key }}</span>
+            </div>
+            <div class="flex items-center justify-between px-4 py-3">
+              <span class="text-xs text-on-surface-variant font-medium">Integration</span>
+              <span class="text-xs font-bold text-primary">{{ selectedConfig()?.integration }}</span>
+            </div>
+            <div class="flex items-center justify-between px-4 py-3">
+              <span class="text-xs text-on-surface-variant font-medium">Config Status</span>
+              <span
+                class="inline-flex items-center gap-1 rounded-lg border px-2.5 py-0.5 text-[11px] font-bold"
+                [class.bg-emerald-50]="selectedConfig()?.isConfigured"
+                [class.text-emerald-700]="selectedConfig()?.isConfigured"
+                [class.border-emerald-200]="selectedConfig()?.isConfigured"
+                [class.bg-amber-50]="!selectedConfig()?.isConfigured"
+                [class.text-amber-700]="!selectedConfig()?.isConfigured"
+                [class.border-amber-200]="!selectedConfig()?.isConfigured"
+              >
+                {{ selectedConfig()?.isConfigured ? 'Configured' : 'Missing' }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between px-4 py-3">
+              <span class="text-xs text-on-surface-variant font-medium">Value Preview</span>
+              <span class="font-mono text-[11px] text-on-surface-variant">{{ selectedConfig()?.maskedValue || '••••••••••••••••' }}</span>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-2.5 rounded-xl border border-emerald-300 bg-emerald-50 p-3.5 text-[11px] text-emerald-950">
+            <span class="material-symbols-outlined text-emerald-600 mt-0.5 shrink-0" style="font-size: 18px">verified_user</span>
+            <p class="leading-relaxed"><strong>Security Standard:</strong> Secret values are loaded from environment variables and encrypted in memory. Raw strings are never returned in client API responses.</p>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex justify-end border-t border-outline-variant px-5 py-4">
+          <button (click)="closeConfigDetail()" class="rounded-xl bg-surface-container-high px-5 py-2 text-xs font-bold text-on-surface hover:bg-surface-container-highest transition-colors">
+            Close Panel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

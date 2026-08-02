@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Safarni.Domain.Enums;
 using Safarni.Infrastructure.Authentication;
 
 namespace Safarni.API.Extensions;
@@ -34,8 +35,32 @@ public static class AuthenticationExtensions
             };
         });
 
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(AdminPolicies.AdminOnly, policy =>
+                policy.RequireRole(UserRole.Admin.ToString()));
+            options.AddPolicy(AdminPolicies.AdminOrSupport, policy =>
+                policy.RequireRole(
+                    UserRole.Admin.ToString(),
+                    UserRole.Support.ToString()));
+            options.AddPolicy(AdminPolicies.AdminOrContentManager, policy =>
+                policy.RequireRole(
+                    UserRole.Admin.ToString(),
+                    UserRole.ContentManager.ToString()));
+            options.AddPolicy(AdminPolicies.AdminOrAnalyst, policy =>
+                policy.RequireRole(
+                    UserRole.Admin.ToString(),
+                    UserRole.Analyst.ToString()));
+        });
 
         return services;
     }
+}
+
+public static class AdminPolicies
+{
+    public const string AdminOnly = "AdminOnly";
+    public const string AdminOrSupport = "AdminOrSupport";
+    public const string AdminOrContentManager = "AdminOrContentManager";
+    public const string AdminOrAnalyst = "AdminOrAnalyst";
 }

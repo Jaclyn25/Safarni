@@ -1,0 +1,395 @@
+<div class="space-y-6">
+  <!-- Header & Toolbar -->
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h1 class="font-heading text-2xl font-bold text-on-surface">System Audit Logs</h1>
+      <p class="mt-1 text-sm text-on-surface-variant">Immutable administrative audit log trails, authentication checks, and RAG operations.</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <button
+        (click)="exportAuditTrail()"
+        class="flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface-container-lowest px-3.5 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors shadow-2xs"
+      >
+        <span class="material-symbols-outlined text-primary" style="font-size: 18px">file_download</span>
+        Export Audit Trail
+      </button>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div *ngIf="notice()" class="rounded-xl p-3.5 text-xs font-semibold flex items-center justify-between shadow-2xs bg-emerald-100 text-emerald-800">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined" style="font-size: 18px">check_circle</span>
+      {{ notice()?.text }}
+    </div>
+    <button (click)="notice.set(null)" aria-label="Dismiss notice" class="text-xs font-bold opacity-75 hover:opacity-100">Dismiss</button>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div (click)="applySeverityPill('')" class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Logged Events</p>
+        <span class="material-symbols-outlined text-primary text-xl">fact_check</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-on-surface">{{ totalEventsCount }}</p>
+      <p class="mt-1 text-[11px] font-medium text-emerald-600">Total compliance logs</p>
+    </div>
+
+    <div (click)="applySeverityPill('Info')" class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Info Severity</p>
+        <span class="material-symbols-outlined text-emerald-600 text-xl">info</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-emerald-700">{{ infoEventsCount }}</p>
+      <p class="mt-1 text-[11px] font-medium text-emerald-600">Nominal operations</p>
+    </div>
+
+    <div (click)="applySeverityPill('Warning')" class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Warning Events</p>
+        <span class="material-symbols-outlined text-amber-600 text-xl">warning</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-amber-700">{{ warningEventsCount }}</p>
+      <p class="mt-1 text-[11px] font-medium text-amber-600">Requires attention</p>
+    </div>
+
+    <div (click)="applySeverityPill('Error')" class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Security Alerts</p>
+        <span class="material-symbols-outlined text-red-600 text-xl">gavel</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-red-700">{{ errorEventsCount }}</p>
+      <p class="mt-1 text-[11px] font-medium text-red-600">Critical & auth failures</p>
+    </div>
+  </div>
+
+  <!-- Advanced Filtering Toolbar -->
+  <div class="space-y-3 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+    <!-- Category Filter Chips -->
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-xs font-semibold text-on-surface-variant">Category:</span>
+      <button
+        (click)="applyChipFilter('')"
+        [class.bg-primary]="activeChip === '' || activeChip === null"
+        [class.text-on-primary]="activeChip === '' || activeChip === null"
+        [class.bg-surface-container-high]="activeChip !== '' && activeChip !== null"
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors"
+      >
+        All Categories
+      </button>
+      <button
+        (click)="applyChipFilter('User')"
+        [class.bg-primary]="activeChip === 'User'"
+        [class.text-on-primary]="activeChip === 'User'"
+        [class.bg-surface-container-high]="activeChip !== 'User'"
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors"
+      >
+        User Actions
+      </button>
+      <button
+        (click)="applyChipFilter('Auth')"
+        [class.bg-primary]="activeChip === 'Auth'"
+        [class.text-on-primary]="activeChip === 'Auth'"
+        [class.bg-surface-container-high]="activeChip !== 'Auth'"
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors"
+      >
+        Authentication
+      </button>
+      <button
+        (click)="applyChipFilter('Knowledge')"
+        [class.bg-primary]="activeChip === 'Knowledge'"
+        [class.text-on-primary]="activeChip === 'Knowledge'"
+        [class.bg-surface-container-high]="activeChip !== 'Knowledge'"
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors"
+      >
+        Knowledge Base
+      </button>
+      <button
+        (click)="applyChipFilter('Integration')"
+        [class.bg-primary]="activeChip === 'Integration'"
+        [class.text-on-primary]="activeChip === 'Integration'"
+        [class.bg-surface-container-high]="activeChip !== 'Integration'"
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors"
+      >
+        Integrations
+      </button>
+      <button
+        (click)="applyChipFilter('AI')"
+        [class.bg-primary]="activeChip === 'AI'"
+        [class.text-on-primary]="activeChip === 'AI'"
+        [class.bg-surface-container-high]="activeChip !== 'AI'"
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors"
+      >
+        AI Operations
+      </button>
+    </div>
+
+    <!-- Search & Date Selectors -->
+    <div class="flex flex-wrap items-center gap-3 border-t border-outline-variant/40 pt-3">
+      <div class="min-w-[220px] flex-1">
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-2 text-on-surface-variant" style="font-size: 18px">search</span>
+          <input
+            [(ngModel)]="search"
+            (keyup.enter)="load(1)"
+            type="text"
+            placeholder="Search by actor ID, action key, metadata..."
+            class="w-full rounded-xl border-outline-variant bg-surface-container-low pl-9 pr-3 py-1.5 text-xs text-on-surface focus:outline-none"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 text-xs font-semibold">
+        <span class="text-on-surface-variant">From:</span>
+        <input
+          [(ngModel)]="from"
+          (change)="load(1)"
+          type="date"
+          class="rounded-xl border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none"
+        />
+      </div>
+
+      <div class="flex items-center gap-1.5 text-xs font-semibold">
+        <span class="text-on-surface-variant">To:</span>
+        <input
+          [(ngModel)]="to"
+          (change)="load(1)"
+          type="date"
+          class="rounded-xl border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none"
+        />
+      </div>
+
+      <button
+        (click)="load(1)"
+        class="flex items-center gap-1 rounded-xl bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-sm hover:opacity-95 transition-opacity"
+      >
+        <span class="material-symbols-outlined" style="font-size: 16px">search</span>
+        Search
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="space-y-3">
+    <div *ngFor="let _ of [].constructor(6)" class="h-12 animate-pulse rounded-2xl bg-surface-container-high"></div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="!isLoading() && loadError()" class="rounded-2xl border border-error-container bg-error-container/20 p-6 text-center">
+    <span class="material-symbols-outlined text-error" style="font-size: 36px">error_outline</span>
+    <p class="mt-2 font-medium text-on-error-container">{{ loadError() }}</p>
+    <button (click)="load()" class="mt-4 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary">
+      Try again
+    </button>
+  </div>
+
+  <!-- Data Table -->
+  <div *ngIf="!isLoading() && !loadError() && result" class="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xs">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-on-surface">
+        <thead class="border-b border-outline-variant bg-surface-container-low font-bold text-on-surface-variant uppercase tracking-wider text-[10px]">
+          <tr>
+            <th class="px-5 py-3.5">Timestamp</th>
+            <th class="px-4 py-3.5">Severity</th>
+            <th class="px-4 py-3.5">Action & Scope</th>
+            <th class="px-4 py-3.5">Actor Profile</th>
+            <th class="px-4 py-3.5">IP Address</th>
+            <th class="px-5 py-3.5 text-right">Inspect</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-outline-variant/60">
+          <tr *ngIf="result.items.length === 0">
+            <td colspan="6" class="px-4 py-12 text-center text-on-surface-variant">
+              <span class="material-symbols-outlined text-outline" style="font-size: 36px">history_toggle_off</span>
+              <p class="mt-2 font-medium">No system audit logs found matching your filters.</p>
+            </td>
+          </tr>
+          <tr
+            *ngFor="let log of result.items"
+            (click)="openDetails(log)"
+            class="hover:bg-surface-container-low transition-colors cursor-pointer group"
+          >
+            <!-- Timestamp -->
+            <td class="px-5 py-3.5 font-mono text-[11px] text-on-surface-variant whitespace-nowrap">
+              {{ formatTime(log.createdAt) }}
+            </td>
+
+            <!-- Severity Badge -->
+            <td class="px-4 py-3.5">
+              <span [class]="'inline-flex items-center rounded-lg border px-2.5 py-1 text-[11px] font-bold ' + severityBadgeClass(log.severity)">
+                {{ log.severity }}
+              </span>
+            </td>
+
+            <!-- Action & Scope -->
+            <td class="px-4 py-3.5">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-base">{{ actionIcon(log.action) }}</span>
+                <p class="font-bold text-on-surface text-xs group-hover:text-primary transition-colors">{{ log.action }}</p>
+              </div>
+            </td>
+
+            <!-- Actor Details -->
+            <td class="px-4 py-3.5">
+              <div class="flex items-center gap-2.5">
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-container font-bold text-primary text-[10px]">
+                  {{ actorInitials(log.actorUserId) }}
+                </div>
+                <div>
+                  <p class="font-bold text-on-surface text-[11px] leading-tight">{{ log.actorUserId ? 'User ID: ' + log.actorUserId.slice(0, 8) : 'System Service' }}</p>
+                </div>
+              </div>
+            </td>
+
+            <!-- IP Address -->
+            <td class="px-4 py-3.5 font-mono text-[11px] text-on-surface-variant">
+              {{ log.ipAddress || '127.0.0.1' }}
+            </td>
+
+            <!-- Action Button -->
+            <td class="px-5 py-3.5 text-right">
+              <button
+                (click)="$event.stopPropagation(); openDetails(log)"
+                class="inline-flex items-center gap-1 rounded-xl border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-primary group-hover:bg-primary-container/20 group-hover:border-primary transition-all shadow-2xs"
+              >
+                <span class="material-symbols-outlined text-xs">visibility</span>
+                Inspect Event
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div *ngIf="result && result.totalPages > 1" class="flex items-center justify-between border-t border-outline-variant px-5 py-3.5 bg-surface-container-low text-xs text-on-surface-variant font-medium">
+      <span>Page {{ result.page }} of {{ result.totalPages }}</span>
+      <div class="flex items-center gap-2">
+        <button
+          [disabled]="result.page <= 1"
+          (click)="load(result.page - 1)"
+          class="rounded-xl border border-outline-variant bg-surface px-3.5 py-1.5 font-semibold text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-40"
+        >
+          Previous
+        </button>
+        <button
+          [disabled]="result.page >= result.totalPages"
+          (click)="load(result.page + 1)"
+          class="rounded-xl border border-outline-variant bg-surface px-3.5 py-1.5 font-semibold text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Immutable Compliance Policy Banner -->
+  <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 text-xs text-on-surface-variant shadow-2xs">
+    <div class="flex items-start gap-3">
+      <span class="material-symbols-outlined text-primary mt-0.5" style="font-size: 22px">gavel</span>
+      <div>
+        <h3 class="font-bold text-sm text-on-surface">Immutable System Policy & Compliance Audit</h3>
+        <p class="mt-1 text-xs text-on-surface-variant leading-relaxed">
+          In compliance with ISO/IEC 27001 data governance, all administrative actions, configuration changes, user role demotions, and database diagnostics are written to an append-only transaction ledger. Record modification or truncation operations are strictly blocked by schema constraints.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spacious Centered Event Inspector Modal Window (max-w-2xl) -->
+  <div *ngIf="detailsOpen() && selectedLog" class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-black/50 backdrop-blur-xs" (click)="closeDetails()"></div>
+
+      <!-- Centered Modal Card -->
+      <div class="relative w-full max-w-2xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-2xl space-y-6">
+        <!-- Hero Header Banner -->
+        <div class="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant pb-4">
+          <div class="flex items-center gap-4">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-container text-primary shadow-2xs">
+              <span class="material-symbols-outlined text-2xl">{{ actionIcon(selectedLog.action) }}</span>
+            </div>
+
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="font-heading text-base font-bold text-on-surface">{{ selectedLog.action }}</h2>
+                <span [class]="'inline-flex items-center rounded-lg border px-2.5 py-0.5 text-xs font-bold ' + severityBadgeClass(selectedLog.severity)">
+                  {{ selectedLog.severity }}
+                </span>
+              </div>
+              <div class="mt-1 flex flex-wrap items-center gap-2.5 text-xs text-on-surface-variant font-medium">
+                <span>Actor ID: {{ selectedLog.actorUserId || 'System Service' }}</span>
+                <span>&bull;</span>
+                <span class="font-mono text-[11px]">{{ formatTime(selectedLog.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <button (click)="closeDetails()" aria-label="Close modal" class="rounded-xl p-2 text-on-surface-variant hover:bg-surface-container-high transition-colors">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <!-- Tabbed Navigation Header Bar -->
+        <div class="flex items-center gap-2 border-b border-outline-variant/60 pb-2">
+          <button
+            (click)="activeModalTab = 'metadata'"
+            [class.bg-primary]="activeModalTab === 'metadata'"
+            [class.text-on-primary]="activeModalTab === 'metadata'"
+            [class.bg-surface-container-high]="activeModalTab !== 'metadata'"
+            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors"
+          >
+            Event Details & Metadata
+          </button>
+          <button
+            (click)="activeModalTab = 'security'"
+            [class.bg-primary]="activeModalTab === 'security'"
+            [class.text-on-primary]="activeModalTab === 'security'"
+            [class.bg-surface-container-high]="activeModalTab !== 'security'"
+            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors"
+          >
+            Security & Context
+          </button>
+        </div>
+
+        <!-- TAB 1: EVENT DETAILS & METADATA -->
+        <div *ngIf="activeModalTab === 'metadata'" class="space-y-4 text-xs">
+          <!-- Formatted Metadata Explorer -->
+          <div class="space-y-2">
+            <p class="font-bold text-on-surface">Event Transaction Payload:</p>
+            <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 overflow-x-auto shadow-2xs font-mono text-[11px] text-on-surface max-h-64 leading-relaxed">
+              <pre>{{ prettyJson(selectedLog.metadataJson) }}</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: SECURITY & CONTEXT -->
+        <div *ngIf="activeModalTab === 'security'" class="space-y-4 text-xs">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 space-y-1">
+              <p class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Requesting IP Address</p>
+              <p class="font-mono text-xs font-bold text-on-surface mt-0.5">{{ selectedLog.ipAddress || '127.0.0.1 (Localhost Loopback)' }}</p>
+            </div>
+
+            <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 space-y-1">
+              <p class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">User Agent</p>
+              <p class="text-[11px] font-semibold text-on-surface mt-0.5 leading-normal break-all">
+                {{ selectedLog.userAgent || 'Mozilla/5.0 (Safarni Admin Console Client)' }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="flex justify-end pt-2 border-t border-outline-variant">
+          <button (click)="closeDetails()" class="rounded-xl bg-surface-container-high px-5 py-2 text-xs font-bold text-on-surface hover:bg-surface-container-highest transition-colors">
+            Close Inspector
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -13,4 +13,8 @@ public class TravelKnowledge
     public string MetadataJson { get; set; } = "{}";
     public float[] Embedding { get; set; } = Array.Empty<float>();
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsArchived { get; set; }
+    public Guid? UpdatedByUserId { get; set; }
+    public string? SourceUrl { get; set; }
 }

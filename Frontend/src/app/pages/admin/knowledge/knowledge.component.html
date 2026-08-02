@@ -1,0 +1,534 @@
+<div class="space-y-6">
+  <!-- Header & Vector Index Controls -->
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h1 class="font-heading text-2xl font-bold text-on-surface">Knowledge Base & RAG Index</h1>
+      <p class="mt-1 text-sm text-on-surface-variant">Manage travel knowledge articles embedded in the Qdrant vector search database for AI RAG retrieval.</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <!-- Qdrant Health Badge with Pulse Dot -->
+      <span
+        class="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-bold"
+        [class.bg-emerald-50]="qdrantHealthy"
+        [class.text-emerald-800]="qdrantHealthy"
+        [class.border-emerald-300]="qdrantHealthy"
+        [class.bg-red-50]="!qdrantHealthy"
+        [class.text-red-800]="!qdrantHealthy"
+        [class.border-red-300]="!qdrantHealthy"
+      >
+        <span class="relative flex h-2.5 w-2.5">
+          <span
+            *ngIf="qdrantHealthy"
+            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
+          ></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5" [class.bg-emerald-500]="qdrantHealthy" [class.bg-red-500]="!qdrantHealthy"></span>
+        </span>
+        Qdrant Vector DB: {{ qdrantHealthy ? 'Healthy' : 'Unreachable' }}
+      </span>
+
+      <button
+        (click)="reindex()"
+        [disabled]="reindexRunning() || !qdrantHealthy"
+        class="flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface-container-lowest px-3.5 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors shadow-2xs disabled:opacity-50"
+      >
+        <span class="material-symbols-outlined text-primary" [class.animate-spin]="reindexRunning()" style="font-size: 18px">sync</span>
+        {{ reindexRunning() ? 'Reindexing...' : 'Reindex Qdrant' }}
+      </button>
+
+      <button
+        (click)="openCreate()"
+        class="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary shadow-sm hover:opacity-95 transition-opacity"
+      >
+        <span class="material-symbols-outlined" style="font-size: 18px">add</span>
+        New Article
+      </button>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div *ngIf="notice()" class="rounded-xl p-3.5 text-xs font-semibold flex items-center justify-between shadow-2xs"
+    [class.bg-emerald-100]="notice()?.kind === 'success'"
+    [class.text-emerald-800]="notice()?.kind === 'success'"
+    [class.bg-red-100]="notice()?.kind === 'error'"
+    [class.text-red-800]="notice()?.kind === 'error'"
+  >
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined" style="font-size: 18px">
+        {{ notice()?.kind === 'success' ? 'check_circle' : 'error' }}
+      </span>
+      {{ notice()?.text }}
+    </div>
+    <button (click)="notice.set(null)" aria-label="Dismiss notice" class="text-xs font-bold opacity-75 hover:opacity-100">Dismiss</button>
+  </div>
+
+  <!-- Summary Metric Cards -->
+  <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Indexed Articles</p>
+        <span class="material-symbols-outlined text-primary text-xl">article</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-on-surface">{{ totalArticlesCount }}</p>
+      <p class="mt-1 text-[11px] font-medium text-emerald-600">Active knowledge base</p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Vector DB Status</p>
+        <span class="material-symbols-outlined text-xl" [class.text-emerald-600]="qdrantHealthy" [class.text-red-600]="!qdrantHealthy">database</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold" [class.text-emerald-600]="qdrantHealthy" [class.text-red-600]="!qdrantHealthy">
+        {{ qdrantHealthy ? 'Synced' : 'Offline' }}
+      </p>
+      <p class="mt-1 text-[11px] font-medium text-on-surface-variant">Qdrant collections</p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Active Categories</p>
+        <span class="material-symbols-outlined text-purple-600 text-xl">category</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-purple-700">{{ categoriesCount }}</p>
+      <p class="mt-1 text-[11px] font-medium text-purple-600">Domain taxonomies</p>
+    </div>
+
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-on-surface-variant">Archived Items</p>
+        <span class="material-symbols-outlined text-slate-600 text-xl">inventory_2</span>
+      </div>
+      <p class="mt-2 font-heading text-2xl font-bold text-on-surface">{{ archivedArticlesCount }}</p>
+      <p class="mt-1 text-[11px] font-medium text-on-surface-variant">Out of active RAG</p>
+    </div>
+  </div>
+
+  <!-- Category Filter Chips Bar -->
+  <div class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-3.5 shadow-2xs">
+    <div class="flex items-center gap-2 overflow-x-auto">
+      <span class="text-xs font-semibold text-on-surface-variant shrink-0">Categories:</span>
+      <button
+        (click)="applyCategoryPill('')"
+        [class.bg-primary]="categoryFilter === ''"
+        [class.text-on-primary]="categoryFilter === ''"
+        [class.bg-surface-container-high]="categoryFilter !== ''"
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0"
+      >
+        All Categories
+      </button>
+      <button
+        *ngFor="let cat of categories"
+        (click)="applyCategoryPill(cat)"
+        [class.bg-primary]="categoryFilter === cat"
+        [class.text-on-primary]="categoryFilter === cat"
+        [class.bg-surface-container-high]="categoryFilter !== cat"
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors shrink-0"
+      >
+        {{ cat }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Search & Status Filter Toolbar -->
+  <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest p-3.5 shadow-2xs">
+    <div class="relative flex-1 min-w-[200px]">
+      <span class="material-symbols-outlined absolute left-3 top-2 text-on-surface-variant" style="font-size: 18px">search</span>
+      <input
+        [(ngModel)]="search"
+        (keyup.enter)="load(1)"
+        type="text"
+        placeholder="Search articles by title or content..."
+        class="w-full rounded-xl border-outline-variant bg-surface-container-low pl-9 pr-3 py-1.5 text-xs text-on-surface focus:outline-none"
+      />
+    </div>
+
+    <div class="flex rounded-xl border border-outline-variant bg-surface-container-low p-1 text-xs font-semibold">
+      <button
+        (click)="archiveFilter = 'active'; load(1)"
+        [class.bg-surface]="archiveFilter === 'active'"
+        [class.text-primary]="archiveFilter === 'active'"
+        [class.shadow-2xs]="archiveFilter === 'active'"
+        class="rounded-lg px-3.5 py-1 text-center transition-colors text-on-surface-variant"
+      >
+        Active
+      </button>
+      <button
+        (click)="archiveFilter = 'archived'; load(1)"
+        [class.bg-surface]="archiveFilter === 'archived'"
+        [class.text-primary]="archiveFilter === 'archived'"
+        [class.shadow-2xs]="archiveFilter === 'archived'"
+        class="rounded-lg px-3.5 py-1 text-center transition-colors text-on-surface-variant"
+      >
+        Archived
+      </button>
+      <button
+        (click)="archiveFilter = 'all'; load(1)"
+        [class.bg-surface]="archiveFilter === 'all'"
+        [class.text-primary]="archiveFilter === 'all'"
+        [class.shadow-2xs]="archiveFilter === 'all'"
+        class="rounded-lg px-3.5 py-1 text-center transition-colors text-on-surface-variant"
+      >
+        All Items
+      </button>
+    </div>
+
+    <button
+      (click)="load(1)"
+      class="flex items-center gap-1 rounded-xl bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-sm hover:opacity-95 transition-opacity"
+    >
+      <span class="material-symbols-outlined" style="font-size: 16px">search</span>
+      Search
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div *ngFor="let _ of [].constructor(6)" class="h-40 animate-pulse rounded-2xl bg-surface-container-high"></div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="!isLoading() && loadError()" class="rounded-2xl border border-error-container bg-error-container/20 p-6 text-center">
+    <span class="material-symbols-outlined text-error" style="font-size: 36px">error_outline</span>
+    <p class="mt-2 font-medium text-on-error-container">{{ loadError() }}</p>
+    <button (click)="load()" class="mt-4 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary">
+      Try again
+    </button>
+  </div>
+
+  <!-- Articles Grid -->
+  <div *ngIf="!isLoading() && !loadError() && result">
+    <!-- Empty State -->
+    <div *ngIf="result.items.length === 0" class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-12 text-center text-xs text-on-surface-variant">
+      <span class="material-symbols-outlined text-outline" style="font-size: 48px">menu_book</span>
+      <p class="mt-3 text-sm font-bold text-on-surface">No Knowledge Articles Found</p>
+      <p class="mt-1 font-medium text-on-surface-variant">No articles match your current category and search filters.</p>
+      <button (click)="openCreate()" class="mt-4 flex items-center gap-1.5 mx-auto rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary shadow-sm">
+        <span class="material-symbols-outlined" style="font-size: 16px">add</span>
+        Add First Article
+      </button>
+    </div>
+
+    <!-- Articles Grid Cards -->
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        *ngFor="let item of result.items"
+        class="group flex flex-col justify-between rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs hover:border-primary hover:shadow-sm transition-all"
+        [class.opacity-60]="item.isArchived"
+      >
+        <!-- Card Header -->
+        <div class="space-y-2.5">
+          <div class="flex items-start justify-between gap-2">
+            <span [class]="'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold ' + categoryBadgeClass(item.category)">
+              <span class="material-symbols-outlined text-xs">{{ categoryIcon(item.category) }}</span>
+              {{ item.category }}
+            </span>
+            <span *ngIf="item.isArchived" class="inline-flex items-center rounded-lg border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+              Archived
+            </span>
+          </div>
+
+          <h3 class="font-bold text-on-surface text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">
+            {{ item.title }}
+          </h3>
+
+          <p class="text-[11px] text-on-surface-variant leading-relaxed line-clamp-2">
+            {{ item.content }}
+          </p>
+        </div>
+
+        <!-- Card Metadata Row -->
+        <div class="mt-3 space-y-2 border-t border-outline-variant/40 pt-3">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-on-surface-variant">
+            <span class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-on-surface-variant">location_on</span>
+              {{ locationOf(item) }}
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-primary">memory</span>
+              {{ estimatedChunks(item.content) }} chunk{{ estimatedChunks(item.content) !== 1 ? 's' : '' }}
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-on-surface-variant">text_fields</span>
+              {{ wordCount(item.content) }} words
+            </span>
+          </div>
+
+          <!-- Card Actions -->
+          <div class="flex items-center gap-2">
+            <button
+              (click)="selectItem(item)"
+              class="flex-1 flex items-center justify-center gap-1 rounded-xl border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-primary group-hover:bg-primary-container/20 group-hover:border-primary transition-all shadow-2xs"
+            >
+              <span class="material-symbols-outlined text-xs">visibility</span>
+              View Article
+            </button>
+            <button
+              (click)="openEdit(item)"
+              class="flex items-center justify-center rounded-xl border border-outline-variant bg-surface px-2.5 py-1.5 text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors shadow-2xs"
+            >
+              <span class="material-symbols-outlined text-xs">edit</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div *ngIf="result && result.totalPages > 1" class="mt-4 flex items-center justify-between rounded-2xl border border-outline-variant bg-surface-container-lowest px-5 py-3.5 text-xs text-on-surface-variant font-medium shadow-2xs">
+      <span>Page {{ result.page }} of {{ result.totalPages }} — {{ result.totalCount }} articles</span>
+      <div class="flex items-center gap-2">
+        <button
+          [disabled]="result.page <= 1"
+          (click)="load(result.page - 1)"
+          class="rounded-xl border border-outline-variant bg-surface px-3.5 py-1.5 font-semibold text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-40"
+        >
+          Previous
+        </button>
+        <button
+          [disabled]="result.page >= result.totalPages"
+          (click)="load(result.page + 1)"
+          class="rounded-xl border border-outline-variant bg-surface px-3.5 py-1.5 font-semibold text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spacious Centered Article Modal (max-w-3xl) -->
+  <div *ngIf="articleOpen()" class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-black/50 backdrop-blur-xs" (click)="closeArticle()"></div>
+
+      <!-- Modal Card -->
+      <div class="relative w-full max-w-3xl rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xl">
+        <!-- Modal Header -->
+        <div class="flex items-start justify-between gap-4 border-b border-outline-variant p-5">
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-container text-primary shadow-2xs">
+              <span class="material-symbols-outlined">{{ isEditing ? 'edit_note' : 'article' }}</span>
+            </div>
+            <div>
+              <h2 class="font-heading text-base font-bold text-on-surface">
+                {{ isEditing ? (selectedItem ? 'Edit Article' : 'New Knowledge Article') : (selectedItem?.title || 'Knowledge Article') }}
+              </h2>
+              <div *ngIf="selectedItem && !isEditing" class="mt-0.5 flex flex-wrap items-center gap-2">
+                <span [class]="'inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-bold ' + categoryBadgeClass(selectedItem.category)">
+                  <span class="material-symbols-outlined text-xs">{{ categoryIcon(selectedItem.category) }}</span>
+                  {{ selectedItem.category }}
+                </span>
+                <span class="text-[11px] text-on-surface-variant">{{ locationOf(selectedItem) }}</span>
+                <span class="text-[11px] text-on-surface-variant">&bull; {{ formatDate(selectedItem.lastUpdated) }}</span>
+              </div>
+            </div>
+          </div>
+          <button (click)="closeArticle()" aria-label="Close modal" class="rounded-xl p-2 text-on-surface-variant hover:bg-surface-container-high transition-colors">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <!-- Tab Nav (only for view mode) -->
+        <div *ngIf="!isEditing" class="flex items-center gap-2 border-b border-outline-variant/60 px-5 pt-3 pb-0">
+          <button
+            (click)="articleModalTab = 'preview'"
+            [class.text-primary]="articleModalTab === 'preview'"
+            [class.border-primary]="articleModalTab === 'preview'"
+            [class.border-transparent]="articleModalTab !== 'preview'"
+            class="pb-2.5 px-1 text-xs font-bold border-b-2 transition-colors text-on-surface-variant"
+          >
+            Article Preview
+          </button>
+          <button
+            (click)="articleModalTab = 'rag'"
+            [class.text-primary]="articleModalTab === 'rag'"
+            [class.border-primary]="articleModalTab === 'rag'"
+            [class.border-transparent]="articleModalTab !== 'rag'"
+            class="pb-2.5 px-1 text-xs font-bold border-b-2 transition-colors text-on-surface-variant"
+          >
+            RAG Metadata
+          </button>
+        </div>
+
+        <!-- Content area -->
+        <div class="p-5 space-y-4">
+          <!-- VIEW: Article Preview Tab -->
+          <ng-container *ngIf="!isEditing && selectedItem && articleModalTab === 'preview'">
+            <div class="max-h-[60vh] overflow-y-auto pr-1 space-y-4">
+              <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
+                {{ selectedItem.content }}
+              </div>
+
+              <div *ngIf="selectedItem.sourceUrl" class="flex items-center gap-2 text-xs">
+                <span class="material-symbols-outlined text-primary text-sm">link</span>
+                <a [href]="selectedItem.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline truncate font-medium">
+                  {{ selectedItem.sourceUrl }}
+                </a>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- VIEW: RAG Metadata Tab -->
+          <ng-container *ngIf="!isEditing && selectedItem && articleModalTab === 'rag'">
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 text-center space-y-1">
+                <span class="material-symbols-outlined text-primary text-2xl">text_fields</span>
+                <p class="font-bold text-on-surface text-lg">{{ wordCount(selectedItem.content) }}</p>
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Word Count</p>
+              </div>
+
+              <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 text-center space-y-1">
+                <span class="material-symbols-outlined text-purple-600 text-2xl">memory</span>
+                <p class="font-bold text-on-surface text-lg">{{ estimatedChunks(selectedItem.content) }}</p>
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Vector Chunks</p>
+              </div>
+
+              <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 text-center space-y-1">
+                <span class="material-symbols-outlined text-teal-600 text-2xl">hub</span>
+                <p class="font-bold text-on-surface text-lg">1536</p>
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Dimensions</p>
+              </div>
+
+              <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 text-center space-y-1">
+                <span class="material-symbols-outlined text-blue-600 text-2xl">update</span>
+                <p class="font-bold text-on-surface text-sm">{{ formatDate(selectedItem.lastUpdated) }}</p>
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Last Indexed</p>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- EDIT/CREATE FORM -->
+          <ng-container *ngIf="isEditing">
+            <div class="max-h-[60vh] overflow-y-auto pr-1 space-y-4">
+              <!-- Title -->
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-on-surface">Article Title <span class="text-red-500">*</span></label>
+                <input
+                  [(ngModel)]="form.title"
+                  type="text"
+                  placeholder="e.g. Visa Requirements for Egypt Travelers"
+                  class="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2 text-sm text-on-surface focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              <!-- Category & Location Row -->
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div class="space-y-1">
+                  <label class="text-xs font-bold text-on-surface">Category <span class="text-red-500">*</span></label>
+                  <select
+                    [(ngModel)]="form.category"
+                    class="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-xs text-on-surface focus:outline-none focus:border-primary"
+                  >
+                    <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+                  </select>
+                </div>
+
+                <div class="space-y-1">
+                  <label class="text-xs font-bold text-on-surface">Country</label>
+                  <input
+                    [(ngModel)]="form.country"
+                    type="text"
+                    placeholder="e.g. Egypt"
+                    class="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2 text-xs text-on-surface focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div class="space-y-1">
+                  <label class="text-xs font-bold text-on-surface">City</label>
+                  <input
+                    [(ngModel)]="form.city"
+                    type="text"
+                    placeholder="e.g. Cairo"
+                    class="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2 text-xs text-on-surface focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <!-- Content Textarea -->
+              <div class="space-y-1">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold text-on-surface">Article Content <span class="text-red-500">*</span></label>
+                  <span class="text-[11px] font-medium text-on-surface-variant font-mono">{{ wordCount(form.content) }} words · ~{{ estimatedChunks(form.content) }} chunk{{ estimatedChunks(form.content) !== 1 ? 's' : '' }}</span>
+                </div>
+                <textarea
+                  [(ngModel)]="form.content"
+                  rows="10"
+                  placeholder="Write the article content here. More detailed content improves AI retrieval quality and answer accuracy."
+                  class="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-3 text-xs text-on-surface focus:outline-none focus:border-primary resize-none leading-relaxed"
+                ></textarea>
+              </div>
+
+              <!-- Source URL -->
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-on-surface">Source URL (Optional)</label>
+                <input
+                  [(ngModel)]="form.sourceUrl"
+                  type="url"
+                  placeholder="https://source.example.com/article"
+                  class="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2 text-xs text-on-surface focus:outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant p-5">
+          <!-- Archive Toggle (only in preview mode for existing item) -->
+          <div *ngIf="!isEditing && selectedItem">
+            <button
+              (click)="toggleArchive(selectedItem); closeArticle()"
+              [disabled]="isActionPending()"
+              class="flex items-center gap-1.5 rounded-xl border border-outline-variant px-3.5 py-2 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-high transition-colors disabled:opacity-50"
+            >
+              <span class="material-symbols-outlined text-xs">{{ selectedItem.isArchived ? 'unarchive' : 'archive' }}</span>
+              {{ selectedItem.isArchived ? 'Restore to Index' : 'Archive Article' }}
+            </button>
+          </div>
+
+          <div *ngIf="isEditing" class="text-[11px] text-on-surface-variant">
+            Fields marked <span class="text-red-500 font-bold">*</span> are required.
+          </div>
+
+          <!-- Right-side Actions -->
+          <div class="flex items-center gap-2 ml-auto">
+            <button
+              *ngIf="!isEditing && selectedItem"
+              (click)="openEdit(selectedItem)"
+              class="flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-4 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors shadow-2xs"
+            >
+              <span class="material-symbols-outlined text-xs">edit</span>
+              Edit Article
+            </button>
+
+            <button
+              *ngIf="isEditing"
+              (click)="cancelEdit()"
+              class="rounded-xl bg-surface-container-high px-4 py-2 text-xs font-bold text-on-surface hover:bg-surface-container-highest transition-colors"
+            >
+              Cancel
+            </button>
+
+            <button
+              *ngIf="isEditing"
+              (click)="save()"
+              [disabled]="isActionPending()"
+              class="flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2 text-xs font-semibold text-on-primary shadow-sm hover:opacity-95 transition-opacity disabled:opacity-50"
+            >
+              <span class="material-symbols-outlined text-xs" [class.animate-spin]="isActionPending()">{{ isActionPending() ? 'sync' : 'save' }}</span>
+              {{ isActionPending() ? 'Saving...' : (selectedItem ? 'Update Article' : 'Create Article') }}
+            </button>
+
+            <button
+              *ngIf="!isEditing"
+              (click)="closeArticle()"
+              class="rounded-xl bg-surface-container-high px-5 py-2 text-xs font-bold text-on-surface hover:bg-surface-container-highest transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

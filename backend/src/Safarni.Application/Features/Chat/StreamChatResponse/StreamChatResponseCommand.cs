@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Diagnostics;
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Interfaces;
 using ChatBotApi.Application.Common.Models.GooglePlaces;
@@ -8,6 +9,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Safarni.Application.Abstractions.AI;
 
 namespace ChatBotApi.Application.Features.Chat.StreamChatResponse;
 
@@ -42,6 +44,7 @@ public sealed class StreamChatResponseCommandHandler
         _validator;
     private readonly ILogger<StreamChatResponseCommandHandler>
         _logger;
+    private readonly IAIRequestLogWriter? _telemetryWriter;
 
     public StreamChatResponseCommandHandler(
         IChatRepository repository,
@@ -55,7 +58,8 @@ public sealed class StreamChatResponseCommandHandler
         IChatScopeClassifier scopeClassifier,
         IGooglePlacesService googlePlacesService,
         IValidator<StreamChatResponseCommand> validator,
-        ILogger<StreamChatResponseCommandHandler> logger)
+        ILogger<StreamChatResponseCommandHandler> logger,
+        IAIRequestLogWriter? telemetryWriter = null)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
@@ -69,6 +73,7 @@ public sealed class StreamChatResponseCommandHandler
         _googlePlacesService = googlePlacesService;
         _validator = validator;
         _logger = logger;
+        _telemetryWriter = telemetryWriter;
     }
 
     public async IAsyncEnumerable<ChatStreamEvent> Handle(
@@ -114,50 +119,81 @@ public sealed class StreamChatResponseCommandHandler
                 cancellationToken);
 
         var completeResponse = new StringBuilder();
+        var stopwatch = Stopwatch.StartNew();
+        var streamStatus = "Success";
+        string? streamErrorCode = null;
 
-        if (responseContext.ImmediateResponse is not null)
+        try
         {
-            completeResponse.Append(
-                responseContext.ImmediateResponse);
-
-            yield return ChatStreamEvent.TokenEvent(
-                responseContext.ImmediateResponse);
-        }
-        else
-        {
-            await foreach (var token in _aiProvider
-                               .StreamChatCompletionAsync(
-                                   responseContext.SystemPrompt!,
-                                   history,
-                                   responseContext.UserPrompt,
-                                   cancellationToken)
-                               .WithCancellation(
-                                   cancellationToken))
+            if (responseContext.ImmediateResponse is not null)
             {
-                if (string.IsNullOrEmpty(token))
-                {
-                    continue;
-                }
-
-                completeResponse.Append(token);
+                completeResponse.Append(
+                    responseContext.ImmediateResponse);
 
                 yield return ChatStreamEvent.TokenEvent(
-                    token);
+                    responseContext.ImmediateResponse);
+            }
+            else
+            {
+                await foreach (var token in _aiProvider
+                                   .StreamChatCompletionAsync(
+                                       responseContext.SystemPrompt!,
+                                       history,
+                                       responseContext.UserPrompt,
+                                       cancellationToken)
+                                   .WithCancellation(
+                                       cancellationToken))
+                {
+                    if (string.IsNullOrEmpty(token))
+                    {
+                        continue;
+                    }
+
+                    completeResponse.Append(token);
+
+                    yield return ChatStreamEvent.TokenEvent(
+                        token);
+                }
+            }
+
+            var assistantResponse =
+                completeResponse.ToString().Trim();
+
+            if (string.IsNullOrWhiteSpace(assistantResponse))
+            {
+                streamStatus = "Failure";
+                streamErrorCode = "EmptyResponse";
+
+                throw new InvalidOperationException(
+                    "The AI provider returned an empty response.");
             }
         }
-
-        var assistantResponse =
-            completeResponse.ToString().Trim();
-
-        if (string.IsNullOrWhiteSpace(assistantResponse))
+        finally
         {
-            throw new InvalidOperationException(
-                "The AI provider returned an empty response.");
+            stopwatch.Stop();
+
+            await AIRequestTelemetry.RecordAsync(
+                _telemetryWriter,
+                new AIRequestLogEntry(
+                    Guid.TryParse(
+                        request.UserId,
+                        out var parsedUserId)
+                        ? parsedUserId
+                        : null,
+                    request.ConversationId,
+                    ItineraryJobId: null,
+                    _aiProvider.ProviderName,
+                    _aiProvider.ModelName,
+                    "Chat.StreamCompletion",
+                    streamStatus,
+                    stopwatch.ElapsedMilliseconds,
+                    ErrorCode: streamErrorCode),
+                cancellationToken);
         }
 
         await SaveAssistantMessageAsync(
             conversation,
-            assistantResponse,
+            completeResponse.ToString().Trim(),
             cancellationToken);
 
         yield return ChatStreamEvent.CompletedEvent(

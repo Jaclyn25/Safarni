@@ -68,6 +68,32 @@ export interface TripResponse {
   itineraryUpdatedAt: string | null;
 }
 
+export interface TripRouteActivityDto {
+  activityId: string;
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  order: number;
+  description: string | null;
+}
+
+export interface TripRouteResponse {
+  activities: TripRouteActivityDto[];
+}
+
+export interface NearbyAttractionDto {
+  name: string;
+  category: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  distance: number | null;
+  website: string | null;
+  phone: string | null;
+  openingHours: string | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -170,6 +196,36 @@ export class TripService {
       request,
       {
         headers: this.getHeaders()
+      }
+    );
+  }
+
+  getTripRoute(
+    tripId: string
+  ): Observable<ApiResponse<TripRouteResponse>> {
+    return this.http.get<ApiResponse<TripRouteResponse>>(
+      `${this.apiUrl}/${tripId}/route`,
+      {
+        headers: this.getHeaders()
+      }
+    );
+  }
+
+  getNearbyAttractions(
+    tripId: string,
+    radius: number,
+    category?: string
+  ): Observable<ApiResponse<NearbyAttractionDto[]>> {
+    let params = new HttpParams().set('radius', radius.toString());
+    if (category) {
+      params = params.set('category', category);
+    }
+
+    return this.http.get<ApiResponse<NearbyAttractionDto[]>>(
+      `${this.apiUrl}/${tripId}/nearby`,
+      {
+        headers: this.getHeaders(),
+        params
       }
     );
   }

@@ -108,6 +108,17 @@ public static class DependencyInjection
                 client.Timeout = TimeSpan.FromSeconds(25);
             });
 
+        services.AddHttpClient<
+            IGeoapifyService,
+            GeoapifyService>(
+            (serviceProvider, client) =>
+            {
+                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+                var baseUrl = configuration["GeoapifySettings:BaseUrl"] ?? "https://api.geoapify.com/";
+                client.BaseAddress = new Uri(baseUrl);
+                client.Timeout = TimeSpan.FromSeconds(15);
+            });
+
         // One durable worker per API process. Database row locks and filtered
         // unique indexes keep processing safe when several API instances run.
         services.AddSingleton<

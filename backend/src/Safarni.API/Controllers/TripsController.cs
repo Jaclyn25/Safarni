@@ -9,6 +9,8 @@ using Safarni.Application.Features.Trips.DeleteTrip;
 using Safarni.Application.Features.Trips.GenerateItinerary;
 using Safarni.Application.Features.Trips.GenerateItinerary.Jobs;
 using Safarni.Application.Features.Trips.GetTrip;
+using Safarni.Application.Features.Trips.GetTripRoute;
+using Safarni.Application.Features.Trips.GetNearbyAttractions;
 using Safarni.Application.Features.Trips.ListTrips;
 using Safarni.Application.Features.Trips.Itineraries.GetActiveItinerary;
 using Safarni.Application.Features.Trips.Itineraries.ManageItems;
@@ -102,6 +104,58 @@ public sealed class TripsController : ControllerBase
         return Ok(ApiResponse<TripResponse>.SuccessResponse(
             result.Value!,
             "Trip loaded successfully.",
+            StatusCodes.Status200OK));
+    }
+
+    [HttpGet("{id:guid}/route")]
+    [ProducesResponseType(
+        typeof(ApiResponse<TripRouteResponse>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTripRoute(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new GetTripRouteQuery(id),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<TripRouteResponse>(
+                result.Error,
+                "Failed to load trip route.");
+        }
+
+        return Ok(ApiResponse<TripRouteResponse>.SuccessResponse(
+            result.Value!,
+            "Trip route loaded successfully.",
+            StatusCodes.Status200OK));
+    }
+
+    [HttpGet("{id:guid}/nearby")]
+    [ProducesResponseType(
+        typeof(ApiResponse<IReadOnlyList<NearbyAttractionDto>>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetNearbyAttractions(
+        Guid id,
+        [FromQuery] int radius,
+        [FromQuery] string? category,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new GetNearbyAttractionsQuery(id, radius, category),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<IReadOnlyList<NearbyAttractionDto>>(
+                result.Error,
+                "Failed to load nearby attractions.");
+        }
+
+        return Ok(ApiResponse<IReadOnlyList<NearbyAttractionDto>>.SuccessResponse(
+            result.Value!,
+            "Nearby attractions loaded successfully.",
             StatusCodes.Status200OK));
     }
 

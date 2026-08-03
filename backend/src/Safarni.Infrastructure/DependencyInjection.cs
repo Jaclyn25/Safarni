@@ -24,6 +24,7 @@ using Safarni.Infrastructure.Storage;
 using Safarni.Application.Abstractions.Travel;
 using Safarni.Infrastructure.Travel;
 using Safarni.Infrastructure.BackgroundJobs;
+using Safarni.Infrastructure.Integrations.Weather;
 
 namespace Safarni.Infrastructure;
 
@@ -122,6 +123,11 @@ public static class DependencyInjection
                 client.BaseAddress = new Uri(baseUrl);
                 client.Timeout = TimeSpan.FromSeconds(15);
             });
+
+        services.AddHttpClient<IWeatherService, WeatherApiService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
 
         // One durable worker per API process. Database row locks and filtered
         // unique indexes keep processing safe when several API instances run.

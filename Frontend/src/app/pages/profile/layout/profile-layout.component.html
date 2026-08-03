@@ -40,7 +40,7 @@
     <div *ngIf="isLoading()" class="loading-state">Loading your profile…</div>
     <p *ngIf="loadError()" class="field__error">{{ loadError() }}</p>
 
-    <div class="sections" *ngIf="!isLoading()">
+    <div class="sections">
       <router-outlet></router-outlet>
     </div>
   </section>

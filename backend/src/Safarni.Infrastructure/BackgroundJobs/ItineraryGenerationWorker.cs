@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Safarni.Application.Abstractions.BackgroundJobs;
+using Safarni.Application.Abstractions.Notifications;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Features.Trips.GenerateItinerary;
 using Safarni.Domain.Entities;
@@ -153,6 +154,11 @@ internal sealed class ItineraryGenerationWorker : BackgroundService
                 job.CompletedAt = DateTime.UtcNow;
                 job.UpdatedAt = job.CompletedAt.Value;
                 await jobs.SaveAsync(cancellationToken);
+                await NotifyItineraryReadyAsync(
+                    scope,
+                    job,
+                    existingItineraryId,
+                    cancellationToken);
                 return true;
             }
 
@@ -214,6 +220,15 @@ internal sealed class ItineraryGenerationWorker : BackgroundService
             job.CompletedAt = DateTime.UtcNow;
             job.UpdatedAt = job.CompletedAt.Value;
             await jobs.SaveAsync(cancellationToken);
+
+            if (result.IsSuccess)
+            {
+                await NotifyItineraryReadyAsync(
+                    scope,
+                    job,
+                    result.Value!.Id,
+                    cancellationToken);
+            }
         }
         catch (ItineraryGenerationCancelledException)
         {
@@ -261,10 +276,38 @@ internal sealed class ItineraryGenerationWorker : BackgroundService
             job.ErrorMessage = "The itinerary worker failed unexpectedly.";
             job.CompletedAt = DateTime.UtcNow;
             job.UpdatedAt = job.CompletedAt.Value;
-            await jobs.SaveAsync(CancellationToken.None);
+            await jobs.SaveAsync(cancellationToken);
         }
 
         return true;
+    }
+
+    private async Task NotifyItineraryReadyAsync(
+        IServiceScope scope,
+        ItineraryGenerationJob job,
+        Guid itineraryId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var notifications = scope.ServiceProvider
+                .GetRequiredService<ITravelNotificationService>();
+
+            await notifications.SendItinerarySummaryAsync(
+                job.TripId,
+                job.UserId,
+                itineraryId,
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Itinerary summary notification failed for trip {TripId} job {JobId}. " +
+                "Itinerary generation is unaffected.",
+                job.TripId,
+                job.Id);
+        }
     }
 
     private static async Task<bool> TryReloadAsync(

@@ -59,6 +59,12 @@ export class NavbarComponent implements OnInit {
     return this.authService.getCurrentUser();
   }
 
+  get userInitial(): string {
+    const user = this.user;
+    const source = user?.fullName?.trim() || user?.email?.trim() || 'S';
+    return source.charAt(0).toUpperCase();
+  }
+
   get isAdmin(): boolean {
     return this.authService.hasAdminRole();
   }

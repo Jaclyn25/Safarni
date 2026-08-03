@@ -15,7 +15,9 @@ export class ProfileTripsComponent implements OnInit {
   readonly isTripsLoading = signal(true);
   readonly tripsError = signal<string | null>(null);
 
-  constructor(private readonly tripService: TripService) {}
+  constructor(
+    private readonly tripService: TripService
+  ) {}
 
   ngOnInit(): void {
     this.loadTrips();
@@ -27,7 +29,8 @@ export class ProfileTripsComponent implements OnInit {
 
     this.tripService.getTrips().subscribe({
       next: (response) => {
-        this.trips.set(response.data ?? []);
+        const trips = response.data ?? [];
+        this.trips.set(trips);
         this.isTripsLoading.set(false);
       },
       error: (error: unknown) => {

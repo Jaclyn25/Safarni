@@ -893,3 +893,120 @@
     color: var(--color-on-surface-variant);
   }
 }
+
+.trip__alert {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-bottom: var(--space-md);
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.banner {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+
+  &--danger {
+    background: var(--color-error-container);
+    color: var(--color-on-error-container);
+    border: 1px solid var(--color-error);
+    
+    .material-symbols-outlined {
+      color: var(--color-error);
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    p {
+      margin: 0;
+      font-size: 13px;
+    }
+  }
+}
+
+.trip__weather {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-outline-variant);
+  width: 100%;
+}
+
+.weather-forecast {
+  display: flex;
+  gap: var(--space-md);
+  overflow-x: auto;
+  padding-bottom: 8px;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--color-outline-variant);
+    border-radius: var(--radius-full);
+  }
+}
+
+.weather-day {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 100px;
+  background: var(--color-surface);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-outline-variant);
+  text-align: center;
+}
+
+.weather-date {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+}
+
+.weather-forecast-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.weather-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.weather-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.weather-temps {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.temp-max {
+  color: var(--color-on-surface);
+}
+
+.temp-min {
+  color: var(--color-outline);
+}
+
+.weather-loading, .weather-error {
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+  font-style: italic;
+}
+

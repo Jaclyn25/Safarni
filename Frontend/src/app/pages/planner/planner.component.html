@@ -647,7 +647,7 @@
       </div>
     </ng-template>
 
-    <article *ngFor="let day of visibleDays; trackBy: trackById"
+    <article *ngFor="let day of visibleDays; let dayIndex = index; trackBy: trackById"
       class="day-card overflow-hidden rounded-[26px] border border-outline-variant/25 bg-surface-container-lowest shadow-sm">
       <div class="day-cover relative overflow-hidden bg-slate-200">
         <img [src]="dayImage(day)" [alt]="day.title" loading="lazy"
@@ -694,6 +694,43 @@
           </ng-container>
         </span>
       </header>
+
+      <!-- Attractive Weather Widget -->
+      <div *ngIf="tripId && tripsWeather().data as weatherData" class="px-5 pt-5 md:px-7">
+        <div *ngIf="weatherData[dayIndex] as dayWeather" class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-100/50 p-4 shadow-sm">
+          
+          <!-- Weather Alerts -->
+          <div *ngIf="dayWeather.weather.alerts?.length" class="mb-4 flex gap-3 rounded-xl bg-red-50 border border-red-100 p-3 text-red-900">
+            <span class="material-symbols-outlined text-red-600">warning</span>
+            <div>
+              <strong class="block text-sm font-bold">Severe Weather Warning</strong>
+              <p class="mt-1 text-xs text-red-800" *ngFor="let alert of dayWeather.weather.alerts">{{ alert.headline }} - {{ alert.event }}</p>
+            </div>
+          </div>
+
+          <!-- Forecast Details -->
+          <div class="flex items-center gap-4" *ngIf="dayWeather.weather.forecastDays?.length">
+            <div class="flex items-center gap-3">
+              <img [src]="'https:' + dayWeather.weather.forecastDays[0].conditionIcon" [alt]="dayWeather.weather.forecastDays[0].conditionText" class="h-12 w-12 drop-shadow-sm">
+              <div>
+                <span class="block text-[11px] font-bold uppercase tracking-wider text-blue-600">Expected Weather</span>
+                <span class="text-sm font-medium text-slate-700">{{ dayWeather.weather.forecastDays[0].conditionText }}</span>
+              </div>
+            </div>
+            
+            <div class="ml-auto flex gap-6">
+              <div class="text-center">
+                <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">High</span>
+                <strong class="text-xl font-extrabold text-slate-800">{{ dayWeather.weather.forecastDays[0].maxTempC }}°</strong>
+              </div>
+              <div class="text-center">
+                <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Low</span>
+                <strong class="text-xl font-extrabold text-slate-400">{{ dayWeather.weather.forecastDays[0].minTempC }}°</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div class="space-y-4 p-5 md:p-7">
         <ng-container *ngFor="let item of day.items; let itemIndex = index; trackBy: trackById">

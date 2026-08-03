@@ -16,6 +16,7 @@ using Safarni.Application.Features.Trips.Itineraries.GetActiveItinerary;
 using Safarni.Application.Features.Trips.Itineraries.ManageItems;
 using Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
 using Safarni.Application.Features.Trips.UpdateTrip;
+using Safarni.Application.Features.Trips.GetTripWeather;
 
 namespace Safarni.API.Controllers;
 
@@ -218,6 +219,31 @@ public sealed class TripsController : ControllerBase
         return Ok(ApiResponse<ItineraryResponse>.SuccessResponse(
             result.Value!,
             "Itinerary loaded successfully.",
+            StatusCodes.Status200OK));
+    }
+
+    [HttpGet("{id:guid}/weather")]
+    [ProducesResponseType(
+        typeof(ApiResponse<IReadOnlyList<ItineraryDayWeatherResponse>>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTripWeather(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new GetTripWeatherQuery(id),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<IReadOnlyList<ItineraryDayWeatherResponse>>(
+                result.Error,
+                "Failed to load weather for trip.");
+        }
+
+        return Ok(ApiResponse<IReadOnlyList<ItineraryDayWeatherResponse>>.SuccessResponse(
+            result.Value!,
+            "Weather loaded successfully.",
             StatusCodes.Status200OK));
     }
 

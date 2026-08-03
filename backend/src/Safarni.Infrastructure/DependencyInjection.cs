@@ -4,11 +4,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Safarni.Application.Abstractions.AI;
 using Safarni.Application.Abstractions.Auditing;
 using Safarni.Application.Abstractions.BackgroundJobs;
+using Safarni.Application.Abstractions.Notifications;
 using Safarni.Application.Abstractions.Integrations;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Abstractions.Security;
 using Safarni.Application.Abstractions.Storage;
 using Safarni.Application.Features.Auth.GoogleLogin;
+using Safarni.Application.Features.Notifications;
 using Safarni.Infrastructure.AI;
 using Safarni.Infrastructure.Auditing;
 using Safarni.Infrastructure.Authentication;
@@ -74,6 +76,8 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, EmailService>();
         services.AddSingleton<IPasswordResetLinkFactory, PasswordResetLinkFactory>();
         services.AddSingleton<IEmailVerificationLinkFactory, EmailVerificationLinkFactory>();
+        services.AddSingleton<IItineraryLinkFactory, ItineraryLinkFactory>();
+        services.AddScoped<ITravelNotificationService, TravelNotificationService>();
         services.AddScoped<IProfilePhotoStorage, LocalProfilePhotoStorage>();
         services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
 

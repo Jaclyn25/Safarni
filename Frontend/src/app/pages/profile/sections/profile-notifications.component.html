@@ -1,51 +1,52 @@
 <section class="card" id="notifications">
   <h2><span class="material-symbols-outlined">notifications</span> Notifications &amp; Privacy</h2>
 
-  <div class="stack" *ngIf="settings; else settingsEmpty">
+  <div class="stack" *ngIf="settings() as s; else settingsEmpty">
     <div class="toggle-row">
       <div>
         <p class="toggle-row__label">Email Notifications</p>
         <p class="toggle-row__hint">Receive trip updates and recommendations by email.</p>
       </div>
-      <input type="checkbox" [(ngModel)]="settings.emailNotificationsEnabled" [ngModelOptions]="{ standalone: true }" />
+      <input type="checkbox" [(ngModel)]="s.emailNotificationsEnabled" [ngModelOptions]="{ standalone: true }" />
     </div>
     <div class="toggle-row">
       <div>
         <p class="toggle-row__label">Push Notifications</p>
         <p class="toggle-row__hint">Receive real-time alerts in your browser.</p>
       </div>
-      <input type="checkbox" [(ngModel)]="settings.pushNotificationsEnabled" [ngModelOptions]="{ standalone: true }" />
+      <input type="checkbox" [(ngModel)]="s.pushNotificationsEnabled" [ngModelOptions]="{ standalone: true }" />
     </div>
     <div class="toggle-row">
       <div>
         <p class="toggle-row__label">Private Profile</p>
         <p class="toggle-row__hint">Only you can see your profile.</p>
       </div>
-      <input type="checkbox" [(ngModel)]="settings.profileIsPrivate" [ngModelOptions]="{ standalone: true }" />
+      <input type="checkbox" [(ngModel)]="s.profileIsPrivate" [ngModelOptions]="{ standalone: true }" />
     </div>
     <div class="toggle-row">
       <div>
         <p class="toggle-row__label">Show Last Seen</p>
         <p class="toggle-row__hint">Let others see when you were last active.</p>
       </div>
-      <input type="checkbox" [(ngModel)]="settings.showLastSeen" [ngModelOptions]="{ standalone: true }" />
+      <input type="checkbox" [(ngModel)]="s.showLastSeen" [ngModelOptions]="{ standalone: true }" />
     </div>
     <div class="toggle-row">
       <div>
         <p class="toggle-row__label">Show Email</p>
         <p class="toggle-row__hint">Display your email on your public profile.</p>
       </div>
-      <input type="checkbox" [(ngModel)]="settings.showEmail" [ngModelOptions]="{ standalone: true }" />
+      <input type="checkbox" [(ngModel)]="s.showEmail" [ngModelOptions]="{ standalone: true }" />
     </div>
     <div class="toggle-row">
       <div>
         <p class="toggle-row__label">Show Phone Number</p>
         <p class="toggle-row__hint">Display your phone number on your public profile.</p>
       </div>
-      <input type="checkbox" [(ngModel)]="settings.showPhoneNumber" [ngModelOptions]="{ standalone: true }" />
+      <input type="checkbox" [(ngModel)]="s.showPhoneNumber" [ngModelOptions]="{ standalone: true }" />
     </div>
 
     <p class="field__error" *ngIf="settingsError()">{{ settingsError() }}</p>
+    <p class="field__error" *ngIf="permissionMessage()">{{ permissionMessage() }}</p>
     <p class="field__hint" *ngIf="settingsSuccess()">Notification settings saved.</p>
     <button type="button" class="btn btn--primary" [disabled]="isSavingSettings()" (click)="saveSettings()">
       {{ isSavingSettings() ? 'Saving…' : 'Save Settings' }}
@@ -53,6 +54,10 @@
   </div>
 
   <ng-template #settingsEmpty>
-    <p class="field__hint">Could not load your notification settings.</p>
+    <p class="field__error" *ngIf="settingsError()">{{ settingsError() }}</p>
+    <p class="field__hint" *ngIf="!settingsError()">
+      Could not load your notification settings. Make sure you are logged in and that
+      the backend is running, then try again.
+    </p>
   </ng-template>
 </section>

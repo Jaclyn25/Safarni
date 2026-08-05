@@ -1161,9 +1161,9 @@ public sealed class ItineraryGenerationProcessor
     {
         var normalizedDayCount = Math.Max(1, dayCount);
         var maxTokens = Math.Clamp(
-            1200 + (normalizedDayCount * 650),
-            1800,
-            6000);
+    1800 + (normalizedDayCount * 1000),
+    3000,
+    6000);
 
         return AICompletionOptions.ItineraryPlanning with
         {

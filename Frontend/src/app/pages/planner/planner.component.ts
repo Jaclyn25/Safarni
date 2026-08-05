@@ -23,6 +23,15 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as L from 'leaflet';
 
+const leafletAssetsUrl = new URL('assets/leaflet/', document.baseURI).href;
+
+L.Icon.Default.imagePath = '';
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: `${leafletAssetsUrl}marker-icon-2x.png`,
+  iconUrl: `${leafletAssetsUrl}marker-icon.png`,
+  shadowUrl: `${leafletAssetsUrl}marker-shadow.png`
+});
+
 import {
   GenerateItineraryPreferences,
   AddItineraryItemRequest,

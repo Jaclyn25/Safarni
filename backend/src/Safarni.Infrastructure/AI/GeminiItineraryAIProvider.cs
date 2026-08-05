@@ -188,12 +188,43 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
                     exception);
             }
 
+            var finishReason = result?.Candidates?
+                .FirstOrDefault()?.FinishReason;
+
+            _logger.LogInformation(
+                "Gemini itinerary finish reason: {FinishReason}.",
+                string.IsNullOrWhiteSpace(finishReason)
+                    ? "Unknown"
+                    : finishReason);
+
+            if (result?.UsageMetadata is { } usage)
+            {
+                _logger.LogInformation(
+                    "Gemini itinerary token usage. Prompt: {PromptTokens}, Completion: {CompletionTokens}, Thinking: {ThinkingTokens}, Total: {TotalTokens}",
+                    usage.PromptTokenCount,
+                    usage.CandidatesTokenCount,
+                    usage.ThoughtsTokenCount,
+                    usage.TotalTokenCount);
+            }
+
+            if (string.Equals(
+                    finishReason,
+                    "MAX_TOKENS",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning(
+                    "Gemini stopped the itinerary because it reached the output token limit. RequestedMaxTokens: {RequestedMaxTokens}. ConfiguredMaxOutputTokens: {ConfiguredMaxOutputTokens}.",
+                    options?.MaxTokens,
+                    settings.MaxOutputTokens);
+
+                throw new InvalidOperationException(
+                    "The itinerary AI response was truncated because the output token limit was reached.");
+            }
+
             var reply = ExtractText(result);
 
             if (string.IsNullOrWhiteSpace(reply))
             {
-                var finishReason = result?.Candidates?
-                    .FirstOrDefault()?.FinishReason;
                 var blockReason = result?.PromptFeedback?.BlockReason;
 
                 _logger.LogError(
@@ -204,16 +235,6 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
 
                 throw new InvalidOperationException(
                     "The itinerary AI provider returned an empty or blocked response.");
-            }
-
-            if (result?.UsageMetadata is { } usage)
-            {
-                _logger.LogInformation(
-                    "Gemini itinerary token usage. Prompt: {PromptTokens}, Completion: {CompletionTokens}, Thinking: {ThinkingTokens}, Total: {TotalTokens}",
-                    usage.PromptTokenCount,
-                    usage.CandidatesTokenCount,
-                    usage.ThoughtsTokenCount,
-                    usage.TotalTokenCount);
             }
 
             return reply.Trim();
@@ -298,6 +319,32 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
             ? options.TopP.Value
             : settings.TopP;
 
+        var generationConfig = new Dictionary<string, object?>
+        {
+            ["temperature"] = temperature,
+            ["topP"] = topP,
+            ["maxOutputTokens"] = maxOutputTokens,
+            // Gemini 2.5 Flash supports thinkingBudget = 0. Keeping
+            // thinking off leaves the dynamic token budget for visible JSON.
+            ["thinkingConfig"] = new
+            {
+                thinkingBudget = settings.ThinkingBudget
+            }
+        };
+
+        if (options?.ResponseFormat ==
+            AICompletionResponseFormat.ItineraryJson)
+        {
+            generationConfig["responseMimeType"] =
+                "application/json";
+            generationConfig["responseJsonSchema"] =
+                CreateItineraryResponseJsonSchema();
+        }
+        else
+        {
+            generationConfig["responseMimeType"] = "text/plain";
+        }
+
         return new Dictionary<string, object?>
         {
             ["system_instruction"] = new
@@ -308,20 +355,154 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
                 }
             },
             ["contents"] = contents,
-            ["generationConfig"] = new Dictionary<string, object?>
+            ["generationConfig"] = generationConfig
+        };
+    }
+
+    private static object CreateItineraryResponseJsonSchema()
+    {
+        var itemSchema = new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["properties"] = new Dictionary<string, object?>
             {
-                ["temperature"] = temperature,
-                ["topP"] = topP,
-                ["maxOutputTokens"] = maxOutputTokens,
-                ["responseMimeType"] = "text/plain",
-                // Gemini 2.5 Flash supports thinkingBudget = 0. For this
-                // structured NDJSON pipeline we keep thinking off so the
-                // dynamic MaxTokens budget remains available for visible JSON.
-                ["thinkingConfig"] = new
+                ["startTime"] = new Dictionary<string, object?>
                 {
-                    thinkingBudget = settings.ThinkingBudget
+                    ["type"] = "string"
+                },
+                ["endTime"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string"
+                },
+                ["title"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string"
+                },
+                ["description"] = new Dictionary<string, object?>
+                {
+                    ["type"] = new[] { "string", "null" }
+                },
+                ["location"] = new Dictionary<string, object?>
+                {
+                    ["type"] = new[] { "string", "null" }
+                },
+                ["placeReference"] = new Dictionary<string, object?>
+                {
+                    ["type"] = new[] { "string", "null" }
+                },
+                ["category"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string",
+                    ["enum"] = new[]
+                    {
+                        "activity",
+                        "meal",
+                        "transport",
+                        "accommodation",
+                        "other"
+                    }
+                },
+                ["estimatedCost"] = new Dictionary<string, object?>
+                {
+                    ["type"] = new[] { "number", "null" },
+                    ["minimum"] = 0
+                },
+                ["orderIndex"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "integer",
+                    ["minimum"] = 0
                 }
+            },
+            ["required"] = new[]
+            {
+                "startTime",
+                "endTime",
+                "title",
+                "description",
+                "location",
+                "placeReference",
+                "category",
+                "estimatedCost",
+                "orderIndex"
+            },
+            ["additionalProperties"] = false,
+            ["propertyOrdering"] = new[]
+            {
+                "startTime",
+                "endTime",
+                "title",
+                "description",
+                "location",
+                "placeReference",
+                "category",
+                "estimatedCost",
+                "orderIndex"
             }
+        };
+
+        var daySchema = new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["properties"] = new Dictionary<string, object?>
+            {
+                ["dayNumber"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "integer",
+                    ["minimum"] = 1
+                },
+                ["date"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string"
+                },
+                ["title"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string"
+                },
+                ["notes"] = new Dictionary<string, object?>
+                {
+                    ["type"] = new[] { "string", "null" }
+                },
+                ["items"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "array",
+                    ["minItems"] = 1,
+                    ["items"] = itemSchema
+                }
+            },
+            ["required"] = new[]
+            {
+                "dayNumber",
+                "date",
+                "title",
+                "notes",
+                "items"
+            },
+            ["additionalProperties"] = false,
+            ["propertyOrdering"] = new[]
+            {
+                "dayNumber",
+                "date",
+                "title",
+                "notes",
+                "items"
+            }
+        };
+
+        return new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["properties"] = new Dictionary<string, object?>
+            {
+                ["days"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "array",
+                    ["minItems"] = 1,
+                    ["items"] = daySchema
+                }
+            },
+            ["required"] = new[] { "days" },
+            ["additionalProperties"] = false,
+            ["propertyOrdering"] = new[] { "days" }
         };
     }
 

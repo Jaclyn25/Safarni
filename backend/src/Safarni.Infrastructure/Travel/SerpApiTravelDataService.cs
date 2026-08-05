@@ -14,7 +14,8 @@ internal sealed class SerpApiTravelDataService
     private readonly HttpClient _httpClient;
     private readonly IMemoryCache _cache;
     private readonly ILogger<SerpApiTravelDataService> _logger;
-    private readonly string _apiKey;
+    private readonly string _discoveryApiKey;
+    private readonly string _commerceApiKey;
     private readonly string _baseUrl;
 
     public SerpApiTravelDataService(
@@ -26,13 +27,24 @@ internal sealed class SerpApiTravelDataService
         _httpClient = httpClient;
         _cache = cache;
         _logger = logger;
-        _apiKey = configuration["SerpApi:ApiKey"] ?? string.Empty;
+        var legacyApiKey = configuration["SerpApi:ApiKey"] ?? string.Empty;
+        _discoveryApiKey =
+            Environment.GetEnvironmentVariable(
+                "SERPAPI_DISCOVERY_API_KEY") ??
+            configuration["SerpApi:DiscoveryApiKey"] ??
+            legacyApiKey;
+        _commerceApiKey =
+            Environment.GetEnvironmentVariable(
+                "SERPAPI_COMMERCE_API_KEY") ??
+            configuration["SerpApi:CommerceApiKey"] ??
+            legacyApiKey;
         _baseUrl = configuration["SerpApi:BaseUrl"]
             ?? "https://serpapi.com/search.json";
     }
 
     public bool IsConfigured =>
-        !string.IsNullOrWhiteSpace(_apiKey);
+        !string.IsNullOrWhiteSpace(_discoveryApiKey) ||
+        !string.IsNullOrWhiteSpace(_commerceApiKey);
 
     public async Task<IReadOnlyList<PlaceDetails>> SearchLocalAsync(
         string query,
@@ -40,7 +52,7 @@ internal sealed class SerpApiTravelDataService
         string languageCode,
         CancellationToken cancellationToken = default)
     {
-        if (!IsConfigured)
+        if (string.IsNullOrWhiteSpace(_discoveryApiKey))
         {
             return [];
         }
@@ -61,6 +73,7 @@ internal sealed class SerpApiTravelDataService
         }
 
         var requestUri = BuildUrl(
+            _discoveryApiKey,
             ("engine", "google_maps"),
             ("type", "search"),
             ("q", query),
@@ -73,7 +86,7 @@ internal sealed class SerpApiTravelDataService
                 _httpClient,
                 () => new HttpRequestMessage(HttpMethod.Get, requestUri),
                 _logger,
-                "SerpApi",
+                "SerpApiDiscovery",
                 $"local search for {destination}",
                 cancellationToken);
 
@@ -117,7 +130,7 @@ internal sealed class SerpApiTravelDataService
             _cache.Set(
                 cacheKey,
                 mappedResults,
-                TimeSpan.FromMinutes(30));
+                TimeSpan.FromHours(24));
 
             return mappedResults;
         }
@@ -145,7 +158,7 @@ internal sealed class SerpApiTravelDataService
         string languageCode,
         CancellationToken cancellationToken = default)
     {
-        if (!IsConfigured)
+        if (string.IsNullOrWhiteSpace(_commerceApiKey))
         {
             return [];
         }
@@ -178,6 +191,7 @@ internal sealed class SerpApiTravelDataService
         }
 
         var requestUri = BuildUrl(
+            _commerceApiKey,
             ("engine", "google_hotels"),
             ("q", BuildHotelQuery(
                 destination,
@@ -201,7 +215,7 @@ internal sealed class SerpApiTravelDataService
                 _httpClient,
                 () => new HttpRequestMessage(HttpMethod.Get, requestUri),
                 _logger,
-                "SerpApi",
+                "SerpApiCommerce",
                 $"hotel search for {destination}",
                 cancellationToken);
 
@@ -435,10 +449,11 @@ internal sealed class SerpApiTravelDataService
     }
 
     private string BuildUrl(
+        string apiKey,
         params (string Key, string Value)[] values)
     {
         var query = values
-            .Append((Key: "api_key", Value: _apiKey))
+            .Append((Key: "api_key", Value: apiKey))
             .Where(value =>
                 !string.IsNullOrWhiteSpace(value.Value))
             .Select(value =>

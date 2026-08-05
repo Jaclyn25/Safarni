@@ -7,14 +7,13 @@ internal static class ItineraryPromptBuilder
     public const string SystemPrompt = """
         You are Safarni's professional travel itinerary planner.
 
-        Return newline-delimited JSON only.
-        Return exactly one JSON object per requested planning date.
-        Do not return markdown, code fences, an array, an introduction,
-        comments, or a closing paragraph.
+        Return one JSON object only, with a single days array.
+        Do not return markdown, code fences, an introduction, comments,
+        or a closing paragraph.
 
-        Each line must use this exact structure:
+        Use this exact structure:
 
-        {"dayNumber":1,"date":"2026-08-10","title":"Day title","notes":"Useful note","items":[{"startTime":"09:00","endTime":"11:00","title":"Activity title","description":"Detailed useful description","location":"Exact verified place name","placeReference":"P1","category":"activity","estimatedCost":25.00,"orderIndex":0}]}
+        {"days":[{"dayNumber":1,"date":"2026-08-10","title":"Day title","notes":"Useful note","items":[{"startTime":"09:00","endTime":"11:00","title":"Activity title","description":"Detailed useful description","location":"Exact verified place name","placeReference":"P1","category":"activity","estimatedCost":25.00,"orderIndex":0}]}]}
 
         Language rules:
         - Write all visible content in the requested output language.
@@ -33,20 +32,21 @@ internal static class ItineraryPromptBuilder
 
         Verified-place rules:
         - A list of verified travel places will be supplied.
-        - Activity candidates were first suggested from traveler preferences,
-          then searched and verified by external place services.
+        - Activity and meal candidates were retrieved directly from category
+          searches based on the traveler's preferences.
         - Accommodation candidates were retrieved from a hotel search using
           the requested accommodation style, dates and traveler count.
         - Every verified place has a city and a purpose:
-          activity or accommodation.
+          activity, meal or accommodation.
         - The item category must exactly match the supplied purpose.
-        - For activity and accommodation items, use only places from that list.
+        - For activity, meal and accommodation items, use only places from that list.
         - Every sightseeing stop, attraction, museum, market, beach, park,
           tour, cruise, outdoor experience or named venue must use category
           activity and a verified activity placeReference.
         - Never hide an activity under category other.
-        - Use category other only for genuine rest, free time, check-in,
-          check-out or another non-venue administrative moment.
+        - Use category other only for genuine rest, free time, unwinding,
+          a generic evening stroll, check-in, check-out or another non-venue
+          administrative moment.
         - An other item must have placeReference null and must not name a venue.
         - Use each place only on a day assigned to that place's supplied city.
         - Never invent a restaurant, cafe, hotel, attraction or activity provider.
@@ -98,7 +98,7 @@ internal static class ItineraryPromptBuilder
         - Keep every item description under 14 words.
         - Keep day notes under 8 words, or use null.
         - Do not repeat information between title, description and notes.
-        - Meal slots must not name or invent a restaurant.
+        - Meal slots must never invent a restaurant; use the supplied meal candidates.
         - Use titles such as "Breakfast — try menemen" or their natural
           equivalent in the requested language.
         - Suggest one well-known local plate as inspiration, but do not claim
@@ -107,12 +107,16 @@ internal static class ItineraryPromptBuilder
           different plate. Never repeat the same breakfast, lunch or dinner
           suggestion on another day.
         - Vary breakfast dishes as carefully as lunch and dinner dishes.
-        - Set placeReference to null for meal slots.
-        - Set the meal location to the assigned city.
+        - When meal-purpose candidates are supplied, every meal slot must use
+          one of those verified restaurants or cafes and its placeReference.
+        - Set the meal location to the exact verified restaurant name.
         - Never schedule the same attraction more than once.
         - When adventure is requested, include verified adventure or outdoor places.
         - Do not replace adventure with ordinary museum visits.
         - Group nearby places when possible.
+        - Prefer places sharing the same areaCluster on the same day before
+          moving to a different cluster. Coordinates and clusters are planning
+          hints; never print them in user-visible itinerary text.
         - Include realistic travel and rest time.
         - If accommodation is marked as already booked, do not recommend a hotel.
         - Otherwise, when accommodation-purpose candidates exist, include
@@ -139,7 +143,7 @@ internal static class ItineraryPromptBuilder
         - If no budget is supplied, provide realistic transparent estimates without claiming budget compliance.
 
         Structure rules:
-        - Return exactly one object for every requested planning date.
+        - Return exactly one day object inside days for every requested planning date.
         - Return the days in date order.
         - Use the supplied absolute trip day numbers.
         - date must use yyyy-MM-dd.
@@ -147,7 +151,7 @@ internal static class ItineraryPromptBuilder
         - category must be one of:
           activity, meal, transport, accommodation, other.
         - orderIndex starts at 0 for every day.
-        - Begin the NDJSON immediately. Do not plan, analyze or explain first.
+        - Begin the JSON object immediately. Do not plan, analyze or explain first.
         """;
 
     public static string BuildUserMessage(
@@ -162,7 +166,10 @@ internal static class ItineraryPromptBuilder
         string? previousCity = null,
         IReadOnlyCollection<string>?
             excludedMealSuggestions = null,
-        ItineraryFlightPlan? flightPlan = null)
+        ItineraryFlightPlan? flightPlan = null,
+        IReadOnlyCollection<string>?
+            excludedPlaceNames = null,
+        bool isRegeneration = false)
     {
         var planningStartDay =
             generationStop?.StartDayNumber ?? 1;
@@ -215,6 +222,18 @@ internal static class ItineraryPromptBuilder
         var usedMealSuggestions =
             FormatValues(
                 excludedMealSuggestions ?? []);
+        var previousPlaces = FormatValues(
+            excludedPlaceNames ?? []);
+        var regenerationRules = isRegeneration
+            ? $"""
+              This is a complete regeneration of every day.
+              - Previously used places: {previousPlaces}
+              - Prefer unused verified candidates throughout the new plan.
+              - Make at least 70 percent of optional activities and meals different
+                when the supplied alternative catalog makes that possible.
+              - Do not preserve the previous day assignments or ordering.
+              """
+            : "This is the first itinerary version; select the strongest matching candidates.";
 
         var additionalNotes =
             string.IsNullOrWhiteSpace(preferences.AdditionalNotes)
@@ -269,6 +288,9 @@ internal static class ItineraryPromptBuilder
             - Suggestions already used in earlier cities: {usedMealSuggestions}
             - Do not repeat any previously used suggestion.
 
+            Regeneration context:
+            {regenerationRules}
+
             Budget and cost scope:
             - {budgetText}
             - Number of travelers: {travelerCount}
@@ -278,7 +300,7 @@ internal static class ItineraryPromptBuilder
             {firstDayConstraint}
             {lastDayConstraint}
 
-            Verified activity and accommodation catalog:
+            Verified place catalog, grouped by city:
             {placesCatalog}
 
             Verified activity availability:
@@ -287,15 +309,20 @@ internal static class ItineraryPromptBuilder
             Important:
             - Return only days {planningStartDay} through {planningEndDay},
               using those absolute dayNumber values and exact dates.
-            - The activity candidates above came from AI suggestions that the
-              backend then verified through place-search services.
+            - Activity and meal candidates came directly from bounded,
+              preference-based SerpAPI category searches.
             - Use only the verified catalog above for activities and hotels.
             - Every named sightseeing or experience item must be category
               activity with the matching P reference.
+            - Every meal must use a meal-purpose candidate and matching P reference
+              when meal candidates are available for that city.
             - Never classify a visit, attraction, tour or experience as other.
             - Match each item's category to the place's supplied purpose.
             - Match every day to the required city schedule and use only
               verified places carrying that city.
+            - For each day, choose P references only from that day's CITY CATALOG section.
+            - Never use a Cairo reference in Hurghada, Sharm El Sheikh or Dahab,
+              and never use a reference from any other city in Cairo.
             - Use the corresponding P reference in placeReference.
             - Make the itinerary detailed, practical and rich.
             - When Arabic is requested, all explanations must be natural Arabic.
@@ -310,9 +337,12 @@ internal static class ItineraryPromptBuilder
             - Do not create local transport items; route connectors are added later.
             - If a previous city is supplied, begin the first requested day
               with one realistic intercity transport item from that city.
+            - When the full trip contains multiple cities, begin the first day
+              of every later city with one realistic intercity transport item
+              from the preceding city.
             - Accommodation estimatedCost must be null; verified live hotel
               rates are attached by the backend when available.
-            - Return the requested NDJSON segment now.
+            - Return the requested JSON document now.
             """;
     }
 
@@ -343,7 +373,7 @@ internal static class ItineraryPromptBuilder
             When no unused verified activity is available, return fewer activity
             items instead of creating a generic or unverified venue.
             Follow every original rule.
-            Return only the corrected NDJSON segment.
+            Return only the corrected JSON document.
             """;
     }
 

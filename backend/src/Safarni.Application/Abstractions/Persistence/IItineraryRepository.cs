@@ -12,6 +12,11 @@ public interface IItineraryRepository
         Guid itineraryId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Itinerary>> GetRecentByTripIdAsync(
+        Guid tripId,
+        int maximumCount,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(
         Itinerary itinerary,
         CancellationToken cancellationToken = default);

@@ -30,7 +30,12 @@ internal sealed class SerpApiFlightAirportService
         _cache = cache;
         _locationCatalog = locationCatalog;
         _logger = logger;
-        _apiKey = configuration["SerpApi:ApiKey"] ?? string.Empty;
+        _apiKey =
+            Environment.GetEnvironmentVariable(
+                "SERPAPI_COMMERCE_API_KEY") ??
+            configuration["SerpApi:CommerceApiKey"] ??
+            configuration["SerpApi:ApiKey"] ??
+            string.Empty;
     }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(_apiKey);
@@ -99,7 +104,7 @@ internal sealed class SerpApiFlightAirportService
                 _httpClient,
                 () => new HttpRequestMessage(HttpMethod.Get, uri),
                 _logger,
-                "SerpApi",
+                "SerpApiCommerce",
                 "airport autocomplete",
                 cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -281,7 +286,7 @@ internal sealed class SerpApiFlightAirportService
                 _httpClient,
                 () => new HttpRequestMessage(HttpMethod.Get, uri),
                 _logger,
-                "SerpApi",
+                "SerpApiCommerce",
                 $"flight search {departureCode}-{arrivalCode}",
                 cancellationToken);
 

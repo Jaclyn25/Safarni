@@ -1,14 +1,197 @@
 using ChatBotApi.Application.Common.Interfaces;
+using ChatBotApi.Application.Common.Models;
 using ChatBotApi.Application.Common.Models.GooglePlaces;
 using FluentAssertions;
 using Moq;
 using Safarni.Application.Abstractions.Travel;
 using Safarni.Application.Features.Trips.GenerateItinerary;
+using Safarni.Domain.Entities;
 
 namespace Safarni.Application.UnitTests.Trips;
 
 public sealed class ItineraryGenerationPipelineTests
 {
+    [Fact]
+    public void ParseRange_ShouldPreserveArabicText_FromStructuredJson()
+    {
+        const string output = """
+            {
+              "days": [
+                {
+                  "dayNumber": 1,
+                  "date": "2026-08-01",
+                  "title": "استكشاف برشلونة",
+                  "notes": "يوم ثقافي هادئ",
+                  "items": [
+                    {
+                      "startTime": "09:00",
+                      "endTime": "11:00",
+                      "title": "زيارة الحي القوطي",
+                      "description": "جولة بين المباني التاريخية والساحات القديمة.",
+                      "location": "Barri Gòtic",
+                      "placeReference": "P1",
+                      "category": "activity",
+                      "estimatedCost": 15,
+                      "orderIndex": 0
+                    }
+                  ]
+                },
+                {
+                  "dayNumber": 2,
+                  "date": "2026-08-02",
+                  "title": "معالم برشلونة",
+                  "notes": null,
+                  "items": [
+                    {
+                      "startTime": "10:00",
+                      "endTime": "12:00",
+                      "title": "جولة معمارية",
+                      "description": "مشاهدة التفاصيل المعمارية المميزة.",
+                      "location": "Sagrada Família",
+                      "placeReference": "P2",
+                      "category": "activity",
+                      "estimatedCost": 30,
+                      "orderIndex": 0
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+        var trip = new Trip
+        {
+            StartDate = new DateTime(2026, 8, 1),
+            EndDate = new DateTime(2026, 8, 2)
+        };
+
+        var days = ItineraryOutputParser.ParseRange(
+            output,
+            trip,
+            1,
+            2);
+
+        days.Should().HaveCount(2);
+        days[0].Title.Should().Be("استكشاف برشلونة");
+        days[0].Items[0].Description.Should().Contain("التاريخية");
+        days[1].Items[0].Location.Should().Be("Sagrada Família");
+    }
+
+    [Fact]
+    public void ParseRange_ShouldStillAcceptLegacyEnglishNdjson()
+    {
+        const string output = """
+            {"dayNumber":1,"date":"2026-08-01","title":"Barcelona highlights","notes":null,"items":[{"startTime":"09:00","endTime":"11:00","title":"Gothic Quarter walk","description":"Explore historic streets and squares.","location":"Barri Gòtic","placeReference":"P1","category":"activity","estimatedCost":15,"orderIndex":0}]}
+            {"dayNumber":2,"date":"2026-08-02","title":"Barcelona architecture","notes":"Start early","items":[{"startTime":"10:00","endTime":"12:00","title":"Architecture tour","description":"See the city's distinctive architecture.","location":"Sagrada Família","placeReference":"P2","category":"activity","estimatedCost":30,"orderIndex":0}]}
+            """;
+        var trip = new Trip
+        {
+            StartDate = new DateTime(2026, 8, 1),
+            EndDate = new DateTime(2026, 8, 2)
+        };
+
+        var days = ItineraryOutputParser.ParseRange(
+            output,
+            trip,
+            1,
+            2);
+
+        days.Should().HaveCount(2);
+        days[0].Title.Should().Be("Barcelona highlights");
+        days[1].Items[0].Title.Should().Be("Architecture tour");
+    }
+
+    [Fact]
+    public void BuildCompletionOptions_ShouldRequestStructuredItineraryJson()
+    {
+        var options =
+            ItineraryGenerationProcessor.BuildCompletionOptions(3);
+
+        options.ResponseFormat.Should().Be(
+            AICompletionResponseFormat.ItineraryJson);
+    }
+
+    [Fact]
+    public void ResolvePlaceReferences_ShouldReplaceWrongCityMealReference()
+    {
+        var cairoCafe = CreateMealCandidate(
+            "P1",
+            "EUGÉNIE CAFE",
+            "Cairo",
+            4.8);
+        var hurghadaRestaurant = CreateMealCandidate(
+            "P2",
+            "Hurghada Star Restaurant",
+            "Hurghada",
+            4.7);
+        var day = new AiItineraryDay
+        {
+            DayNumber = 3,
+            Date = "2026-08-03",
+            Title = "Hurghada arrival",
+            Items =
+            [
+                new AiItineraryItem
+                {
+                    StartTime = "13:00",
+                    EndTime = "14:00",
+                    Title = "EUGÉNIE CAFE",
+                    Description = "Enjoy lunch after arriving in Hurghada.",
+                    Location = "EUGÉNIE CAFE",
+                    PlaceReference = "P1",
+                    Category = "meal",
+                    EstimatedCost = 25m,
+                    OrderIndex = 0
+                }
+            ]
+        };
+        var cityStop = new ItineraryCityStop(
+            "Hurghada",
+            3,
+            5,
+            3,
+            null,
+            null);
+
+        ItineraryPlaceCatalog.ResolvePlaceReferences(
+            day,
+            [cairoCafe, hurghadaRestaurant],
+            "Hurghada");
+
+        day.Items[0].PlaceReference.Should().Be("P2");
+        day.Items[0].Location.Should().Be("Hurghada Star Restaurant");
+        day.Items[0].Title.Should().Be("Hurghada Star Restaurant");
+
+        Action validate = () =>
+            ItineraryOutputParser.ValidatePlaceReferences(
+                [day],
+                [cairoCafe, hurghadaRestaurant],
+                [cityStop]);
+
+        validate.Should().NotThrow();
+    }
+
+    [Fact]
+    public void BuildPromptCatalog_ShouldGroupReferencesByCity()
+    {
+        var catalog = ItineraryPlaceCatalog.BuildPromptCatalog(
+        [
+            CreateMealCandidate("P1", "Cairo Cafe", "Cairo", 4.6),
+            CreateMealCandidate(
+                "P2",
+                "Hurghada Restaurant",
+                "Hurghada",
+                4.7)
+        ]);
+
+        catalog.Should().Contain("CITY CATALOG: Cairo");
+        catalog.Should().Contain("CITY CATALOG: Hurghada");
+        catalog.IndexOf("CITY CATALOG: Cairo", StringComparison.Ordinal)
+            .Should().BeLessThan(
+                catalog.IndexOf(
+                    "CITY CATALOG: Hurghada",
+                    StringComparison.Ordinal));
+    }
+
     [Fact]
     public void ReconcileActivityItems_ShouldGroundUnverifiedActivity_ToUnusedVerifiedCandidate()
     {
@@ -131,6 +314,374 @@ public sealed class ItineraryGenerationPipelineTests
         day.Items.Should().ContainSingle();
         day.Items[0].PlaceReference.Should().Be("P1");
         day.Items[0].Location.Should().Be("Cairo Tower");
+    }
+
+    [Fact]
+    public void EnsureMinimumVerifiedActivity_ShouldFillFreeWindow_WhenGeminiReturnsNoActivity()
+    {
+        var candidate = CreateCandidate(
+            "P1",
+            "Cairo Tower",
+            "Cairo",
+            photoUrl: "https://images.example/cairo-tower.jpg");
+        var day = CreateDay(
+            new AiItineraryItem
+            {
+                StartTime = "08:00",
+                EndTime = "09:00",
+                Title = "Breakfast",
+                Description = "Breakfast at the hotel.",
+                Location = "Cairo",
+                Category = "meal",
+                OrderIndex = 0
+            },
+            new AiItineraryItem
+            {
+                StartTime = "12:00",
+                EndTime = "13:00",
+                Title = "Lunch",
+                Description = "Lunch break.",
+                Location = "Cairo",
+                Category = "meal",
+                OrderIndex = 1
+            });
+        var cityStop = new ItineraryCityStop(
+            "Cairo",
+            1,
+            1,
+            0,
+            null,
+            null);
+
+        var result =
+            ItineraryMinimumActivityResolver.Ensure(
+                [day],
+                [candidate],
+                cityStop,
+                "en",
+                flightPlan: null,
+                totalTripDays: 1);
+
+        result.Status.Should().Be(
+            ItineraryMinimumActivityRepairStatus.Inserted);
+        day.Items.Should().ContainSingle(item =>
+            item.Category == "activity" &&
+            item.PlaceReference == "P1" &&
+            item.StartTime == "09:00" &&
+            item.EndTime == "10:30");
+
+        Action validate = () => ItineraryOutputParser.ValidatePlanRules(
+            [day],
+            CreatePreferences(),
+            budgetAmount: null,
+            [candidate],
+            [cityStop]);
+
+        validate.Should().NotThrow();
+    }
+
+    [Fact]
+    public void EnsureMinimumVerifiedActivity_ShouldRespectArrivalWindow()
+    {
+        var candidate = CreateCandidate(
+            "P1",
+            "Cairo Tower",
+            "Cairo",
+            photoUrl: "https://images.example/cairo-tower.jpg");
+        var day = CreateDay();
+        var cityStop = new ItineraryCityStop(
+            "Cairo",
+            1,
+            1,
+            0,
+            null,
+            null);
+        var flightPlan = new ItineraryFlightPlan(
+            new FlightRecommendation(
+                "CAI",
+                "Cairo International Airport",
+                "IST",
+                "Istanbul Airport",
+                "11:00",
+                "14:00",
+                "Test Air",
+                "TA100",
+                180,
+                0,
+                100m,
+                "USD",
+                null,
+                "https://www.google.com/travel/flights"),
+            null);
+
+        var result =
+            ItineraryMinimumActivityResolver.Ensure(
+                [day],
+                [candidate],
+                cityStop,
+                "en",
+                flightPlan,
+                totalTripDays: 1);
+
+        result.Status.Should().Be(
+            ItineraryMinimumActivityRepairStatus.Inserted);
+        var activity = day.Items.Should().ContainSingle().Subject;
+        var activityStart =
+            ItineraryItemInput.ParseTime(activity.StartTime);
+        activityStart.Should().NotBeNull();
+        activityStart!.Value.Should().BeGreaterThanOrEqualTo(
+            flightPlan.FirstDayAvailableFrom!.Value);
+    }
+
+    [Fact]
+    public void EnsureMinimumVerifiedActivity_ShouldReclaimOtherTimeBeforeMeal()
+    {
+        var candidate = CreateCandidate(
+            "P1",
+            "Antalya Museum",
+            "Antalya",
+            photoUrl: "https://images.example/antalya-museum.jpg");
+        var day = CreateDay(
+            CreateScheduledItem(
+                "Free time",
+                "other",
+                "08:00",
+                "12:00"),
+            CreateScheduledItem(
+                "Lunch - piyaz",
+                "meal",
+                "12:00",
+                "13:00"),
+            CreateScheduledItem(
+                "Personal time",
+                "other",
+                "13:00",
+                "22:00"));
+        var cityStop = CreateCityStop("Antalya");
+
+        var result = ItineraryMinimumActivityResolver.Ensure(
+            [day],
+            [candidate],
+            cityStop,
+            "en",
+            flightPlan: null,
+            totalTripDays: 1);
+
+        result.Status.Should().Be(
+            ItineraryMinimumActivityRepairStatus.Inserted);
+        result.RemovedItems.Should().ContainSingle();
+        day.Items.Should().Contain(item =>
+            item.Category == "meal" &&
+            item.Title == "Lunch - piyaz");
+        day.Items.Should().ContainSingle(item =>
+            item.Category == "activity" &&
+            item.PlaceReference == "P1");
+        AssertChronologicalWithoutOverlap(day);
+    }
+
+    [Fact]
+    public void EnsureMinimumVerifiedActivity_ShouldRemoveMeal_WhenNoLowerPriorityTimeExists()
+    {
+        var candidate = CreateCandidate(
+            "P1",
+            "Antalya Museum",
+            "Antalya",
+            photoUrl: "https://images.example/antalya-museum.jpg");
+        var day = CreateDay(
+            CreateScheduledItem(
+                "Breakfast - gozleme",
+                "meal",
+                "08:00",
+                "12:00"),
+            CreateScheduledItem(
+                "Lunch - piyaz",
+                "meal",
+                "12:00",
+                "17:00"),
+            CreateScheduledItem(
+                "Dinner - kebab",
+                "meal",
+                "17:00",
+                "22:00"));
+
+        var result = ItineraryMinimumActivityResolver.Ensure(
+            [day],
+            [candidate],
+            CreateCityStop("Antalya"),
+            "en",
+            flightPlan: null,
+            totalTripDays: 1);
+
+        result.Status.Should().Be(
+            ItineraryMinimumActivityRepairStatus.Inserted);
+        result.RemovedItems.Should().ContainSingle();
+        day.Items.Count(item => item.Category == "meal")
+            .Should().Be(2);
+        day.Items.Should().ContainSingle(item =>
+            item.Category == "activity");
+        AssertChronologicalWithoutOverlap(day);
+    }
+
+    [Fact]
+    public void MinimumActivityValidation_ShouldAllowProtectedFullDayTransport()
+    {
+        var candidate = CreateCandidate(
+            "P1",
+            "Antalya Museum",
+            "Antalya",
+            photoUrl: "https://images.example/antalya-museum.jpg");
+        var day = CreateDay(
+            new AiItineraryItem
+            {
+                StartTime = "08:00",
+                EndTime = "22:00",
+                Title = "Intercity transfer to Antalya",
+                Description = "Travel to the next city.",
+                Location = "Antalya",
+                Category = "transport",
+                EstimatedCost = 50m,
+                OrderIndex = 0
+            });
+        var cityStop = CreateCityStop("Antalya");
+
+        var result = ItineraryMinimumActivityResolver.Ensure(
+            [day],
+            [candidate],
+            cityStop,
+            "en",
+            flightPlan: null,
+            totalTripDays: 1);
+
+        result.Status.Should().Be(
+            ItineraryMinimumActivityRepairStatus.NoFeasibleWindow);
+
+        Action validate = () => ItineraryOutputParser.ValidatePlanRules(
+            [day],
+            CreatePreferences(accommodation: "already_booked"),
+            budgetAmount: null,
+            [candidate],
+            [cityStop],
+            flightPlan: null,
+            totalTripDays: 1);
+
+        validate.Should().NotThrow();
+    }
+
+    [Fact]
+    public void MinimumActivityValidation_ShouldUseFlightPlan_OnEarlyDepartureDay()
+    {
+        var candidate = CreateCandidate(
+            "P1",
+            "Antalya Museum",
+            "Antalya",
+            photoUrl: "https://images.example/antalya-museum.jpg");
+        var day = CreateDay(
+            CreateScheduledItem(
+                "Airport preparation",
+                "other",
+                "04:30",
+                "05:00"));
+        var cityStop = CreateCityStop("Antalya");
+        var flightPlan = new ItineraryFlightPlan(
+            null,
+            new FlightRecommendation(
+                "AYT",
+                "Antalya Airport",
+                "CAI",
+                "Cairo International Airport",
+                "07:40",
+                "09:00",
+                "Test Air",
+                "TA200",
+                80,
+                0,
+                100m,
+                "USD",
+                null,
+                "https://www.google.com/travel/flights"));
+
+        var result = ItineraryMinimumActivityResolver.Ensure(
+            [day],
+            [candidate],
+            cityStop,
+            "en",
+            flightPlan,
+            totalTripDays: 1);
+
+        result.Status.Should().Be(
+            ItineraryMinimumActivityRepairStatus.NoEligibleDay);
+
+        Action validate = () => ItineraryOutputParser.ValidatePlanRules(
+            [day],
+            CreatePreferences(accommodation: "already_booked"),
+            budgetAmount: null,
+            [candidate],
+            [cityStop],
+            flightPlan,
+            totalTripDays: 1);
+
+        validate.Should().NotThrow();
+    }
+
+    [Fact]
+    public void EnsureMinimumVerifiedActivity_ShouldChooseDayWithoutRemovals()
+    {
+        var candidate = CreateCandidate(
+            "P1",
+            "Antalya Museum",
+            "Antalya",
+            photoUrl: "https://images.example/antalya-museum.jpg");
+        var firstDay = CreateDay(
+            CreateScheduledItem(
+                "Free time",
+                "other",
+                "08:00",
+                "22:00"));
+        var secondDay = new AiItineraryDay
+        {
+            DayNumber = 2,
+            Date = "2026-08-02",
+            Title = "Antalya highlights",
+            Items =
+            [
+                new AiItineraryItem
+                {
+                    StartTime = "08:00",
+                    EndTime = "09:00",
+                    Title = "Intercity arrival",
+                    Description = "Travel into Antalya.",
+                    Location = "Antalya",
+                    Category = "transport",
+                    EstimatedCost = 20m,
+                    OrderIndex = 0
+                }
+            ]
+        };
+        var cityStop = new ItineraryCityStop(
+            "Antalya",
+            1,
+            2,
+            1,
+            null,
+            null);
+
+        var result = ItineraryMinimumActivityResolver.Ensure(
+            [firstDay, secondDay],
+            [candidate],
+            cityStop,
+            "en",
+            flightPlan: null,
+            totalTripDays: 2);
+
+        result.Status.Should().Be(
+            ItineraryMinimumActivityRepairStatus.Inserted);
+        result.DayNumber.Should().Be(2);
+        result.RemovedItems.Should().BeEmpty();
+        firstDay.Items.Should().NotContain(item =>
+            item.Category == "activity");
+        secondDay.Items.Should().ContainSingle(item =>
+            item.Category == "activity");
+        AssertChronologicalWithoutOverlap(secondDay);
     }
 
     [Fact]
@@ -373,12 +924,12 @@ public sealed class ItineraryGenerationPipelineTests
         validate.Should().NotThrow();
     }
     [Theory]
-    [InlineData(1, 1400)]
-    [InlineData(2, 1800)]
-    [InlineData(5, 3000)]
-    [InlineData(6, 3200)]
-    [InlineData(20, 3200)]
-    public void CompletionTokens_ShouldScaleByCitySegmentDays(
+    [InlineData(1, 1850)]
+    [InlineData(2, 2500)]
+    [InlineData(5, 4450)]
+    [InlineData(6, 5100)]
+    [InlineData(20, 6000)]
+    public void CompletionTokens_ShouldScaleByFullTripDays(
         int dayCount,
         int expected)
     {
@@ -387,6 +938,146 @@ public sealed class ItineraryGenerationPipelineTests
             .MaxTokens
             .Should()
             .Be(expected);
+    }
+
+    [Fact]
+    public async Task SerpPrimaryCatalog_ShouldUseThreeBoundedQueriesAndPreferUnusedPlaces()
+    {
+        var travel = new Mock<IItineraryTravelDataService>();
+        travel.SetupGet(service => service.IsConfigured).Returns(true);
+        travel
+            .Setup(service => service.SearchLocalAsync(
+                It.IsAny<string>(),
+                "Cairo",
+                "en",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((
+                string query,
+                string _,
+                string _,
+                CancellationToken _) =>
+            {
+                if (query.Contains(
+                        "restaurants",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return Enumerable.Range(1, 6)
+                        .Select(index => new PlaceDetails
+                        {
+                            PlaceId = $"meal-{index}",
+                            Name = $"Cairo Restaurant {index}",
+                            Address = $"Cairo Restaurant {index}, Cairo",
+                            PhotoUrl = $"https://images.example/meal-{index}.jpg",
+                            Rating = 4.5,
+                            UserRatingsTotal = 100 + index,
+                            Types = ["restaurant"]
+                        })
+                        .ToList();
+                }
+
+                return Enumerable.Range(1, 8)
+                    .Select(index => new PlaceDetails
+                    {
+                        PlaceId = index == 1
+                            ? "old-activity"
+                            : $"activity-{index}",
+                        Name = $"Cairo Attraction {index}",
+                        Address = $"Cairo Attraction {index}, Cairo",
+                        PhotoUrl = $"https://images.example/activity-{index}.jpg",
+                        Rating = 4.7,
+                        UserRatingsTotal = 500 + index,
+                        Types = ["tourist_attraction"]
+                    })
+                    .ToList();
+            });
+        travel
+            .Setup(service => service.SearchHotelsAsync(
+                "Cairo",
+                "mid_range",
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                2,
+                "USD",
+                "en",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new PlaceDetails
+                {
+                    PlaceId = "hotel-1",
+                    Name = "Cairo Hotel",
+                    Address = "Cairo Hotel, Cairo",
+                    PhotoUrl = "https://images.example/hotel.jpg",
+                    Rating = 4.4,
+                    Types = ["hotel", "lodging"]
+                }
+            ]);
+
+        var trip = new Trip
+        {
+            StartDate = new DateTime(2026, 8, 1),
+            EndDate = new DateTime(2026, 8, 2)
+        };
+        var catalog = await ItineraryPlaceCatalog.LoadSerpPrimaryAsync(
+            travel.Object,
+            trip,
+            [new ItineraryCityStop(
+                "Cairo",
+                1,
+                2,
+                1,
+                null,
+                null)],
+            CreatePreferences(),
+            "USD",
+            2,
+            new HashSet<string>(
+                ["old-activity"],
+                StringComparer.OrdinalIgnoreCase),
+            CancellationToken.None);
+
+        catalog.Should().Contain(candidate =>
+            candidate.Purpose == ItineraryPlacePurpose.Activity);
+        catalog.Should().Contain(candidate =>
+            candidate.Purpose == ItineraryPlacePurpose.Meal);
+        catalog.Should().Contain(candidate =>
+            candidate.Purpose == ItineraryPlacePurpose.Accommodation);
+        catalog.Should().OnlyContain(candidate =>
+            !string.IsNullOrWhiteSpace(candidate.Place.PhotoUrl));
+        catalog.Should().NotContain(candidate =>
+            candidate.Place.PlaceId == "old-activity");
+        travel.Verify(service => service.SearchLocalAsync(
+            It.IsAny<string>(),
+            "Cairo",
+            "en",
+            It.IsAny<CancellationToken>()), Times.Exactly(3));
+        travel.Verify(service => service.SearchHotelsAsync(
+            "Cairo",
+            "mid_range",
+            It.IsAny<DateTime>(),
+            It.IsAny<DateTime>(),
+            2,
+            "USD",
+            "en",
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void PromptCatalog_ShouldExposeCoordinatesAndCoarseAreaCluster()
+    {
+        var candidate = CreateCandidate(
+            "P1",
+            "Cairo Tower",
+            "Cairo",
+            "https://images.example/cairo-tower.jpg");
+        candidate.Place.Latitude = 30.04592;
+        candidate.Place.Longitude = 31.22429;
+
+        var catalog = ItineraryPlaceCatalog.BuildPromptCatalog(
+            [candidate]);
+
+        catalog.Should().Contain("coordinates:30.04592,31.22429");
+        catalog.Should().Contain("areaCluster:30.05,31.22");
     }
 
     [Fact]
@@ -740,6 +1431,83 @@ public sealed class ItineraryGenerationPipelineTests
         day.Items[0].PlaceReference.Should().BeNull();
     }
 
+    [Theory]
+    [InlineData("Evening Stroll", "Take an easy stroll near the hotel.")]
+    [InlineData("Relax at the Resort", "Relax and enjoy some unplanned time.")]
+    public void ReconcileActivityItems_ShouldKeepGenericLeisureAsOther(
+        string title,
+        string description)
+    {
+        var day = CreateDay(
+            new AiItineraryItem
+            {
+                StartTime = "19:00",
+                EndTime = "20:00",
+                Title = title,
+                Description = description,
+                Location = "Hotel",
+                PlaceReference = null,
+                Category = "other",
+                EstimatedCost = 0m,
+                OrderIndex = 0
+            });
+
+        var result = ItineraryPlaceCatalog.ReconcileActivityItems(
+            [day],
+            [],
+            "Hurghada",
+            "en");
+
+        result.RepairedCount.Should().Be(0);
+        result.RemovedCount.Should().Be(0);
+        day.Items.Should().ContainSingle();
+        day.Items[0].Category.Should().Be("other");
+
+        Action validate = () =>
+            ItineraryPlaceCatalog.ValidateRemainingOtherItems([day]);
+
+        validate.Should().NotThrow();
+    }
+
+    [Fact]
+    public void ReconcileActivityItems_ShouldRepairEveryNonLeisureOtherItem()
+    {
+        var verifiedActivity = CreateCandidate(
+            "P1",
+            "Hurghada Marina",
+            "Hurghada",
+            photoUrl: "https://images.example/hurghada-marina.jpg");
+        var day = CreateDay(
+            new AiItineraryItem
+            {
+                StartTime = "17:00",
+                EndTime = "18:30",
+                Title = "Sunset Experience",
+                Description = "Enjoy the destination before dinner.",
+                Location = "Hurghada",
+                PlaceReference = null,
+                Category = "other",
+                EstimatedCost = 10m,
+                OrderIndex = 0
+            });
+
+        var result = ItineraryPlaceCatalog.ReconcileActivityItems(
+            [day],
+            [verifiedActivity],
+            "Hurghada",
+            "en");
+
+        result.RepairedCount.Should().Be(1);
+        result.RemovedCount.Should().Be(0);
+        day.Items[0].Category.Should().Be("activity");
+        day.Items[0].PlaceReference.Should().Be("P1");
+
+        Action validate = () =>
+            ItineraryPlaceCatalog.ValidateRemainingOtherItems([day]);
+
+        validate.Should().NotThrow();
+    }
+
     [Fact]
     public void ActivityDiscovery_ShouldDiscardGenericSuggestion()
     {
@@ -823,6 +1591,60 @@ public sealed class ItineraryGenerationPipelineTests
             .Place.Name.Should().Be("Budget Hotel");
     }
 
+    private static ItineraryCityStop CreateCityStop(string city)
+    {
+        return new ItineraryCityStop(
+            city,
+            1,
+            1,
+            0,
+            null,
+            null);
+    }
+
+    private static AiItineraryItem CreateScheduledItem(
+        string title,
+        string category,
+        string start,
+        string end)
+    {
+        return new AiItineraryItem
+        {
+            StartTime = start,
+            EndTime = end,
+            Title = title,
+            Description = "Generated schedule item.",
+            Location = "Antalya",
+            Category = category,
+            EstimatedCost = category == "meal" ? 10m : 0m,
+            OrderIndex = 0
+        };
+    }
+
+    private static void AssertChronologicalWithoutOverlap(
+        AiItineraryDay day)
+    {
+        TimeSpan? previousEnd = null;
+
+        foreach (var item in day.Items)
+        {
+            var start = ItineraryItemInput.ParseTime(item.StartTime);
+            var end = ItineraryItemInput.ParseTime(item.EndTime);
+
+            start.Should().NotBeNull();
+            end.Should().NotBeNull();
+            end!.Value.Should().BeGreaterThan(start!.Value);
+
+            if (previousEnd is not null)
+            {
+                start.Value.Should().BeGreaterThanOrEqualTo(
+                    previousEnd.Value);
+            }
+
+            previousEnd = end.Value;
+        }
+    }
+
     private static AiItineraryDay CreateDay(
         params AiItineraryItem[] items)
     {
@@ -903,6 +1725,29 @@ public sealed class ItineraryGenerationPipelineTests
             ItineraryPlacePurpose.Accommodation,
             city,
             1);
+    }
+
+    private static ItineraryPlaceCandidate CreateMealCandidate(
+        string reference,
+        string name,
+        string city,
+        double rating)
+    {
+        return new ItineraryPlaceCandidate(
+            reference,
+            new PlaceDetails
+            {
+                PlaceId = $"meal-{reference}",
+                Name = name,
+                Address = $"{name}, {city}",
+                Rating = rating,
+                UserRatingsTotal = 300,
+                PhotoUrl = $"https://images.example/{reference}.jpg",
+                Types = ["restaurant", "food"]
+            },
+            ItineraryPlacePurpose.Meal,
+            city,
+            null);
     }
 
     private static GenerateItineraryPreferences CreatePreferences(

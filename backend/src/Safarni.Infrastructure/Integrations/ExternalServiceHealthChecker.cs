@@ -48,7 +48,16 @@ public sealed class ExternalServiceHealthChecker : IExternalServiceHealthChecker
             await CheckGeminiAsync(cancellationToken),
             CheckPresence("google-places", "Google Places", "GooglePlaces:ApiKey", "Chat place search"),
             CheckPresence("google-routes", "Google Routes", "GoogleRoutes:ApiKey", "Trip route times"),
-            CheckPresence("serpapi", "SerpAPI", "SerpApi:ApiKey", "Flights and itinerary enrichment"),
+            CheckSerpApiPresence(
+                "serpapi-discovery",
+                "SerpAPI Discovery",
+                "SerpApi:DiscoveryApiKey",
+                "Attractions, restaurants and itinerary images"),
+            CheckSerpApiPresence(
+                "serpapi-commerce",
+                "SerpAPI Commerce",
+                "SerpApi:CommerceApiKey",
+                "Flights, airports and hotels"),
             await CheckQdrantAsync(cancellationToken),
             CheckEmail(),
             CheckProfilePhotoStorage(),
@@ -76,7 +85,12 @@ public sealed class ExternalServiceHealthChecker : IExternalServiceHealthChecker
             Entry("gemini-itinerary", "GeminiItinerary:ApiKey"),
             Entry("google-places", "GooglePlaces:ApiKey"),
             Entry("google-routes", "GoogleRoutes:ApiKey"),
-            Entry("serpapi", "SerpApi:ApiKey"),
+            SerpApiEntry(
+                "serpapi-discovery",
+                "SerpApi:DiscoveryApiKey"),
+            SerpApiEntry(
+                "serpapi-commerce",
+                "SerpApi:CommerceApiKey"),
             Entry("email", "EmailSettings:UserName"),
             Entry("email", "EmailSettings:Password")
         };
@@ -94,6 +108,58 @@ public sealed class ExternalServiceHealthChecker : IExternalServiceHealthChecker
             configKey,
             configured,
             configured ? MaskValue(value!) : null);
+    }
+
+    private IntegrationConfigEntry SerpApiEntry(
+        string integration,
+        string configKey)
+    {
+        var environmentKey = string.Equals(
+            configKey,
+            "SerpApi:DiscoveryApiKey",
+            StringComparison.OrdinalIgnoreCase)
+                ? "SERPAPI_DISCOVERY_API_KEY"
+                : "SERPAPI_COMMERCE_API_KEY";
+        var value = Environment.GetEnvironmentVariable(environmentKey) ??
+                    _configuration[configKey] ??
+                    _configuration["SerpApi:ApiKey"];
+        var configured = IsRealValue(value);
+
+        return new IntegrationConfigEntry(
+            integration,
+            configKey,
+            configured,
+            configured ? MaskValue(value!) : null);
+    }
+
+    private IntegrationHealthCheck CheckSerpApiPresence(
+        string name,
+        string displayName,
+        string configKey,
+        string affectedFeature)
+    {
+        var environmentKey = string.Equals(
+            configKey,
+            "SerpApi:DiscoveryApiKey",
+            StringComparison.OrdinalIgnoreCase)
+                ? "SERPAPI_DISCOVERY_API_KEY"
+                : "SERPAPI_COMMERCE_API_KEY";
+        var value = Environment.GetEnvironmentVariable(environmentKey) ??
+                    _configuration[configKey] ??
+                    _configuration["SerpApi:ApiKey"];
+
+        return IsRealValue(value)
+            ? Healthy(
+                name,
+                displayName,
+                affectedFeature,
+                "API key is configured (no live call made).",
+                0)
+            : NotConfigured(
+                name,
+                displayName,
+                affectedFeature,
+                "API key is not configured.");
     }
 
     private async Task<IntegrationHealthCheck> CheckGroqAsync(

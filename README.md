@@ -7,8 +7,8 @@ Safarni is a travel planning platform with an ASP.NET Core backend and an Angula
 - Backend: ASP.NET Core / .NET 10, MediatR, FluentValidation, Entity Framework Core
 - Database: SQL Server
 - Frontend: Angular 21, standalone components, Angular Router
-- AI services: Groq chat completions, local embeddings, optional Qdrant vector search
-- External APIs: Google Places, Google OAuth
+- AI services: Gemini itinerary planning, Groq chat completions, local embeddings, optional Qdrant vector search
+- External APIs: SerpAPI discovery/commerce, Google Places (chat), Google Routes, Google OAuth, Geoapify
 
 ## Project Structure
 
@@ -116,6 +116,29 @@ Frontend:
 cd Frontend
 npm start -- --host 127.0.0.1 --port 4200
 ```
+
+## Itinerary Generation
+
+The itinerary pipeline uses two independent SerpAPI lanes:
+
+```text
+SerpApi__DiscoveryApiKey  # attractions, restaurants, and images
+SerpApi__CommerceApiKey   # airports, flights, and hotels
+```
+
+`SerpApi__ApiKey` remains a backwards-compatible fallback when only one key is
+available. Keep real keys in `.env`, environment variables, or .NET user
+secrets; do not commit them to `appsettings.json`.
+
+For each city, the backend runs two attraction searches and one food search,
+deduplicates and ranks the returned places, and keeps unused alternatives for
+regeneration. Flights, hotels, and discovery run concurrently. Gemini receives
+the verified catalog and creates the complete trip in one normal request.
+
+When an active itinerary already exists, **Regenerate all days** excludes places
+used by up to five recent versions where enough alternatives exist. The new
+plan is checked for meaningful difference before replacing the active version;
+older versions remain stored as inactive records.
 
 ## Chatbot Notes
 

@@ -36,6 +36,18 @@ internal sealed class ItineraryRepository : IItineraryRepository
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Itinerary>> GetRecentByTripIdAsync(
+        Guid tripId,
+        int maximumCount,
+        CancellationToken cancellationToken = default)
+    {
+        return await QueryWithDetails()
+            .Where(itinerary => itinerary.TripId == tripId)
+            .OrderByDescending(itinerary => itinerary.CreatedAt)
+            .Take(Math.Clamp(maximumCount, 1, 10))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(
         Itinerary itinerary,
         CancellationToken cancellationToken = default)

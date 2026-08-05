@@ -21,6 +21,11 @@ internal sealed class AiItineraryDay
     public List<AiItineraryItem> Items { get; set; } = new();
 }
 
+internal sealed class AiItineraryEnvelope
+{
+    public List<AiItineraryDay> Days { get; set; } = new();
+}
+
 internal sealed class AiItineraryItem
 {
     public string? StartTime { get; set; }
@@ -44,9 +49,7 @@ internal static class ItineraryOutputParser
 
     public static IReadOnlyList<AiItineraryDay> ParseAll(string output, Trip trip)
     {
-        var days = ExtractJsonObjects(output)
-            .Select(ParseDay)
-            .ToList();
+        var days = ParseDays(output);
 
         ValidateComplete(days, trip);
         return days;
@@ -58,9 +61,7 @@ internal static class ItineraryOutputParser
         int startDayNumber,
         int endDayNumber)
     {
-        var days = ExtractJsonObjects(output)
-            .Select(ParseDay)
-            .ToList();
+        var days = ParseDays(output);
 
         ValidateRange(
             days,
@@ -69,6 +70,57 @@ internal static class ItineraryOutputParser
             endDayNumber);
 
         return days;
+    }
+
+    private static List<AiItineraryDay> ParseDays(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            throw new ItineraryOutputException(
+                "The AI returned an empty itinerary response.");
+        }
+
+        var trimmed = output.Trim();
+
+        if (Regex.IsMatch(
+            trimmed,
+            "^\\{\\s*\"days\"\\s*:",
+            RegexOptions.IgnoreCase))
+        {
+            try
+            {
+                var envelope =
+                    JsonSerializer.Deserialize<AiItineraryEnvelope>(
+                        trimmed,
+                        JsonOptions)
+                    ?? throw new ItineraryOutputException(
+                        "The AI returned an empty itinerary document.");
+
+                if (envelope.Days is null || envelope.Days.Count == 0)
+                {
+                    throw new ItineraryOutputException(
+                        "The itinerary document contains no days.");
+                }
+
+                foreach (var day in envelope.Days)
+                {
+                    ValidateDay(day);
+                }
+
+                return envelope.Days;
+            }
+            catch (JsonException exception)
+            {
+                throw new ItineraryOutputException(
+                    $"The AI returned invalid structured JSON: {exception.Message}");
+            }
+        }
+
+        // Keep accepting the old newline-delimited format during deployment
+        // and for any provider that still returns the legacy contract.
+        return ExtractJsonObjects(output)
+            .Select(ParseDay)
+            .ToList();
     }
 
     public static AiItineraryDay ParseDay(string line)
@@ -175,9 +227,18 @@ internal static class ItineraryOutputParser
             var category =
                 ItineraryItemInput.ParseCategory(item.Category);
 
+            var hasVerifiedMealCatalog =
+                category == ItineraryItemCategory.Meal &&
+                places.Any(candidate =>
+                    candidate.Purpose == ItineraryPlacePurpose.Meal &&
+                    string.Equals(
+                        candidate.City,
+                        assignedCity,
+                        StringComparison.OrdinalIgnoreCase));
             var requiresVerifiedPlace =
                 category is ItineraryItemCategory.Activity
-                    or ItineraryItemCategory.Accommodation;
+                    or ItineraryItemCategory.Accommodation ||
+                hasVerifiedMealCatalog;
 
             if (!requiresVerifiedPlace)
             {
@@ -348,12 +409,23 @@ internal static class ItineraryOutputParser
                         item.Category) ==
                     ItineraryItemCategory.Activity));
 
+            if (actualActivityCount > 0)
+            {
+                continue;
+            }
+
+            var hasFeasibleWindow = eligibleDays.Any(day =>
+                ItineraryMinimumActivityResolver.HasFeasibleWindow(
+                    day,
+                    flightPlan,
+                    totalTripDays ?? days.Count));
+
             // Quantity and pacing are prompt-level quality goals. The hard
             // invariant is grounding: when verified activities and a usable
             // time window exist, include at least one verified activity in the
             // city segment. Do not fail because the API catalog is smaller
             // than the preferred pace target.
-            if (actualActivityCount == 0)
+            if (hasFeasibleWindow)
             {
                 throw new ItineraryOutputException(
                     $"{cityStop.City} has verified activity candidates and a usable sightseeing window, but the generated segment contains no verified activity.");

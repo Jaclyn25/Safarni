@@ -81,8 +81,8 @@ public sealed class GenerateItineraryCommandHandler
 public sealed class ItineraryGenerationProcessor
     : IItineraryGenerationProcessor
 {
-    private const int MaximumGenerationAttempts = 4;
-    private const int MaximumRateLimitAttempts = 4;
+    private const int MaximumGenerationAttempts = 2;
+    private const int MaximumRateLimitAttempts = 2;
     private static readonly TimeSpan DefaultRateLimitRetryDelay =
         TimeSpan.FromSeconds(20);
 
@@ -90,7 +90,6 @@ public sealed class ItineraryGenerationProcessor
     private readonly IItineraryRepository _itineraryRepository;
     private readonly IItineraryGenerationJobRepository? _jobs;
     private readonly IItineraryAIProvider _aiProvider;
-    private readonly IGooglePlacesService _googlePlacesService;
     private readonly IItineraryTravelDataService? _travelDataService;
     private readonly IItineraryRouteService? _routeService;
     private readonly IFlightAirportService? _flightService;
@@ -101,7 +100,6 @@ public sealed class ItineraryGenerationProcessor
         ITripRepository tripRepository,
         IItineraryRepository itineraryRepository,
         IItineraryAIProvider aiProvider,
-        IGooglePlacesService googlePlacesService,
         ILogger<ItineraryGenerationProcessor> logger,
         IItineraryGenerationJobRepository? jobs = null,
         IItineraryTravelDataService? travelDataService = null,
@@ -112,7 +110,6 @@ public sealed class ItineraryGenerationProcessor
         _tripRepository = tripRepository;
         _itineraryRepository = itineraryRepository;
         _aiProvider = aiProvider;
-        _googlePlacesService = googlePlacesService;
         _logger = logger;
         _jobs = jobs;
         _travelDataService = travelDataService;
@@ -174,19 +171,28 @@ public sealed class ItineraryGenerationProcessor
                     TripErrors.CorruptRoute);
             }
 
-            var cityPlan = await ItineraryCityPlanner.ResolveAsync(
+            var cityPlan = ItineraryCityPlanner.ResolveTravelerCities(
                 trip,
-                _googlePlacesService,
-                travelerCities,
-                cancellationToken);
+                travelerCities);
 
             await ReportProgressAsync(
                 generationJobId,
                 12,
-                "Resolving exact flight routes",
+                "Searching places, flights, and hotels in parallel",
                 cancellationToken);
 
-            var flightPlan = await ItineraryFlightEnricher.ResolvePlanAsync(
+            var previousItineraries =
+                await _itineraryRepository.GetRecentByTripIdAsync(
+                    tripId,
+                    maximumCount: 5,
+                    cancellationToken);
+            var previousItinerary = previousItineraries
+                .FirstOrDefault(itinerary => itinerary.IsActive) ??
+                previousItineraries.FirstOrDefault();
+            var previouslyUsedPlaceIds = GetPreviouslyUsedPlaceIds(
+                previousItineraries);
+
+            var flightPlanTask = ItineraryFlightEnricher.ResolvePlanAsync(
                 trip,
                 cityPlan,
                 normalizedCurrency,
@@ -194,6 +200,22 @@ public sealed class ItineraryGenerationProcessor
                 preferences.PreferredLanguage,
                 _flightService,
                 cancellationToken);
+
+            var placeCatalogTask = ItineraryPlaceCatalog
+                .LoadSerpPrimaryAsync(
+                    _travelDataService,
+                    trip,
+                    cityPlan,
+                    preferences,
+                    normalizedCurrency,
+                    travelerCount,
+                    previouslyUsedPlaceIds,
+                    cancellationToken);
+
+            await Task.WhenAll(flightPlanTask, placeCatalogTask);
+
+            var flightPlan = await flightPlanTask;
+            var places = await placeCatalogTask;
 
             var knownFlightCost =
                 (flightPlan.Outbound?.Price ?? 0m) +
@@ -210,65 +232,17 @@ public sealed class ItineraryGenerationProcessor
 
             await ReportProgressAsync(
                 generationJobId,
-                16,
-                "Suggesting activities for your preferences",
-                cancellationToken);
-
-            var activitySuggestions =
-                await GenerateActivitySuggestionsAsync(
-                    userId,
-                    tripId,
-                    cityPlan,
-                    preferences,
-                    generationJobId,
-                    cancellationToken);
-
-            await ReportProgressAsync(
-                generationJobId,
-                20,
-                "Verifying suggested activities",
-                cancellationToken);
-
-            var verifiedActivities =
-                await ItineraryPlaceCatalog
-                    .VerifyActivitySuggestionsAsync(
-                        _googlePlacesService,
-                        _travelDataService,
-                        activitySuggestions,
-                        cityPlan,
-                        preferences.PreferredLanguage,
-                        cancellationToken);
-
-            await ReportProgressAsync(
-                generationJobId,
                 24,
-                "Loading fallback places and hotel rates",
+                previousItinerary is null
+                    ? "Preparing verified place catalog"
+                    : "Preparing unused alternatives for regeneration",
                 cancellationToken);
-
-            var fallbackPlaces =
-                await ItineraryPlaceCatalog.LoadAsync(
-                    _googlePlacesService,
-                    _travelDataService,
-                    trip,
-                    cityPlan,
-                    preferences,
-                    normalizedCurrency,
-                    travelerCount,
-                    cancellationToken);
-
-            var places = ItineraryPlaceCatalog
-                .MergeSuggestedActivities(
-                    fallbackPlaces,
-                    verifiedActivities,
-                    cityPlan,
-                    preferences);
 
             _logger.LogInformation(
-                "Prepared {ActivitySuggestionCount} AI activity suggestions, verified {VerifiedActivityCount}, and built a final catalog of {PlaceCount} places for trip {TripId}.",
-                activitySuggestions.Count,
-                verifiedActivities.Count,
+                "Built a SerpAPI-first catalog of {PlaceCount} verified places for trip {TripId}; regeneration={IsRegeneration}.",
                 places.Count,
-                tripId);
+                tripId,
+                previousItinerary is not null);
 
             if (places.Count == 0)
             {
@@ -276,7 +250,15 @@ public sealed class ItineraryGenerationProcessor
                     ItineraryErrors.PlacesUnavailable);
             }
 
-            var generatedDays = await GenerateValidatedDaysAsync(
+            await ReportProgressAsync(
+                generationJobId,
+                34,
+                previousItinerary is null
+                    ? "Planning the complete itinerary"
+                    : "Regenerating every itinerary day",
+                cancellationToken);
+
+            var generatedDays = await GenerateValidatedTripAsync(
                 userId,
                 trip,
                 tripId,
@@ -287,6 +269,7 @@ public sealed class ItineraryGenerationProcessor
                 places,
                 cityPlan,
                 flightPlan,
+                previousItinerary,
                 generationJobId,
                 cancellationToken);
 
@@ -373,6 +356,315 @@ public sealed class ItineraryGenerationProcessor
 
             return Result<ItineraryResponse>.Failure(
                 ItineraryErrors.GenerationFailed);
+        }
+    }
+
+    private async Task<IReadOnlyList<AiItineraryDay>>
+        GenerateValidatedTripAsync(
+            Guid userId,
+            Trip trip,
+            Guid tripId,
+            GenerateItineraryPreferences preferences,
+            decimal? budgetAmount,
+            string currencyCode,
+            int travelerCount,
+            IReadOnlyList<ItineraryPlaceCandidate> places,
+            IReadOnlyList<ItineraryCityStop> cityPlan,
+            ItineraryFlightPlan flightPlan,
+            Itinerary? previousItinerary,
+            Guid? generationJobId,
+            CancellationToken cancellationToken)
+    {
+        var totalTripDays = Math.Max(
+            1,
+            (trip.EndDate.Date - trip.StartDate.Date).Days + 1);
+        var previousMealSuggestions = previousItinerary?.Days
+            .SelectMany(day => day.Items)
+            .Where(item =>
+                item.Category == ItineraryItemCategory.Meal)
+            .Select(item =>
+                ItineraryOutputParser.GetMealSuggestionKey(
+                    item.Title))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase) ??
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var previousPlaceNames = previousItinerary?.Days
+            .SelectMany(day => day.Items)
+            .Where(item =>
+                item.Category is ItineraryItemCategory.Activity or
+                    ItineraryItemCategory.Meal or
+                    ItineraryItemCategory.Accommodation)
+            .Select(item => item.Location ?? item.Title)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(60)
+            .ToList() ?? [];
+
+        var originalUserMessage = ItineraryPromptBuilder.BuildUserMessage(
+            trip,
+            preferences,
+            budgetAmount,
+            currencyCode,
+            travelerCount,
+            places,
+            cityPlan,
+            generationStop: null,
+            previousCity: null,
+            excludedMealSuggestions: previousMealSuggestions,
+            flightPlan: flightPlan,
+            excludedPlaceNames: previousPlaceNames,
+            isRegeneration: previousItinerary is not null);
+
+        ItineraryOutputException? lastRejection = null;
+
+        for (var attempt = 1;
+             attempt <= MaximumGenerationAttempts;
+             attempt++)
+        {
+            var userMessage = lastRejection is null
+                ? originalUserMessage
+                : ItineraryPromptBuilder.BuildRetryUserMessage(
+                    originalUserMessage,
+                    lastRejection.Message);
+            var output = await GetCompletionWithRateLimitRecoveryAsync(
+                ItineraryPromptBuilder.SystemPrompt,
+                userMessage,
+                BuildCompletionOptions(totalTripDays),
+                userId,
+                tripId,
+                generationJobId,
+                previousItinerary is null
+                    ? "full itinerary generation"
+                    : "full itinerary regeneration",
+                cancellationToken);
+
+            try
+            {
+                var generatedDays = ItineraryOutputParser.ParseRange(
+                    output,
+                    trip,
+                    1,
+                    totalTripDays);
+                ItineraryOutputParser.NormalizeChronologicalOrder(
+                    generatedDays);
+                ItineraryFlightWindowRepair.Repair(
+                    generatedDays,
+                    flightPlan,
+                    totalTripDays);
+
+                foreach (var cityStop in cityPlan)
+                {
+                    var cityDays = generatedDays
+                        .Where(day =>
+                            day.DayNumber >= cityStop.StartDayNumber &&
+                            day.DayNumber <= cityStop.EndDayNumber)
+                        .ToList();
+
+                    ItineraryAccommodationResolver.NormalizeCityStay(
+                        cityDays,
+                        cityStop,
+                        preferences,
+                        places,
+                        flightPlan,
+                        totalTripDays);
+
+                    foreach (var day in cityDays)
+                    {
+                        ItineraryPlaceCatalog.ResolvePlaceReferences(
+                            day,
+                            places,
+                            cityStop.City);
+                    }
+
+                    ItineraryPlaceCatalog.ReconcileActivityItems(
+                        cityDays,
+                        places,
+                        cityStop.City,
+                        preferences.PreferredLanguage);
+                    ItineraryDuplicatePlaceResolver.ReplaceDuplicates(
+                        cityDays,
+                        cityStop.City,
+                        preferences.PreferredLanguage,
+                        places);
+                    var minimumActivityRepair =
+                        ItineraryMinimumActivityResolver.Ensure(
+                            cityDays,
+                            places,
+                            cityStop,
+                            preferences.PreferredLanguage,
+                            flightPlan,
+                            totalTripDays);
+
+                    if (minimumActivityRepair.Status ==
+                        ItineraryMinimumActivityRepairStatus.Inserted)
+                    {
+                        _logger.LogInformation(
+                            "Inserted verified fallback activity {PlaceName} ({PlaceReference}) in {City} on day {DayNumber} from {StartTime} to {EndTime}. Removed lower-priority items: {RemovedItems}.",
+                            minimumActivityRepair.PlaceName,
+                            minimumActivityRepair.PlaceReference,
+                            minimumActivityRepair.City,
+                            minimumActivityRepair.DayNumber,
+                            minimumActivityRepair.Start,
+                            minimumActivityRepair.End,
+                            minimumActivityRepair.RemovedItems is { Count: > 0 }
+                                ? string.Join(", ", minimumActivityRepair.RemovedItems)
+                                : "none");
+                    }
+                    else if (minimumActivityRepair.Status ==
+                             ItineraryMinimumActivityRepairStatus.NoFeasibleWindow)
+                    {
+                        _logger.LogInformation(
+                            "No verified activity was inserted in {City} because protected transport or accommodation blocks leave no feasible sightseeing window.",
+                            minimumActivityRepair.City);
+                    }
+                    else if (minimumActivityRepair.Status ==
+                             ItineraryMinimumActivityRepairStatus.NoEligibleDay)
+                    {
+                        _logger.LogInformation(
+                            "No verified activity is required in {City} because its assigned days have no sightseeing window after applying verified flight times.",
+                            minimumActivityRepair.City);
+                    }
+                    else if (minimumActivityRepair.Status ==
+                             ItineraryMinimumActivityRepairStatus.NoVerifiedCandidate)
+                    {
+                        _logger.LogInformation(
+                            "No verified activity was inserted in {City} because the external discovery catalog returned no activity candidate.",
+                            minimumActivityRepair.City);
+                    }
+                }
+
+                ItineraryPlaceCatalog.ValidateRemainingOtherItems(
+                    generatedDays);
+                ItineraryOutputParser.ValidateComplete(
+                    generatedDays,
+                    trip);
+                ItineraryOutputParser.ValidatePlaceReferences(
+                    generatedDays,
+                    places,
+                    cityPlan);
+                ItineraryOutputParser.ValidatePlanRules(
+                    generatedDays,
+                    preferences,
+                    budgetAmount,
+                    places,
+                    cityPlan,
+                    flightPlan,
+                    totalTripDays);
+                ItineraryOutputParser.ValidateFlightConstraints(
+                    generatedDays,
+                    flightPlan,
+                    totalTripDays);
+                ValidateRegenerationDifference(
+                    previousItinerary,
+                    generatedDays,
+                    places);
+
+                return generatedDays
+                    .OrderBy(day => day.DayNumber)
+                    .ToList();
+            }
+
+            catch (ItineraryOutputException exception)
+                when (attempt < MaximumGenerationAttempts)
+            {
+                lastRejection = exception;
+                var retryDelay = ResolveValidationRetryDelay(attempt);
+
+                _logger.LogInformation(
+                    "Full itinerary generation attempt {Attempt} for trip {TripId} was rejected: {Reason}. Retrying after {DelaySeconds} seconds.",
+                    attempt,
+                    tripId,
+                    exception.Message,
+                    retryDelay.TotalSeconds);
+                await Task.Delay(retryDelay, cancellationToken);
+            }
+        }
+
+        throw lastRejection ??
+              new ItineraryOutputException(
+                  "The generated itinerary failed validation.");
+    }
+
+    private static IReadOnlySet<string> GetPreviouslyUsedPlaceIds(
+        Itinerary? itinerary)
+    {
+        return GetPreviouslyUsedPlaceIds(
+            itinerary is null ? [] : [itinerary]);
+    }
+
+    private static IReadOnlySet<string> GetPreviouslyUsedPlaceIds(
+        IEnumerable<Itinerary> itineraries)
+    {
+        return itineraries
+            .SelectMany(itinerary => itinerary.Days)
+            .SelectMany(day => day.Items)
+            .Where(item =>
+                item.Category is ItineraryItemCategory.Activity or
+                    ItineraryItemCategory.Meal or
+                    ItineraryItemCategory.Accommodation)
+            .Select(item => item.GooglePlaceId)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static void ValidateRegenerationDifference(
+        Itinerary? previousItinerary,
+        IReadOnlyList<AiItineraryDay> generatedDays,
+        IReadOnlyList<ItineraryPlaceCandidate> places)
+    {
+        var previousIds = GetPreviouslyUsedPlaceIds(previousItinerary);
+        if (previousIds.Count == 0)
+        {
+            return;
+        }
+
+        var candidatesByReference = places.ToDictionary(
+            candidate => candidate.Reference,
+            StringComparer.OrdinalIgnoreCase);
+        var generatedIds = generatedDays
+            .SelectMany(day => day.Items)
+            .Where(item =>
+                ItineraryItemInput.ParseCategory(item.Category) is
+                    ItineraryItemCategory.Activity or
+                    ItineraryItemCategory.Meal)
+            .Select(item =>
+                string.IsNullOrWhiteSpace(item.PlaceReference) ||
+                !candidatesByReference.TryGetValue(
+                    item.PlaceReference.Trim(),
+                    out var candidate)
+                    ? null
+                    : candidate.Place.PlaceId)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (generatedIds.Count == 0)
+        {
+            return;
+        }
+
+        var availableUnusedCount = places
+            .Where(candidate =>
+                (candidate.Purpose is ItineraryPlacePurpose.Activity or
+                    ItineraryPlacePurpose.Meal) &&
+                !previousIds.Contains(candidate.Place.PlaceId))
+            .Select(candidate => candidate.Place.PlaceId)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+        var requiredDifferentCount = Math.Min(
+            availableUnusedCount,
+            (int)Math.Ceiling(generatedIds.Count * 0.70d));
+        var actualDifferentCount = generatedIds.Count(id =>
+            !previousIds.Contains(id));
+
+        if (actualDifferentCount < requiredDifferentCount)
+        {
+            throw new ItineraryOutputException(
+                "The regenerated itinerary is too similar to the previous version. " +
+                $"Use at least {requiredDifferentCount} unused verified places.");
         }
     }
 
@@ -478,7 +770,9 @@ public sealed class ItineraryGenerationProcessor
             preferences,
             budgetAmount,
             places,
-            cityPlan);
+            cityPlan,
+            flightPlan,
+            totalTripDays);
         ItineraryOutputParser.ValidateFlightConstraints(
             generatedDays,
             flightPlan,
@@ -582,7 +876,9 @@ public sealed class ItineraryGenerationProcessor
                         generatedDays,
                         cityStop,
                         preferences,
-                        places);
+                        places,
+                        flightPlan,
+                        totalTripDays);
 
                 if (accommodationAdjustments > 0)
                 {
@@ -645,7 +941,9 @@ public sealed class ItineraryGenerationProcessor
                     preferences,
                     segmentBudget,
                     places,
-                    [cityStop]);
+                    [cityStop],
+                    flightPlan,
+                    totalTripDays);
                 ItineraryOutputParser.ValidateFlightConstraints(
                     generatedDays,
                     flightPlan,
@@ -863,9 +1161,9 @@ public sealed class ItineraryGenerationProcessor
     {
         var normalizedDayCount = Math.Max(1, dayCount);
         var maxTokens = Math.Clamp(
-            1000 + (normalizedDayCount * 400),
-            1400,
-            3200);
+            1200 + (normalizedDayCount * 650),
+            1800,
+            6000);
 
         return AICompletionOptions.ItineraryPlanning with
         {

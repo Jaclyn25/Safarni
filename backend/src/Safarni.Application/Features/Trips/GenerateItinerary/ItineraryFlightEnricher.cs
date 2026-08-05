@@ -56,7 +56,7 @@ internal static class ItineraryFlightEnricher
             return new ItineraryFlightPlan(null, null);
         }
 
-        var outbound = await flightService.RecommendFlightAsync(
+        var outboundTask = flightService.RecommendFlightAsync(
             originCode,
             firstCityCode,
             trip.StartDate.Date,
@@ -65,10 +65,9 @@ internal static class ItineraryFlightEnricher
             languageCode,
             cancellationToken);
 
-        FlightRecommendation? returnFlight = null;
-        if (lastCityCode is not null)
-        {
-            returnFlight = await flightService.RecommendFlightAsync(
+        var returnFlightTask = lastCityCode is null
+            ? Task.FromResult<FlightRecommendation?>(null)
+            : flightService.RecommendFlightAsync(
                 lastCityCode,
                 originCode,
                 trip.EndDate.Date,
@@ -76,7 +75,10 @@ internal static class ItineraryFlightEnricher
                 travelerCount,
                 languageCode,
                 cancellationToken);
-        }
+
+        await Task.WhenAll(outboundTask, returnFlightTask);
+        var outbound = await outboundTask;
+        var returnFlight = await returnFlightTask;
 
         return new ItineraryFlightPlan(
             IsExact(outbound, originCode, firstCityCode)

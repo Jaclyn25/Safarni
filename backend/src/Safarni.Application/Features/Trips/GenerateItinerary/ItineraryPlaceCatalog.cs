@@ -29,8 +29,310 @@ internal sealed record ItineraryActivityReconciliationResult(
     int RepairedCount,
     int RemovedCount);
 
+internal sealed record ItineraryCatalogSearchResult(
+    string City,
+    ItineraryPlacePurpose Purpose,
+    int? StayNights,
+    IReadOnlyList<PlaceDetails> Places);
+
 internal static class ItineraryPlaceCatalog
 {
+    private const int DiscoveryConcurrency = 3;
+    private const int CommerceConcurrency = 2;
+
+    /// <summary>
+    /// Builds a reusable, image-rich catalog directly from SerpAPI. Queries are
+    /// category based instead of being generated once per AI suggestion, which
+    /// keeps search count and latency bounded as trip length increases.
+    /// </summary>
+    public static async Task<IReadOnlyList<ItineraryPlaceCandidate>>
+        LoadSerpPrimaryAsync(
+            IItineraryTravelDataService? travelDataService,
+            Trip trip,
+            IReadOnlyList<ItineraryCityStop> cityPlan,
+            GenerateItineraryPreferences preferences,
+            string currencyCode,
+            int travelerCount,
+            IReadOnlySet<string>? previouslyUsedPlaceIds,
+            CancellationToken cancellationToken)
+    {
+        if (travelDataService?.IsConfigured != true)
+        {
+            return [];
+        }
+
+        var previousIds = previouslyUsedPlaceIds ??
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using var discoveryGate = new SemaphoreSlim(
+            DiscoveryConcurrency,
+            DiscoveryConcurrency);
+        using var commerceGate = new SemaphoreSlim(
+            CommerceConcurrency,
+            CommerceConcurrency);
+        var searches = new List<Task<ItineraryCatalogSearchResult>>();
+
+        foreach (var cityStop in cityPlan)
+        {
+            foreach (var search in BuildPrimaryDiscoveryQueries(
+                         cityStop.City,
+                         preferences,
+                         previousIds.Count > 0))
+            {
+                searches.Add(SearchLocalCatalogAsync(
+                    travelDataService,
+                    discoveryGate,
+                    cityStop.City,
+                    search,
+                    preferences.PreferredLanguage,
+                    cancellationToken));
+            }
+
+            if (!string.Equals(
+                    preferences.AccommodationStyle,
+                    "already_booked",
+                    StringComparison.OrdinalIgnoreCase) &&
+                cityStop.GetCheckOutDate(trip) is { } checkOutDate)
+            {
+                searches.Add(SearchHotelCatalogAsync(
+                    travelDataService,
+                    commerceGate,
+                    trip,
+                    cityStop,
+                    checkOutDate,
+                    preferences,
+                    currencyCode,
+                    travelerCount,
+                    cancellationToken));
+            }
+        }
+
+        var searchResults = await Task.WhenAll(searches);
+        var selected = new List<(
+            PlaceDetails Place,
+            ItineraryPlacePurpose Purpose,
+            string City,
+            int? StayNights)>();
+
+        foreach (var cityStop in cityPlan)
+        {
+            foreach (var purpose in Enum.GetValues<ItineraryPlacePurpose>())
+            {
+                var candidates = searchResults
+                    .Where(result =>
+                        result.Purpose == purpose &&
+                        string.Equals(
+                            result.City,
+                            cityStop.City,
+                            StringComparison.OrdinalIgnoreCase))
+                    .SelectMany(result => result.Places.Select(place =>
+                        (Place: place, result.StayNights)))
+                    .Where(candidate => IsUsablePlace(candidate.Place))
+                    // Every SerpAPI query is explicitly scoped with
+                    // "in {city}". Do not reject valid localized addresses
+                    // merely because they use another script or spelling.
+                    .Where(candidate =>
+                        MatchesPurpose(candidate.Place, purpose))
+                    .GroupBy(
+                        candidate => candidate.Place.PlaceId,
+                        StringComparer.OrdinalIgnoreCase)
+                    .Select(group => group.First())
+                    .ToList();
+
+                var requiredCount = purpose switch
+                {
+                    ItineraryPlacePurpose.Activity =>
+                        cityStop.DayCount *
+                        GetActivitiesPerDay(preferences.Pace),
+                    ItineraryPlacePurpose.Meal =>
+                        cityStop.DayCount * 3,
+                    ItineraryPlacePurpose.Accommodation => 1,
+                    _ => 1
+                };
+                var poolLimit = purpose switch
+                {
+                    ItineraryPlacePurpose.Activity =>
+                        Math.Min(30, Math.Max(12, requiredCount * 2)),
+                    ItineraryPlacePurpose.Meal =>
+                        Math.Min(20, Math.Max(8, requiredCount)),
+                    ItineraryPlacePurpose.Accommodation => 3,
+                    _ => 10
+                };
+
+                var unused = OrderCatalogCandidates(
+                        candidates.Where(candidate =>
+                            !previousIds.Contains(
+                                candidate.Place.PlaceId)),
+                        purpose,
+                        preferences.AccommodationStyle)
+                    .ToList();
+                var pool = unused.Count >= requiredCount
+                    ? unused.Take(poolLimit)
+                    : unused.Concat(OrderCatalogCandidates(
+                            candidates.Where(candidate =>
+                                previousIds.Contains(
+                                    candidate.Place.PlaceId)),
+                            purpose,
+                            preferences.AccommodationStyle))
+                        .Take(poolLimit);
+
+                selected.AddRange(pool.Select(candidate =>
+                    (
+                        candidate.Place,
+                        purpose,
+                        cityStop.City,
+                        candidate.StayNights)));
+            }
+        }
+
+        return selected
+            .GroupBy(
+                candidate =>
+                    $"{candidate.City}:{candidate.Purpose}:" +
+                    candidate.Place.PlaceId,
+                StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .Select((candidate, index) =>
+                new ItineraryPlaceCandidate(
+                    $"P{index + 1}",
+                    candidate.Place,
+                    candidate.Purpose,
+                    candidate.City,
+                    candidate.StayNights))
+            .ToList();
+    }
+
+    private static IReadOnlyList<ItineraryPlaceSearch>
+        BuildPrimaryDiscoveryQueries(
+            string destination,
+            GenerateItineraryPreferences preferences,
+            bool isRegeneration)
+    {
+        var interestPhrases = preferences.Interests
+            .Where(interest => !IsFoodInterest(interest))
+            .Select(BuildInterestSearchPhrase)
+            .Where(phrase => !string.IsNullOrWhiteSpace(phrase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(3)
+            .ToList();
+        var interestText = interestPhrases.Count == 0
+            ? "top rated attractions and local experiences"
+            : "top rated attractions and " +
+              string.Join(" and ", interestPhrases);
+        var alternativeText = isRegeneration
+            ? "hidden gems unique attractions and local experiences"
+            : "must see landmarks and unique experiences";
+
+        return
+        [
+            new ItineraryPlaceSearch(
+                $"{interestText} in {destination}",
+                ItineraryPlacePurpose.Activity),
+            new ItineraryPlaceSearch(
+                $"{alternativeText} in {destination}",
+                ItineraryPlacePurpose.Activity),
+            new ItineraryPlaceSearch(
+                $"best rated local restaurants and cafes in {destination}",
+                ItineraryPlacePurpose.Meal)
+        ];
+    }
+
+    private static async Task<ItineraryCatalogSearchResult>
+        SearchLocalCatalogAsync(
+            IItineraryTravelDataService travelDataService,
+            SemaphoreSlim gate,
+            string city,
+            ItineraryPlaceSearch search,
+            string languageCode,
+            CancellationToken cancellationToken)
+    {
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            var places = await travelDataService.SearchLocalAsync(
+                search.Query,
+                city,
+                languageCode,
+                cancellationToken);
+            return new ItineraryCatalogSearchResult(
+                city,
+                search.Purpose,
+                null,
+                places);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private static async Task<ItineraryCatalogSearchResult>
+        SearchHotelCatalogAsync(
+            IItineraryTravelDataService travelDataService,
+            SemaphoreSlim gate,
+            Trip trip,
+            ItineraryCityStop cityStop,
+            DateTime checkOutDate,
+            GenerateItineraryPreferences preferences,
+            string currencyCode,
+            int travelerCount,
+            CancellationToken cancellationToken)
+    {
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            var places = await travelDataService.SearchHotelsAsync(
+                cityStop.City,
+                preferences.AccommodationStyle,
+                cityStop.GetStartDate(trip),
+                checkOutDate,
+                travelerCount,
+                currencyCode,
+                preferences.PreferredLanguage,
+                cancellationToken);
+            return new ItineraryCatalogSearchResult(
+                cityStop.City,
+                ItineraryPlacePurpose.Accommodation,
+                cityStop.NightCount,
+                places);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private static IEnumerable<(
+        PlaceDetails Place,
+        int? StayNights)> OrderCatalogCandidates(
+            IEnumerable<(PlaceDetails Place, int? StayNights)> candidates,
+            ItineraryPlacePurpose purpose,
+            string accommodationStyle)
+    {
+        if (purpose == ItineraryPlacePurpose.Accommodation)
+        {
+            return OrderAccommodationCandidates(
+                    candidates.Select(candidate =>
+                        new ItineraryPlaceCandidate(
+                            string.Empty,
+                            candidate.Place,
+                            purpose,
+                            string.Empty,
+                            candidate.StayNights)),
+                    accommodationStyle)
+                .Select(candidate =>
+                    (candidate.Place, candidate.StayNights));
+        }
+
+        return candidates
+            .OrderByDescending(candidate =>
+                !string.IsNullOrWhiteSpace(
+                    candidate.Place.PhotoUrl))
+            .ThenByDescending(candidate =>
+                candidate.Place.Rating ?? 0)
+            .ThenByDescending(candidate =>
+                candidate.Place.UserRatingsTotal ?? 0);
+    }
+
     public static async Task<IReadOnlyList<ItineraryVerifiedActivity>>
         VerifyActivitySuggestionsAsync(
             IGooglePlacesService googlePlacesService,
@@ -302,8 +604,7 @@ internal static class ItineraryPlaceCatalog
 
                 var isActivityLikeOther =
                     category == ItineraryItemCategory.Other &&
-                    !IsRestOrAdministrativeItem(item) &&
-                    LooksLikeActivity(item, assignedCity);
+                    !IsRestOrAdministrativeItem(item);
 
                 var isActivity =
                     category == ItineraryItemCategory.Activity;
@@ -855,6 +1156,19 @@ internal static class ItineraryPlaceCatalog
             "prepare for airport",
             "prepare for departure",
             "pack bags",
+            "stroll",
+            "relax",
+            "unwind",
+            "leisure time",
+            "quiet evening",
+            "enjoy the resort",
+            "resort time",
+            "نزهة",
+            "تمشية",
+            "استرخاء",
+            "الاسترخاء",
+            "وقت ترفيهي",
+            "أمسية هادئة",
             "راحة",
             "وقت حر",
             "استراحة",
@@ -871,88 +1185,6 @@ internal static class ItineraryPlaceCatalog
         return administrativePhrases.Any(phrase =>
             text.Contains(
                 phrase,
-                StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static bool LooksLikeActivity(
-        AiItineraryItem item,
-        string assignedCity)
-    {
-        var location = NormalizeName(item.Location);
-        var normalizedCity = NormalizeName(assignedCity);
-
-        if (!string.IsNullOrWhiteSpace(location) &&
-            !string.Equals(
-                location,
-                "city",
-                StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(
-                location,
-                "المدينة",
-                StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(
-                location,
-                normalizedCity,
-                StringComparison.OrdinalIgnoreCase) &&
-            !location.Contains(
-                "hotel",
-                StringComparison.OrdinalIgnoreCase) &&
-            !location.Contains(
-                "فندق",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        var title = NormalizeName(item.Title);
-        var activityWords = new[]
-        {
-            "visit",
-            "explore",
-            "discover",
-            "tour",
-            "museum",
-            "market",
-            "park",
-            "beach",
-            "temple",
-            "mosque",
-            "church",
-            "castle",
-            "palace",
-            "fort",
-            "cruise",
-            "hike",
-            "diving",
-            "snorkeling",
-            "safari",
-            "gallery",
-            "monastery",
-            "landmark",
-            "attraction",
-            "زيارة",
-            "استكشاف",
-            "جولة",
-            "متحف",
-            "سوق",
-            "حديقة",
-            "شاطئ",
-            "معبد",
-            "مسجد",
-            "كنيسة",
-            "قلعة",
-            "قصر",
-            "رحلة",
-            "غوص",
-            "سفاري",
-            "معرض",
-            "دير",
-            "معلم"
-        };
-
-        return activityWords.Any(word =>
-            title.Contains(
-                word,
                 StringComparison.OrdinalIgnoreCase));
     }
 
@@ -1217,32 +1449,76 @@ internal static class ItineraryPlaceCatalog
     {
         var builder = new StringBuilder();
 
-        foreach (var candidate in places)
+        foreach (var cityGroup in places
+                     .GroupBy(
+                         candidate => candidate.City,
+                         StringComparer.OrdinalIgnoreCase))
         {
-            var place = candidate.Place;
-
-            var rating = place.Rating?.ToString(
-                "0.0",
-                CultureInfo.InvariantCulture) ?? "N/A";
-
-            var types = place.Types.Count > 0
-                ? place.Types[0]
-                : "N/A";
-
-            var priceDetails = BuildPriceDetails(place);
-
             builder.AppendLine(
-                $"{candidate.Reference}|" +
-                $"purpose:{FormatPurpose(candidate.Purpose)}|" +
-                $"city:{Clean(candidate.City)}|" +
-                $"name:{Clean(place.Name)}|" +
-                $"address:{Clean(place.Address, 100)}|" +
-                $"rating:{rating}|" +
-                $"types:{Clean(types)}" +
-                priceDetails);
+                $"CITY CATALOG: {Clean(cityGroup.Key)}");
+
+            foreach (var candidate in cityGroup)
+            {
+                var place = candidate.Place;
+
+                var rating = place.Rating?.ToString(
+                    "0.0",
+                    CultureInfo.InvariantCulture) ?? "N/A";
+
+                var types = place.Types.Count > 0
+                    ? place.Types[0]
+                    : "N/A";
+
+                var priceDetails = BuildPriceDetails(place);
+                var geographyDetails = BuildGeographyDetails(place);
+
+                builder.AppendLine(
+                    $"{candidate.Reference}|" +
+                    $"purpose:{FormatPurpose(candidate.Purpose)}|" +
+                    $"city:{Clean(candidate.City)}|" +
+                    $"name:{Clean(place.Name)}|" +
+                    $"address:{Clean(place.Address, 100)}|" +
+                    $"rating:{rating}|" +
+                    $"types:{Clean(types)}" +
+                    geographyDetails +
+                    priceDetails);
+            }
+
+            builder.AppendLine();
         }
 
         return builder.ToString();
+    }
+
+    private static string BuildGeographyDetails(
+        PlaceDetails place)
+    {
+        if (place.Latitude is null || place.Longitude is null)
+        {
+            return string.Empty;
+        }
+
+        var latitude = place.Latitude.Value.ToString(
+            "0.00000",
+            CultureInfo.InvariantCulture);
+        var longitude = place.Longitude.Value.ToString(
+            "0.00000",
+            CultureInfo.InvariantCulture);
+        var areaLatitude = Math.Round(
+            place.Latitude.Value,
+            2,
+            MidpointRounding.AwayFromZero).ToString(
+                "0.00",
+                CultureInfo.InvariantCulture);
+        var areaLongitude = Math.Round(
+            place.Longitude.Value,
+            2,
+            MidpointRounding.AwayFromZero).ToString(
+                "0.00",
+                CultureInfo.InvariantCulture);
+
+        return $"|coordinates:{latitude},{longitude}" +
+               $"|areaCluster:{areaLatitude},{areaLongitude}";
     }
 
     private static string BuildPriceDetails(
@@ -1557,6 +1833,8 @@ internal static class ItineraryPlaceCatalog
             {
                 ItineraryItemCategory.Activity =>
                     ItineraryPlacePurpose.Activity,
+                ItineraryItemCategory.Meal =>
+                    ItineraryPlacePurpose.Meal,
                 ItineraryItemCategory.Accommodation =>
                     ItineraryPlacePurpose.Accommodation,
                 _ => (ItineraryPlacePurpose?)null
@@ -1567,10 +1845,16 @@ internal static class ItineraryPlaceCatalog
                 continue;
             }
 
-            if (!string.IsNullOrWhiteSpace(item.PlaceReference) &&
+            ItineraryPlaceCandidate? referencedCandidate = null;
+
+            if (!string.IsNullOrWhiteSpace(item.PlaceReference))
+            {
                 candidatesByReference.TryGetValue(
                     item.PlaceReference.Trim(),
-                    out var referencedCandidate) &&
+                    out referencedCandidate);
+            }
+
+            if (referencedCandidate is not null &&
                 referencedCandidate.Purpose == requiredPurpose.Value &&
                 string.Equals(
                     referencedCandidate.City,
@@ -1595,13 +1879,46 @@ internal static class ItineraryPlaceCatalog
                      item.Title,
                      candidate.Place.Name)));
 
+            // A full-trip request exposes candidates for every destination.
+            // If Gemini attaches a meal reference from another city, repair it
+            // locally instead of spending another AI request on the same plan.
+            if (matchingPlace is null &&
+                requiredPurpose == ItineraryPlacePurpose.Meal)
+            {
+                matchingPlace = places
+                    .Where(candidate =>
+                        candidate.Purpose ==
+                            ItineraryPlacePurpose.Meal &&
+                        string.Equals(
+                            candidate.City,
+                            assignedCity,
+                            StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(candidate =>
+                        candidate.Place.Rating ?? 0)
+                    .ThenByDescending(candidate =>
+                        candidate.Place.UserRatingsTotal ?? 0)
+                    .FirstOrDefault();
+            }
+
             if (matchingPlace is null)
             {
                 continue;
             }
 
+            var titleNamesWrongReferencedPlace =
+                referencedCandidate is not null &&
+                NamesMatch(
+                    item.Title,
+                    referencedCandidate.Place.Name);
+
             item.PlaceReference = matchingPlace.Reference;
             item.Location = matchingPlace.Place.Name;
+
+            if (requiredPurpose == ItineraryPlacePurpose.Meal &&
+                titleNamesWrongReferencedPlace)
+            {
+                item.Title = matchingPlace.Place.Name;
+            }
         }
     }
 

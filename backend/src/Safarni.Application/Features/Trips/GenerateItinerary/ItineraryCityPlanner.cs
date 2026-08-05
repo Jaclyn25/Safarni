@@ -28,6 +28,33 @@ internal sealed record ItineraryCityStop(
 
 internal static class ItineraryCityPlanner
 {
+    public static IReadOnlyList<ItineraryCityStop> ResolveTravelerCities(
+        Trip trip,
+        IReadOnlyList<TripCitySelection> selectedCities)
+    {
+        var acceptedCities = selectedCities
+            .Where(city => !string.IsNullOrWhiteSpace(city.Name))
+            .Select(city => new ProposedCity(
+                city.Name.Trim(),
+                Math.Max(1, city.Days),
+                TripRouteSerializer.NormalizeAirportCode(
+                    city.AirportCode),
+                string.IsNullOrWhiteSpace(city.AirportName)
+                    ? null
+                    : city.AirportName.Trim()))
+            .ToList();
+
+        if (acceptedCities.Count == 0)
+        {
+            throw new ItineraryOutputException(
+                "At least one accepted city is required.");
+        }
+
+        return BuildTravelerSelectedStops(
+            acceptedCities,
+            GetTripDayCount(trip));
+    }
+
     public static async Task<IReadOnlyList<ItineraryCityStop>> ResolveAsync(
         Trip trip,
         IGooglePlacesService googlePlacesService,
@@ -36,27 +63,7 @@ internal static class ItineraryCityPlanner
     {
         if (selectedCities is { Count: > 0 })
         {
-            var acceptedCities = selectedCities
-                .Where(city => !string.IsNullOrWhiteSpace(city.Name))
-                .Select(city => new ProposedCity(
-                    city.Name.Trim(),
-                    Math.Max(1, city.Days),
-                    TripRouteSerializer.NormalizeAirportCode(
-                        city.AirportCode),
-                    string.IsNullOrWhiteSpace(city.AirportName)
-                        ? null
-                        : city.AirportName.Trim()))
-                .ToList();
-
-            if (acceptedCities.Count == 0)
-            {
-                throw new ItineraryOutputException(
-                    "At least one accepted city is required.");
-            }
-
-            return BuildTravelerSelectedStops(
-                acceptedCities,
-                GetTripDayCount(trip));
+            return ResolveTravelerCities(trip, selectedCities);
         }
 
         var destinationResults =

@@ -65,6 +65,9 @@ temp/
 *.tmp
 *.temp
 
+# Personal generated reports and exports
+/output/
+
 # Generated local database files
 *.db
 *.db-shm

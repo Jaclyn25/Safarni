@@ -40,7 +40,7 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
 
     public string ModelName =>
         _configuration[$"{ConfigurationSection}:Model"] ??
-        "gemini-2.5-flash";
+        "gemini-3.6-flash";
 
     public Task<string> GetChatCompletionAsync(
         string systemPrompt,
@@ -262,7 +262,7 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
             apiKey.Trim(),
             baseUrl.TrimEnd('/'),
             _configuration[$"{ConfigurationSection}:Model"] ??
-                "gemini-2.5-flash",
+                "gemini-3.6-flash",
             ParseDouble("Temperature", 0.2),
             ParseInt("MaxOutputTokens", 6000),
             ParseDouble("TopP", 0.9),
@@ -321,14 +321,10 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
 
         var generationConfig = new Dictionary<string, object?>
         {
-            ["temperature"] = temperature,
-            ["topP"] = topP,
             ["maxOutputTokens"] = maxOutputTokens,
-            // Gemini 2.5 Flash supports thinkingBudget = 0. Keeping
-            // thinking off leaves the dynamic token budget for visible JSON.
             ["thinkingConfig"] = new
             {
-                thinkingBudget = settings.ThinkingBudget
+                thinkingLevel = "medium"
             }
         };
 

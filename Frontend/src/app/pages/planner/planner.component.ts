@@ -55,6 +55,7 @@ import {
   NearbyAttractionDto,
   TripService
 } from '../../services/trip.service';
+import { WeatherService, ItineraryDayWeatherResponse } from '../../services/weather.service';
 
 interface ItemDraft {
   targetDayId: string;
@@ -107,6 +108,8 @@ export class PlannerComponent
   }
 
   isEditingPreferences = false;
+
+  readonly tripsWeather = signal<{ loading: boolean, error: string | null, data: ItineraryDayWeatherResponse[] | null }>({ loading: false, error: null, data: null });
 
   // Map state
   tripRoute = signal<TripRouteActivityDto[]>([]);
@@ -453,6 +456,7 @@ export class PlannerComponent
     private readonly itineraryService: ItineraryService,
     private readonly generationService: ItineraryGenerationService,
     private readonly tripService: TripService,
+    private readonly weatherService: WeatherService,
     private readonly destroyRef: DestroyRef
   ) { }
 
@@ -472,7 +476,27 @@ export class PlannerComponent
       )
       .subscribe((tripId) => {
         void this.initializePlanner(tripId);
+        if (tripId) {
+          this.loadTripWeather(tripId);
+        }
       });
+  }
+
+  private loadTripWeather(tripId: string): void {
+    this.tripsWeather.set({ loading: true, error: null, data: null });
+
+    this.weatherService.getTripWeather(tripId).subscribe({
+      next: (response) => {
+        this.tripsWeather.set({ loading: false, error: null, data: response.data ?? [] });
+      },
+      error: (error: unknown) => {
+        this.tripsWeather.set({
+          loading: false,
+          error: this.tripService.getErrorMessage(error, 'Could not load weather forecast.'),
+          data: null
+        });
+      }
+    });
   }
 
   ngOnDestroy(): void {

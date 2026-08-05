@@ -15,6 +15,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ChatService, Conversation, ChatFolder } from '../../services/chat.service';
+import { SettingsService } from '../../services/settings.service';
+import { BrowserNotificationService } from '../../services/browser-notification.service';
 
 export interface ItineraryDay {
   dayNumber: number;
@@ -88,6 +90,8 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private zone = inject(NgZone);
+  private settingsService = inject(SettingsService);
+  private browserNotifications = inject(BrowserNotificationService);
 
   inputValue = '';
   searchConvQuery = '';
@@ -99,6 +103,7 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   conversationsList: Conversation[] = [];
   folders: ChatFolder[] = [];
   readonly maxMessageLength = 4000;
+  private pushNotificationsEnabled = false;
 
   // Empty State Prompt Cards
   emptyStateCards = [
@@ -149,6 +154,7 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   ngOnInit(): void {
     this.loadBookmarks();
     this.loadOrCreateConversation();
+    this.loadNotificationPreference();
 
     // Handle incoming query param ?q=... from Explore or Destination pages
     this.route.queryParams.subscribe(params => {
@@ -158,6 +164,17 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.inputValue = q.trim();
           this.handleSend();
         }, 400);
+      }
+    });
+  }
+
+  private loadNotificationPreference(): void {
+    this.settingsService.getMySettings().subscribe({
+      next: (settings) => {
+        this.pushNotificationsEnabled = settings.pushNotificationsEnabled;
+      },
+      error: (err) => {
+        console.error('Failed to load notification preferences', err);
       }
     });
   }
@@ -983,6 +1000,7 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
             this.refreshConversations();
             this.shouldScroll = true;
             this.renderNow();
+            this.notifyAssistantReplied(conversation);
           }
         },
         controller.signal
@@ -1007,6 +1025,30 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.stopThinkingAnimation();
       }
     }
+  }
+
+  private notifyAssistantReplied(conversation: Conversation): void {
+    if (!this.pushNotificationsEnabled) {
+      return;
+    }
+
+    const replies = conversation.messages.filter(message => message.role !== 'user');
+    const latestReply = replies[replies.length - 1]?.content;
+
+    if (!latestReply) {
+      return;
+    }
+
+    const normalized = latestReply
+      .replace(/---SUGGESTIONS---[\s\S]*$/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const body =
+      normalized.length > 140
+        ? `${normalized.substring(0, 137)}...`
+        : normalized;
+
+    this.browserNotifications.notify('Safarni replied', body, '/concierge');
   }
 
   private appendStreamingToken(token: string): void {

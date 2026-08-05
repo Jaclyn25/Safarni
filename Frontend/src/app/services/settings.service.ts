@@ -60,6 +60,14 @@ export function getSettingsErrorMessage(error: unknown, fallback: string): strin
     if (error.status === 0) {
       return 'The API is unavailable. Make sure the backend is running on http://localhost:5110.';
     }
+
+    if (error.status === 401) {
+      return 'Your session has expired. Please log out and log in again.';
+    }
+
+    if (error.status === 500) {
+      return 'Something went wrong on the server while loading your settings. Please try again.';
+    }
   }
 
   return fallback;

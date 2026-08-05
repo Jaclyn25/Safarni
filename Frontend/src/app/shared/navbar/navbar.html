@@ -50,7 +50,7 @@
           <div class="h-9 w-9 rounded-full flex items-center justify-center font-semibold text-white shadow-sm"
                [ngClass]="isAdmin ? 'bg-gradient-to-br from-slate-800 to-slate-950 shadow-md ring-1 ring-slate-800/20' : 'bg-primary'">
             <span *ngIf="isAdmin" class="material-symbols-outlined" style="font-size: 18px">admin_panel_settings</span>
-            <span *ngIf="!isAdmin">{{ user.fullName.charAt(0) }}</span>
+            <span *ngIf="!isAdmin">{{ userInitial }}</span>
           </div>
 
           <div *ngIf="!isAdmin" class="flex flex-col">
@@ -90,7 +90,7 @@
         class="h-9 w-9 rounded-full text-white flex items-center justify-center font-semibold cursor-pointer shadow-sm transition-colors"
         [ngClass]="isAdmin ? 'bg-gradient-to-br from-slate-800 to-slate-950 ring-1 ring-slate-800/20' : 'bg-primary'">
         <span *ngIf="isAdmin" class="material-symbols-outlined" style="font-size: 18px">admin_panel_settings</span>
-        <span *ngIf="!isAdmin">{{ user.fullName.charAt(0) }}</span>
+        <span *ngIf="!isAdmin">{{ userInitial }}</span>
       </a>
 
       }

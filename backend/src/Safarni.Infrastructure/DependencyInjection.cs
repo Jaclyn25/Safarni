@@ -4,11 +4,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Safarni.Application.Abstractions.AI;
 using Safarni.Application.Abstractions.Auditing;
 using Safarni.Application.Abstractions.BackgroundJobs;
+using Safarni.Application.Abstractions.Notifications;
 using Safarni.Application.Abstractions.Integrations;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Abstractions.Security;
 using Safarni.Application.Abstractions.Storage;
 using Safarni.Application.Features.Auth.GoogleLogin;
+using Safarni.Application.Features.Notifications;
 using Safarni.Infrastructure.AI;
 using Safarni.Infrastructure.Auditing;
 using Safarni.Infrastructure.Authentication;
@@ -22,6 +24,7 @@ using Safarni.Infrastructure.Storage;
 using Safarni.Application.Abstractions.Travel;
 using Safarni.Infrastructure.Travel;
 using Safarni.Infrastructure.BackgroundJobs;
+using Safarni.Infrastructure.Integrations.Weather;
 
 namespace Safarni.Infrastructure;
 
@@ -74,6 +77,8 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, EmailService>();
         services.AddSingleton<IPasswordResetLinkFactory, PasswordResetLinkFactory>();
         services.AddSingleton<IEmailVerificationLinkFactory, EmailVerificationLinkFactory>();
+        services.AddSingleton<IItineraryLinkFactory, ItineraryLinkFactory>();
+        services.AddScoped<ITravelNotificationService, TravelNotificationService>();
         services.AddScoped<IProfilePhotoStorage, LocalProfilePhotoStorage>();
         services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
 
@@ -118,6 +123,11 @@ public static class DependencyInjection
                 client.BaseAddress = new Uri(baseUrl);
                 client.Timeout = TimeSpan.FromSeconds(15);
             });
+
+        services.AddHttpClient<IWeatherService, WeatherApiService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
 
         // One durable worker per API process. Database row locks and filtered
         // unique indexes keep processing safe when several API instances run.

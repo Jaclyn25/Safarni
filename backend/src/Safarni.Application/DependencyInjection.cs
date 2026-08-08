@@ -13,6 +13,10 @@ using Safarni.Application.Features.Auth.RefreshTokens;
 using Safarni.Application.Features.Auth.Register;
 using Safarni.Application.Features.Auth.ResetPassword;
 using Safarni.Application.Features.Auth.VerifyEmail;
+using Safarni.Application.Features.Agencies.Documents;
+using Safarni.Application.Features.Agencies.Profile;
+using Safarni.Application.Features.Agencies.Onboarding;
+using Safarni.Application.Features.Admin.Agencies;
 using Safarni.Application.Features.Preferences.UpsertTravelProfile;
 using Safarni.Application.Features.Profile.UpdateMyProfile;
 using Safarni.Application.Features.Profile.UploadMyProfile;
@@ -45,6 +49,21 @@ public static class DependencyInjection
         services.AddTransient<IValidator<ChangePasswordCommand>, ChangePasswordCommandValidator>();
         services.AddTransient<IValidator<ResetPasswordCommand>, ResetPasswordCommandValidator>();
         services.AddTransient<IValidator<GoogleLoginCommand>, GoogleLoginCommandValidator>();
+        services.AddTransient<
+            IValidator<UploadAgencyVerificationDocumentCommand>,
+            UploadAgencyVerificationDocumentCommandValidator>();
+        services.AddTransient<
+            IValidator<UpdateMyAgencyProfileCommand>,
+            UpdateMyAgencyProfileCommandValidator>();
+        services.AddTransient<
+            IValidator<CompleteAgencyOnboardingCommand>,
+            CompleteAgencyOnboardingCommandValidator>();
+        services.AddTransient<
+            IValidator<DecideAgencyVerificationCommand>,
+            DecideAgencyVerificationCommandValidator>();
+        services.AddTransient<
+            IValidator<DecideAgencyDocumentCommand>,
+            DecideAgencyDocumentCommandValidator>();
 
         services.AddTransient<IValidator<UpdateMyProfileCommand>, UpdateMyProfileCommandValidator>();
         services.AddTransient<IValidator<UploadProfilePhotoCommand>, UploadProfilePhotoCommandValidator>();

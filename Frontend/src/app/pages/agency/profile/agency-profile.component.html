@@ -1,0 +1,28 @@
+<div class="agency-page">
+  <header class="agency-page-header"><div><span class="agency-eyebrow">Public identity</span><h1>Company profile</h1><p>Keep the information travelers and Safarni reviewers use to understand your business accurate and up to date.</p></div></header>
+  @if (isLoading()) { <div class="agency-loading"><span></span><p>Loading company profile…</p></div> }
+  @else if (profile) {
+  @if (error()) { <div class="agency-alert agency-alert--error" role="alert"><span class="material-symbols-outlined">error</span><div><strong>Profile not saved</strong><p>{{ error() }}</p></div></div> }
+  @if (success()) { <div class="agency-alert agency-alert--success"><span class="material-symbols-outlined">check_circle</span><div><strong>Profile saved</strong><p>{{ success() }}</p></div></div> }
+  <section class="profile-identity-card">
+    <div class="profile-logo">@if (profile.logoUrl) { <img [src]="profile.logoUrl" alt="{{ profile.companyName }} logo" /> } @else { <span class="material-symbols-outlined">storefront</span> }</div>
+    <div><span class="agency-eyebrow">Account representative</span><h2>{{ profile.representativeName }}</h2><p>{{ profile.email }}@if (profile.representativePhone) { · {{ profile.representativePhone }} }</p></div>
+    <span class="profile-status" [attr.data-status]="profile.verificationStatus">{{ profile.verificationStatus === 'ChangesRequested' ? 'Changes requested' : profile.verificationStatus }}</span>
+  </section>
+  <div class="agency-alert agency-alert--info"><span class="material-symbols-outlined">info</span><div><strong>Verification-sensitive information</strong><p>Changing the company name, address, city, or country after approval will reopen your profile for Safarni review and temporarily lock package publishing.</p></div></div>
+  <form class="agency-card profile-form" (ngSubmit)="save()" novalidate>
+    <div class="agency-card__heading"><div><span class="agency-eyebrow">Business information</span><h2>Profile details</h2></div></div>
+    <div class="profile-fields">
+      <label class="profile-field profile-field--wide"><span>Company name *</span><input type="text" [(ngModel)]="form.companyName" name="companyName" maxlength="200" autocomplete="organization" required /></label>
+      <label class="profile-field profile-field--wide"><span>Company description *</span><textarea [(ngModel)]="form.description" name="description" maxlength="2000" rows="5" required></textarea><small>{{ form.description.length }}/2000</small></label>
+      <label class="profile-field profile-field--wide"><span>Company address *</span><input type="text" [(ngModel)]="form.address" name="address" maxlength="500" autocomplete="street-address" required /></label>
+      <label class="profile-field"><span>City *</span><input type="text" [(ngModel)]="form.city" name="city" maxlength="100" autocomplete="address-level2" required /></label>
+      <label class="profile-field"><span>Country *</span><input type="text" [(ngModel)]="form.country" name="country" maxlength="100" autocomplete="country-name" required /></label>
+      <label class="profile-field"><span>Company phone *</span><input type="tel" [(ngModel)]="form.companyPhone" name="companyPhone" maxlength="30" autocomplete="tel" required /></label>
+      <label class="profile-field"><span>Website or social link</span><input type="url" [(ngModel)]="form.websiteUrl" name="websiteUrl" maxlength="500" placeholder="https://agency.example.com" autocomplete="url" /></label>
+      <label class="profile-field profile-field--wide"><span>Company logo URL</span><input type="url" [(ngModel)]="form.logoUrl" name="logoUrl" maxlength="500" placeholder="https://cdn.example.com/logo.png" /></label>
+    </div>
+    <div class="profile-actions"><button class="agency-button" type="submit" [disabled]="isSaving()"><span class="material-symbols-outlined">{{ isSaving() ? 'progress_activity' : 'save' }}</span>{{ isSaving() ? 'Saving profile…' : 'Save company profile' }}</button></div>
+  </form>
+  }
+</div>

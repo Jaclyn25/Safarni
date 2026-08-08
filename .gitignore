@@ -29,6 +29,7 @@ appsettings.*.local.json
 *.pubxml.user
 backend/src/Safarni.API/wwwroot/uploads/
 backend/src/Safarni.API/logs/
+backend/src/Safarni.API/App_Data/
 backend/**/publish/
 
 # Node / Angular

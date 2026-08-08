@@ -29,7 +29,6 @@ import {
 import {
   AuthService,
   RegistrationAccountType,
-  TravelAgencyRegistrationDetails,
   getApiErrorMessage,
   getAuthFormErrorMessage
 } from '../../services/auth.service';
@@ -76,14 +75,6 @@ export class RegisterComponent
 
   accountType: RegistrationAccountType = 'Traveler';
   phoneNumber = '';
-  companyName = '';
-  companyDescription = '';
-  companyAddress = '';
-  companyCity = '';
-  companyCountry = '';
-  companyPhone = '';
-  companyLogoUrl = '';
-  companyWebsiteUrl = '';
 
   readonly isLoading = signal(false);
   readonly isGoogleLoading = signal(false);
@@ -277,19 +268,14 @@ export class RegisterComponent
       return;
     }
 
-    const agencyValidationError =
-      this.validateAgencyRegistration();
-
-    if (agencyValidationError) {
-      this.setError(agencyValidationError);
+    if (this.isAgencyRegistration && !this.phoneNumber.trim()) {
+      this.setError('Please enter the representative phone number.');
       return;
     }
 
     this.fullName = normalizedFullName;
     this.email = normalizedEmail;
     this.isLoading.set(true);
-
-    const agency = this.buildAgencyDetails();
 
     this.authService
       .register({
@@ -301,8 +287,7 @@ export class RegisterComponent
         accountType: this.accountType,
         phoneNumber: this.isAgencyRegistration
           ? this.phoneNumber.trim()
-          : null,
-        agency
+          : null
       })
       .pipe(
         finalize(() => {
@@ -554,84 +539,6 @@ export class RegisterComponent
     );
   }
 
-  private validateAgencyRegistration(): string | null {
-    if (!this.isAgencyRegistration) {
-      return null;
-    }
-
-    const requiredFields = [
-      this.phoneNumber,
-      this.companyName,
-      this.companyDescription,
-      this.companyAddress,
-      this.companyCity,
-      this.companyCountry,
-      this.companyPhone
-    ];
-
-    if (requiredFields.some((value) => !value.trim())) {
-      return 'Please complete all required account and company fields.';
-    }
-
-    if (this.phoneNumber.trim().length > 20) {
-      return 'The representative phone number cannot exceed 20 characters.';
-    }
-
-    if (
-      this.companyName.trim().length > 200 ||
-      this.companyDescription.trim().length > 2000 ||
-      this.companyAddress.trim().length > 500 ||
-      this.companyCity.trim().length > 100 ||
-      this.companyCountry.trim().length > 100 ||
-      this.companyPhone.trim().length > 30
-    ) {
-      return 'One or more company fields exceed the allowed length.';
-    }
-
-    if (
-      this.companyLogoUrl.trim() &&
-      !this.isHttpUrl(this.companyLogoUrl)
-    ) {
-      return 'Please enter a valid HTTP or HTTPS logo URL.';
-    }
-
-    if (
-      this.companyWebsiteUrl.trim() &&
-      !this.isHttpUrl(this.companyWebsiteUrl)
-    ) {
-      return 'Please enter a valid HTTP or HTTPS website or social URL.';
-    }
-
-    return null;
-  }
-
-  private buildAgencyDetails():
-    TravelAgencyRegistrationDetails | null {
-    if (!this.isAgencyRegistration) {
-      return null;
-    }
-
-    return {
-      companyName: this.companyName.trim(),
-      description: this.companyDescription.trim(),
-      address: this.companyAddress.trim(),
-      city: this.companyCity.trim(),
-      country: this.companyCountry.trim(),
-      companyPhone: this.companyPhone.trim(),
-      logoUrl: this.companyLogoUrl.trim() || null,
-      websiteUrl: this.companyWebsiteUrl.trim() || null
-    };
-  }
-
-  private isHttpUrl(value: string): boolean {
-    try {
-      const url = new URL(value.trim());
-      return url.protocol === 'http:' || url.protocol === 'https:';
-    } catch {
-      return false;
-    }
-  }
-
   get isAgencyRegistration(): boolean {
     return !this.isLogin && this.accountType === 'TravelAgency';
   }
@@ -666,6 +573,7 @@ export class RegisterComponent
 
   private get defaultRedirectUrl(): string {
     const isAdmin = this.authService.hasAdminRole();
+    const isAgency = this.authService.isTravelAgency();
     if (this.returnUrl) {
       if (isAdmin && this.returnUrl.startsWith('/admin')) {
         return this.returnUrl;
@@ -674,6 +582,6 @@ export class RegisterComponent
         return this.returnUrl;
       }
     }
-    return isAdmin ? '/admin' : '/';
+    return isAdmin ? '/admin' : isAgency ? '/agency/setup' : '/';
   }
 }

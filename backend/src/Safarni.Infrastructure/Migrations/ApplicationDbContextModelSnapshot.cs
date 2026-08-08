@@ -255,6 +255,21 @@ namespace Safarni.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("ReviewReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ReviewStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("StorageReference")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -270,6 +285,8 @@ namespace Safarni.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ReviewedByUserId");
 
                     b.HasIndex("TravelAgencyId", "DocumentType")
                         .IsUnique();
@@ -782,6 +799,16 @@ namespace Safarni.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("VerificationDecisionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("VerificationReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("VerificationReviewedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("VerificationStatus")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -800,6 +827,8 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasIndex("UserId")
                         .IsUnique();
+
+                    b.HasIndex("VerificationReviewedByUserId");
 
                     b.HasIndex("VerificationStatus");
 
@@ -1048,6 +1077,50 @@ namespace Safarni.Infrastructure.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.UserNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActionUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientUserId", "IsRead", "CreatedAt");
+
+                    b.ToTable("UserNotifications", (string)null);
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.UserSettings", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1287,6 +1360,17 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("Trip");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.UserNotification", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.User", "RecipientUser")
+                        .WithMany("Notifications")
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RecipientUser");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.UserSettings", b =>
                 {
                     b.HasOne("Safarni.Domain.Entities.User", "User")
@@ -1345,6 +1429,8 @@ namespace Safarni.Infrastructure.Migrations
 
             modelBuilder.Entity("Safarni.Domain.Entities.User", b =>
                 {
+                    b.Navigation("Notifications");
+
                     b.Navigation("PassportInfo");
 
                     b.Navigation("RefreshTokens");

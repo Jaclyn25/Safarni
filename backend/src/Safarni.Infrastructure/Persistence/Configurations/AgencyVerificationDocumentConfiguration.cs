@@ -41,6 +41,16 @@ public sealed class AgencyVerificationDocumentConfiguration
         builder.Property(document => document.UploadedAt)
             .IsRequired();
 
+        builder.Property(document => document.ReviewStatus)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
+        builder.Property(document => document.ReviewReason)
+            .HasMaxLength(1000);
+
+        builder.HasIndex(document => document.ReviewedByUserId);
+
         builder.HasOne(document => document.TravelAgency)
             .WithMany(agency => agency.VerificationDocuments)
             .HasForeignKey(document => document.TravelAgencyId)

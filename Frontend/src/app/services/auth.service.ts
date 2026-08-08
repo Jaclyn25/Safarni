@@ -28,17 +28,6 @@ export interface RegisterUserResponse {
 
 export type RegistrationAccountType = 'Traveler' | 'TravelAgency';
 
-export interface TravelAgencyRegistrationDetails {
-  companyName: string;
-  description: string;
-  address: string;
-  city: string;
-  country: string;
-  companyPhone: string;
-  logoUrl?: string | null;
-  websiteUrl?: string | null;
-}
-
 export interface RegisteredTravelAgencyResponse {
   id: string;
   companyName: string;
@@ -106,7 +95,6 @@ export class AuthService {
     confirmPassword: string;
     accountType?: RegistrationAccountType;
     phoneNumber?: string | null;
-    agency?: TravelAgencyRegistrationDetails | null;
   }): Observable<ApiResponse<RegisterUserResponse>> {
     return this.http.post<ApiResponse<RegisterUserResponse>>(`${this.apiUrl}/register`, command);
   }
@@ -250,6 +238,10 @@ export class AuthService {
   hasAdminRole(): boolean {
     const role = this.getUserRole();
     return Boolean(role && ['Admin', 'Support', 'ContentManager', 'Analyst'].includes(role));
+  }
+
+  isTravelAgency(): boolean {
+    return this.getUserRole() === 'TravelAgency';
   }
 
   private saveSession(data: LoginResponse): void {

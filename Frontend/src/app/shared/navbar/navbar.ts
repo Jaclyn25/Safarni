@@ -3,11 +3,12 @@ import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { filter } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
+import { NotificationCenterComponent } from '../notifications/notification-center.component';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterModule, CommonModule],
+  imports: [RouterModule, CommonModule, NotificationCenterComponent],
   templateUrl: './navbar.html',
   styleUrls: ['./navbar.css']
 })
@@ -67,6 +68,10 @@ export class NavbarComponent implements OnInit {
 
   get isAdmin(): boolean {
     return this.authService.hasAdminRole();
+  }
+
+  get isAgency(): boolean {
+    return this.authService.isTravelAgency();
   }
 
   logout(): void {

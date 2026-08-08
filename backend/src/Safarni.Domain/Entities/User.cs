@@ -53,4 +53,7 @@ public class User
     public ICollection<VisaApplication> VisaApplications { get; set; } = new List<VisaApplication>();
 
     public ICollection<Trip> Trips { get; set; } = new List<Trip>();
+
+    public ICollection<UserNotification> Notifications { get; set; } =
+        new List<UserNotification>();
 }

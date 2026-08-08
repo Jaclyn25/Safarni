@@ -1,0 +1,47 @@
+<div class="notification-center">
+  <button type="button" class="notification-trigger" (click)="toggle()"
+    [attr.aria-expanded]="isOpen()" aria-label="Open notifications">
+    <span class="material-symbols-outlined">notifications</span>
+    @if (unreadCount() > 0) {
+      <span class="notification-count">{{ unreadCount() > 99 ? '99+' : unreadCount() }}</span>
+    }
+  </button>
+
+  @if (isOpen()) {
+    <section class="notification-panel" aria-label="Notifications">
+      <header>
+        <div><strong>Notifications</strong><small>{{ unreadCount() }} unread</small></div>
+        @if (unreadCount() > 0) {
+          <button type="button" (click)="markAllRead()">Mark all read</button>
+        }
+      </header>
+
+      <div class="notification-list">
+        @if (isLoading()) {
+          <p class="notification-state">Loading notifications...</p>
+        } @else if (error()) {
+          <p class="notification-state notification-state--error">{{ error() }}</p>
+        } @else if (notifications().length === 0) {
+          <div class="notification-empty">
+            <span class="material-symbols-outlined">notifications_none</span>
+            <strong>You're all caught up</strong>
+            <small>New marketplace activity will appear here.</small>
+          </div>
+        } @else {
+          @for (notification of notifications(); track notification.id) {
+            <button type="button" class="notification-item" [class.notification-item--unread]="!notification.isRead"
+              (click)="open(notification)">
+              <span class="notification-item__icon material-symbols-outlined">{{ icon(notification.type) }}</span>
+              <span class="notification-item__copy">
+                <strong>{{ notification.title }}</strong>
+                <span>{{ notification.message }}</span>
+                <small>{{ notification.createdAt | date:'short' }}</small>
+              </span>
+              @if (!notification.isRead) { <span class="notification-dot"></span> }
+            </button>
+          }
+        }
+      </div>
+    </section>
+  }
+</div>

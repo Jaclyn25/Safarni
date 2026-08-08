@@ -24,13 +24,6 @@ public class RegisterUserCommandHandlerTests
             .Returns((string p) => $"hashed-{p}");
         _linkFactory.Setup(factory => factory.Create(It.IsAny<string>(), It.IsAny<string>()))
             .Returns<string, string>((email, token) => $"https://safarni.local/verify?email={email}&token={token}");
-        _userRepository
-            .Setup(repository => repository.TryAddTravelAgencyAsync(
-                It.IsAny<User>(),
-                It.IsAny<TravelAgency>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(AgencyRegistrationPersistenceResult.Created);
-
         var emailService = new Mock<IEmailService>();
         emailService.Setup(service => service.SendEmailVerificationAsync(
                 It.IsAny<string>(),
@@ -177,8 +170,7 @@ public class RegisterUserCommandHandlerTests
         var agency = traveler with
         {
             AccountType = RegistrationAccountType.TravelAgency,
-            PhoneNumber = "+201001234567",
-            Agency = CreateAgencyDetails()
+            PhoneNumber = "+201001234567"
         };
         var validator = new RegisterUserCommandValidator();
 
@@ -188,7 +180,7 @@ public class RegisterUserCommandHandlerTests
     }
 
     [Fact]
-    public void RegistrationContract_TravelAgencyRequiresPhoneAndCompanyDetails()
+    public void RegistrationContract_TravelAgencyRequiresPhoneOnlyDuringAccountStep()
     {
         var command = new RegisterUserCommand(
             "Agency Owner",
@@ -202,11 +194,11 @@ public class RegisterUserCommandHandlerTests
         result.IsValid.Should().BeFalse();
         result.Errors.Select(error => error.PropertyName)
             .Should()
-            .Contain(["PhoneNumber", "Agency"]);
+            .Contain("PhoneNumber");
     }
 
     [Fact]
-    public async Task Handle_TravelAgencyChoice_CreatesLinkedPendingAgencyAtomically()
+    public async Task Handle_TravelAgencyChoice_CreatesRoleAccountWithoutCompanyProfile()
     {
         var handler = new RegisterUserCommandHandler(
             _userRepository.Object,
@@ -219,118 +211,22 @@ public class RegisterUserCommandHandlerTests
             "SecretPass!5",
             "SecretPass!5",
             RegistrationAccountType.TravelAgency,
-            "+201001234567",
-            CreateAgencyDetails(
-                companyName: "  Nile   Horizon Travel  "));
+            "+201001234567");
 
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value!.AccountType.Should().Be(
             RegistrationAccountType.TravelAgency);
-        result.Value.Agency.Should().NotBeNull();
-        result.Value.Agency!.CompanyName.Should().Be(
-            "Nile Horizon Travel");
-        result.Value.Agency.VerificationStatus.Should().Be(
-            AgencyVerificationStatus.Pending);
+        result.Value.Agency.Should().BeNull();
 
-        _userRepository.Verify(
-            repository => repository.TryAddTravelAgencyAsync(
-                It.Is<User>(user =>
-                    user.Role == UserRole.TravelAgency &&
-                    user.PhoneNumber == "+201001234567"),
-                It.Is<TravelAgency>(agency =>
-                    agency.UserId != Guid.Empty &&
-                    agency.CompanyName == "Nile Horizon Travel" &&
-                    agency.VerificationStatus ==
-                        AgencyVerificationStatus.Pending),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
         _userRepository.Verify(
             repository => repository.AddAsync(
-                It.IsAny<User>(),
+                It.Is<User>(user =>
+                    user.Role == UserRole.TravelAgency &&
+                    user.PhoneNumber == "+201001234567" &&
+                    user.TravelAgency == null),
                 It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_DuplicateAgencyCompany_ReturnsConflictWithoutSaving()
-    {
-        _userRepository
-            .Setup(repository =>
-                repository.TravelAgencyCompanyNameExistsAsync(
-                    "Nile Horizon Travel",
-                    It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-        var handler = new RegisterUserCommandHandler(
-            _userRepository.Object,
-            _passwordHasher.Object,
-            _linkFactory.Object,
-            _scopeFactory.Object);
-        var command = new RegisterUserCommand(
-            "Agency Owner",
-            "second@agency.example",
-            "SecretPass!6",
-            "SecretPass!6",
-            RegistrationAccountType.TravelAgency,
-            "+201001234567",
-            CreateAgencyDetails());
-
-        var result = await handler.Handle(command, CancellationToken.None);
-
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(
-            TravelAgencyErrors.CompanyNameAlreadyExists);
-        _userRepository.Verify(
-            repository => repository.TryAddTravelAgencyAsync(
-                It.IsAny<User>(),
-                It.IsAny<TravelAgency>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_ConcurrentDuplicateCompany_ReturnsConflict()
-    {
-        _userRepository
-            .Setup(repository => repository.TryAddTravelAgencyAsync(
-                It.IsAny<User>(),
-                It.IsAny<TravelAgency>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                AgencyRegistrationPersistenceResult.DuplicateCompanyName);
-        var handler = new RegisterUserCommandHandler(
-            _userRepository.Object,
-            _passwordHasher.Object,
-            _linkFactory.Object,
-            _scopeFactory.Object);
-        var command = new RegisterUserCommand(
-            "Agency Owner",
-            "racing@agency.example",
-            "SecretPass!7",
-            "SecretPass!7",
-            RegistrationAccountType.TravelAgency,
-            "+201001234567",
-            CreateAgencyDetails());
-
-        var result = await handler.Handle(command, CancellationToken.None);
-
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(
-            TravelAgencyErrors.CompanyNameAlreadyExists);
-    }
-
-    private static TravelAgencyRegistrationDetails CreateAgencyDetails(
-        string companyName = "Nile Horizon Travel")
-    {
-        return new TravelAgencyRegistrationDetails(
-            companyName,
-            "Organized cultural and leisure tours.",
-            "12 Nile Street",
-            "Cairo",
-            "Egypt",
-            "+20212345678",
-            "https://cdn.example.com/agency-logo.png",
-            "https://agency.example.com");
+            Times.Once);
     }
 }

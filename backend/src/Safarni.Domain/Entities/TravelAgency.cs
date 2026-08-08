@@ -27,6 +27,12 @@ public sealed class TravelAgency
     public AgencyVerificationStatus VerificationStatus { get; set; } =
         AgencyVerificationStatus.Pending;
 
+    public string? VerificationDecisionReason { get; set; }
+
+    public DateTime? VerificationReviewedAt { get; set; }
+
+    public Guid? VerificationReviewedByUserId { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }

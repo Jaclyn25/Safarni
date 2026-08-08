@@ -37,6 +37,10 @@ public static class AuthenticationExtensions
 
         services.AddAuthorization(options =>
         {
+            options.AddPolicy(AccountPolicies.TravelerOnly, policy =>
+                policy.RequireRole(UserRole.User.ToString()));
+            options.AddPolicy(AccountPolicies.TravelAgencyOnly, policy =>
+                policy.RequireRole(UserRole.TravelAgency.ToString()));
             options.AddPolicy(AdminPolicies.AdminOnly, policy =>
                 policy.RequireRole(UserRole.Admin.ToString()));
             options.AddPolicy(AdminPolicies.AdminOrSupport, policy =>
@@ -55,6 +59,12 @@ public static class AuthenticationExtensions
 
         return services;
     }
+}
+
+public static class AccountPolicies
+{
+    public const string TravelerOnly = "TravelerOnly";
+    public const string TravelAgencyOnly = "TravelAgencyOnly";
 }
 
 public static class AdminPolicies

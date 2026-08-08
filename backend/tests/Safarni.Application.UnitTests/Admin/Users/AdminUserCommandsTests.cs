@@ -199,6 +199,38 @@ public class AdminUserCommandsTests
     }
 
     [Fact]
+    public async Task UpdateRoles_WhenAssigningTravelAgencyDirectly_ShouldFail()
+    {
+        var user = CreateUser(TargetId);
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(x => x.GetByIdAsync(
+                TargetId,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+        var handler = new UpdateUserRolesCommandHandler(
+            userRepository.Object,
+            CreateAdminRepository().Object,
+            CreateAuditWriter().Object,
+            CreateCurrentUser(ActorId).Object);
+
+        var result = await handler.Handle(
+            new UpdateUserRolesCommand(
+                TargetId,
+                UserRole.TravelAgency),
+            CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(
+            AdminErrors.AgencyRoleManagedByAgencyWorkflow);
+        userRepository.Verify(
+            x => x.UpdateAsync(
+                It.IsAny<User>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task UpdateStatus_WhenAdminDeactivatesSelf_ShouldFail()
     {
         var handler = new UpdateUserStatusCommandHandler(

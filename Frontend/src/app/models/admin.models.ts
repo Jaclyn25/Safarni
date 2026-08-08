@@ -6,7 +6,13 @@ export interface PagedResult<T> {
   totalPages: number;
 }
 
-export type UserRole = 'User' | 'Admin' | 'Support' | 'ContentManager' | 'Analyst';
+export type UserRole =
+  | 'User'
+  | 'Admin'
+  | 'Support'
+  | 'ContentManager'
+  | 'Analyst'
+  | 'TravelAgency';
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   User: 'User',
@@ -14,6 +20,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   Support: 'Support',
   ContentManager: 'Content Manager',
   Analyst: 'Analyst',
+  TravelAgency: 'Travel Agency',
 };
 
 // ================= Dashboard =================

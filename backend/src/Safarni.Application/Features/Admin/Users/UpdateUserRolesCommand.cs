@@ -56,6 +56,14 @@ public sealed class UpdateUserRolesCommandHandler
         }
 
         var previousRole = user.Role;
+        if (previousRole != request.Role &&
+            (previousRole == UserRole.TravelAgency ||
+             request.Role == UserRole.TravelAgency))
+        {
+            return Result<AdminUserDetailResponse>.Failure(
+                AdminErrors.AgencyRoleManagedByAgencyWorkflow);
+        }
+
         if (previousRole != request.Role)
         {
             user.Role = request.Role;

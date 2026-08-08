@@ -22,6 +22,32 @@ export interface RegisterUserResponse {
   email: string;
   createdAt: string;
   isActive: boolean;
+  accountType: RegistrationAccountType;
+  agency: RegisteredTravelAgencyResponse | null;
+}
+
+export type RegistrationAccountType = 'Traveler' | 'TravelAgency';
+
+export interface TravelAgencyRegistrationDetails {
+  companyName: string;
+  description: string;
+  address: string;
+  city: string;
+  country: string;
+  companyPhone: string;
+  logoUrl?: string | null;
+  websiteUrl?: string | null;
+}
+
+export interface RegisteredTravelAgencyResponse {
+  id: string;
+  companyName: string;
+  verificationStatus:
+    | 'Pending'
+    | 'ChangesRequested'
+    | 'Verified'
+    | 'Rejected'
+    | 'Suspended';
 }
 
 export interface LoginResponse {
@@ -78,6 +104,9 @@ export class AuthService {
     email: string;
     password: string;
     confirmPassword: string;
+    accountType?: RegistrationAccountType;
+    phoneNumber?: string | null;
+    agency?: TravelAgencyRegistrationDetails | null;
   }): Observable<ApiResponse<RegisterUserResponse>> {
     return this.http.post<ApiResponse<RegisterUserResponse>>(`${this.apiUrl}/register`, command);
   }

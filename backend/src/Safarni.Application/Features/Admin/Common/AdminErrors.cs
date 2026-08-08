@@ -31,6 +31,12 @@ public static class AdminErrors
     public static readonly Error InvalidRole =
         new("Admin.InvalidRole", "The requested role is not supported.", ErrorType.Validation);
 
+    public static readonly Error AgencyRoleManagedByAgencyWorkflow =
+        new(
+            "Admin.AgencyRoleManagedByAgencyWorkflow",
+            "Travel Agency roles are managed by the agency registration workflow.",
+            ErrorType.Conflict);
+
     public static readonly Error InvalidDateRange =
         new("Admin.InvalidDateRange", "The from date must be earlier than the to date.", ErrorType.Validation);
 }

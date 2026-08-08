@@ -209,3 +209,266 @@
     animation: none;
   }
 }
+
+.register-form-shell {
+  max-width: 28rem;
+  transition: max-width 220ms ease;
+}
+
+.register-form-shell--agency {
+  max-width: 42rem;
+}
+
+.account-type-picker {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.account-type-picker:disabled {
+  opacity: 0.7;
+}
+
+.account-type-picker__legend {
+  margin-bottom: 0.65rem;
+  color: #434655;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.account-type-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.account-type-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 5.25rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(115, 118, 134, 0.28);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.account-type-option:hover {
+  border-color: rgba(0, 74, 198, 0.42);
+  transform: translateY(-1px);
+}
+
+.account-type-option:focus-within {
+  outline: 3px solid rgba(37, 99, 235, 0.18);
+  outline-offset: 2px;
+}
+
+.account-type-option--selected {
+  border-color: #2563eb;
+  background: rgba(219, 225, 255, 0.52);
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.1);
+}
+
+.account-type-option__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 0.8rem;
+  color: #004ac6;
+  background: rgba(219, 225, 255, 0.85);
+}
+
+.account-type-option__copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.account-type-option__copy strong {
+  color: #191c1e;
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.account-type-option__copy small {
+  color: #5d6070;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.account-type-option__check {
+  color: #2563eb;
+  font-size: 1.2rem;
+  opacity: 0;
+  transform: scale(0.75);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.account-type-option--selected .account-type-option__check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.agency-verification-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(0, 96, 86, 0.2);
+  border-radius: 1rem;
+  color: #004b43;
+  background: rgba(113, 248, 228, 0.15);
+}
+
+.agency-verification-note > span {
+  margin-top: 0.1rem;
+  color: #006056;
+}
+
+.agency-verification-note strong {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.agency-verification-note p {
+  margin: 0;
+  color: #3f625d;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.form-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.form-section-heading__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 999px;
+  color: #fff;
+  background: #004ac6;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.form-section-heading h3 {
+  margin: 0;
+  color: #191c1e;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.form-section-heading p {
+  margin: 0.15rem 0 0;
+  color: #5d6070;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.agency-company-section {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(115, 118, 134, 0.2);
+  border-radius: 1rem;
+  background: rgba(242, 244, 246, 0.58);
+}
+
+.agency-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.agency-field {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.agency-field--wide {
+  grid-column: 1 / -1;
+}
+
+.agency-field label {
+  color: #434655;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.agency-field label span {
+  color: #ba1a1a;
+}
+
+.agency-field input,
+.agency-field textarea {
+  width: 100%;
+  border: 1px solid rgba(115, 118, 134, 0.3);
+  border-radius: 0.75rem;
+  color: #191c1e;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 0.9rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.agency-field input {
+  min-height: 3rem;
+  padding: 0.7rem 0.85rem;
+}
+
+.agency-field textarea {
+  min-height: 6.5rem;
+  padding: 0.8rem 0.85rem;
+  resize: vertical;
+}
+
+.agency-field input:focus,
+.agency-field textarea:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.agency-field small {
+  justify-self: end;
+  color: #737686;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+  .account-type-picker__grid,
+  .agency-fields-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .agency-field--wide {
+    grid-column: auto;
+  }
+
+  .account-type-option {
+    min-height: 4.7rem;
+  }
+}

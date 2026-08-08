@@ -31,4 +31,5 @@ public static class AuthenticationErrors
         "Auth.RefreshTokenNotFound",
         "The refresh token was not found.",
         ErrorType.NotFound);
+
 }

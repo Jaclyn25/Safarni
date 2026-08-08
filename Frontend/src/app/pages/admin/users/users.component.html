@@ -478,7 +478,7 @@
             <label class="font-bold text-on-surface">Assign System Role Privilege:</label>
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
               <button
-                *ngFor="let r of roles"
+                *ngFor="let r of assignableRoles"
                 [disabled]="selectedUser.role === r || (isSelf(selectedUser.id) && r !== 'Admin')"
                 (click)="confirmingRoleChange = r"
                 class="rounded-xl border border-outline-variant px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-40"

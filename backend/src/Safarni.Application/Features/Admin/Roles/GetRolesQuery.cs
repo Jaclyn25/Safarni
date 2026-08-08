@@ -40,6 +40,10 @@ public sealed class GetRolesQueryHandler
             new RoleResponse(
                 UserRole.User.ToString(),
                 "Normal traveler account. No admin access.",
+                Array.Empty<string>()),
+            new RoleResponse(
+                UserRole.TravelAgency.ToString(),
+                "Travel Agency account managed through the agency registration and verification workflow.",
                 Array.Empty<string>())
         };
 

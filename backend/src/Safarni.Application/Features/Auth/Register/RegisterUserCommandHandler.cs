@@ -6,6 +6,7 @@ using Safarni.Application.Abstractions.Security;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Common.Results;
 using Safarni.Domain.Entities;
+using Safarni.Domain.Enums;
 
 namespace Safarni.Application.Features.Auth.Register;
 
@@ -42,6 +43,28 @@ public sealed class RegisterUserCommandHandler
             return Result<RegisterUserResponse>.Failure(UserErrors.EmailAlreadyExists);
         }
 
+        var agencyDetails = request.Agency;
+        var isAgencyRegistration =
+            request.AccountType == RegistrationAccountType.TravelAgency;
+        var normalizedCompanyName = isAgencyRegistration && agencyDetails is not null
+            ? NormalizeCompanyName(agencyDetails.CompanyName)
+            : null;
+
+        if (isAgencyRegistration && agencyDetails is null)
+        {
+            return Result<RegisterUserResponse>.Failure(
+                TravelAgencyErrors.RegistrationDetailsRequired);
+        }
+
+        if (normalizedCompanyName is not null &&
+            await _userRepository.TravelAgencyCompanyNameExistsAsync(
+                normalizedCompanyName,
+                cancellationToken))
+        {
+            return Result<RegisterUserResponse>.Failure(
+                TravelAgencyErrors.CompanyNameAlreadyExists);
+        }
+
         var verificationToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var createdAt = DateTime.UtcNow;
 
@@ -50,6 +73,12 @@ public sealed class RegisterUserCommandHandler
             Id = Guid.NewGuid(),
             FullName = request.FullName.Trim(),
             Email = normalizedEmail,
+            Role = isAgencyRegistration
+                ? UserRole.TravelAgency
+                : UserRole.User,
+            PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber)
+                ? null
+                : request.PhoneNumber.Trim(),
             PasswordHash = _passwordHasher.Hash(request.Password),
             CreatedAt = createdAt,
             IsActive = true,
@@ -58,7 +87,50 @@ public sealed class RegisterUserCommandHandler
             EmailVerificationTokenExpiresAt = createdAt.Add(VerificationTokenLifetime)
         };
 
-        await _userRepository.AddAsync(user, cancellationToken);
+        TravelAgency? travelAgency = null;
+
+        if (isAgencyRegistration)
+        {
+            travelAgency = new TravelAgency
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                CompanyName = normalizedCompanyName!,
+                Description = agencyDetails!.Description.Trim(),
+                Address = agencyDetails.Address.Trim(),
+                City = agencyDetails.City.Trim(),
+                Country = agencyDetails.Country.Trim(),
+                CompanyPhone = agencyDetails.CompanyPhone.Trim(),
+                LogoUrl = TrimToNull(agencyDetails.LogoUrl),
+                WebsiteUrl = TrimToNull(agencyDetails.WebsiteUrl),
+                VerificationStatus = AgencyVerificationStatus.Pending,
+                CreatedAt = createdAt
+            };
+
+            var persistenceResult =
+                await _userRepository.TryAddTravelAgencyAsync(
+                    user,
+                    travelAgency,
+                    cancellationToken);
+
+            if (persistenceResult ==
+                AgencyRegistrationPersistenceResult.DuplicateEmail)
+            {
+                return Result<RegisterUserResponse>.Failure(
+                    UserErrors.EmailAlreadyExists);
+            }
+
+            if (persistenceResult ==
+                AgencyRegistrationPersistenceResult.DuplicateCompanyName)
+            {
+                return Result<RegisterUserResponse>.Failure(
+                    TravelAgencyErrors.CompanyNameAlreadyExists);
+            }
+        }
+        else
+        {
+            await _userRepository.AddAsync(user, cancellationToken);
+        }
 
         var verificationLink = _emailVerificationLinkFactory.Create(
             user.Email,
@@ -72,7 +144,30 @@ public sealed class RegisterUserCommandHandler
                 user.FullName,
                 user.Email,
                 user.CreatedAt,
-                user.IsActive));
+                user.IsActive,
+                request.AccountType,
+                travelAgency is null
+                    ? null
+                    : new RegisteredTravelAgencyResponse(
+                        travelAgency.Id,
+                        travelAgency.CompanyName,
+                        travelAgency.VerificationStatus)));
+    }
+
+    private static string NormalizeCompanyName(string companyName)
+    {
+        return string.Join(
+            ' ',
+            companyName.Split(
+                (char[]?)null,
+                StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    private static string? TrimToNull(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim();
     }
 
     private void QueueVerificationEmail(string email, string verificationLink)

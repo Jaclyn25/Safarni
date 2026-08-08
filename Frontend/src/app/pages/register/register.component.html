@@ -17,6 +17,16 @@
           alt="Safarni Passport and Compass Illustration" />
       </div>
 
+      @if (isAgencyRegistration) {
+      <h2 class="font-display-lg text-display-lg text-on-surface mb-stack-sm">
+        Grow your travel business.
+      </h2>
+
+      <p class="font-body-lg text-body-lg text-on-surface-variant px-stack-lg opacity-80">
+        Join Safarni as a Travel Agency, complete verification, and connect
+        your organized experiences with travelers.
+      </p>
+      } @else {
       <h2 class="font-display-lg text-display-lg text-on-surface mb-stack-sm">
         The World Awaits.
       </h2>
@@ -25,6 +35,7 @@
         Join Safarni and unlock personalized travel experiences powered by
         intelligent discovery.
       </p>
+      }
     </div>
   </section>
 
@@ -38,7 +49,7 @@
       </a>
     </div>
 
-    <div class="w-full max-w-md space-y-stack-lg">
+    <div class="w-full space-y-stack-lg register-form-shell" [class.register-form-shell--agency]="isAgencyRegistration">
       <!-- Header -->
       <div class="text-left">
         <a routerLink="/"
@@ -53,7 +64,12 @@
         </h2>
 
         <p class="font-body-md text-body-md text-on-surface-variant mt-1">
+          @if (isAgencyRegistration) {
+          Create your company account. Your agency will start with Pending
+          verification status.
+          } @else {
           Please enter your details to create an account.
+          }
         </p>
         } @else {
         <h2
@@ -67,7 +83,54 @@
         }
       </div>
 
+      @if (!isLogin) {
+      <fieldset class="account-type-picker" [disabled]="isBusy()">
+        <legend class="account-type-picker__legend">
+          Create account as
+        </legend>
+
+        <div class="account-type-picker__grid">
+          <label class="account-type-option" [class.account-type-option--selected]="accountType === 'Traveler'">
+            <input class="sr-only" type="radio" name="registrationAccountType" value="Traveler"
+              [checked]="accountType === 'Traveler'" (change)="onAccountTypeChanged('Traveler')" />
+
+            <span class="account-type-option__icon material-symbols-outlined" aria-hidden="true">
+              travel_explore
+            </span>
+
+            <span class="account-type-option__copy">
+              <strong>Traveler</strong>
+              <small>Plan trips and request agency packages</small>
+            </span>
+
+            <span class="account-type-option__check material-symbols-outlined" aria-hidden="true">
+              check_circle
+            </span>
+          </label>
+
+          <label class="account-type-option" [class.account-type-option--selected]="accountType === 'TravelAgency'">
+            <input class="sr-only" type="radio" name="registrationAccountType" value="TravelAgency"
+              [checked]="accountType === 'TravelAgency'" (change)="onAccountTypeChanged('TravelAgency')" />
+
+            <span class="account-type-option__icon material-symbols-outlined" aria-hidden="true">
+              storefront
+            </span>
+
+            <span class="account-type-option__copy">
+              <strong>Travel Agency</strong>
+              <small>Register your company for verification</small>
+            </span>
+
+            <span class="account-type-option__check material-symbols-outlined" aria-hidden="true">
+              check_circle
+            </span>
+          </label>
+        </div>
+      </fieldset>
+      }
+
       <!-- Google Authentication -->
+      @if (isLogin || accountType === 'Traveler') {
       <div class="google-auth-wrapper" [class.google-auth-wrapper--loading]="isGoogleLoading()">
         <!--
           Google Identity Services renders its official
@@ -105,6 +168,15 @@
 
         <div class="flex-grow border-t border-outline-variant"></div>
       </div>
+      } @else {
+      <div class="agency-verification-note" role="note">
+        <span class="material-symbols-outlined" aria-hidden="true">verified_user</span>
+        <div>
+          <strong>Verification required before publishing</strong>
+          <p>You can sign in after email verification, upload company documents, and follow your review status.</p>
+        </div>
+      </div>
+      }
 
       <!-- Authentication Form -->
       <form class="space-y-stack-md" (ngSubmit)="onSubmit()" novalidate>
@@ -158,6 +230,16 @@
 
         <!-- Full Name -->
         @if (!isLogin) {
+        @if (isAgencyRegistration) {
+        <div class="form-section-heading">
+          <span class="form-section-heading__number">1</span>
+          <div>
+            <h3>Account details</h3>
+            <p>Information for the responsible company representative.</p>
+          </div>
+        </div>
+        }
+
         <div class="relative floating-label-input">
           <input id="full-name"
             class="block w-full px-4 pt-6 pb-2 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer"
@@ -170,6 +252,21 @@
             Full Name
           </label>
         </div>
+
+        @if (isAgencyRegistration) {
+        <div class="relative floating-label-input">
+          <input id="representative-phone"
+            class="block w-full px-4 pt-6 pb-2 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer"
+            type="tel" placeholder=" " [(ngModel)]="phoneNumber" name="phoneNumber" autocomplete="tel"
+            maxlength="20" (input)="dismissError()" required />
+
+          <label
+            class="absolute left-4 top-4 font-label-md text-label-md text-on-surface-variant transition-all pointer-events-none origin-top-left"
+            for="representative-phone">
+            Representative Phone
+          </label>
+        </div>
+        }
         }
 
         <!-- Email -->
@@ -349,6 +446,71 @@
           </div>
         </div>
 
+        @if (isAgencyRegistration) {
+        <section class="agency-company-section" aria-labelledby="company-details-heading">
+          <div class="form-section-heading">
+            <span class="form-section-heading__number">2</span>
+            <div>
+              <h3 id="company-details-heading">Company details</h3>
+              <p>Public business information used during Safarni's verification review.</p>
+            </div>
+          </div>
+
+          <div class="agency-fields-grid">
+            <div class="agency-field agency-field--wide">
+              <label for="company-name">Company Name <span aria-hidden="true">*</span></label>
+              <input id="company-name" type="text" [(ngModel)]="companyName" name="companyName"
+                autocomplete="organization" maxlength="200" (input)="dismissError()" required />
+            </div>
+
+            <div class="agency-field agency-field--wide">
+              <label for="company-description">Company Description <span aria-hidden="true">*</span></label>
+              <textarea id="company-description" [(ngModel)]="companyDescription" name="companyDescription"
+                maxlength="2000" rows="4" (input)="dismissError()" required></textarea>
+              <small>{{ companyDescription.length }}/2000</small>
+            </div>
+
+            <div class="agency-field agency-field--wide">
+              <label for="company-address">Company Address <span aria-hidden="true">*</span></label>
+              <input id="company-address" type="text" [(ngModel)]="companyAddress" name="companyAddress"
+                autocomplete="street-address" maxlength="500" (input)="dismissError()" required />
+            </div>
+
+            <div class="agency-field">
+              <label for="company-city">City <span aria-hidden="true">*</span></label>
+              <input id="company-city" type="text" [(ngModel)]="companyCity" name="companyCity"
+                autocomplete="address-level2" maxlength="100" (input)="dismissError()" required />
+            </div>
+
+            <div class="agency-field">
+              <label for="company-country">Country <span aria-hidden="true">*</span></label>
+              <input id="company-country" type="text" [(ngModel)]="companyCountry" name="companyCountry"
+                autocomplete="country-name" maxlength="100" (input)="dismissError()" required />
+            </div>
+
+            <div class="agency-field">
+              <label for="company-phone">Company Phone <span aria-hidden="true">*</span></label>
+              <input id="company-phone" type="tel" [(ngModel)]="companyPhone" name="companyPhone"
+                autocomplete="tel" maxlength="30" (input)="dismissError()" required />
+            </div>
+
+            <div class="agency-field">
+              <label for="company-website">Website or Social Link</label>
+              <input id="company-website" type="url" [(ngModel)]="companyWebsiteUrl" name="companyWebsiteUrl"
+                autocomplete="url" maxlength="500" placeholder="https://agency.example.com"
+                (input)="dismissError()" />
+            </div>
+
+            <div class="agency-field agency-field--wide">
+              <label for="company-logo">Company Logo URL</label>
+              <input id="company-logo" type="url" [(ngModel)]="companyLogoUrl" name="companyLogoUrl"
+                maxlength="500" placeholder="https://cdn.example.com/logo.png" (input)="dismissError()" />
+              <small>Optional for signup. You can update the company logo later from the agency profile.</small>
+            </div>
+          </div>
+        </section>
+        }
+
         <!-- Terms and Privacy -->
         <div class="flex items-start gap-3 mt-4">
           <div class="flex items-center h-5">
@@ -394,6 +556,8 @@
           <span>
             @if (isLogin) {
             Signing In...
+            } @else if (isAgencyRegistration) {
+            Creating Agency Account...
             } @else {
             Creating Account...
             }
@@ -402,6 +566,8 @@
           <span>
             @if (isLogin) {
             Sign In
+            } @else if (isAgencyRegistration) {
+            Create Agency Account
             } @else {
             Create Account
             }

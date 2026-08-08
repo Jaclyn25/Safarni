@@ -38,6 +38,9 @@ export class AdminUsersComponent implements OnInit {
   confirmingRoleChange: string | null = null;
 
   roles = Object.keys(ROLE_LABELS) as UserRole[];
+  assignableRoles = this.roles.filter(
+    (role) => role !== 'TravelAgency'
+  );
 
   constructor(
     private readonly adminService: AdminService,

@@ -11,6 +11,7 @@ using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Abstractions.Travel;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Common.Results;
+using Safarni.Application.Features.Trips.GenerateItinerary.Agent;
 using Safarni.Domain.Entities;
 
 namespace Safarni.Application.Features.Trips.GenerateItinerary;
@@ -24,7 +25,7 @@ public sealed record GenerateItineraryCommand(
     : IRequest<Result<ItineraryResponse>>;
 
 /// <summary>
-/// Runs the deterministic itinerary pipeline for an authenticated owner.
+/// Runs the validated itinerary pipeline for an authenticated owner.
 /// The same processor is used by the legacy synchronous command and by the
 /// durable background worker.
 /// </summary>
@@ -94,6 +95,7 @@ public sealed class ItineraryGenerationProcessor
     private readonly IItineraryRouteService? _routeService;
     private readonly IFlightAirportService? _flightService;
     private readonly IAIRequestLogWriter? _telemetryWriter;
+    private readonly IItineraryAgentModel? _agentModel;
     private readonly ILogger<ItineraryGenerationProcessor> _logger;
 
     public ItineraryGenerationProcessor(
@@ -105,7 +107,8 @@ public sealed class ItineraryGenerationProcessor
         IItineraryTravelDataService? travelDataService = null,
         IItineraryRouteService? routeService = null,
         IFlightAirportService? flightService = null,
-        IAIRequestLogWriter? telemetryWriter = null)
+        IAIRequestLogWriter? telemetryWriter = null,
+        IItineraryAgentModel? agentModel = null)
     {
         _tripRepository = tripRepository;
         _itineraryRepository = itineraryRepository;
@@ -116,6 +119,7 @@ public sealed class ItineraryGenerationProcessor
         _routeService = routeService;
         _flightService = flightService;
         _telemetryWriter = telemetryWriter;
+        _agentModel = agentModel;
     }
 
     public async Task<Result<ItineraryResponse>> GenerateAsync(
@@ -178,7 +182,9 @@ public sealed class ItineraryGenerationProcessor
             await ReportProgressAsync(
                 generationJobId,
                 12,
-                "Searching places, flights, and hotels in parallel",
+                _agentModel is null
+                    ? "Preparing verified itinerary research"
+                    : "Starting agentic itinerary planning",
                 cancellationToken);
 
             var previousItineraries =
@@ -192,86 +198,126 @@ public sealed class ItineraryGenerationProcessor
             var previouslyUsedPlaceIds = GetPreviouslyUsedPlaceIds(
                 previousItineraries);
 
-            var flightPlanTask = ItineraryFlightEnricher.ResolvePlanAsync(
-                trip,
-                cityPlan,
-                normalizedCurrency,
-                travelerCount,
-                preferences.PreferredLanguage,
-                _flightService,
-                cancellationToken);
+            ItineraryFlightPlan flightPlan;
+            IReadOnlyList<ItineraryPlaceCandidate> places;
+            IReadOnlyList<AiItineraryDay> generatedDays;
+            var generatedByAgent = false;
 
-            var placeCatalogTask = ItineraryPlaceCatalog
-                .LoadSerpPrimaryAsync(
-                    _travelDataService,
+            if (_agentModel is not null)
+            {
+                try
+                {
+                    var agentResult = await ItineraryAgent.RunAsync(
+                        _agentModel,
+                        trip,
+                        cityPlan,
+                        preferences,
+                        budgetAmount,
+                        normalizedCurrency,
+                        travelerCount,
+                        previouslyUsedPlaceIds,
+                        previousItinerary,
+                        _travelDataService,
+                        _routeService,
+                        _flightService,
+                        ReportProgressAsync,
+                        generationJobId,
+                        _logger,
+                        cancellationToken);
+
+                    flightPlan = agentResult.FlightPlan;
+                    places = agentResult.Places;
+                    generatedDays = agentResult.GeneratedDays;
+                    generatedByAgent = true;
+                }
+                catch (Exception exception) when (
+                    exception is AIProviderRateLimitException or
+                    HttpRequestException or
+                    TimeoutException or
+                    InvalidOperationException or
+                    ItineraryOutputException)
+                {
+                    _logger.LogWarning(
+                        exception,
+                        "The end-to-end itinerary agent failed for trip {TripId}. Falling back to Safarni's validated deterministic orchestration.",
+                        tripId);
+
+                    await ReportProgressAsync(
+                        generationJobId,
+                        30,
+                        "Agent unavailable; using validated fallback planning",
+                        cancellationToken);
+
+                    var fallbackResearch =
+                        await LoadDeterministicResearchAsync(
+                            trip,
+                            cityPlan,
+                            preferences,
+                            normalizedCurrency,
+                            travelerCount,
+                            previouslyUsedPlaceIds,
+                            cancellationToken);
+
+                    flightPlan = fallbackResearch.FlightPlan;
+                    places = fallbackResearch.Places;
+                    generatedDays = await GenerateWithKnownResearchAsync(
+                        userId,
+                        trip,
+                        tripId,
+                        preferences,
+                        budgetAmount,
+                        normalizedCurrency,
+                        travelerCount,
+                        places,
+                        cityPlan,
+                        flightPlan,
+                        previousItinerary,
+                        generationJobId,
+                        cancellationToken);
+                }
+            }
+            else
+            {
+                var fallbackResearch =
+                    await LoadDeterministicResearchAsync(
+                        trip,
+                        cityPlan,
+                        preferences,
+                        normalizedCurrency,
+                        travelerCount,
+                        previouslyUsedPlaceIds,
+                        cancellationToken);
+
+                flightPlan = fallbackResearch.FlightPlan;
+                places = fallbackResearch.Places;
+                generatedDays = await GenerateWithKnownResearchAsync(
+                    userId,
                     trip,
-                    cityPlan,
+                    tripId,
                     preferences,
+                    budgetAmount,
                     normalizedCurrency,
                     travelerCount,
-                    previouslyUsedPlaceIds,
+                    places,
+                    cityPlan,
+                    flightPlan,
+                    previousItinerary,
+                    generationJobId,
                     cancellationToken);
-
-            await Task.WhenAll(flightPlanTask, placeCatalogTask);
-
-            var flightPlan = await flightPlanTask;
-            var places = await placeCatalogTask;
-
-            var knownFlightCost =
-                (flightPlan.Outbound?.Price ?? 0m) +
-                (flightPlan.Return?.Price ?? 0m);
-            decimal? planningBudget = budgetAmount is null
-                ? null
-                : budgetAmount.Value - knownFlightCost;
-
-            if (planningBudget is <= 0)
-            {
-                return Result<ItineraryResponse>.Failure(
-                    ItineraryErrors.BudgetInsufficientForFlights);
             }
 
-            await ReportProgressAsync(
-                generationJobId,
-                24,
-                previousItinerary is null
-                    ? "Preparing verified place catalog"
-                    : "Preparing unused alternatives for regeneration",
-                cancellationToken);
-
             _logger.LogInformation(
-                "Built a SerpAPI-first catalog of {PlaceCount} verified places for trip {TripId}; regeneration={IsRegeneration}.",
+                "Prepared {PlaceCount} verified places for trip {TripId}; regeneration={IsRegeneration}; agentic={Agentic}.",
                 places.Count,
                 tripId,
-                previousItinerary is not null);
+                previousItinerary is not null,
+                generatedByAgent);
 
             if (places.Count == 0)
             {
                 return Result<ItineraryResponse>.Failure(
                     ItineraryErrors.PlacesUnavailable);
             }
-
-            await ReportProgressAsync(
-                generationJobId,
-                34,
-                previousItinerary is null
-                    ? "Planning the complete itinerary"
-                    : "Regenerating every itinerary day",
-                cancellationToken);
-
-            var generatedDays = await GenerateValidatedTripAsync(
-                userId,
-                trip,
-                tripId,
-                preferences,
-                planningBudget,
-                normalizedCurrency,
-                travelerCount,
-                places,
-                cityPlan,
-                flightPlan,
-                previousItinerary,
-                generationJobId,
-                cancellationToken);
 
             await ReportProgressAsync(
                 generationJobId,
@@ -584,6 +630,104 @@ public sealed class ItineraryGenerationProcessor
         throw lastRejection ??
               new ItineraryOutputException(
                   "The generated itinerary failed validation.");
+    }
+
+    private async Task<(
+        ItineraryFlightPlan FlightPlan,
+        IReadOnlyList<ItineraryPlaceCandidate> Places)>
+        LoadDeterministicResearchAsync(
+            Trip trip,
+            IReadOnlyList<ItineraryCityStop> cityPlan,
+            GenerateItineraryPreferences preferences,
+            string currencyCode,
+            int travelerCount,
+            IReadOnlySet<string> previouslyUsedPlaceIds,
+            CancellationToken cancellationToken)
+    {
+        var flightPlanTask = ItineraryFlightEnricher.ResolvePlanAsync(
+            trip,
+            cityPlan,
+            currencyCode,
+            travelerCount,
+            preferences.PreferredLanguage,
+            _flightService,
+            cancellationToken);
+
+        var placeCatalogTask = ItineraryPlaceCatalog
+            .LoadSerpPrimaryAsync(
+                _travelDataService,
+                trip,
+                cityPlan,
+                preferences,
+                currencyCode,
+                travelerCount,
+                previouslyUsedPlaceIds,
+                cancellationToken);
+
+        await Task.WhenAll(flightPlanTask, placeCatalogTask);
+
+        return (
+            await flightPlanTask,
+            await placeCatalogTask);
+    }
+
+    private async Task<IReadOnlyList<AiItineraryDay>>
+        GenerateWithKnownResearchAsync(
+            Guid userId,
+            Trip trip,
+            Guid tripId,
+            GenerateItineraryPreferences preferences,
+            decimal? totalBudgetAmount,
+            string currencyCode,
+            int travelerCount,
+            IReadOnlyList<ItineraryPlaceCandidate> places,
+            IReadOnlyList<ItineraryCityStop> cityPlan,
+            ItineraryFlightPlan flightPlan,
+            Itinerary? previousItinerary,
+            Guid? generationJobId,
+            CancellationToken cancellationToken)
+    {
+        if (places.Count == 0)
+        {
+            throw new ItineraryOutputException(
+                "No verified place candidates are available for itinerary generation.");
+        }
+
+        var knownFlightCost =
+            (flightPlan.Outbound?.Price ?? 0m) +
+            (flightPlan.Return?.Price ?? 0m);
+        decimal? planningBudget = totalBudgetAmount is null
+            ? null
+            : totalBudgetAmount.Value - knownFlightCost;
+
+        if (planningBudget is <= 0)
+        {
+            throw new ItineraryOutputException(
+                "Verified flight prices consume the available traveler budget.");
+        }
+
+        await ReportProgressAsync(
+            generationJobId,
+            36,
+            previousItinerary is null
+                ? "Generating validated fallback itinerary"
+                : "Regenerating validated fallback itinerary",
+            cancellationToken);
+
+        return await GenerateValidatedTripAsync(
+            userId,
+            trip,
+            tripId,
+            preferences,
+            planningBudget,
+            currencyCode,
+            travelerCount,
+            places,
+            cityPlan,
+            flightPlan,
+            previousItinerary,
+            generationJobId,
+            cancellationToken);
     }
 
     private static IReadOnlySet<string> GetPreviouslyUsedPlaceIds(

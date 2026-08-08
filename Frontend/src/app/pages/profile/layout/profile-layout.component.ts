@@ -4,6 +4,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ProfileService, getProfileErrorMessage } from '../../../services/profile.service';
 import { MyProfile } from '../../../shared/models/update-my-profile.model';
 import { applyLanguage, applyThemeClass, readStoredLanguage, readStoredTheme } from '../profile-utils';
+import { AuthService } from '../../../services/auth.service';
 
 interface NavItem {
   path: string;
@@ -19,7 +20,7 @@ interface NavItem {
   styleUrls: ['../profile-shared.scss'],
 })
 export class ProfileLayoutComponent implements OnInit {
-  readonly navItems: NavItem[] = [
+  private readonly standardNavItems: NavItem[] = [
     { path: 'trips', label: 'My Trips', icon: 'luggage' },
     { path: 'account', label: 'Account', icon: 'person' },
     { path: 'password', label: 'Password', icon: 'lock' },
@@ -37,7 +38,16 @@ export class ProfileLayoutComponent implements OnInit {
   readonly isLoading = signal(true);
   readonly loadError = signal<string | null>(null);
 
-  constructor(private readonly profileService: ProfileService) {}
+  constructor(
+    private readonly profileService: ProfileService,
+    private readonly authService: AuthService
+  ) {}
+
+  get navItems(): NavItem[] {
+    return this.authService.isTravelAgency()
+      ? [{ path: '/agency', label: 'Agency Dashboard', icon: 'storefront' }, ...this.standardNavItems]
+      : this.standardNavItems;
+  }
 
   ngOnInit(): void {
     applyThemeClass(readStoredTheme());

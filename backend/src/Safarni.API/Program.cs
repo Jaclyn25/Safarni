@@ -261,6 +261,11 @@ using (var scope = app.Services.CreateScope())
 
     await adminSeeder.SeedAsync();
 
+    var marketplaceSeeder = scope.ServiceProvider
+        .GetRequiredService<MarketplaceTestDataSeeder>();
+
+    await marketplaceSeeder.SeedAsync();
+
 
 
     // RAG Qdrant Auto Indexing

@@ -1,0 +1,113 @@
+<div class="agency-review">
+  <a routerLink="/admin/agencies" class="review-back"><span class="material-symbols-outlined">arrow_back</span>Back to agencies</a>
+
+  @if (isLoading()) {
+    <div class="review-loading"><span></span><p>Opening secure agency review...</p></div>
+  } @else if (detail) {
+    <header class="review-header">
+      <div class="review-logo">
+        @if (detail.profile.logoUrl) { <img [src]="detail.profile.logoUrl" alt="{{ detail.profile.companyName }} logo" /> }
+        @else { <span class="material-symbols-outlined">storefront</span> }
+      </div>
+      <div>
+        <p>Agency verification review</p>
+        <h1>{{ detail.profile.companyName }}</h1>
+        <span>{{ detail.profile.city }}, {{ detail.profile.country }} · Submitted {{ detail.profile.createdAt | date:'mediumDate' }}</span>
+      </div>
+      <span class="review-status" [attr.data-status]="detail.verification.verificationStatus">{{ label(detail.verification.verificationStatus) }}</span>
+    </header>
+
+    @if (error()) { <div class="review-alert review-alert--error"><span class="material-symbols-outlined">error</span><p>{{ error() }}</p></div> }
+    @if (success()) { <div class="review-alert review-alert--success"><span class="material-symbols-outlined">check_circle</span><p>{{ success() }}</p></div> }
+
+    <div class="review-layout">
+      <div class="review-main">
+        <section class="review-card">
+          <header><div><p>Company information</p><h2>Business profile</h2></div></header>
+          <dl class="review-details">
+            <div><dt>Representative</dt><dd>{{ detail.profile.representativeName }}</dd></div>
+            <div><dt>Email</dt><dd>{{ detail.profile.email }}</dd></div>
+            <div><dt>Representative phone</dt><dd>{{ detail.profile.representativePhone || 'Not provided' }}</dd></div>
+            <div><dt>Company phone</dt><dd>{{ detail.profile.companyPhone }}</dd></div>
+            <div><dt>Address</dt><dd>{{ detail.profile.address }}</dd></div>
+            <div><dt>Website</dt><dd>@if (detail.profile.websiteUrl) { <a [href]="detail.profile.websiteUrl" target="_blank" rel="noopener noreferrer">{{ detail.profile.websiteUrl }}</a> } @else { Not provided }</dd></div>
+            <div class="review-details__wide"><dt>Description</dt><dd>{{ detail.profile.description }}</dd></div>
+          </dl>
+        </section>
+
+        <section class="review-card">
+          <header>
+            <div><p>Private records</p><h2>Verification documents</h2></div>
+            <span>{{ detail.verification.uploadedDocumentCount }}/{{ detail.verification.requiredDocumentCount }} submitted</span>
+          </header>
+
+          <div class="review-documents">
+            @for (document of detail.verification.documents; track document.documentType) {
+              <article class="review-document" [class.review-document--missing]="!document.isUploaded"
+                [attr.data-review-status]="document.isUploaded ? document.reviewStatus : 'Missing'">
+                <div class="review-document__heading">
+                  <span class="material-symbols-outlined">
+                    {{ !document.isUploaded ? 'scan_delete' : document.reviewStatus === 'Approved' ? 'check_circle' : document.reviewStatus === 'Declined' ? 'cancel' : 'schedule' }}
+                  </span>
+                  <div>
+                    <strong>{{ document.displayName }}</strong>
+                    @if (document.isUploaded) {
+                      <small>No. {{ document.documentNumber }} · {{ document.originalFileName }}</small>
+                      <small>@if (document.expiryDate) { Expires {{ document.expiryDate | date:'mediumDate' }} } @else { No expiry date provided }</small>
+                    } @else { <small>Required document is missing</small> }
+                  </div>
+                  <span class="document-review-badge">{{ document.isUploaded ? document.reviewStatus : 'Missing' }}</span>
+                  @if (document.isUploaded) {
+                    <button type="button" class="secure-view" (click)="openDocument(document.documentType)" [disabled]="openingType() !== null">
+                      <span class="material-symbols-outlined">visibility</span>{{ openingType() === document.documentType ? 'Opening...' : 'Secure view' }}
+                    </button>
+                  }
+                </div>
+
+                @if (document.isUploaded && canDecide) {
+                  <div class="document-review-controls">
+                    <label>Feedback when declining
+                      <textarea [(ngModel)]="documentReasons[document.documentType]" rows="2" maxlength="1000" placeholder="Explain exactly what must be corrected"></textarea>
+                    </label>
+                    <div>
+                      <button type="button" class="document-approve" [disabled]="reviewingType() !== null || document.reviewStatus === 'Approved'" (click)="decideDocument(document.documentType, 'Approve')">
+                        <span class="material-symbols-outlined">check</span>Approve
+                      </button>
+                      <button type="button" class="document-decline" [disabled]="reviewingType() !== null || document.reviewStatus === 'Declined'" (click)="decideDocument(document.documentType, 'Decline')">
+                        <span class="material-symbols-outlined">close</span>Decline
+                      </button>
+                    </div>
+                  </div>
+                }
+              </article>
+            }
+          </div>
+        </section>
+      </div>
+
+      <aside class="review-sidebar">
+        <section class="review-card review-decision">
+          <header><div><p>Trust decision</p><h2>Agency-level action</h2></div></header>
+          @if (detail.verification.decisionReason && detail.verification.verificationStatus !== 'Verified') {
+            <div class="review-previous"><strong>Latest review note</strong><p>{{ detail.verification.decisionReason }}</p>@if (detail.verification.reviewedAt) { <small>{{ detail.verification.reviewedAt | date:'medium' }}</small> }</div>
+          }
+          @if (canDecide) {
+            <label>Decision reason <small>Required except for approval</small><textarea [(ngModel)]="reason" rows="5" maxlength="1000" placeholder="Give the agency clear, actionable feedback"></textarea><span>{{ reason.length }}/1000</span></label>
+            <div class="approval-readiness" [class.approval-readiness--ready]="allRequiredDocumentsApproved">
+              <span class="material-symbols-outlined">{{ allRequiredDocumentsApproved ? 'task_alt' : 'pending_actions' }}</span>
+              <p>{{ allRequiredDocumentsApproved ? 'All documents are approved. The agency can be verified.' : 'Review and approve all three documents before agency approval.' }}</p>
+            </div>
+            <div class="review-actions">
+              <button type="button" class="review-action review-action--approve" [disabled]="isSaving() || !allRequiredDocumentsApproved || detail.verification.verificationStatus === 'Verified'" (click)="decide('Approve')"><span class="material-symbols-outlined">verified</span>Approve agency</button>
+              <button type="button" class="review-action review-action--changes" [disabled]="isSaving() || detail.verification.verificationStatus === 'ChangesRequested'" (click)="decide('RequestChanges')"><span class="material-symbols-outlined">edit_note</span>Request changes</button>
+              <button type="button" class="review-action review-action--reject" [disabled]="isSaving() || detail.verification.verificationStatus === 'Rejected'" (click)="decide('Reject')"><span class="material-symbols-outlined">cancel</span>Reject application</button>
+              <button type="button" class="review-action review-action--suspend" [disabled]="isSaving() || detail.verification.verificationStatus !== 'Verified'" (click)="decide('Suspend')"><span class="material-symbols-outlined">block</span>Suspend agency</button>
+            </div>
+          } @else {
+            <div class="review-readonly"><span class="material-symbols-outlined">visibility</span><p>Your role can review agency information, but only an administrator can save verification decisions.</p></div>
+          }
+        </section>
+      </aside>
+    </div>
+  }
+</div>

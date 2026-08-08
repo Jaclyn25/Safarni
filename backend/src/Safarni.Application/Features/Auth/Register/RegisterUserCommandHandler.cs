@@ -43,27 +43,8 @@ public sealed class RegisterUserCommandHandler
             return Result<RegisterUserResponse>.Failure(UserErrors.EmailAlreadyExists);
         }
 
-        var agencyDetails = request.Agency;
         var isAgencyRegistration =
             request.AccountType == RegistrationAccountType.TravelAgency;
-        var normalizedCompanyName = isAgencyRegistration && agencyDetails is not null
-            ? NormalizeCompanyName(agencyDetails.CompanyName)
-            : null;
-
-        if (isAgencyRegistration && agencyDetails is null)
-        {
-            return Result<RegisterUserResponse>.Failure(
-                TravelAgencyErrors.RegistrationDetailsRequired);
-        }
-
-        if (normalizedCompanyName is not null &&
-            await _userRepository.TravelAgencyCompanyNameExistsAsync(
-                normalizedCompanyName,
-                cancellationToken))
-        {
-            return Result<RegisterUserResponse>.Failure(
-                TravelAgencyErrors.CompanyNameAlreadyExists);
-        }
 
         var verificationToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var createdAt = DateTime.UtcNow;
@@ -87,50 +68,9 @@ public sealed class RegisterUserCommandHandler
             EmailVerificationTokenExpiresAt = createdAt.Add(VerificationTokenLifetime)
         };
 
-        TravelAgency? travelAgency = null;
-
-        if (isAgencyRegistration)
-        {
-            travelAgency = new TravelAgency
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                CompanyName = normalizedCompanyName!,
-                Description = agencyDetails!.Description.Trim(),
-                Address = agencyDetails.Address.Trim(),
-                City = agencyDetails.City.Trim(),
-                Country = agencyDetails.Country.Trim(),
-                CompanyPhone = agencyDetails.CompanyPhone.Trim(),
-                LogoUrl = TrimToNull(agencyDetails.LogoUrl),
-                WebsiteUrl = TrimToNull(agencyDetails.WebsiteUrl),
-                VerificationStatus = AgencyVerificationStatus.Pending,
-                CreatedAt = createdAt
-            };
-
-            var persistenceResult =
-                await _userRepository.TryAddTravelAgencyAsync(
-                    user,
-                    travelAgency,
-                    cancellationToken);
-
-            if (persistenceResult ==
-                AgencyRegistrationPersistenceResult.DuplicateEmail)
-            {
-                return Result<RegisterUserResponse>.Failure(
-                    UserErrors.EmailAlreadyExists);
-            }
-
-            if (persistenceResult ==
-                AgencyRegistrationPersistenceResult.DuplicateCompanyName)
-            {
-                return Result<RegisterUserResponse>.Failure(
-                    TravelAgencyErrors.CompanyNameAlreadyExists);
-            }
-        }
-        else
-        {
-            await _userRepository.AddAsync(user, cancellationToken);
-        }
+        // Company information is collected only after email verification.
+        // The role is enough to identify this account during onboarding.
+        await _userRepository.AddAsync(user, cancellationToken);
 
         var verificationLink = _emailVerificationLinkFactory.Create(
             user.Email,
@@ -146,28 +86,7 @@ public sealed class RegisterUserCommandHandler
                 user.CreatedAt,
                 user.IsActive,
                 request.AccountType,
-                travelAgency is null
-                    ? null
-                    : new RegisteredTravelAgencyResponse(
-                        travelAgency.Id,
-                        travelAgency.CompanyName,
-                        travelAgency.VerificationStatus)));
-    }
-
-    private static string NormalizeCompanyName(string companyName)
-    {
-        return string.Join(
-            ' ',
-            companyName.Split(
-                (char[]?)null,
-                StringSplitOptions.RemoveEmptyEntries));
-    }
-
-    private static string? TrimToNull(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value)
-            ? null
-            : value.Trim();
+                null));
     }
 
     private void QueueVerificationEmail(string email, string verificationLink)

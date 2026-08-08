@@ -2,6 +2,9 @@ import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
 import { noAdminGuard } from './guards/no-admin.guard';
+import { agencyGuard } from './guards/agency.guard';
+import { adminAgencyGuard } from './guards/admin-agency.guard';
+import { agencyOnboardingGuard } from './guards/agency-onboarding.guard';
 
 export const routes: Routes = [
   {
@@ -97,6 +100,50 @@ export const routes: Routes = [
         (m) => m.VerifyEmailComponent
       ),
     title: 'Safarni | Email Verification'
+  },
+  {
+    path: 'agency/setup',
+    loadComponent: () =>
+      import('./pages/agency/onboarding/agency-onboarding.component').then(
+        (m) => m.AgencyOnboardingComponent
+      ),
+    canActivate: [authGuard, agencyGuard],
+    title: 'Safarni | Complete Agency Setup'
+  },
+  {
+    path: 'agency',
+    loadComponent: () =>
+      import('./pages/agency/layout/agency-layout.component').then(
+        (m) => m.AgencyLayoutComponent
+      ),
+    canActivate: [authGuard, agencyGuard, agencyOnboardingGuard],
+    title: 'Safarni | Agency Portal',
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./pages/agency/dashboard/agency-dashboard.component').then(
+            (m) => m.AgencyDashboardComponent
+          )
+      },
+      {
+        path: 'verification',
+        loadComponent: () =>
+          import('./pages/agency/verification/agency-verification.component').then(
+            (m) => m.AgencyVerificationComponent
+          ),
+        title: 'Safarni | Agency Verification'
+      },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./pages/agency/profile/agency-profile.component').then(
+            (m) => m.AgencyProfileComponent
+          ),
+        title: 'Safarni | Company Profile'
+      }
+    ]
   },
   {
     path: 'profile',
@@ -217,6 +264,8 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', loadComponent: () => import('./pages/admin/dashboard/dashboard.component').then((m) => m.AdminDashboardComponent) },
       { path: 'users', loadComponent: () => import('./pages/admin/users/users.component').then((m) => m.AdminUsersComponent) },
+      { path: 'agencies', canActivate: [adminAgencyGuard], loadComponent: () => import('./pages/admin/agencies/agencies.component').then((m) => m.AdminAgenciesComponent) },
+      { path: 'agencies/:agencyId', canActivate: [adminAgencyGuard], loadComponent: () => import('./pages/admin/agencies/agency-review.component').then((m) => m.AdminAgencyReviewComponent) },
       { path: 'knowledge', loadComponent: () => import('./pages/admin/knowledge/knowledge.component').then((m) => m.AdminKnowledgeComponent) },
       { path: 'ai-activity', loadComponent: () => import('./pages/admin/ai-activity/ai-activity.component').then((m) => m.AdminAiActivityComponent) },
       { path: 'integrations', loadComponent: () => import('./pages/admin/integrations/integrations.component').then((m) => m.AdminIntegrationsComponent) },

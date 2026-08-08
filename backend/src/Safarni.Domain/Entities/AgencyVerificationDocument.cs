@@ -30,5 +30,14 @@ public sealed class AgencyVerificationDocument
 
     public DateTime? UpdatedAt { get; set; }
 
+    public AgencyDocumentReviewStatus ReviewStatus { get; set; } =
+        AgencyDocumentReviewStatus.Pending;
+
+    public string? ReviewReason { get; set; }
+
+    public DateTime? ReviewedAt { get; set; }
+
+    public Guid? ReviewedByUserId { get; set; }
+
     public TravelAgency TravelAgency { get; set; } = null!;
 }

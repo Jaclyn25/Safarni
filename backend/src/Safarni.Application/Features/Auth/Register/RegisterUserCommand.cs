@@ -10,16 +10,5 @@ public sealed record RegisterUserCommand(
     string Password,
     string ConfirmPassword,
     RegistrationAccountType AccountType = RegistrationAccountType.Traveler,
-    string? PhoneNumber = null,
-    TravelAgencyRegistrationDetails? Agency = null)
+    string? PhoneNumber = null)
     : IRequest<Result<RegisterUserResponse>>;
-
-public sealed record TravelAgencyRegistrationDetails(
-    string CompanyName,
-    string Description,
-    string Address,
-    string City,
-    string Country,
-    string CompanyPhone,
-    string? LogoUrl,
-    string? WebsiteUrl);

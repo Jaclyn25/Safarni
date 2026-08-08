@@ -30,6 +30,7 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<TravelAgency> TravelAgencies => Set<TravelAgency>();
     public DbSet<AgencyVerificationDocument> AgencyVerificationDocuments =>
         Set<AgencyVerificationDocument>();
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
 
     // Chatbot tables
     public DbSet<Conversation> Conversations => Set<Conversation>();

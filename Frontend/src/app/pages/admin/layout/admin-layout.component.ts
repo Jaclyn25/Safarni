@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
+import { NotificationCenterComponent } from '../../../shared/notifications/notification-center.component';
 
 export interface NavItem {
   path: string;
@@ -17,7 +18,7 @@ export interface NavGroup {
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, NotificationCenterComponent],
   templateUrl: './admin-layout.component.html',
 })
 export class AdminLayoutComponent {
@@ -33,6 +34,7 @@ export class AdminLayoutComponent {
       sectionTitle: 'User & Governance',
       items: [
         { path: '/admin/users', label: 'Users', icon: 'group' },
+        { path: '/admin/agencies', label: 'Agency Verification', icon: 'domain_verification' },
         { path: '/admin/roles', label: 'Roles', icon: 'admin_panel_settings' },
         { path: '/admin/audit-logs', label: 'Audit Logs', icon: 'history_edu' },
       ],

@@ -3,34 +3,35 @@
   <div class="flex flex-wrap items-center justify-between gap-4">
     <div>
       <h1 class="font-heading text-2xl font-bold text-on-surface">User Management</h1>
-      <p class="mt-1 text-sm text-on-surface-variant">View, search, and manage registered accounts, roles, and administrative permissions.</p>
+      <p class="mt-1 text-sm text-on-surface-variant">View, search, and manage registered accounts, roles, and
+        administrative permissions.</p>
     </div>
-    <span *ngIf="result" class="rounded-xl border border-outline-variant/60 bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface-variant shadow-2xs">
+    <span *ngIf="result"
+      class="rounded-xl border border-outline-variant/60 bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface-variant shadow-2xs">
       Showing {{ result.items.length }} of {{ result.totalCount }} user(s)
     </span>
   </div>
 
   <!-- Action Feedback Toast Banner -->
-  <div
-    *ngIf="actionMessage()"
+  <div *ngIf="actionMessage()"
     class="rounded-xl p-3.5 text-xs font-semibold flex items-center justify-between shadow-2xs"
     [class.bg-emerald-100]="actionMessage()?.kind === 'success'"
     [class.text-emerald-800]="actionMessage()?.kind === 'success'"
-    [class.bg-red-100]="actionMessage()?.kind === 'error'"
-    [class.text-red-800]="actionMessage()?.kind === 'error'"
-  >
+    [class.bg-red-100]="actionMessage()?.kind === 'error'" [class.text-red-800]="actionMessage()?.kind === 'error'">
     <div class="flex items-center gap-2">
       <span class="material-symbols-outlined" style="font-size: 18px">
         {{ actionMessage()?.kind === 'success' ? 'check_circle' : 'error' }}
       </span>
       {{ actionMessage()?.text }}
     </div>
-    <button (click)="actionMessage.set(null)" aria-label="Dismiss message" class="text-xs font-bold opacity-75 hover:opacity-100">Dismiss</button>
+    <button (click)="actionMessage.set(null)" aria-label="Dismiss message"
+      class="text-xs font-bold opacity-75 hover:opacity-100">Dismiss</button>
   </div>
 
   <!-- Top Account Metrics Summary Bar -->
   <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-    <div (click)="applyPill('all')" class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
+    <div (click)="applyPill('all')"
+      class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
       <div class="flex items-center justify-between">
         <p class="text-xs font-semibold text-on-surface-variant">Total Accounts</p>
         <span class="material-symbols-outlined text-primary text-xl">group</span>
@@ -39,7 +40,8 @@
       <p class="mt-1 text-[11px] font-medium text-emerald-600">Registered travelers</p>
     </div>
 
-    <div (click)="applyPill('active')" class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
+    <div (click)="applyPill('active')"
+      class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
       <div class="flex items-center justify-between">
         <p class="text-xs font-semibold text-on-surface-variant">Active Accounts</p>
         <span class="material-symbols-outlined text-emerald-600 text-xl">how_to_reg</span>
@@ -48,7 +50,8 @@
       <p class="mt-1 text-[11px] font-medium text-on-surface-variant">Unblocked users</p>
     </div>
 
-    <div (click)="applyPill('unverified')" class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
+    <div (click)="applyPill('unverified')"
+      class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
       <div class="flex items-center justify-between">
         <p class="text-xs font-semibold text-on-surface-variant">Verified Emails</p>
         <span class="material-symbols-outlined text-blue-600 text-xl">mark_email_read</span>
@@ -57,7 +60,8 @@
       <p class="mt-1 text-[11px] font-medium text-blue-600">Identity confirmed</p>
     </div>
 
-    <div (click)="applyPill('admins')" class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
+    <div (click)="applyPill('admins')"
+      class="cursor-pointer rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-2xs transition-all hover:border-primary hover:shadow-sm">
       <div class="flex items-center justify-between">
         <p class="text-xs font-semibold text-on-surface-variant">Staff & Admins</p>
         <span class="material-symbols-outlined text-purple-600 text-xl">admin_panel_settings</span>
@@ -72,49 +76,31 @@
     <!-- Quick Filter Pills -->
     <div class="flex flex-wrap items-center gap-2">
       <span class="text-xs font-semibold text-on-surface-variant">Quick Filter:</span>
-      <button
-        (click)="applyPill('all')"
-        [class.bg-primary]="activePill === 'all'"
-        [class.text-on-primary]="activePill === 'all'"
-        [class.bg-surface-container-high]="activePill !== 'all'"
-        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors"
-      >
+      <button (click)="applyPill('all')" [class.bg-primary]="activePill === 'all'"
+        [class.text-on-primary]="activePill === 'all'" [class.bg-surface-container-high]="activePill !== 'all'"
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors">
         All Users
       </button>
-      <button
-        (click)="applyPill('active')"
-        [class.bg-primary]="activePill === 'active'"
-        [class.text-on-primary]="activePill === 'active'"
-        [class.bg-surface-container-high]="activePill !== 'active'"
-        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors"
-      >
+      <button (click)="applyPill('active')" [class.bg-primary]="activePill === 'active'"
+        [class.text-on-primary]="activePill === 'active'" [class.bg-surface-container-high]="activePill !== 'active'"
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors">
         Active
       </button>
-      <button
-        (click)="applyPill('inactive')"
-        [class.bg-primary]="activePill === 'inactive'"
+      <button (click)="applyPill('inactive')" [class.bg-primary]="activePill === 'inactive'"
         [class.text-on-primary]="activePill === 'inactive'"
         [class.bg-surface-container-high]="activePill !== 'inactive'"
-        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors"
-      >
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors">
         Inactive
       </button>
-      <button
-        (click)="applyPill('admins')"
-        [class.bg-primary]="activePill === 'admins'"
-        [class.text-on-primary]="activePill === 'admins'"
-        [class.bg-surface-container-high]="activePill !== 'admins'"
-        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors"
-      >
+      <button (click)="applyPill('admins')" [class.bg-primary]="activePill === 'admins'"
+        [class.text-on-primary]="activePill === 'admins'" [class.bg-surface-container-high]="activePill !== 'admins'"
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors">
         Admins & Staff
       </button>
-      <button
-        (click)="applyPill('unverified')"
-        [class.bg-primary]="activePill === 'unverified'"
+      <button (click)="applyPill('unverified')" [class.bg-primary]="activePill === 'unverified'"
         [class.text-on-primary]="activePill === 'unverified'"
         [class.bg-surface-container-high]="activePill !== 'unverified'"
-        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors"
-      >
+        class="rounded-full px-3.5 py-1 text-xs font-semibold transition-colors">
         Unverified Email
       </button>
     </div>
@@ -123,50 +109,36 @@
     <div class="flex flex-wrap items-center gap-3 border-t border-outline-variant/40 pt-3">
       <div class="min-w-[220px] flex-1">
         <div class="relative">
-          <span class="material-symbols-outlined absolute left-3 top-2 text-on-surface-variant" style="font-size: 18px">search</span>
-          <input
-            [(ngModel)]="search"
-            (keyup.enter)="load(1)"
-            type="text"
+          <span class="material-symbols-outlined absolute left-3 top-2 text-on-surface-variant"
+            style="font-size: 18px">search</span>
+          <input [(ngModel)]="search" (keyup.enter)="load(1)" type="text"
             placeholder="Search by name, email, or user ID..."
-            class="w-full rounded-xl border-outline-variant bg-surface-container-low pl-9 pr-3 py-1.5 text-xs text-on-surface focus:outline-none"
-          />
+            class="w-full rounded-xl border-outline-variant bg-surface-container-low pl-9 pr-3 py-1.5 text-xs text-on-surface focus:outline-none" />
         </div>
       </div>
 
-      <select
-        [(ngModel)]="roleFilter"
-        (change)="load(1)"
-        class="rounded-xl border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-medium text-on-surface focus:outline-none"
-      >
+      <select aria-label="Role filter" [(ngModel)]="roleFilter" (change)="load(1)"
+        class="rounded-xl border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-medium text-on-surface focus:outline-none">
         <option value="">All Roles</option>
         <option *ngFor="let r of roles" [value]="r">{{ roleLabel(r) }}</option>
       </select>
 
-      <select
-        [(ngModel)]="statusFilter"
-        (change)="load(1)"
-        class="rounded-xl border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-medium text-on-surface focus:outline-none"
-      >
+      <select aria-label="Status filter" [(ngModel)]="statusFilter" (change)="load(1)"
+        class="rounded-xl border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-medium text-on-surface focus:outline-none">
         <option value="">Active & Inactive</option>
         <option value="active">Active Only</option>
         <option value="inactive">Inactive Only</option>
       </select>
 
-      <select
-        [(ngModel)]="verifiedFilter"
-        (change)="load(1)"
-        class="rounded-xl border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-medium text-on-surface focus:outline-none"
-      >
+      <select aria-label="Verification filter" [(ngModel)]="verifiedFilter" (change)="load(1)"
+        class="rounded-xl border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-medium text-on-surface focus:outline-none">
         <option value="">All Verification</option>
         <option value="verified">Verified Email</option>
         <option value="unverified">Unverified Email</option>
       </select>
 
-      <button
-        (click)="load(1)"
-        class="flex items-center gap-1 rounded-xl bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-sm hover:opacity-95 transition-opacity"
-      >
+      <button (click)="load(1)"
+        class="flex items-center gap-1 rounded-xl bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-sm hover:opacity-95 transition-opacity">
         <span class="material-symbols-outlined" style="font-size: 16px">search</span>
         Search
       </button>
@@ -179,7 +151,8 @@
   </div>
 
   <!-- Error State -->
-  <div *ngIf="!isLoading() && loadError()" class="rounded-2xl border border-error-container bg-error-container/20 p-6 text-center">
+  <div *ngIf="!isLoading() && loadError()"
+    class="rounded-2xl border border-error-container bg-error-container/20 p-6 text-center">
     <span class="material-symbols-outlined text-error" style="font-size: 36px">error_outline</span>
     <p class="mt-2 font-medium text-on-error-container">{{ loadError() }}</p>
     <button (click)="load(1)" class="mt-4 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary">
@@ -188,10 +161,12 @@
   </div>
 
   <!-- Main Enriched Data Table -->
-  <div *ngIf="!isLoading() && !loadError() && result" class="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xs">
+  <div *ngIf="!isLoading() && !loadError() && result"
+    class="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xs">
     <div class="overflow-x-auto">
       <table class="w-full text-left text-xs text-on-surface">
-        <thead class="border-b border-outline-variant bg-surface-container-low font-bold text-on-surface-variant uppercase tracking-wider text-[10px]">
+        <thead
+          class="border-b border-outline-variant bg-surface-container-low font-bold text-on-surface-variant uppercase tracking-wider text-[10px]">
           <tr>
             <th class="px-5 py-3.5">User Profile</th>
             <th class="px-4 py-3.5">Role</th>
@@ -208,21 +183,21 @@
               <p class="mt-2 font-medium">No user accounts found matching your search filters.</p>
             </td>
           </tr>
-          <tr
-            *ngFor="let user of result.items"
-            (click)="openDetail(user)"
-            class="hover:bg-surface-container-low transition-colors cursor-pointer group"
-          >
+          <tr *ngFor="let user of result.items" (click)="openDetail(user)"
+            class="hover:bg-surface-container-low transition-colors cursor-pointer group">
             <!-- User Profile Avatar & Name -->
             <td class="px-5 py-3.5">
               <div class="flex items-center gap-3">
-                <div [class]="'flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-bold text-xs ' + avatarBgClass(user.role)">
+                <div
+                  [class]="'flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-bold text-xs ' + avatarBgClass(user.role)">
                   {{ userInitials(user.fullName) }}
                 </div>
                 <div>
                   <div class="flex items-center gap-1.5">
-                    <p class="font-bold text-on-surface text-xs group-hover:text-primary transition-colors">{{ user.fullName }}</p>
-                    <span *ngIf="isSelf(user.id)" class="rounded bg-purple-100 px-1.5 py-0.2 text-[10px] font-bold text-purple-800 border border-purple-200">You</span>
+                    <p class="font-bold text-on-surface text-xs group-hover:text-primary transition-colors">{{
+                      user.fullName }}</p>
+                    <span *ngIf="isSelf(user.id)"
+                      class="rounded bg-purple-100 px-1.5 py-0.2 text-[10px] font-bold text-purple-800 border border-purple-200">You</span>
                   </div>
                   <p class="text-on-surface-variant text-[11px] font-medium">{{ user.email }}</p>
                 </div>
@@ -231,25 +206,23 @@
 
             <!-- Role Badge -->
             <td class="px-4 py-3.5">
-              <span [class]="'inline-flex items-center rounded-lg px-2.5 py-1 text-[11px] ' + roleBadgeClass(user.role)">
+              <span
+                [class]="'inline-flex items-center rounded-lg px-2.5 py-1 text-[11px] ' + roleBadgeClass(user.role)">
                 {{ roleLabel(user.role) }}
               </span>
             </td>
 
             <!-- Status Pill -->
             <td class="px-4 py-3.5">
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border"
-                [class.bg-emerald-50]="user.isActive"
-                [class.text-emerald-700]="user.isActive"
-                [class.border-emerald-200]="user.isActive"
-                [class.bg-red-50]="!user.isActive"
-                [class.text-red-700]="!user.isActive"
-                [class.border-red-200]="!user.isActive"
-              >
+              <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border"
+                [class.bg-emerald-50]="user.isActive" [class.text-emerald-700]="user.isActive"
+                [class.border-emerald-200]="user.isActive" [class.bg-red-50]="!user.isActive"
+                [class.text-red-700]="!user.isActive" [class.border-red-200]="!user.isActive">
                 <span class="relative flex h-2 w-2">
-                  <span *ngIf="user.isActive" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2" [class.bg-emerald-500]="user.isActive" [class.bg-red-500]="!user.isActive"></span>
+                  <span *ngIf="user.isActive"
+                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2" [class.bg-emerald-500]="user.isActive"
+                    [class.bg-red-500]="!user.isActive"></span>
                 </span>
                 {{ user.isActive ? 'Active' : 'Deactivated' }}
               </span>
@@ -257,11 +230,13 @@
 
             <!-- Auth Provider -->
             <td class="px-4 py-3.5">
-              <span *ngIf="user.provider === 'Google'" class="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-1 rounded-lg">
+              <span *ngIf="user.provider === 'Google'"
+                class="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-1 rounded-lg">
                 <span class="material-symbols-outlined text-xs">g_translate</span>
                 Google OAuth
               </span>
-              <span *ngIf="user.provider !== 'Google'" class="inline-flex items-center gap-1 text-[11px] font-semibold text-on-surface-variant bg-surface-container-high border border-outline-variant/60 px-2.5 py-1 rounded-lg">
+              <span *ngIf="user.provider !== 'Google'"
+                class="inline-flex items-center gap-1 text-[11px] font-semibold text-on-surface-variant bg-surface-container-high border border-outline-variant/60 px-2.5 py-1 rounded-lg">
                 <span class="material-symbols-outlined text-xs">key</span>
                 Email & Password
               </span>
@@ -274,10 +249,8 @@
 
             <!-- Action Button -->
             <td class="px-5 py-3.5 text-right">
-              <button
-                (click)="$event.stopPropagation(); openDetail(user)"
-                class="inline-flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-primary group-hover:bg-primary-container/20 group-hover:border-primary transition-all shadow-2xs"
-              >
+              <button (click)="$event.stopPropagation(); openDetail(user)"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-primary group-hover:bg-primary-container/20 group-hover:border-primary transition-all shadow-2xs">
                 <span class="material-symbols-outlined text-xs">visibility</span>
                 Inspect User
               </button>
@@ -288,21 +261,16 @@
     </div>
 
     <!-- Pagination Footer -->
-    <div *ngIf="result && result.totalPages > 1" class="flex items-center justify-between border-t border-outline-variant px-5 py-3.5 bg-surface-container-low text-xs text-on-surface-variant font-medium">
+    <div *ngIf="result && result.totalPages > 1"
+      class="flex items-center justify-between border-t border-outline-variant px-5 py-3.5 bg-surface-container-low text-xs text-on-surface-variant font-medium">
       <span>Page {{ result.page }} of {{ result.totalPages }}</span>
       <div class="flex items-center gap-2">
-        <button
-          [disabled]="result.page <= 1"
-          (click)="load(result.page - 1)"
-          class="rounded-xl border border-outline-variant bg-surface px-3.5 py-1.5 font-semibold text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-40"
-        >
+        <button [disabled]="result.page <= 1" (click)="load(result.page - 1)"
+          class="rounded-xl border border-outline-variant bg-surface px-3.5 py-1.5 font-semibold text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-40">
           Previous
         </button>
-        <button
-          [disabled]="result.page >= result.totalPages"
-          (click)="load(result.page + 1)"
-          class="rounded-xl border border-outline-variant bg-surface px-3.5 py-1.5 font-semibold text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-40"
-        >
+        <button [disabled]="result.page >= result.totalPages" (click)="load(result.page + 1)"
+          class="rounded-xl border border-outline-variant bg-surface px-3.5 py-1.5 font-semibold text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-40">
           Next
         </button>
       </div>
@@ -316,26 +284,32 @@
       <div class="fixed inset-0 bg-black/50 backdrop-blur-xs" (click)="closeDetail()"></div>
 
       <!-- Centered Modal Content Card -->
-      <div class="relative w-full max-w-3xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-2xl space-y-6">
+      <div
+        class="relative w-full max-w-3xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-2xl space-y-6">
         <!-- Profile Header Banner -->
         <div class="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant pb-4">
           <div class="flex items-center gap-4">
-            <div [class]="'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-bold ' + avatarBgClass(selectedUser.role)">
+            <div
+              [class]="'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-bold ' + avatarBgClass(selectedUser.role)">
               {{ userInitials(selectedUser.fullName) }}
             </div>
             <div>
               <div class="flex items-center gap-2">
                 <h2 class="font-heading text-lg font-bold text-on-surface">{{ selectedUser.fullName }}</h2>
-                <span [class]="'inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs ' + roleBadgeClass(selectedUser.role)">
+                <span
+                  [class]="'inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs ' + roleBadgeClass(selectedUser.role)">
                   {{ roleLabel(selectedUser.role) }}
                 </span>
-                <span *ngIf="isSelf(selectedUser.id)" class="rounded bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-800 border border-purple-200">You (Current Admin)</span>
+                <span *ngIf="isSelf(selectedUser.id)"
+                  class="rounded bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-800 border border-purple-200">You
+                  (Current Admin)</span>
               </div>
 
               <div class="mt-1 flex flex-wrap items-center gap-3 text-xs text-on-surface-variant font-medium">
                 <span>{{ selectedUser.email }}</span>
                 <span>&bull;</span>
-                <span class="font-bold" [class.text-emerald-700]="selectedUser.isActive" [class.text-red-700]="!selectedUser.isActive">
+                <span class="font-bold" [class.text-emerald-700]="selectedUser.isActive"
+                  [class.text-red-700]="!selectedUser.isActive">
                   {{ selectedUser.isActive ? 'Active Account' : 'Deactivated' }}
                 </span>
                 <span>&bull;</span>
@@ -344,62 +318,50 @@
             </div>
           </div>
 
-          <button (click)="closeDetail()" aria-label="Close modal" class="rounded-xl p-2 text-on-surface-variant hover:bg-surface-container-high transition-colors">
+          <button (click)="closeDetail()" aria-label="Close modal"
+            class="rounded-xl p-2 text-on-surface-variant hover:bg-surface-container-high transition-colors">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
 
         <!-- Tabbed Navigation Header Bar -->
         <div class="flex items-center gap-2 border-b border-outline-variant/60 pb-2">
-          <button
-            (click)="activeModalTab = 'overview'"
-            [class.bg-primary]="activeModalTab === 'overview'"
+          <button (click)="activeModalTab = 'overview'" [class.bg-primary]="activeModalTab === 'overview'"
             [class.text-on-primary]="activeModalTab === 'overview'"
             [class.bg-surface-container-high]="activeModalTab !== 'overview'"
-            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors"
-          >
+            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors">
             Overview & Identity
           </button>
-          <button
-            (click)="activeModalTab = 'activity'"
-            [class.bg-primary]="activeModalTab === 'activity'"
+          <button (click)="activeModalTab = 'activity'" [class.bg-primary]="activeModalTab === 'activity'"
             [class.text-on-primary]="activeModalTab === 'activity'"
             [class.bg-surface-container-high]="activeModalTab !== 'activity'"
-            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors"
-          >
+            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors">
             Travel & Activity
           </button>
-          <button
-            (click)="activeModalTab = 'role'"
-            [class.bg-primary]="activeModalTab === 'role'"
+          <button (click)="activeModalTab = 'role'" [class.bg-primary]="activeModalTab === 'role'"
             [class.text-on-primary]="activeModalTab === 'role'"
             [class.bg-surface-container-high]="activeModalTab !== 'role'"
-            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors"
-          >
+            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors">
             Role & Privileges
           </button>
-          <button
-            (click)="activeModalTab = 'security'"
-            [class.bg-primary]="activeModalTab === 'security'"
+          <button (click)="activeModalTab = 'security'" [class.bg-primary]="activeModalTab === 'security'"
             [class.text-on-primary]="activeModalTab === 'security'"
             [class.bg-surface-container-high]="activeModalTab !== 'security'"
-            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors"
-          >
+            class="rounded-xl px-4 py-2 text-xs font-bold transition-colors">
             Security & Controls
           </button>
         </div>
 
         <!-- TAB 1: OVERVIEW & IDENTITY -->
         <div *ngIf="activeModalTab === 'overview'" class="space-y-4 text-xs">
-          <div class="flex items-center justify-between rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5">
+          <div
+            class="flex items-center justify-between rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5">
             <div>
               <p class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Internal User ID</p>
               <p class="font-mono text-xs font-bold text-on-surface mt-0.5">{{ selectedUser.id }}</p>
             </div>
-            <button
-              (click)="copyUserId(selectedUser.id)"
-              class="flex items-center gap-1 rounded-xl border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-container/20 transition-colors shadow-2xs"
-            >
+            <button (click)="copyUserId(selectedUser.id)"
+              class="flex items-center gap-1 rounded-xl border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-container/20 transition-colors shadow-2xs">
               <span class="material-symbols-outlined text-xs">content_copy</span>
               Copy ID
             </button>
@@ -409,17 +371,21 @@
             <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 space-y-1">
               <p class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Email Verification</p>
               <div class="flex items-center gap-2 mt-1">
-                <span class="material-symbols-outlined text-base" [class.text-emerald-600]="selectedUser.isEmailVerified" [class.text-amber-600]="!selectedUser.isEmailVerified">
+                <span class="material-symbols-outlined text-base"
+                  [class.text-emerald-600]="selectedUser.isEmailVerified"
+                  [class.text-amber-600]="!selectedUser.isEmailVerified">
                   {{ selectedUser.isEmailVerified ? 'verified' : 'pending' }}
                 </span>
-                <span class="font-bold text-xs" [class.text-emerald-800]="selectedUser.isEmailVerified" [class.text-amber-800]="!selectedUser.isEmailVerified">
+                <span class="font-bold text-xs" [class.text-emerald-800]="selectedUser.isEmailVerified"
+                  [class.text-amber-800]="!selectedUser.isEmailVerified">
                   {{ selectedUser.isEmailVerified ? 'Verified Email Identity' : 'Unverified Email Address' }}
                 </span>
               </div>
             </div>
 
             <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5 space-y-1">
-              <p class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Authentication Provider</p>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Authentication Provider
+              </p>
               <div class="flex items-center gap-2 mt-1">
                 <span class="material-symbols-outlined text-base text-blue-600">lock</span>
                 <span class="font-bold text-xs text-on-surface">
@@ -441,7 +407,8 @@
 
             <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 text-center">
               <span class="material-symbols-outlined text-amber-600 text-2xl">badge</span>
-              <p class="mt-2 font-heading text-2xl font-bold text-on-surface">{{ selectedUser.visaApplicationsCount }}</p>
+              <p class="mt-2 font-heading text-2xl font-bold text-on-surface">{{ selectedUser.visaApplicationsCount }}
+              </p>
               <p class="text-[11px] font-semibold text-on-surface-variant">Visa Applications</p>
             </div>
 
@@ -452,16 +419,15 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-between rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5">
+          <div
+            class="flex items-center justify-between rounded-xl border border-outline-variant/60 bg-surface-container-low p-3.5">
             <div>
               <p class="font-bold text-on-surface">Audit Trail Inspection</p>
-              <p class="text-[11px] text-on-surface-variant">Search all recorded administrative actions for this user.</p>
+              <p class="text-[11px] text-on-surface-variant">Search all recorded administrative actions for this user.
+              </p>
             </div>
-            <a
-              routerLink="/admin/audit-logs"
-              (click)="closeDetail()"
-              class="flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-container/20 transition-colors shadow-2xs"
-            >
+            <a routerLink="/admin/audit-logs" (click)="closeDetail()"
+              class="flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-container/20 transition-colors shadow-2xs">
               <span class="material-symbols-outlined text-xs">history_edu</span>
               Open Audit Logs &rarr;
             </a>
@@ -470,32 +436,34 @@
 
         <!-- TAB 3: ROLE & PRIVILEGES -->
         <div *ngIf="activeModalTab === 'role'" class="space-y-4 text-xs">
-          <p *ngIf="isSelf(selectedUser.id)" class="rounded-xl border border-amber-300 bg-amber-50 p-3 font-semibold text-amber-900">
+          <p *ngIf="isSelf(selectedUser.id)"
+            class="rounded-xl border border-amber-300 bg-amber-50 p-3 font-semibold text-amber-900">
             Self-demotion protection active: You cannot remove your own Admin role.
           </p>
 
           <div class="space-y-2">
             <label class="font-bold text-on-surface">Assign System Role Privilege:</label>
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
-              <button
-                *ngFor="let r of assignableRoles"
+              <button *ngFor="let r of assignableRoles"
                 [disabled]="selectedUser.role === r || (isSelf(selectedUser.id) && r !== 'Admin')"
                 (click)="confirmingRoleChange = r"
                 class="rounded-xl border border-outline-variant px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-40"
-                [class.bg-primary]="selectedUser.role === r"
-                [class.text-on-primary]="selectedUser.role === r"
-                [class.hover:bg-surface-container-high]="selectedUser.role !== r"
-              >
+                [class.bg-primary]="selectedUser.role === r" [class.text-on-primary]="selectedUser.role === r"
+                [class.hover:bg-surface-container-high]="selectedUser.role !== r">
                 {{ roleLabel(r) }}
               </button>
             </div>
 
             <!-- Inline Role Change Confirmation -->
-            <div *ngIf="confirmingRoleChange" class="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-amber-950">
+            <div *ngIf="confirmingRoleChange"
+              class="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-amber-950">
               <p class="font-bold">Confirm role change to {{ roleLabel(confirmingRoleChange) }}?</p>
               <div class="mt-2 flex items-center justify-end gap-2">
-                <button (click)="confirmingRoleChange = null" class="rounded-lg px-3 py-1 font-semibold text-gray-700 hover:bg-gray-200">Cancel</button>
-                <button (click)="changeRole(confirmingRoleChange!)" class="rounded-lg bg-amber-700 px-3.5 py-1 font-bold text-white hover:bg-amber-800">Confirm Change</button>
+                <button (click)="confirmingRoleChange = null"
+                  class="rounded-lg px-3 py-1 font-semibold text-gray-700 hover:bg-gray-200">Cancel</button>
+                <button (click)="changeRole(confirmingRoleChange!)"
+                  class="rounded-lg bg-amber-700 px-3.5 py-1 font-bold text-white hover:bg-amber-800">Confirm
+                  Change</button>
               </div>
             </div>
           </div>
@@ -504,39 +472,28 @@
         <!-- TAB 4: SECURITY & CONTROLS -->
         <div *ngIf="activeModalTab === 'security'" class="space-y-3 text-xs">
           <!-- Verify Email Action -->
-          <button
-            *ngIf="!selectedUser.isEmailVerified"
-            (click)="verifyEmail()"
-            [disabled]="isActionPending()"
-            class="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 font-bold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
-          >
+          <button *ngIf="!selectedUser.isEmailVerified" (click)="verifyEmail()" [disabled]="isActionPending()"
+            class="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 font-bold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50 transition-colors">
             <span class="material-symbols-outlined" style="font-size: 18px">mark_email_read</span>
             Manually Verify Email Address
           </button>
 
           <!-- Force Password Reset -->
-          <button
-            (click)="forcePasswordReset()"
-            [disabled]="isActionPending()"
-            class="w-full flex items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface-container-low px-4 py-2.5 font-bold text-on-surface hover:bg-surface-container-high disabled:opacity-50 transition-colors"
-          >
+          <button (click)="forcePasswordReset()" [disabled]="isActionPending()"
+            class="w-full flex items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface-container-low px-4 py-2.5 font-bold text-on-surface hover:bg-surface-container-high disabled:opacity-50 transition-colors">
             <span class="material-symbols-outlined" style="font-size: 18px">lock_reset</span>
             Force Password Reset Email
           </button>
 
           <!-- Deactivate / Activate Account Button -->
-          <button
-            *ngIf="!confirmingDeactivate"
+          <button *ngIf="!confirmingDeactivate"
             (click)="isSelf(selectedUser.id) ? toggleStatus() : confirmingDeactivate = true"
             [disabled]="isActionPending()"
             class="w-full flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 font-bold transition-colors disabled:opacity-50"
-            [class.border-error]="selectedUser.isActive"
-            [class.text-error]="selectedUser.isActive"
+            [class.border-error]="selectedUser.isActive" [class.text-error]="selectedUser.isActive"
             [class.hover:bg-error-container/20]="selectedUser.isActive"
-            [class.border-emerald-300]="!selectedUser.isActive"
-            [class.text-emerald-800]="!selectedUser.isActive"
-            [class.bg-emerald-50]="!selectedUser.isActive"
-          >
+            [class.border-emerald-300]="!selectedUser.isActive" [class.text-emerald-800]="!selectedUser.isActive"
+            [class.bg-emerald-50]="!selectedUser.isActive">
             <span class="material-symbols-outlined" style="font-size: 18px">
               {{ selectedUser.isActive ? 'block' : 'check_circle' }}
             </span>
@@ -548,15 +505,19 @@
             <p class="font-bold text-sm">Deactivate {{ selectedUser.fullName }}?</p>
             <p class="mt-1 text-xs">They will be signed out immediately and blocked from signing in.</p>
             <div class="mt-3 flex items-center justify-end gap-2">
-              <button (click)="confirmingDeactivate = false" class="rounded-lg px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-200">Cancel</button>
-              <button (click)="toggleStatus()" class="rounded-lg bg-red-700 px-4 py-1.5 font-bold text-white hover:bg-red-800">Confirm Deactivation</button>
+              <button (click)="confirmingDeactivate = false"
+                class="rounded-lg px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-200">Cancel</button>
+              <button (click)="toggleStatus()"
+                class="rounded-lg bg-red-700 px-4 py-1.5 font-bold text-white hover:bg-red-800">Confirm
+                Deactivation</button>
             </div>
           </div>
         </div>
 
         <!-- Footer Actions -->
         <div class="flex justify-end pt-2 border-t border-outline-variant">
-          <button (click)="closeDetail()" class="rounded-xl bg-surface-container-high px-5 py-2 text-xs font-bold text-on-surface hover:bg-surface-container-highest transition-colors">
+          <button (click)="closeDetail()"
+            class="rounded-xl bg-surface-container-high px-5 py-2 text-xs font-bold text-on-surface hover:bg-surface-container-highest transition-colors">
             Close Inspector
           </button>
         </div>

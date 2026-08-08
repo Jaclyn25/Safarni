@@ -21,6 +21,7 @@ using Safarni.Infrastructure.Persistence;
 using Safarni.Infrastructure.Repositories;
 using Safarni.Infrastructure.Security;
 using Safarni.Infrastructure.Storage;
+using Safarni.Infrastructure.Notifications;
 using Safarni.Application.Abstractions.Travel;
 using Safarni.Infrastructure.Travel;
 using Safarni.Infrastructure.BackgroundJobs;
@@ -62,9 +63,15 @@ public static class DependencyInjection
             IItineraryGenerationJobRepository,
             ItineraryGenerationJobRepository>();
         services.AddScoped<IAdminRepository, AdminRepository>();
+        services.AddScoped<ITravelAgencyRepository, TravelAgencyRepository>();
+        services.AddScoped<IUserNotificationRepository, UserNotificationRepository>();
+        services.AddScoped<IMarketplaceNotificationService, MarketplaceNotificationService>();
 
         services.AddScoped<IPasswordHasher, PasswordHasherService>();
         services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddScoped<
+            ITravelAgencyAuthorizationService,
+            TravelAgencyAuthorizationService>();
 
         services.AddScoped<IAuditLogWriter, AuditLogWriter>();
         services.AddScoped<IAIRequestLogWriter, AIRequestLogWriter>();
@@ -80,7 +87,11 @@ public static class DependencyInjection
         services.AddSingleton<IItineraryLinkFactory, ItineraryLinkFactory>();
         services.AddScoped<ITravelNotificationService, TravelNotificationService>();
         services.AddScoped<IProfilePhotoStorage, LocalProfilePhotoStorage>();
+        services.AddScoped<
+            IAgencyVerificationDocumentStorage,
+            LocalAgencyVerificationDocumentStorage>();
         services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
+        services.AddScoped<MarketplaceTestDataSeeder>();
 
         services.AddHttpClient<
             IItineraryTravelDataService,

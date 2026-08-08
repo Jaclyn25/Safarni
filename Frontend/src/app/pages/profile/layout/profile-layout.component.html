@@ -12,7 +12,7 @@
     <nav class="sidenav__nav">
       <a
         *ngFor="let item of navItems"
-        [routerLink]="['/profile', item.path]"
+        [routerLink]="item.path.startsWith('/') ? item.path : ['/profile', item.path]"
         class="sidenav__link"
         routerLinkActive="sidenav__link--active"
         [routerLinkActiveOptions]="{ exact: true }"

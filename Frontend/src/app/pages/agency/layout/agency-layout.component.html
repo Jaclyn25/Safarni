@@ -1,0 +1,49 @@
+<div class="agency-shell">
+  <header class="agency-mobile-header">
+    <a routerLink="/agency" class="agency-brand">
+      <img src="assets/logo.svg" alt="Safarni" />
+      <span>Agency Portal</span>
+    </a>
+    <button type="button" (click)="mobileMenuOpen.set(!mobileMenuOpen())" aria-label="Toggle agency navigation">
+      <span class="material-symbols-outlined">{{ mobileMenuOpen() ? 'close' : 'menu' }}</span>
+    </button>
+  </header>
+
+  <aside class="agency-sidebar" [class.agency-sidebar--open]="mobileMenuOpen()">
+    <div class="agency-sidebar__top">
+      <a routerLink="/agency" class="agency-brand" (click)="mobileMenuOpen.set(false)">
+        <img src="assets/logo.svg" alt="Safarni" />
+        <div><strong>Safarni</strong><span>Agency Portal</span></div>
+      </a>
+
+      <div class="agency-account">
+        <span class="agency-account__avatar">{{ initials }}</span>
+        <div><strong>{{ currentUser?.fullName || 'Agency Manager' }}</strong><span>{{ currentUser?.email }}</span></div>
+      </div>
+
+      <nav aria-label="Agency portal navigation">
+        @for (item of navItems; track item.path) {
+        <a [routerLink]="item.path" routerLinkActive="agency-nav-link--active"
+          [routerLinkActiveOptions]="{ exact: item.exact }" class="agency-nav-link"
+          (click)="mobileMenuOpen.set(false)">
+          <span class="material-symbols-outlined">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+        }
+      </nav>
+    </div>
+
+    <div class="agency-sidebar__footer">
+      <a routerLink="/" class="agency-nav-link"><span class="material-symbols-outlined">travel_explore</span><span>View Safarni</span></a>
+      <button type="button" class="agency-nav-link agency-nav-link--danger" (click)="logout()">
+        <span class="material-symbols-outlined">logout</span><span>Sign out</span>
+      </button>
+    </div>
+  </aside>
+
+  @if (mobileMenuOpen()) {
+  <button class="agency-backdrop" type="button" aria-label="Close agency navigation" (click)="mobileMenuOpen.set(false)"></button>
+  }
+
+  <main class="agency-content"><router-outlet /></main>
+</div>

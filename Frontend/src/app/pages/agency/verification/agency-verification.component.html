@@ -1,0 +1,30 @@
+<div class="agency-page">
+  <header class="agency-page-header"><div><span class="agency-eyebrow">Trust & verification</span><h1>Company documents</h1><p>Upload the three required business documents. Files remain private and are available only to your agency and authorized Safarni administrators.</p></div></header>
+  @if (isLoading()) { <div class="agency-loading"><span></span><p>Loading secure documents…</p></div> }
+  @else if (verification) {
+  <section class="verification-summary" [attr.data-status]="verification.verificationStatus">
+    <div class="verification-summary__status"><span class="material-symbols-outlined">{{ verification.canPublishPackages ? 'verified' : 'policy' }}</span><div><small>Current status</small><strong>{{ statusLabel(verification.verificationStatus) }}</strong></div></div>
+    <div class="verification-summary__progress"><div><span>Document progress</span><strong>{{ verification.uploadedDocumentCount }}/{{ verification.requiredDocumentCount }}</strong></div><div class="agency-progress"><span [style.width.%]="verification.uploadedDocumentCount / verification.requiredDocumentCount * 100"></span></div></div>
+    <div class="verification-summary__publishing"><small>Package publishing</small><strong>{{ verification.canPublishPackages ? 'Available' : 'Locked until verified' }}</strong></div>
+  </section>
+  @if (verification.decisionReason && verification.verificationStatus !== 'Verified') { <div class="agency-alert agency-alert--info"><span class="material-symbols-outlined">rate_review</span><div><strong>Administrator feedback</strong><p>{{ verification.decisionReason }}</p></div></div> }
+  @if (error()) { <div class="agency-alert agency-alert--error" role="alert"><span class="material-symbols-outlined">error</span><div><strong>Action needed</strong><p>{{ error() }}</p></div></div> }
+  @if (success()) { <div class="agency-alert agency-alert--success" role="status"><span class="material-symbols-outlined">check_circle</span><div><strong>Saved</strong><p>{{ success() }}</p></div></div> }
+  <div class="document-grid">
+    @for (document of verification.documents; track document.documentType) {
+    <article class="document-card" [class.document-card--complete]="document.reviewStatus === 'Approved'" [class.document-card--declined]="document.reviewStatus === 'Declined' && document.isUploaded">
+      <header><span class="document-card__icon material-symbols-outlined">{{ document.documentType === 'TaxCard' ? 'receipt_long' : document.documentType === 'TourismCompanyLicense' ? 'workspace_premium' : 'domain_verification' }}</span><div><h2>{{ document.displayName }}</h2><span class="document-state" [attr.data-state]="documentStatus(document)"><span class="material-symbols-outlined">{{ documentStatusIcon(document) }}</span>{{ documentStatus(document) }}</span></div></header>
+      @if (document.reviewStatus === 'Declined' && document.reviewReason) { <div class="document-feedback"><span class="material-symbols-outlined">report</span><div><strong>Changes required</strong><p>{{ document.reviewReason }}</p></div></div> }
+      @if (document.isUploaded) { <div class="document-current"><span class="material-symbols-outlined">lock</span><div><strong>{{ document.originalFileName }}</strong><small>{{ formatSize(document.fileSizeBytes) }} · Uploaded {{ document.uploadedAt | date:'mediumDate' }}</small></div><button type="button" (click)="open(document.documentType)" [disabled]="busyType() === document.documentType">View</button></div> }
+      <form (ngSubmit)="upload(document.documentType)" novalidate>
+        <label>Document number <span>*</span><input type="text" [(ngModel)]="drafts[document.documentType].documentNumber" [name]="document.documentType + '-number'" maxlength="100" placeholder="Enter the official document number" required /></label>
+        <label>Expiry date <small>Optional</small><input type="date" [(ngModel)]="drafts[document.documentType].expiryDate" [name]="document.documentType + '-expiry'" /></label>
+        <label class="document-file"><span class="material-symbols-outlined">upload_file</span><span><strong>{{ drafts[document.documentType].file?.name || (document.isUploaded ? 'Choose a replacement file' : 'Choose document file') }}</strong><small>PDF, JPG or PNG · Maximum 10 MB</small></span><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="selectFile(document.documentType, $event)" /></label>
+        <div class="document-actions"><button class="agency-button" type="submit" [disabled]="busyType() !== null || !drafts[document.documentType].file"><span class="material-symbols-outlined">{{ busyType() === document.documentType ? 'progress_activity' : 'cloud_upload' }}</span>{{ document.isUploaded ? 'Replace document' : 'Upload document' }}</button>@if (document.isUploaded) { <button class="agency-button agency-button--danger" type="button" [disabled]="busyType() !== null" (click)="remove(document.documentType)">Remove</button> }</div>
+      </form>
+    </article>
+    }
+  </div>
+  <aside class="privacy-note"><span class="material-symbols-outlined">shield_lock</span><div><strong>Your documents are private</strong><p>They are stored outside the public website and downloaded only through authenticated, ownership-checked endpoints.</p></div></aside>
+  }
+</div>

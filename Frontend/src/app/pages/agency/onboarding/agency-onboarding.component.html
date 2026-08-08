@@ -1,0 +1,49 @@
+<main class="onboarding-page">
+  <section class="onboarding-aside">
+    <a routerLink="/" class="onboarding-brand"><img src="assets/logo.svg" alt="Safarni" /></a>
+    <div class="onboarding-aside__copy">
+      <span>Agency onboarding</span>
+      <h1>Tell travelers who you are.</h1>
+      <p>Your email is verified. Complete one focused company profile, then submit your legal documents for review.</p>
+      <ol>
+        <li class="done"><span class="material-symbols-outlined">check</span><div><strong>Account created</strong><small>Your sign-in is secured</small></div></li>
+        <li class="active"><span>2</span><div><strong>Company profile</strong><small>Business details and contact information</small></div></li>
+        <li><span>3</span><div><strong>Document verification</strong><small>Commercial and tourism records</small></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="onboarding-form-shell">
+    @if (isChecking()) {
+      <div class="onboarding-loading"><span></span><p>Preparing your company setup...</p></div>
+    } @else {
+      <header>
+        <span>Step 2 of 3</span>
+        <h2>Company details</h2>
+        <p>Use the same legal information shown on your verification documents.</p>
+      </header>
+
+      @if (error()) {
+        <div class="onboarding-error" role="alert"><span class="material-symbols-outlined">error</span><p>{{ error() }}</p></div>
+      }
+
+      <form (ngSubmit)="submit()" novalidate>
+        <label class="wide">Legal company name <span>*</span><input [(ngModel)]="companyName" name="companyName" maxlength="200" autocomplete="organization" placeholder="e.g. Nile Horizon Travel" required /></label>
+        <label class="wide">Company description <span>*</span><textarea [(ngModel)]="description" name="description" maxlength="2000" rows="4" placeholder="Describe your services, destinations, and experience" required></textarea><small>{{ description.length }}/2000</small></label>
+        <label class="wide">Registered address <span>*</span><input [(ngModel)]="address" name="address" maxlength="500" autocomplete="street-address" required /></label>
+        <label>City <span>*</span><input [(ngModel)]="city" name="city" maxlength="100" autocomplete="address-level2" required /></label>
+        <label>Country <span>*</span><input [(ngModel)]="country" name="country" maxlength="100" autocomplete="country-name" required /></label>
+        <label>Company phone <span>*</span><input [(ngModel)]="companyPhone" name="companyPhone" maxlength="30" type="tel" autocomplete="tel" required /></label>
+        <label>Website or social page<input [(ngModel)]="websiteUrl" name="websiteUrl" maxlength="500" type="url" placeholder="https://" autocomplete="url" /></label>
+        <label class="wide">Company logo URL <small>Optional</small><input [(ngModel)]="logoUrl" name="logoUrl" maxlength="500" type="url" placeholder="https://" /></label>
+
+        <div class="onboarding-actions wide">
+          <button type="button" class="secondary" (click)="logout()">Sign out</button>
+          <button type="submit" class="primary" [disabled]="isSaving()">
+            @if (isSaving()) { <span class="spinner"></span> Saving company... } @else { Continue to verification <span class="material-symbols-outlined">arrow_forward</span> }
+          </button>
+        </div>
+      </form>
+    }
+  </section>
+</main>

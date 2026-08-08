@@ -50,6 +50,9 @@ public sealed class TravelAgencyConfiguration
             .HasDefaultValue(AgencyVerificationStatus.Pending)
             .IsRequired();
 
+        builder.Property(agency => agency.VerificationDecisionReason)
+            .HasMaxLength(1000);
+
         builder.Property(agency => agency.CreatedAt)
             .IsRequired();
 
@@ -65,5 +68,7 @@ public sealed class TravelAgencyConfiguration
             .IsUnique();
 
         builder.HasIndex(agency => agency.VerificationStatus);
+
+        builder.HasIndex(agency => agency.VerificationReviewedByUserId);
     }
 }

@@ -49,7 +49,7 @@
       </a>
     </div>
 
-    <div class="w-full space-y-stack-lg register-form-shell" [class.register-form-shell--agency]="isAgencyRegistration">
+    <div class="w-full space-y-stack-lg register-form-shell">
       <!-- Header -->
       <div class="text-left">
         <a routerLink="/"
@@ -65,8 +65,7 @@
 
         <p class="font-body-md text-body-md text-on-surface-variant mt-1">
           @if (isAgencyRegistration) {
-          Create your company account. Your agency will start with Pending
-          verification status.
+          Create your manager account first. Company details come after email verification.
           } @else {
           Please enter your details to create an account.
           }
@@ -173,7 +172,7 @@
         <span class="material-symbols-outlined" aria-hidden="true">verified_user</span>
         <div>
           <strong>Verification required before publishing</strong>
-          <p>You can sign in after email verification, upload company documents, and follow your review status.</p>
+          <p>First create and verify your manager account. You will enter company details on a focused second step.</p>
         </div>
       </div>
       }
@@ -235,7 +234,7 @@
           <span class="form-section-heading__number">1</span>
           <div>
             <h3>Account details</h3>
-            <p>Information for the responsible company representative.</p>
+            <p>Create the responsible manager account. No company form is required yet.</p>
           </div>
         </div>
         }
@@ -445,71 +444,6 @@
             </span>
           </div>
         </div>
-
-        @if (isAgencyRegistration) {
-        <section class="agency-company-section" aria-labelledby="company-details-heading">
-          <div class="form-section-heading">
-            <span class="form-section-heading__number">2</span>
-            <div>
-              <h3 id="company-details-heading">Company details</h3>
-              <p>Public business information used during Safarni's verification review.</p>
-            </div>
-          </div>
-
-          <div class="agency-fields-grid">
-            <div class="agency-field agency-field--wide">
-              <label for="company-name">Company Name <span aria-hidden="true">*</span></label>
-              <input id="company-name" type="text" [(ngModel)]="companyName" name="companyName"
-                autocomplete="organization" maxlength="200" (input)="dismissError()" required />
-            </div>
-
-            <div class="agency-field agency-field--wide">
-              <label for="company-description">Company Description <span aria-hidden="true">*</span></label>
-              <textarea id="company-description" [(ngModel)]="companyDescription" name="companyDescription"
-                maxlength="2000" rows="4" (input)="dismissError()" required></textarea>
-              <small>{{ companyDescription.length }}/2000</small>
-            </div>
-
-            <div class="agency-field agency-field--wide">
-              <label for="company-address">Company Address <span aria-hidden="true">*</span></label>
-              <input id="company-address" type="text" [(ngModel)]="companyAddress" name="companyAddress"
-                autocomplete="street-address" maxlength="500" (input)="dismissError()" required />
-            </div>
-
-            <div class="agency-field">
-              <label for="company-city">City <span aria-hidden="true">*</span></label>
-              <input id="company-city" type="text" [(ngModel)]="companyCity" name="companyCity"
-                autocomplete="address-level2" maxlength="100" (input)="dismissError()" required />
-            </div>
-
-            <div class="agency-field">
-              <label for="company-country">Country <span aria-hidden="true">*</span></label>
-              <input id="company-country" type="text" [(ngModel)]="companyCountry" name="companyCountry"
-                autocomplete="country-name" maxlength="100" (input)="dismissError()" required />
-            </div>
-
-            <div class="agency-field">
-              <label for="company-phone">Company Phone <span aria-hidden="true">*</span></label>
-              <input id="company-phone" type="tel" [(ngModel)]="companyPhone" name="companyPhone"
-                autocomplete="tel" maxlength="30" (input)="dismissError()" required />
-            </div>
-
-            <div class="agency-field">
-              <label for="company-website">Website or Social Link</label>
-              <input id="company-website" type="url" [(ngModel)]="companyWebsiteUrl" name="companyWebsiteUrl"
-                autocomplete="url" maxlength="500" placeholder="https://agency.example.com"
-                (input)="dismissError()" />
-            </div>
-
-            <div class="agency-field agency-field--wide">
-              <label for="company-logo">Company Logo URL</label>
-              <input id="company-logo" type="url" [(ngModel)]="companyLogoUrl" name="companyLogoUrl"
-                maxlength="500" placeholder="https://cdn.example.com/logo.png" (input)="dismissError()" />
-              <small>Optional for signup. You can update the company logo later from the agency profile.</small>
-            </div>
-          </div>
-        </section>
-        }
 
         <!-- Terms and Privacy -->
         <div class="flex items-start gap-3 mt-4">

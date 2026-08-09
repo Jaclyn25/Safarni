@@ -7,7 +7,6 @@ export interface QuickInfo {
   bestTimeToVisit: string;
   avgBudget: string;
   suggestedLength: string;
-  visaRequirement: string;
   currency: string;
   language: string;
   safetyLevel: string;
@@ -92,12 +91,11 @@ export class DestinationComponent implements OnInit {
       description: 'The ultimate tropical sanctuary in the Indian Ocean, famous for turquoise lagoons, coral reefs, underwater dining, and world-class overwater resorts.',
       heroImage: 'assets/countries/maldives.png',
       priceFrom: 1850,
-      tags: ['Beach', 'Luxury', 'Visa on Arrival', '7 Days'],
+      tags: ['Beach', 'Luxury', '7 Days'],
       quickInfo: {
         bestTimeToVisit: 'Nov – Apr (Dry Season)',
         avgBudget: '$250 – $600 / day',
         suggestedLength: '5 – 7 Days',
-        visaRequirement: 'Free 30-day Visa on Arrival',
         currency: 'Maldivian Rufiyaa (MVR) / USD accepted',
         language: 'Dhivehi (English widely spoken)',
         safetyLevel: 'Extremely Safe (9.8/10)',
@@ -229,7 +227,6 @@ export class DestinationComponent implements OnInit {
         bestTimeToVisit: 'Nov – Feb (Cool Dry Season)',
         avgBudget: '$60 – $180 / day',
         suggestedLength: '7 – 10 Days',
-        visaRequirement: 'Visa Exempt for 60+ Countries',
         currency: 'Thai Baht (THB)',
         language: 'Thai (English in tourist spots)',
         safetyLevel: 'Safe & Welcoming (9.0/10)',
@@ -331,7 +328,6 @@ export class DestinationComponent implements OnInit {
           bestTimeToVisit: 'Spring & Autumn',
           avgBudget: '$120 – $300 / day',
           suggestedLength: '5 – 7 Days',
-          visaRequirement: 'Check visa guidelines',
           currency: 'Local Currency / USD',
           language: 'Local Language / English',
           safetyLevel: 'High Safety Rating (9.2/10)',

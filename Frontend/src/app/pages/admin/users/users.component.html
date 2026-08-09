@@ -398,18 +398,11 @@
 
         <!-- TAB 2: TRAVEL & ACTIVITY -->
         <div *ngIf="activeModalTab === 'activity'" class="space-y-4 text-xs">
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 text-center">
               <span class="material-symbols-outlined text-blue-600 text-2xl">luggage</span>
               <p class="mt-2 font-heading text-2xl font-bold text-on-surface">{{ selectedUser.tripsCount }}</p>
               <p class="text-[11px] font-semibold text-on-surface-variant">Trips Created</p>
-            </div>
-
-            <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 text-center">
-              <span class="material-symbols-outlined text-amber-600 text-2xl">badge</span>
-              <p class="mt-2 font-heading text-2xl font-bold text-on-surface">{{ selectedUser.visaApplicationsCount }}
-              </p>
-              <p class="text-[11px] font-semibold text-on-surface-variant">Visa Applications</p>
             </div>
 
             <div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 text-center">

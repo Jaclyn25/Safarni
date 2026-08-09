@@ -5,7 +5,6 @@ public sealed record DashboardSummaryData(
     int ActiveUsers,
     int VerifiedUsers,
     int TotalTrips,
-    int TotalVisaApplications,
     int TotalConversations,
     int TotalAiMessages,
     int ItineraryJobsTotal,
@@ -25,7 +24,6 @@ public sealed record RecentActivityItem(
 
 public sealed record AdminUserCounts(
     int Trips,
-    int VisaApplications,
     int Conversations,
     int Messages);
 
@@ -49,7 +47,6 @@ public sealed record AnalyticsDailyPoint(
     DateTime Date,
     int Users,
     int Trips,
-    int VisaApplications,
     int Messages,
     int ItineraryJobs);
 
@@ -60,8 +57,7 @@ public sealed record AnalyticsFunnelData(
     int RegisteredUsers,
     int VerifiedUsers,
     int UsersWithTrips,
-    int UsersWithGeneratedItineraries,
-    int UsersWithVisaApplications);
+    int UsersWithGeneratedItineraries);
 
 public sealed record TopDestinationData(
     string Name,

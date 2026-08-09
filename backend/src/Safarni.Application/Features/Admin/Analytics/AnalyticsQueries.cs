@@ -12,7 +12,6 @@ public sealed record AnalyticsDailyPointResponse(
     string Date,
     int Users,
     int Trips,
-    int VisaApplications,
     int Messages,
     int ItineraryJobs);
 
@@ -59,7 +58,6 @@ public sealed class GetAnalyticsOverviewQueryHandler
                         point.Date.ToString("yyyy-MM-dd"),
                         point.Users,
                         point.Trips,
-                        point.VisaApplications,
                         point.Messages,
                         point.ItineraryJobs))
                     .ToArray()));
@@ -73,8 +71,7 @@ public sealed record AnalyticsFunnelResponse(
     int RegisteredUsers,
     int VerifiedUsers,
     int UsersWithTrips,
-    int UsersWithGeneratedItineraries,
-    int UsersWithVisaApplications);
+    int UsersWithGeneratedItineraries);
 
 public sealed class GetAnalyticsFunnelsQueryHandler
     : IRequestHandler<GetAnalyticsFunnelsQuery, Result<AnalyticsFunnelResponse>>
@@ -96,8 +93,7 @@ public sealed class GetAnalyticsFunnelsQueryHandler
             funnel.RegisteredUsers,
             funnel.VerifiedUsers,
             funnel.UsersWithTrips,
-            funnel.UsersWithGeneratedItineraries,
-            funnel.UsersWithVisaApplications));
+            funnel.UsersWithGeneratedItineraries));
     }
 }
 

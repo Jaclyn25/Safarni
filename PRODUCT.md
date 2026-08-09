@@ -6,11 +6,11 @@ product
 
 ## Users
 
-Arabic- and English-speaking travelers who are exploring destinations, planning trips, comparing places, and managing practical travel details such as visas and bookings. They need quick, trustworthy guidance that remains easy to scan on desktop and mobile.
+Arabic- and English-speaking travelers who are exploring destinations, planning trips, comparing places, and managing practical travel details such as bookings. They need quick, trustworthy guidance that remains easy to scan on desktop and mobile.
 
 ## Product Purpose
 
-Safarni brings travel discovery, planning, bookings, profile preferences, visa flows, and a conversational travel concierge into one product. Success means a traveler can move from a broad idea to a useful next step without leaving the product or decoding technical language.
+Safarni brings travel discovery, planning, bookings, profile preferences, and a conversational travel concierge into one product. Success means a traveler can move from a broad idea to a useful next step without leaving the product or decoding technical language.
 
 ## Brand Personality
 

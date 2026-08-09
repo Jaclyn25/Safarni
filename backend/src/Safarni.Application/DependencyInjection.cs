@@ -29,8 +29,7 @@ using Safarni.Application.Features.Trips.UpdateTrip;
 using Safarni.Application.Features.Packages;
 using Safarni.Application.Features.Trips.Itineraries.ManageItems;
 using Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
-using Safarni.Application.Features.VisaApplications.CreateVisaApplication;
-using Safarni.Application.Features.VisaApplications.SelectVisaType;
+
 
 namespace Safarni.Application;
 
@@ -71,9 +70,6 @@ public static class DependencyInjection
         services.AddTransient<IValidator<UpdateMySettingsCommand>, UpdateMySettingsCommandValidator>();
 
         services.AddTransient<IValidator<UpsertTravelProfileCommand>, UpsertTravelProfileCommandValidator>();
-        services.AddTransient<IValidator<CreateVisaApplicationCommand>, CreateVisaApplicationCommandValidator>();
-        services.AddTransient<IValidator<SelectVisaTypeCommand>, SelectVisaTypeCommandValidator>();
-
         services.AddTransient<IValidator<CreateTripCommand>, CreateTripCommandValidator>();
         services.AddTransient<IValidator<UpdateTripCommand>, UpdateTripCommandValidator>();
         services.AddTransient<IValidator<CreateTravelPackageCommand>, CreateTravelPackageCommandValidator>();

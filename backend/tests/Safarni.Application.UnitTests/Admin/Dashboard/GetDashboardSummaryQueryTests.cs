@@ -20,7 +20,6 @@ public class GetDashboardSummaryQueryTests
                 ActiveUsers: 7,
                 VerifiedUsers: 5,
                 TotalTrips: 20,
-                TotalVisaApplications: 4,
                 TotalConversations: 30,
                 TotalAiMessages: 120,
                 ItineraryJobsTotal: 8,
@@ -43,7 +42,6 @@ public class GetDashboardSummaryQueryTests
         summary.ActiveUsers.Should().Be(7);
         summary.VerifiedUsers.Should().Be(5);
         summary.TotalTrips.Should().Be(20);
-        summary.TotalVisaApplications.Should().Be(4);
         summary.TotalConversations.Should().Be(30);
         summary.TotalAiMessages.Should().Be(120);
         summary.ItineraryJobsTotal.Should().Be(8);

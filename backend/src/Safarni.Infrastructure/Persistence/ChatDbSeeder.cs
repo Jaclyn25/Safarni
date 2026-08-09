@@ -139,15 +139,6 @@ public class ChatDbSeeder
                     },
                     new TravelKnowledge
                     {
-                        Category = "VisaInfo",
-                        Title = "Schengen Visa (Europe) / تأشيرة الشنغن الأوروبية",
-                        Country = "Europe / أوروبا",
-                        City = "",
-                        Content = "Valid passport, Schengen insurance €30,000, flight reservation, hotel booking, bank statement, application form. Processing Time: 15 business days. Fee: 90 EUR. تأشيرة الشنغن لدول أوروبا تتطلب جواز سفر ساري وتأمين صحي وحجز فندق وتذاكر وطيران وحساب بنكي. التكلفة 90 يورو والمدة 15 يوماً.",
-                        MetadataJson = "{\"fee_eur\":90}"
-                    },
-                    new TravelKnowledge
-                    {
                         Category = "Destination",
                         Title = "Amalfi Coast / ساحل أمالفي إيطاليا",
                         Country = "Italy / إيطاليا",

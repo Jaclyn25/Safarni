@@ -1,6 +1,6 @@
 # Safarni
 
-Safarni is a travel planning platform with an ASP.NET Core backend and an Angular frontend. It includes account/profile features, travel preferences, visa application flows, and an AI concierge chatbot for travel questions, destination guidance, Google Places recommendations, and optional RAG indexing through Qdrant.
+Safarni is a travel planning platform with an ASP.NET Core backend and an Angular frontend. It includes account/profile features, travel preferences, and an AI concierge chatbot for travel questions, destination guidance, Google Places recommendations, and optional RAG indexing through Qdrant.
 
 ## Tech Stack
 
@@ -24,7 +24,7 @@ Safarni/
   Frontend/
     src/
       app/
-        pages/                  # Explore, Planner, Bookings, Concierge, Register
+        pages/                  # Explore, Planner, Concierge, Register
         services/               # Auth and chat API clients
 ```
 

@@ -32,7 +32,6 @@ export class AdminKnowledgeComponent implements OnInit {
 
   categories = [
     'General',
-    'Visa & Customs',
     'Safety & Emergency',
     'Culture & Etiquette',
     'Transport',

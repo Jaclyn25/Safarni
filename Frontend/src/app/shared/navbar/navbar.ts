@@ -17,11 +17,12 @@ export class NavbarComponent implements OnInit {
   isExplorePage = false;
   isAdminPage = false;
   isAgencyPage = false;
-  navbarBgClass = 'bg-surface/80 dark:bg-surface/80';
+  navbarBgClass = 'bg-transparent';
   isLogoutModalOpen = false;
+  isMobileMenuOpen = false;
 
   constructor(
-    public authService: AuthService, 
+    public authService: AuthService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) { }
@@ -34,9 +35,10 @@ export class NavbarComponent implements OnInit {
       this.isExplorePage = url === '/' || url === '';
       this.isAdminPage = url.startsWith('/admin');
       this.isAgencyPage = url === '/agency' || url.startsWith('/agency/');
+      this.isMobileMenuOpen = false;
       this.updateBgClass();
     });
-    
+
     const currentUrl = window.location.pathname;
     this.isExplorePage = currentUrl === '/' || currentUrl === '';
     this.isAdminPage = currentUrl.startsWith('/admin');
@@ -46,7 +48,7 @@ export class NavbarComponent implements OnInit {
 
   @HostListener('window:scroll', [])
   onWindowScroll() {
-    this.isScrolled = window.scrollY > 50;
+    this.isScrolled = window.scrollY > 20;
     this.updateBgClass();
   }
 
@@ -54,7 +56,7 @@ export class NavbarComponent implements OnInit {
     if (this.isExplorePage && !this.isScrolled) {
       this.navbarBgClass = 'bg-transparent';
     } else {
-      this.navbarBgClass = 'bg-surface/80 dark:bg-surface/80';
+      this.navbarBgClass = 'bg-surface/85 backdrop-blur-xl';
     }
     this.cdr.detectChanges();
   }
@@ -77,8 +79,13 @@ export class NavbarComponent implements OnInit {
     return this.authService.isTravelAgency();
   }
 
+  toggleMobileMenu(): void {
+    this.isMobileMenuOpen = !this.isMobileMenuOpen;
+  }
+
   logout(): void {
     this.isLogoutModalOpen = true;
+    this.isMobileMenuOpen = false;
   }
 
   cancelLogout(): void {
@@ -95,6 +102,9 @@ export class NavbarComponent implements OnInit {
   handleEscape(): void {
     if (this.isLogoutModalOpen) {
       this.isLogoutModalOpen = false;
+    }
+    if (this.isMobileMenuOpen) {
+      this.isMobileMenuOpen = false;
     }
   }
 }

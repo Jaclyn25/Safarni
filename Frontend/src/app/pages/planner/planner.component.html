@@ -700,7 +700,7 @@
         <div *ngIf="weatherData[dayIndex] as dayWeather" class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-100/50 p-4 shadow-sm">
           
           <!-- Weather Alerts -->
-          <div *ngIf="dayWeather.weather.alerts?.length" class="mb-4 flex gap-3 rounded-xl bg-red-50 border border-red-100 p-3 text-red-900">
+          <div *ngIf="dayWeather.weather.alerts.length" class="mb-4 flex gap-3 rounded-xl bg-red-50 border border-red-100 p-3 text-red-900">
             <span class="material-symbols-outlined text-red-600">warning</span>
             <div>
               <strong class="block text-sm font-bold">Severe Weather Warning</strong>
@@ -709,7 +709,7 @@
           </div>
 
           <!-- Forecast Details -->
-          <div class="flex items-center gap-4" *ngIf="dayWeather.weather.forecastDays?.length">
+          <div class="flex items-center gap-4" *ngIf="dayWeather.weather.forecastDays.length">
             <div class="flex items-center gap-3">
               <img [src]="'https:' + dayWeather.weather.forecastDays[0].conditionIcon" [alt]="dayWeather.weather.forecastDays[0].conditionText" class="h-12 w-12 drop-shadow-sm">
               <div>

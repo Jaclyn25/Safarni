@@ -14,12 +14,10 @@ import {
 import { AgencyService } from '../../../services/agency.service';
 import { getApiErrorMessage } from '../../../services/auth.service';
 import { AgencyActivityListComponent } from '../shared/agency-activity-list.component';
-import { AgencyEmptyStateComponent } from '../shared/agency-empty-state.component';
 import { AgencyKpiCardComponent } from '../shared/agency-kpi-card.component';
 import { AgencyLoadingSkeletonComponent } from '../shared/agency-loading-skeleton.component';
 import { AgencyPageHeaderComponent } from '../shared/agency-page-header.component';
 import { AgencyStatusBadgeComponent } from '../shared/agency-status-badge.component';
-
 @Component({
   selector: 'app-agency-dashboard',
   standalone: true,
@@ -29,8 +27,6 @@ import { AgencyStatusBadgeComponent } from '../shared/agency-status-badge.compon
     ReactiveFormsModule,
     AgencyPageHeaderComponent,
     AgencyKpiCardComponent,
-    AgencyStatusBadgeComponent,
-    AgencyEmptyStateComponent,
     AgencyLoadingSkeletonComponent,
     AgencyActivityListComponent
   ],

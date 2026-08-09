@@ -1,34 +1,239 @@
-<div class="agency-page">
-  <header class="agency-page-header">
-    <div><span class="agency-eyebrow">Agency workspace</span><h1>Welcome back, {{ profile?.representativeName || 'Agency partner' }}</h1><p>Complete verification, keep company details accurate, and prepare to publish packages.</p></div>
-    <a routerLink="/agency/profile" class="agency-button agency-button--secondary"><span class="material-symbols-outlined">edit</span>Edit profile</a>
-  </header>
-
-  @if (isLoading()) { <div class="agency-loading"><span></span><p>Preparing your agency workspace…</p></div> }
-  @else if (error()) { <div class="agency-alert agency-alert--error"><span class="material-symbols-outlined">error</span><div><strong>Workspace unavailable</strong><p>{{ error() }}</p></div><button type="button" (click)="load()">Retry</button></div> }
-  @else if (verification && profile) {
-  <section class="agency-hero-card" [attr.data-status]="verification.verificationStatus">
-    <div class="agency-hero-card__icon"><span class="material-symbols-outlined">{{ verification.canPublishPackages ? 'verified' : 'hourglass_top' }}</span></div>
-    <div class="agency-hero-card__copy"><span>Verification status</span><h2>{{ statusLabel(verification.verificationStatus) }}</h2><p>@switch (verification.verificationStatus) { @case ('Verified') { Your agency is trusted by Safarni and can use verified-only marketplace features. } @case ('ChangesRequested') { Review the administrator feedback and replace the requested documents. } @case ('Rejected') { Your application was not approved. Review the reason before resubmitting documents. } @case ('Suspended') { Marketplace publishing is paused. Contact Safarni support for the next steps. } @default { Complete the three required documents so our trust team can review your company. } }</p></div>
-    <a routerLink="/agency/verification" class="agency-button">Manage verification</a>
-  </section>
-
-  @if (verification.decisionReason && verification.verificationStatus !== 'Verified') { <div class="agency-alert agency-alert--info"><span class="material-symbols-outlined">feedback</span><div><strong>Safarni review note</strong><p>{{ verification.decisionReason }}</p></div></div> }
-
-  <div class="agency-stat-grid">
-    <article class="agency-stat"><span class="material-symbols-outlined">description</span><div><strong>{{ verification.uploadedDocumentCount }}/{{ verification.requiredDocumentCount }}</strong><small>Documents submitted</small></div></article>
-    <article class="agency-stat"><span class="material-symbols-outlined">storefront</span><div><strong>{{ profile.city }}, {{ profile.country }}</strong><small>Company location</small></div></article>
-    <article class="agency-stat"><span class="material-symbols-outlined">campaign</span><div><strong>{{ verification.canPublishPackages ? 'Unlocked' : 'Locked' }}</strong><small>Package publishing</small></div></article>
-  </div>
-
-  <section class="agency-card">
-    <div class="agency-card__heading"><div><span class="agency-eyebrow">Getting started</span><h2>Your verification checklist</h2></div><span class="agency-progress-label">{{ verification.uploadedDocumentCount }} of {{ verification.requiredDocumentCount }}</span></div>
-    <div class="agency-progress"><span [style.width.%]="verification.uploadedDocumentCount / verification.requiredDocumentCount * 100"></span></div>
-    <div class="agency-checklist">
-      @for (document of verification.documents; track document.documentType) {
-      <div><span class="material-symbols-outlined" [class.agency-checklist__done]="document.reviewStatus === 'Approved'">{{ !document.isUploaded ? 'radio_button_unchecked' : document.reviewStatus === 'Approved' ? 'check_circle' : document.reviewStatus === 'Declined' ? 'cancel' : 'schedule' }}</span><div><strong>{{ document.displayName }}</strong><small>{{ document.isUploaded ? document.reviewStatus : 'Required document missing' }}</small></div></div>
-      }
+<div class="space-y-6">
+  <!-- Page Header -->
+  <app-agency-page-header
+    eyebrow="Agency Control Center"
+    [title]="'Welcome back, ' + (profile?.companyName || 'Agency Partner')"
+    [subtitle]="'Manage your travel packages, review booking requests, and track performance.'">
+    <div class="flex items-center gap-2">
+      <a routerLink="/" target="_blank" rel="noopener" title="Visit Safarni site" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-semibold text-xs rounded-xl shadow-xs hover:bg-gray-50 hover:text-blue-600 transition-all flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-base">travel_explore</span>
+        <span>Visit site</span>
+      </a>
+      <button type="button" (click)="openDetailsModal()" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-semibold text-xs rounded-xl shadow-xs hover:bg-gray-50 hover:text-blue-600 transition-all flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-base">edit</span>
+        <span>Company Details</span>
+      </button>
+      <button type="button" (click)="loadData()" class="px-3.5 py-2 bg-blue-600 text-white font-semibold text-xs rounded-xl shadow-sm hover:bg-blue-700 transition-all flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-base">refresh</span>
+        <span>Refresh</span>
+      </button>
     </div>
-  </section>
+  </app-agency-page-header>
+
+  @if (isLoading()) {
+    <app-agency-loading-skeleton type="cards" />
+    <app-agency-loading-skeleton type="content" />
+  } @else if (error()) {
+    <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between text-rose-800">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-xl">error</span>
+        <span class="text-sm font-medium">{{ error() }}</span>
+      </div>
+      <button type="button" (click)="loadData()" class="px-3 py-1.5 bg-rose-600 text-white font-semibold text-xs rounded-lg">Retry</button>
+    </div>
+  } @else if (summary) {
+    <!-- Verification Status Banner if not verified -->
+    @if (!summary.canPublishPackages) {
+      <div class="p-4 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+            <span class="material-symbols-outlined text-xl">warning</span>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-amber-900">Verification Pending ({{ summary.verificationProgress }})</h4>
+            <p class="text-xs text-amber-700 mt-0.5">Submit your official documents to unlock package publishing on Safarni Marketplace.</p>
+          </div>
+        </div>
+        <a routerLink="/agency/verification" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors shrink-0">
+          Complete Verification
+        </a>
+      </div>
+    }
+
+    <!-- KPI Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <app-agency-kpi-card
+        title="Total Packages"
+        [value]="summary.totalPackages"
+        icon="luggage"
+        variant="blue"
+        [subtitle]="summary.publishedPackages + ' Published · ' + summary.draftPackages + ' Drafts'" />
+
+      <app-agency-kpi-card
+        title="Booking Requests"
+        [value]="summary.totalBookingRequests"
+        icon="inbox"
+        variant="purple"
+        [subtitle]="summary.pendingBookingRequests + ' Pending review'" />
+
+      <app-agency-kpi-card
+        title="Accepted Bookings"
+        [value]="summary.acceptedBookingRequests"
+        icon="task_alt"
+        variant="emerald"
+        [subtitle]="summary.totalSeatsSold + ' Seats sold'" />
+
+      <app-agency-kpi-card
+        title="Verification Status"
+        [value]="summary.verificationStatus"
+        icon="verified_user"
+        [variant]="summary.canPublishPackages ? 'emerald' : 'amber'"
+        [subtitle]="'Progress: ' + summary.verificationProgress" />
+    </div>
+
+    <!-- Middle Section: Booking Trends & Quick Actions -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Trends Chart Card -->
+      <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm flex flex-col justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+          <div>
+            <h3 class="font-bold text-gray-900 text-base font-display">Booking Demand Trends</h3>
+            <p class="text-xs text-gray-400">Request activity over selected period</p>
+          </div>
+          <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+            <button type="button" (click)="changeTrendDays(7)" [class]="'px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ' + (selectedDays() === 7 ? 'bg-white text-blue-600 shadow-2xs' : 'text-gray-500 hover:text-gray-900')">7 Days</button>
+            <button type="button" (click)="changeTrendDays(14)" [class]="'px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ' + (selectedDays() === 14 ? 'bg-white text-blue-600 shadow-2xs' : 'text-gray-500 hover:text-gray-900')">14 Days</button>
+            <button type="button" (click)="changeTrendDays(30)" [class]="'px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ' + (selectedDays() === 30 ? 'bg-white text-blue-600 shadow-2xs' : 'text-gray-500 hover:text-gray-900')">30 Days</button>
+          </div>
+        </div>
+
+        <!-- CSS Bar Graph -->
+        <div class="h-48 flex items-end gap-2 pt-6 pb-2 px-2 overflow-x-auto">
+          @for (point of trends; track point.date) {
+            <div class="flex-1 min-w-[20px] flex flex-col items-center gap-1 group h-full justify-end">
+              <div class="w-full bg-blue-100 rounded-t-md group-hover:bg-blue-600 transition-colors relative"
+                   [style.height.%]="(point.requestsCount / maxTrendCount) * 100">
+                <div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] py-1 px-2 rounded font-semibold whitespace-nowrap z-10 pointer-events-none transition-opacity">
+                  {{ point.requestsCount }} requests
+                </div>
+              </div>
+              <span class="text-[10px] text-gray-400 truncate w-full text-center">{{ point.date }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-gray-500 border-t border-gray-100 pt-4 mt-4">
+          <div class="flex items-center gap-4">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span> Total Requests</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Accepted Bookings</span>
+          </div>
+          <span class="text-gray-400">Updated {{ formattedLastUpdated }}</span>
+        </div>
+      </div>
+
+      <!-- Quick Actions & Company Overview -->
+      <div class="space-y-6">
+        <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-4">
+          <h3 class="font-bold text-gray-900 text-base font-display">Quick Actions</h3>
+          <div class="grid grid-cols-1 gap-2.5">
+            <a routerLink="/agency/packages" class="p-3 bg-gray-50 hover:bg-blue-50/60 rounded-xl border border-gray-100 flex items-center justify-between group transition-colors">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600/10 text-blue-600 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-lg">add_box</span>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-gray-900 group-hover:text-blue-600">Create Package</h4>
+                  <p class="text-[11px] text-gray-400">Add new itinerary and trip offer</p>
+                </div>
+              </div>
+              <span class="material-symbols-outlined text-gray-400 group-hover:text-blue-600 text-base">chevron_right</span>
+            </a>
+
+            <a routerLink="/agency/booking-requests" class="p-3 bg-gray-50 hover:bg-purple-50/60 rounded-xl border border-gray-100 flex items-center justify-between group transition-colors">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-purple-600/10 text-purple-600 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-lg">inbox</span>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-gray-900 group-hover:text-purple-600">Review Booking Requests</h4>
+                  <p class="text-[11px] text-gray-400">{{ summary.pendingBookingRequests }} pending customer request(s)</p>
+                </div>
+              </div>
+              <span class="material-symbols-outlined text-gray-400 group-hover:text-purple-600 text-base">chevron_right</span>
+            </a>
+
+            <a routerLink="/agency/verification" class="p-3 bg-gray-50 hover:bg-emerald-50/60 rounded-xl border border-gray-100 flex items-center justify-between group transition-colors">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-emerald-600/10 text-emerald-600 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-lg">verified_user</span>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-gray-900 group-hover:text-emerald-600">Verification Center</h4>
+                  <p class="text-[11px] text-gray-400">Check document approval status</p>
+                </div>
+              </div>
+              <span class="material-symbols-outlined text-gray-400 group-hover:text-emerald-600 text-base">chevron_right</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Activity List Card -->
+        <app-agency-activity-list [activities]="activities" />
+      </div>
+    </div>
+  }
+
+  <!-- Company Details Drawer / Modal -->
+  @if (isDetailsModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" (click)="closeDetailsModal()"></div>
+      <div class="relative bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl z-10 overflow-y-auto max-h-[90vh]">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 font-display">Company Details</h3>
+            <p class="text-xs text-gray-400 mt-0.5">Update public company profile information</p>
+          </div>
+          <button type="button" (click)="closeDetailsModal()" class="p-1.5 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <form [formGroup]="editForm" (ngSubmit)="saveCompanyDetails()" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Company Name</label>
+            <input type="text" formControlName="companyName" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Description</label>
+            <textarea formControlName="description" rows="3" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold uppercase text-gray-600 mb-1">City</label>
+              <input type="text" formControlName="city" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Country</label>
+              <input type="text" formControlName="country" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Address</label>
+            <input type="text" formControlName="address" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Company Phone</label>
+              <input type="text" formControlName="companyPhone" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Website URL</label>
+              <input type="url" formControlName="websiteUrl" placeholder="https://..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+            <button type="button" (click)="closeDetailsModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl">Cancel</button>
+            <button type="submit" [disabled]="isSavingDetails()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50">
+              {{ isSavingDetails() ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   }
 </div>

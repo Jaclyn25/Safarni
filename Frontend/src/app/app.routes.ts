@@ -35,6 +35,23 @@ export const routes: Routes = [
     title: 'Safarni | Your Bookings'
   },
   {
+    path: 'agency-trips',
+    redirectTo: 'profile/agency-trips',
+    pathMatch: 'full',
+    title: 'Safarni | My Agency Trips'
+  },
+  {
+    path: 'marketplace',
+    pathMatch: 'full',
+    loadComponent: () => import('./pages/marketplace/marketplace.component').then((m) => m.MarketplaceComponent),
+    title: 'Safarni | Agency Marketplace'
+  },
+  {
+    path: 'marketplace/packages/:packageId',
+    loadComponent: () => import('./pages/marketplace/package-details.component').then((m) => m.PackageDetailsComponent),
+    title: 'Safarni | Package Details'
+  },
+  {
     path: 'concierge',
     loadComponent: () =>
       import('./pages/concierge/concierge.component').then((m) => m.ConciergeComponent),
@@ -137,11 +154,18 @@ export const routes: Routes = [
       },
       {
         path: 'profile',
-        loadComponent: () =>
-          import('./pages/agency/profile/agency-profile.component').then(
-            (m) => m.AgencyProfileComponent
-          ),
-        title: 'Safarni | Company Profile'
+        redirectTo: '',
+        pathMatch: 'full'
+      },
+      {
+        path: 'packages',
+        loadComponent: () => import('./pages/agency/packages/agency-packages.component').then((m) => m.AgencyPackagesComponent),
+        title: 'Safarni | Agency Packages'
+      },
+      {
+        path: 'booking-requests',
+        loadComponent: () => import('./pages/agency/booking-requests/agency-booking-requests.component').then((m) => m.AgencyBookingRequestsComponent),
+        title: 'Safarni | Booking Requests'
       }
     ]
   },
@@ -170,6 +194,14 @@ export const routes: Routes = [
             (m) => m.ProfileTripsComponent
           ),
         title: 'Safarni | My Trips'
+      },
+      {
+        path: 'agency-trips',
+        loadComponent: () =>
+          import('./pages/agency-trips/agency-trips.component').then(
+            (m) => m.AgencyTripsComponent
+          ),
+        title: 'Safarni | Agency Trips'
       },
       {
         path: 'password',

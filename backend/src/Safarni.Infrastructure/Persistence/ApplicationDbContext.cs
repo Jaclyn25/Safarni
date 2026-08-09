@@ -31,6 +31,9 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<AgencyVerificationDocument> AgencyVerificationDocuments =>
         Set<AgencyVerificationDocument>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+    public DbSet<TravelPackage> TravelPackages => Set<TravelPackage>();
+    public DbSet<TravelPackageDay> TravelPackageDays => Set<TravelPackageDay>();
+    public DbSet<PackageBookingRequest> PackageBookingRequests => Set<PackageBookingRequest>();
 
     // Chatbot tables
     public DbSet<Conversation> Conversations => Set<Conversation>();

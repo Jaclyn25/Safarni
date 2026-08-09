@@ -51,4 +51,9 @@ public static class TravelAgencyErrors
         "TravelAgency.VerifiedAgencyRequired",
         "Only a verified Travel Agency can publish travel packages.",
         ErrorType.Forbidden);
+
+    public static readonly Error AgencyAccountRequired = new(
+        "TravelAgency.AccountRequired",
+        "A travel agency account is required for this operation.",
+        ErrorType.Forbidden);
 }

@@ -12,5 +12,8 @@ public enum MarketplaceNotificationType
     AgencyApproved = 7,
     AgencyChangesRequested = 8,
     AgencyRejected = 9,
-    AgencySuspended = 10
+    AgencySuspended = 10,
+    PackageBookingRequestReceived = 11,
+    PackageBookingRequestAccepted = 12,
+    PackageBookingRequestRejected = 13
 }

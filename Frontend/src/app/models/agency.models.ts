@@ -114,3 +114,37 @@ export interface PagedResult<T> {
   totalCount: number;
   totalPages: number;
 }
+
+export interface AgencyDashboardSummary {
+  agencyId: string;
+  companyName: string;
+  totalPackages: number;
+  publishedPackages: number;
+  draftPackages: number;
+  totalBookingRequests: number;
+  pendingBookingRequests: number;
+  acceptedBookingRequests: number;
+  rejectedBookingRequests: number;
+  totalSeatsSold: number;
+  totalSeatsAvailable: number;
+  verificationStatus: string;
+  verificationProgress: string;
+  canPublishPackages: boolean;
+  lastUpdated: string;
+}
+
+export interface AgencyDashboardTrendPoint {
+  date: string;
+  requestsCount: number;
+  acceptedCount: number;
+  rejectedCount: number;
+}
+
+export interface AgencyActivityItem {
+  id: string;
+  title: string;
+  description: string;
+  timestamp: string;
+  type: 'booking' | 'package' | 'verification' | 'system';
+  status?: string;
+}

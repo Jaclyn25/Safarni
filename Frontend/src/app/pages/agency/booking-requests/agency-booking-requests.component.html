@@ -1,0 +1,182 @@
+<div class="space-y-6">
+  <!-- Page Header -->
+  <app-agency-page-header
+    eyebrow="Operational Inbox"
+    title="Booking Requests"
+    subtitle="Review traveler reservation inquiries, confirm seat availability, and respond promptly.">
+    <div class="flex items-center gap-2">
+      <button type="button" (click)="load()" class="px-3.5 py-2 bg-white border border-gray-200 text-gray-700 font-semibold text-xs rounded-xl shadow-xs hover:bg-gray-50 transition-all flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-base">refresh</span>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </app-agency-page-header>
+
+  <!-- Notice Banner -->
+  @if (notice()) {
+    <div class="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center justify-between">
+      <span>{{ notice() }}</span>
+      <button type="button" (click)="notice.set('')" class="text-emerald-600 hover:text-emerald-900"><span class="material-symbols-outlined text-base">close</span></button>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl flex items-center justify-between">
+      <span>{{ error() }}</span>
+      <button type="button" (click)="error.set('')" class="text-rose-600 hover:text-rose-900"><span class="material-symbols-outlined text-base">close</span></button>
+    </div>
+  }
+
+  <!-- KPI Strip -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <app-agency-kpi-card title="Total Requests" [value]="countTotal()" icon="inbox" variant="blue" />
+    <app-agency-kpi-card title="Needs Review" [value]="countPending()" icon="hourglass_top" variant="amber" />
+    <app-agency-kpi-card title="Accepted" [value]="countAccepted()" icon="task_alt" variant="emerald" />
+    <app-agency-kpi-card title="Rejected" [value]="countRejected()" icon="cancel" variant="rose" />
+  </div>
+
+  <!-- Segmented Tabs -->
+  <div class="bg-white rounded-2xl border border-gray-100 p-2 shadow-sm flex items-center gap-1 overflow-x-auto">
+    <button type="button" (click)="activeTab.set('all')"
+            [class]="'px-4 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 ' + (activeTab() === 'all' ? 'bg-blue-600 text-white shadow-2xs' : 'text-gray-600 hover:bg-gray-100')">
+      <span>All Requests</span>
+      <span class="px-2 py-0.5 rounded-full text-[10px]" [class]="activeTab() === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'">{{ countTotal() }}</span>
+    </button>
+
+    <button type="button" (click)="activeTab.set('pending')"
+            [class]="'px-4 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 ' + (activeTab() === 'pending' ? 'bg-amber-600 text-white shadow-2xs' : 'text-gray-600 hover:bg-gray-100')">
+      <span>Needs Review</span>
+      <span class="px-2 py-0.5 rounded-full text-[10px]" [class]="activeTab() === 'pending' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600'">{{ countPending() }}</span>
+    </button>
+
+    <button type="button" (click)="activeTab.set('accepted')"
+            [class]="'px-4 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 ' + (activeTab() === 'accepted' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-gray-600 hover:bg-gray-100')">
+      <span>Accepted</span>
+      <span class="px-2 py-0.5 rounded-full text-[10px]" [class]="activeTab() === 'accepted' ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-600'">{{ countAccepted() }}</span>
+    </button>
+
+    <button type="button" (click)="activeTab.set('rejected')"
+            [class]="'px-4 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 ' + (activeTab() === 'rejected' ? 'bg-rose-600 text-white shadow-2xs' : 'text-gray-600 hover:bg-gray-100')">
+      <span>Rejected</span>
+      <span class="px-2 py-0.5 rounded-full text-[10px]" [class]="activeTab() === 'rejected' ? 'bg-rose-500 text-white' : 'bg-gray-100 text-gray-600'">{{ countRejected() }}</span>
+    </button>
+  </div>
+
+  <!-- Requests Table / List -->
+  @if (loading()) {
+    <app-agency-loading-skeleton type="table" />
+  } @else if (filteredRequests().length === 0) {
+    <app-agency-empty-state
+      [title]="'No ' + (activeTab() === 'all' ? '' : activeTab()) + ' Requests'"
+      description="There are no traveler booking requests matching this status filter."
+      icon="inbox" />
+  } @else {
+    <div class="grid grid-cols-1 gap-3">
+      @for (request of filteredRequests(); track request.id) {
+        <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-start gap-4 flex-1 min-w-0">
+            <div class="w-11 h-11 rounded-2xl bg-blue-50 text-blue-700 font-bold flex items-center justify-center text-sm shrink-0 border border-blue-100">
+              {{ request.travelerName.slice(0, 2).toUpperCase() }}
+            </div>
+            <div class="space-y-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="font-bold text-gray-900 text-base font-display truncate">{{ request.travelerName }}</h3>
+                <app-agency-status-badge [status]="statusLabel(request.status)" />
+              </div>
+              <p class="text-xs font-semibold text-blue-600 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-sm">luggage</span>
+                <span>{{ request.packageTitle }} ({{ request.destination }})</span>
+              </p>
+              <p class="text-xs text-gray-400 flex items-center gap-3 flex-wrap">
+                <span>Requested {{ request.createdAt | date:'mediumDate' }}</span>
+                <span>•</span>
+                <span>{{ request.travelerCount }} Guest(s)</span>
+                <span>•</span>
+                <span>{{ request.travelerEmail }}</span>
+              </p>
+            </div>
+          </div>
+
+          <button type="button" (click)="openDetailPanel(request)" class="px-4 py-2 bg-gray-100 hover:bg-blue-600 hover:text-white text-gray-700 font-semibold text-xs rounded-xl shadow-2xs transition-all shrink-0 self-end sm:self-center">
+            Review Request
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Request Detail Panel / Modal -->
+  @if (selectedRequest(); as req) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" (click)="closeDetailPanel()"></div>
+      <div class="relative bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl z-10 overflow-y-auto max-h-[90vh] space-y-6">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 font-display">Booking Request Detail</h3>
+            <p class="text-xs text-gray-400">Received {{ req.createdAt | date:'mediumDate' }}</p>
+          </div>
+          <button type="button" (click)="closeDetailPanel()" class="p-1.5 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Customer & Trip Summary -->
+          <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-gray-900">{{ req.travelerName }}</span>
+              <app-agency-status-badge [status]="statusLabel(req.status)" />
+            </div>
+            <div class="text-xs text-gray-600 space-y-1">
+              <p><strong>Package:</strong> {{ req.packageTitle }}</p>
+              <p><strong>Destination:</strong> {{ req.destination }}</p>
+              <p><strong>Guests:</strong> {{ req.travelerCount }} traveler(s)</p>
+              <p><strong>Contact Email:</strong> {{ req.travelerEmail }}</p>
+            </div>
+          </div>
+
+          <!-- Customer Note -->
+          @if (req.message) {
+            <div>
+              <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Traveler Note</label>
+              <div class="p-3.5 bg-blue-50/60 border border-blue-100 rounded-xl text-xs text-gray-700 italic">
+                “{{ req.message }}”
+              </div>
+            </div>
+          }
+
+          <!-- Response Form (If Pending) -->
+          @if (req.status === 'Pending') {
+            <div>
+              <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Agency Response Note</label>
+              <textarea [ngModel]="responseMessage()" (ngModelChange)="responseMessage.set($event)" rows="3"
+                        placeholder="Required when declining (reason for traveler), optional when accepting..."
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"></textarea>
+            </div>
+          } @else if (req.agencyResponse) {
+            <div>
+              <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Sent Agency Response</label>
+              <div class="p-3 bg-gray-100 rounded-xl text-xs text-gray-700">
+                {{ req.agencyResponse }}
+              </div>
+            </div>
+          }
+
+          <!-- Actions -->
+          @if (req.status === 'Pending') {
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+              <button type="button" (click)="process(req, 'reject')" [disabled]="actionId() === req.id"
+                      class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-xl disabled:opacity-50">
+                Decline Request
+              </button>
+              <button type="button" (click)="process(req, 'accept')" [disabled]="actionId() === req.id"
+                      class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50">
+                Accept Booking
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

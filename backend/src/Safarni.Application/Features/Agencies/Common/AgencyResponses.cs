@@ -56,6 +56,37 @@ public sealed record AgencyVerificationDocumentContentResponse(
     string ContentType,
     string FileName);
 
+public sealed record AgencyDashboardSummaryResponse(
+    Guid AgencyId,
+    string CompanyName,
+    int TotalPackages,
+    int PublishedPackages,
+    int DraftPackages,
+    int TotalBookingRequests,
+    int PendingBookingRequests,
+    int AcceptedBookingRequests,
+    int RejectedBookingRequests,
+    int TotalSeatsSold,
+    int TotalSeatsAvailable,
+    string VerificationStatus,
+    string VerificationProgress,
+    bool CanPublishPackages,
+    DateTime LastUpdated);
+
+public sealed record AgencyDashboardTrendPointResponse(
+    string Date,
+    int RequestsCount,
+    int AcceptedCount,
+    int RejectedCount);
+
+public sealed record AgencyActivityItemResponse(
+    string Id,
+    string Title,
+    string Description,
+    string Timestamp,
+    string Type,
+    string? Status);
+
 public static class AgencyResponseMapper
 {
     private static readonly AgencyVerificationDocumentType[] RequiredDocumentTypes =

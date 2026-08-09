@@ -1,49 +1,195 @@
-<div class="agency-shell">
-  <header class="agency-mobile-header">
-    <a routerLink="/agency" class="agency-brand">
-      <img src="assets/logo.svg" alt="Safarni" />
-      <span>Agency Portal</span>
-    </a>
-    <button type="button" (click)="mobileMenuOpen.set(!mobileMenuOpen())" aria-label="Toggle agency navigation">
-      <span class="material-symbols-outlined">{{ mobileMenuOpen() ? 'close' : 'menu' }}</span>
-    </button>
-  </header>
-
-  <aside class="agency-sidebar" [class.agency-sidebar--open]="mobileMenuOpen()">
-    <div class="agency-sidebar__top">
-      <a routerLink="/agency" class="agency-brand" (click)="mobileMenuOpen.set(false)">
-        <img src="assets/logo.svg" alt="Safarni" />
-        <div><strong>Safarni</strong><span>Agency Portal</span></div>
+<div class="min-h-screen bg-surface text-on-surface">
+  <!-- Desktop Sidebar (Identical to Admin Sidebar) -->
+  <aside
+    class="fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-outline-variant bg-surface-container-low transition-all duration-300 md:flex"
+    [class.w-64]="!isSidebarCollapsed()"
+    [class.w-20]="isSidebarCollapsed()"
+  >
+    <!-- Brand Logo Header -->
+    <div class="flex h-16 items-center justify-between border-b border-outline-variant px-4">
+      <a
+        routerLink="/agency"
+        title="Safarni Agency Console"
+        class="flex items-center gap-2 transition-colors hover:opacity-90 overflow-hidden"
+      >
+        <img src="assets/logo.svg" alt="Safarni" class="h-7 w-auto shrink-0" />
+        <span *ngIf="!isSidebarCollapsed()" class="rounded bg-primary-container/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary border border-primary/20 shrink-0">Agency</span>
       </a>
 
-      <div class="agency-account">
-        <span class="agency-account__avatar">{{ initials }}</span>
-        <div><strong>{{ currentUser?.fullName || 'Agency Manager' }}</strong><span>{{ currentUser?.email }}</span></div>
-      </div>
-
-      <nav aria-label="Agency portal navigation">
-        @for (item of navItems; track item.path) {
-        <a [routerLink]="item.path" routerLinkActive="agency-nav-link--active"
-          [routerLinkActiveOptions]="{ exact: item.exact }" class="agency-nav-link"
-          (click)="mobileMenuOpen.set(false)">
-          <span class="material-symbols-outlined">{{ item.icon }}</span>
-          <span>{{ item.label }}</span>
-        </a>
-        }
-      </nav>
+      <!-- Collapse / Expand Toggle Button -->
+      <button
+        (click)="toggleSidebar()"
+        [title]="isSidebarCollapsed() ? 'Expand Sidebar' : 'Collapse Sidebar'"
+        class="rounded-lg p-1.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"
+      >
+        <span class="material-symbols-outlined" style="font-size: 20px">
+          {{ isSidebarCollapsed() ? 'side_navigation' : 'dock_to_right' }}
+        </span>
+      </button>
     </div>
 
-    <div class="agency-sidebar__footer">
-      <a routerLink="/" class="agency-nav-link"><span class="material-symbols-outlined">travel_explore</span><span>View Safarni</span></a>
-      <button type="button" class="agency-nav-link agency-nav-link--danger" (click)="logout()">
-        <span class="material-symbols-outlined">logout</span><span>Sign out</span>
-      </button>
+    <!-- Navigation Section Groups -->
+    <nav class="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+      <div *ngFor="let group of groupedNavItems" class="space-y-1">
+        <!-- Section Header -->
+        <p
+          *ngIf="!isSidebarCollapsed()"
+          class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70"
+        >
+          {{ group.sectionTitle }}
+        </p>
+        <div *ngIf="isSidebarCollapsed()" class="my-2 h-px bg-outline-variant/60"></div>
+
+        <!-- Navigation Items -->
+        <a
+          *ngFor="let item of group.items"
+          [routerLink]="item.path"
+          routerLinkActive="bg-primary-container/20 text-primary font-bold border-l-4 border-primary shadow-2xs"
+          [routerLinkActiveOptions]="{ exact: item.exact }"
+          [title]="isSidebarCollapsed() ? item.label : ''"
+          class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-on-surface-variant transition-all hover:bg-surface-container-high hover:text-on-surface"
+        >
+          <span class="material-symbols-outlined shrink-0" style="font-size: 20px">{{ item.icon }}</span>
+          <span *ngIf="!isSidebarCollapsed()" class="truncate">{{ item.label }}</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Footer System Status & Profile Badge -->
+    <div class="border-t border-outline-variant p-3 space-y-3">
+      <!-- Live Status Dot -->
+      <div
+        *ngIf="!isSidebarCollapsed()"
+        class="flex items-center justify-between rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[11px] font-semibold text-on-surface-variant shadow-sm"
+      >
+        <div class="flex items-center gap-2">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+          </span>
+          <span>Agency Active</span>
+        </div>
+        <span class="font-mono text-[10px] text-on-surface-variant/70">v1.0</span>
+      </div>
+
+      <!-- User Profile & Sign Out -->
+      <div class="flex items-center gap-3">
+        <div
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary shadow-2xs"
+        >
+          {{ initials }}
+        </div>
+
+        <div *ngIf="!isSidebarCollapsed()" class="min-w-0 flex-1">
+          <p class="truncate text-xs font-bold text-on-surface">{{ currentUser?.fullName || 'Agency Manager' }}</p>
+          <p class="truncate text-[11px] text-on-surface-variant">Agency Portal</p>
+        </div>
+
+        <button
+          (click)="logout()"
+          title="Sign out"
+          aria-label="Sign out"
+          class="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-error-container hover:text-on-error-container shrink-0"
+        >
+          <span class="material-symbols-outlined" style="font-size: 18px">logout</span>
+        </button>
+      </div>
     </div>
   </aside>
 
-  @if (mobileMenuOpen()) {
-  <button class="agency-backdrop" type="button" aria-label="Close agency navigation" (click)="mobileMenuOpen.set(false)"></button>
-  }
+  <!-- Mobile Top Bar -->
+  <header class="flex h-14 items-center justify-between border-b border-outline-variant bg-surface-container-low px-4 md:hidden">
+    <a routerLink="/agency" class="flex items-center gap-2">
+      <img src="assets/logo.svg" alt="Safarni" class="h-6 w-auto" />
+      <span class="rounded bg-primary-container/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary border border-primary/20">Agency</span>
+    </a>
+    <div class="flex items-center gap-2">
+      <app-notification-center />
+      <button
+        (click)="isMobileMenuOpen.set(!isMobileMenuOpen())"
+        class="rounded-lg p-2 text-on-surface-variant"
+        aria-label="Toggle menu"
+      >
+        <span class="material-symbols-outlined">{{ isMobileMenuOpen() ? 'close' : 'menu' }}</span>
+      </button>
+    </div>
+  </header>
 
-  <main class="agency-content"><router-outlet /></main>
+  <!-- Mobile Drawer -->
+  <div *ngIf="isMobileMenuOpen()" class="fixed inset-0 z-50 md:hidden">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-xs" (click)="isMobileMenuOpen.set(false)"></div>
+    <div class="absolute inset-y-0 left-0 flex w-64 flex-col bg-surface-container-low shadow-2xl">
+      <div class="flex h-14 items-center justify-between border-b border-outline-variant px-4">
+        <a routerLink="/agency" (click)="isMobileMenuOpen.set(false)" class="flex items-center gap-2">
+          <img src="assets/logo.svg" alt="Safarni" class="h-6 w-auto" />
+          <span class="rounded bg-primary-container/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary border border-primary/20">Agency</span>
+        </a>
+        <button (click)="isMobileMenuOpen.set(false)" aria-label="Close menu" class="rounded-lg p-1.5 text-on-surface-variant">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <nav class="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+        <div *ngFor="let group of groupedNavItems" class="space-y-1">
+          <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70">
+            {{ group.sectionTitle }}
+          </p>
+          <a
+            *ngFor="let item of group.items"
+            [routerLink]="item.path"
+            routerLinkActive="bg-primary-container/20 text-primary font-bold border-l-4 border-primary"
+            [routerLinkActiveOptions]="{ exact: item.exact }"
+            (click)="isMobileMenuOpen.set(false)"
+            class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high"
+          >
+            <span class="material-symbols-outlined" style="font-size: 20px">{{ item.icon }}</span>
+            {{ item.label }}
+          </a>
+        </div>
+      </nav>
+
+      <div class="border-t border-outline-variant p-3">
+        <button
+          (click)="logout()"
+          class="w-full flex items-center justify-center gap-2 rounded-xl bg-error-container/30 px-4 py-2.5 text-sm font-bold text-error hover:bg-error-container/50 transition-colors"
+        >
+          <span class="material-symbols-outlined" style="font-size: 18px">logout</span>
+          <span>Sign out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Wrapper -->
+  <div
+    class="flex flex-1 flex-col transition-all duration-300"
+    [class.md:ml-64]="!isSidebarCollapsed()"
+    [class.md:ml-20]="isSidebarCollapsed()"
+  >
+    <!-- Desktop Header Bar -->
+    <header class="hidden md:flex h-16 items-center justify-between border-b border-outline-variant bg-surface-container-low px-6 sticky top-0 z-30 shadow-2xs">
+      <div class="flex items-center gap-3">
+        <h1 class="text-lg font-bold text-on-surface font-display">{{ currentPageTitle }}</h1>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <app-notification-center />
+        <div class="h-6 w-px bg-outline-variant"></div>
+        <div class="flex items-center gap-3">
+          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary shadow-2xs">
+            {{ initials }}
+          </div>
+          <div class="text-left">
+            <p class="text-xs font-bold text-on-surface leading-tight">{{ currentUser?.fullName || 'Agency Manager' }}</p>
+            <p class="text-[10px] text-on-surface-variant">Agency Portal</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content Container -->
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+      <router-outlet />
+    </main>
+  </div>
 </div>

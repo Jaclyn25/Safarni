@@ -49,7 +49,8 @@
       </a>
     </div>
 
-    <div class="w-full space-y-stack-lg register-form-shell">
+    <div class="w-full space-y-stack-lg register-form-shell"
+      [class.register-form-shell--registration]="!isLogin">
       <!-- Header -->
       <div class="text-left">
         <a routerLink="/"
@@ -167,14 +168,6 @@
 
         <div class="flex-grow border-t border-outline-variant"></div>
       </div>
-      } @else {
-      <div class="agency-verification-note" role="note">
-        <span class="material-symbols-outlined" aria-hidden="true">verified_user</span>
-        <div>
-          <strong>Verification required before publishing</strong>
-          <p>First create and verify your manager account. You will enter company details on a focused second step.</p>
-        </div>
-      </div>
       }
 
       <!-- Authentication Form -->
@@ -227,10 +220,11 @@
         </div>
         }
 
+        <div class="auth-fields-grid" [class.auth-fields-grid--registration]="!isLogin">
         <!-- Full Name -->
         @if (!isLogin) {
         @if (isAgencyRegistration) {
-        <div class="form-section-heading">
+        <div class="form-section-heading auth-fields-grid__wide">
           <span class="form-section-heading__number">1</span>
           <div>
             <h3>Account details</h3>
@@ -269,7 +263,8 @@
         }
 
         <!-- Email -->
-        <div class="relative floating-label-input">
+        <div class="relative floating-label-input"
+          [class.auth-fields-grid__wide]="!isLogin && isAgencyRegistration">
           <input id="email"
             class="block w-full px-4 pt-6 pb-2 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer"
             type="email" placeholder=" " [(ngModel)]="email" name="email" autocomplete="email" inputmode="email"
@@ -378,7 +373,7 @@
 
         <!-- Confirm Password -->
         @if (!isLogin) {
-        <div class="space-y-2 mt-4">
+        <div class="space-y-2">
           <div class="relative floating-label-input">
             <input id="confirm-password"
               class="block w-full px-4 pt-6 pb-2 pr-14 font-body-md text-on-surface bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-t-xl transition-all peer"
@@ -446,7 +441,7 @@
         </div>
 
         <!-- Terms and Privacy -->
-        <div class="flex items-start gap-3 mt-4">
+        <div class="auth-fields-grid__wide flex items-start gap-3 mt-4">
           <div class="flex items-center h-5">
             <input id="terms"
               class="w-4 h-4 text-primary border-outline-variant rounded focus:ring-primary focus:ring-offset-0 bg-surface"
@@ -469,6 +464,8 @@
           </label>
         </div>
         }
+
+        </div>
 
         <!-- Email and Password Submit Button -->
         <button

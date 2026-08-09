@@ -38,6 +38,11 @@ export class MarketplaceService {
       .pipe(map((response) => this.requireData(response)));
   }
 
+  getAgencyPackage(packageId: string): Observable<TravelPackage> {
+    return this.http.get<ApiResponse<TravelPackage>>(`/api/agency/packages/${packageId}`)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
   createAgencyPackage(request: TravelPackageRequest): Observable<TravelPackage> {
     return this.http.post<ApiResponse<TravelPackage>>('/api/agency/packages', request)
       .pipe(map((response) => this.requireData(response)));

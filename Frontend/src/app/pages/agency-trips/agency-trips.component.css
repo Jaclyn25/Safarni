@@ -1,0 +1,27 @@
+:host { display: block; }
+.agency-trips-page { width: min(70rem, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 7rem; color: #191c1e; }
+.agency-trips-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.agency-trips-eyebrow { color: #004ac6; font-size: .7rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.agency-trips-header h1 { max-width: 16ch; margin: .35rem 0 .55rem; font-family: Sora,sans-serif; font-size: clamp(1.8rem,4vw,3rem); line-height: 1.05; }
+.agency-trips-header p { max-width: 48ch; margin: 0; color: #5d6070; line-height: 1.6; }
+.agency-trips-refresh,.agency-trip-link { display: inline-flex; align-items: center; gap: .35rem; border: 1px solid #cfd3dc; border-radius: .75rem; background: #fff; padding: .65rem .8rem; color: #454a5a; font: inherit; font-size: .76rem; font-weight: 800; cursor: pointer; text-decoration: none; }
+.agency-trips-refresh:hover,.agency-trip-link:hover { color: #004ac6; background: #f2f4f6; }
+.agency-trips-alert { display: flex; align-items: center; gap: .55rem; margin-bottom: 1rem; border: 1px solid #ffd1cc; border-radius: .9rem; background: #fff2f0; padding: .8rem; color: #7d1a1a; }
+.agency-trips-alert p { flex: 1; margin: 0; font-size: .78rem; }.agency-trips-alert button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
+.agency-trips-loading,.agency-trips-empty { display: grid; justify-items: center; gap: .65rem; padding: 4rem 1rem; text-align: center; }.agency-trips-loading span { width: 2rem; height: 2rem; border: 3px solid #dbe1ff; border-top-color: #004ac6; border-radius: 50%; animation: agency-trips-spin .8s linear infinite; }.agency-trips-loading p { margin: 0; color: #5d6070; font-size: .8rem; }
+.agency-trips-empty { border: 1px dashed #cfd3dc; border-radius: 1.25rem; background: #fbfcfd; }.agency-trips-empty>span { color: #004ac6; font-size: 2.8rem; }.agency-trips-empty h2 { max-width: 28ch; margin: 0; font-family: Sora,sans-serif; font-size: 1.2rem; }.agency-trips-empty p { margin: 0; color: #5d6070; font-size: .8rem; }.agency-trips-button { display: inline-flex; align-items: center; gap: .4rem; border-radius: .75rem; background: #004ac6; padding: .7rem .9rem; color: #f8fbff; font-size: .78rem; font-weight: 800; text-decoration: none; }
+.agency-trips-list { display: grid; gap: .7rem; }.agency-trip-row { display: grid; grid-template-columns: 2.6rem minmax(0,1fr) auto; align-items: start; gap: 1rem; border: 1px solid #e0e3e5; border-radius: 1.1rem; background: #fff; padding: 1rem; box-shadow: 0 10px 24px rgba(40,48,68,.04); }.agency-trip-row__number { display: grid; width: 2.6rem; height: 2.6rem; place-items: center; border-radius: .8rem; background: #eaf1ff; color: #004ac6; font-size: .75rem; font-weight: 850; }.agency-trip-row__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }.agency-trip-row__heading>div>span { color: #006056; font-size: .7rem; font-weight: 800; }.agency-trip-row h2 { margin: .2rem 0 .25rem; font-family: Sora,sans-serif; font-size: 1rem; }.agency-trip-row p { margin: 0; color: #737686; font-size: .75rem; }.agency-trip-status { border-radius: 999px; padding: .4rem .6rem; font-size: .68rem; font-weight: 850; }.agency-trip-status[data-status='Pending'] { background: #eaf1ff; color: #004ac6; }.agency-trip-status[data-status='Accepted'] { background: #dcfff7; color: #005048; }.agency-trip-status[data-status='Rejected'],.agency-trip-status[data-status='Cancelled'] { background: #ffdad6; color: #93000a; }.agency-trip-row__copy { margin-top: .75rem!important; color: #454a5a!important; line-height: 1.5; }.agency-trip-response { margin-top: .75rem; border-radius: .75rem; background: #f7f9fb; padding: .7rem; }.agency-trip-response strong { font-size: .72rem; }.agency-trip-response p { margin-top: .2rem; line-height: 1.45; }.agency-trip-link { align-self: center; padding: .5rem; }.agency-trip-link span { font-size: 1rem; }
+@keyframes agency-trips-spin { to { transform: rotate(360deg); } }
+@media(max-width:620px){.agency-trips-page{width:min(100% - 1.1rem,42rem);padding-top:1.5rem}.agency-trips-header{align-items:flex-start;flex-direction:column}.agency-trip-row{grid-template-columns:2.2rem minmax(0,1fr)}.agency-trip-link{grid-column:2;width:fit-content}.agency-trip-row__heading{align-items:flex-start;flex-direction:column}.agency-trip-status{order:-1}}
+@media(prefers-reduced-motion:reduce){.agency-trips-loading span{animation:none}}
+
+/* When rendered inside the profile workspace, use the same visual language as its cards. */
+.agency-trips-page { width: 100%; margin: 0; padding: 0; }
+.agency-trips-header { align-items: center; margin-bottom: 1.5rem; }
+.agency-trips-header h1 { max-width: none; font-size: clamp(2rem, 4vw, 3rem); }
+.agency-trip-row { border-color: #c3c6d7; box-shadow: 0 14px 30px rgba(15, 23, 42, .055); }
+.agency-trips-empty { background: rgba(255,255,255,.72); box-shadow: 0 14px 30px rgba(15, 23, 42, .04); }
+@media(max-width:767px){
+  .agency-trips-page { padding: 0; }
+  .agency-trips-header { align-items: flex-start; }
+}

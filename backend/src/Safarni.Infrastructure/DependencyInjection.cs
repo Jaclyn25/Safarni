@@ -64,6 +64,9 @@ public static class DependencyInjection
             ItineraryGenerationJobRepository>();
         services.AddScoped<IAdminRepository, AdminRepository>();
         services.AddScoped<ITravelAgencyRepository, TravelAgencyRepository>();
+        services.AddScoped<ITravelPackageRepository, TravelPackageRepository>();
+        services.AddScoped<ITravelPackageImageStorage, LocalTravelPackageImageStorage>();
+        services.AddScoped<IPackageBookingRequestRepository, PackageBookingRequestRepository>();
         services.AddScoped<IUserNotificationRepository, UserNotificationRepository>();
         services.AddScoped<IMarketplaceNotificationService, MarketplaceNotificationService>();
 

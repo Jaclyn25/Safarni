@@ -26,6 +26,7 @@ using Safarni.Application.Features.Trips.CreateTrip;
 using Safarni.Application.Features.Trips.GenerateItinerary;
 using Safarni.Application.Features.Trips.GenerateItinerary.Jobs;
 using Safarni.Application.Features.Trips.UpdateTrip;
+using Safarni.Application.Features.Packages;
 using Safarni.Application.Features.Trips.Itineraries.ManageItems;
 using Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
 using Safarni.Application.Features.VisaApplications.CreateVisaApplication;
@@ -75,6 +76,14 @@ public static class DependencyInjection
 
         services.AddTransient<IValidator<CreateTripCommand>, CreateTripCommandValidator>();
         services.AddTransient<IValidator<UpdateTripCommand>, UpdateTripCommandValidator>();
+        services.AddTransient<IValidator<CreateTravelPackageCommand>, CreateTravelPackageCommandValidator>();
+        services.AddTransient<IValidator<UpdateTravelPackageCommand>, UpdateTravelPackageCommandValidator>();
+        services.AddTransient<IValidator<CreatePackageBookingRequestCommand>, CreatePackageBookingRequestCommandValidator>();
+        services.AddTransient<IValidator<AcceptPackageBookingRequestCommand>, ProcessPackageBookingRequestCommandValidator>();
+        services.AddTransient<IValidator<RejectPackageBookingRequestCommand>, RejectPackageBookingRequestCommandValidator>();
+        services.AddTransient<AcceptPackageBookingRequestCommandHandler>();
+        services.AddTransient<IValidator<AddTravelPackageDayCommand>, AddTravelPackageDayCommandValidator>();
+        services.AddTransient<IValidator<UpdateTravelPackageDayCommand>, UpdateTravelPackageDayCommandValidator>();
         services.AddTransient<IValidator<GenerateItineraryCommand>, GenerateItineraryCommandValidator>();
         services.AddTransient<
             IValidator<StartItineraryGenerationCommand>,

@@ -682,6 +682,52 @@ namespace Safarni.Infrastructure.Migrations
                     b.ToTable("ItineraryItems");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.PackageBookingRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AgencyResponse")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("TravelPackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("TravelerCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TravelerUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TravelerUserId");
+
+                    b.HasIndex("TravelPackageId", "Status");
+
+                    b.ToTable("PackageBookingRequests", (string)null);
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.PassportInfo", b =>
                 {
                     b.Property<Guid>("Id")
@@ -833,6 +879,122 @@ namespace Safarni.Infrastructure.Migrations
                     b.HasIndex("VerificationStatus");
 
                     b.ToTable("TravelAgencies", (string)null);
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.TravelPackage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AvailableSeats")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CoverImageUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Destination")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal?>("DiscountPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsPublished")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("OfferLabel")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("TravelAgencyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TravelAgencyId");
+
+                    b.HasIndex("IsPublished", "IsActive", "StartDate");
+
+                    b.ToTable("TravelPackages", (string)null);
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.TravelPackageDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Activities")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("DayNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("TravelPackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TravelPackageId", "DayNumber")
+                        .IsUnique();
+
+                    b.ToTable("TravelPackageDays", (string)null);
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.TravelPreference", b =>
@@ -1294,6 +1456,25 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("ItineraryDay");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.PackageBookingRequest", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.TravelPackage", "TravelPackage")
+                        .WithMany("BookingRequests")
+                        .HasForeignKey("TravelPackageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Safarni.Domain.Entities.User", "TravelerUser")
+                        .WithMany()
+                        .HasForeignKey("TravelerUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("TravelPackage");
+
+                    b.Navigation("TravelerUser");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.PassportInfo", b =>
                 {
                     b.HasOne("Safarni.Domain.Entities.User", "User")
@@ -1325,6 +1506,28 @@ namespace Safarni.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.TravelPackage", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.TravelAgency", "TravelAgency")
+                        .WithMany("Packages")
+                        .HasForeignKey("TravelAgencyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TravelAgency");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.TravelPackageDay", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.TravelPackage", "TravelPackage")
+                        .WithMany("Days")
+                        .HasForeignKey("TravelPackageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TravelPackage");
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.TravelPreference", b =>
@@ -1415,7 +1618,16 @@ namespace Safarni.Infrastructure.Migrations
 
             modelBuilder.Entity("Safarni.Domain.Entities.TravelAgency", b =>
                 {
+                    b.Navigation("Packages");
+
                     b.Navigation("VerificationDocuments");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.TravelPackage", b =>
+                {
+                    b.Navigation("BookingRequests");
+
+                    b.Navigation("Days");
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.Trip", b =>

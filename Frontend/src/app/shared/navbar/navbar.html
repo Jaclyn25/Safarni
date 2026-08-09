@@ -1,4 +1,4 @@
-<header *ngIf="!isAdminPage" [ngClass]="navbarBgClass" class="backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm transition-colors duration-300">
+<header *ngIf="!isAdminPage && !isAgencyPage" [ngClass]="navbarBgClass" class="backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm transition-colors duration-300">
   <div
     class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto">
 
@@ -11,10 +11,6 @@
     <div class="hidden md:flex items-center gap-stack-lg">
 
       <nav class="flex gap-stack-lg">
-        <a *ngIf="isAgency" routerLink="/agency" routerLinkActive="text-primary font-semibold"
-          class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
-          Agency Portal
-        </a>
         <a routerLink="/" routerLinkActive="text-primary font-semibold" [routerLinkActiveOptions]="{ exact: true }"
           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
           Explore
@@ -36,6 +32,11 @@
           class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
           Bookings
         </a>
+
+        <a routerLink="/marketplace" routerLinkActive="text-primary font-semibold"
+          class="text-label-md font-label-md text-on-surface-variant hover:opacity-80 transition-opacity">
+          Marketplace
+        </a>
       </nav>
 
       @if (!user) {
@@ -51,15 +52,16 @@
 
         <app-notification-center />
 
-        <a [routerLink]="isAdmin ? '/admin' : '/profile'" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+        <a [routerLink]="isAdmin ? '/admin' : isAgency ? '/agency' : '/profile'" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
 
           <div class="h-9 w-9 rounded-full flex items-center justify-center font-semibold text-white shadow-sm"
-               [ngClass]="isAdmin ? 'bg-gradient-to-br from-slate-800 to-slate-950 shadow-md ring-1 ring-slate-800/20' : 'bg-primary'">
+               [ngClass]="isAdmin ? 'bg-gradient-to-br from-slate-800 to-slate-950 shadow-md ring-1 ring-slate-800/20' : isAgency ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-primary'">
             <span *ngIf="isAdmin" class="material-symbols-outlined" style="font-size: 18px">admin_panel_settings</span>
-            <span *ngIf="!isAdmin">{{ userInitial }}</span>
+            <span *ngIf="isAgency" class="material-symbols-outlined" style="font-size: 18px">space_dashboard</span>
+            <span *ngIf="!isAdmin && !isAgency">{{ userInitial }}</span>
           </div>
 
-          <div *ngIf="!isAdmin" class="flex flex-col">
+          <div *ngIf="!isAdmin && !isAgency" class="flex flex-col">
             <span class="text-label-md font-semibold">
               {{ user.fullName }}
             </span>
@@ -94,16 +96,12 @@
 
       <app-notification-center />
 
-      <a *ngIf="isAgency" routerLink="/agency" aria-label="Open agency portal"
-        class="h-9 w-9 rounded-full text-primary border border-primary/30 flex items-center justify-center">
-        <span class="material-symbols-outlined" style="font-size: 18px">storefront</span>
-      </a>
-
-      <a [routerLink]="isAdmin ? '/admin' : '/profile'"
+      <a [routerLink]="isAdmin ? '/admin' : isAgency ? '/agency' : '/profile'"
         class="h-9 w-9 rounded-full text-white flex items-center justify-center font-semibold cursor-pointer shadow-sm transition-colors"
-        [ngClass]="isAdmin ? 'bg-gradient-to-br from-slate-800 to-slate-950 ring-1 ring-slate-800/20' : 'bg-primary'">
+        [ngClass]="isAdmin ? 'bg-gradient-to-br from-slate-800 to-slate-950 ring-1 ring-slate-800/20' : isAgency ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-primary'">
         <span *ngIf="isAdmin" class="material-symbols-outlined" style="font-size: 18px">admin_panel_settings</span>
-        <span *ngIf="!isAdmin">{{ userInitial }}</span>
+        <span *ngIf="isAgency" class="material-symbols-outlined" style="font-size: 18px">space_dashboard</span>
+        <span *ngIf="!isAdmin && !isAgency">{{ userInitial }}</span>
       </a>
 
       }

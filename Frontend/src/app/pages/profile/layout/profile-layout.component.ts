@@ -22,16 +22,13 @@ interface NavItem {
 export class ProfileLayoutComponent implements OnInit {
   private readonly standardNavItems: NavItem[] = [
     { path: 'trips', label: 'My Trips', icon: 'luggage' },
+    { path: 'agency-trips', label: 'Agency Trips', icon: 'travel_explore' },
     { path: 'account', label: 'Account', icon: 'person' },
     { path: 'password', label: 'Password', icon: 'lock' },
     { path: 'notifications', label: 'Notifications', icon: 'notifications' },
     { path: 'travel-preferences', label: 'Travel Preferences', icon: 'travel_explore' },
     { path: 'theme', label: 'Theme', icon: 'dark_mode' },
-    { path: 'privacy', label: 'Privacy', icon: 'shield' },
-    { path: 'security', label: 'Security', icon: 'security' },
-    { path: 'connected-accounts', label: 'Connected Accounts', icon: 'link' },
     { path: 'language', label: 'Language', icon: 'language' },
-    { path: 'currency', label: 'Currency', icon: 'payments' },
   ];
 
   profile: MyProfile | null = null;

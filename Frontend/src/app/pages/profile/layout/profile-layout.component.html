@@ -9,7 +9,8 @@
       </div>
     </div>
 
-    <nav class="sidenav__nav">
+    <nav class="sidenav__nav" aria-label="Profile sections">
+      <p class="sidenav__label">Your workspace</p>
       <a
         *ngFor="let item of navItems"
         [routerLink]="item.path.startsWith('/') ? item.path : ['/profile', item.path]"
@@ -21,6 +22,7 @@
         <span>{{ item.label }}</span>
       </a>
 
+      <p class="sidenav__label sidenav__label--settings">Preferences & security</p>
       <div class="sidenav__danger">
         <a routerLink="/profile/security" class="sidenav__link sidenav__link--danger" routerLinkActive="sidenav__link--active">
           <span class="material-symbols-outlined">delete_forever</span>

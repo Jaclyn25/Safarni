@@ -71,6 +71,9 @@ export class NotificationCenterComponent implements OnInit, OnDestroy {
   }
 
   icon(type: string): string {
+    if (type.includes('PackageBookingRequestReceived')) return 'inbox';
+    if (type.includes('PackageBookingRequestAccepted')) return 'check_circle';
+    if (type.includes('PackageBookingRequestRejected')) return 'cancel';
     if (type.includes('Approved')) return 'verified';
     if (type.includes('Declined') || type.includes('Rejected')) return 'cancel';
     if (type.includes('Document')) return 'description';

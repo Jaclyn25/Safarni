@@ -1,0 +1,35 @@
+<main class="marketplace-page">
+  <header class="marketplace-hero">
+    <div>
+      <span class="marketplace-eyebrow">Safarni marketplace</span>
+      <h1>Trips with a real local point of view.</h1>
+      <p>Compare verified agency packages, then request the one that fits your dates and pace.</p>
+    </div>
+    <div class="marketplace-hero__mark" aria-hidden="true"><span class="material-symbols-outlined">travel_explore</span></div>
+  </header>
+
+  <form class="marketplace-filters" (ngSubmit)="page = 1; load()">
+    <label>Destination<input [ngModel]="destination()" (ngModelChange)="destination.set($event)" name="destination" placeholder="Cairo, Bali, Istanbul" /></label>
+    <label>Starting after<input type="date" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" name="startDate" /></label>
+    <label>Days<select [ngModel]="durationDays()" (ngModelChange)="durationDays.set($event ? +$event : null)" name="durationDays"><option [ngValue]="null">Any length</option><option [ngValue]="3">3 days</option><option [ngValue]="5">5 days</option><option [ngValue]="7">7 days</option><option [ngValue]="10">10 days</option></select></label>
+    <label>Budget from<input type="number" min="0" [ngModel]="minPrice()" (ngModelChange)="minPrice.set($event === '' ? null : +$event)" name="minPrice" placeholder="0" /></label>
+    <label>Budget to<input type="number" min="0" [ngModel]="maxPrice()" (ngModelChange)="maxPrice.set($event === '' ? null : +$event)" name="maxPrice" placeholder="Any" /></label>
+    <div class="marketplace-filters__actions"><button class="marketplace-button" type="submit"><span class="material-symbols-outlined">search</span>Find packages</button><button class="marketplace-button marketplace-button--quiet" type="button" (click)="reset()">Clear</button></div>
+  </form>
+
+  @if (error()) { <div class="marketplace-message marketplace-message--error"><span class="material-symbols-outlined">error_outline</span><p>{{ error() }}</p><button type="button" (click)="load()">Retry</button></div> }
+  @if (loading()) { <div class="marketplace-loading"><span></span><p>Finding packages that match your trip...</p></div> }
+  @else if (!error() && packages().length === 0) { <div class="marketplace-empty"><span class="material-symbols-outlined">map_search</span><h2>No packages matched those filters</h2><p>Try a wider budget or remove the date filter to see more verified agencies.</p><button class="marketplace-button marketplace-button--quiet" type="button" (click)="reset()">Show all packages</button></div> }
+  @else {
+    <div class="marketplace-results-heading"><div><span class="marketplace-eyebrow">Curated for you</span><h2>{{ totalCount }} available packages</h2></div><span>Page {{ page }} of {{ totalPages }}</span></div>
+    <section class="marketplace-grid" aria-label="Travel packages">
+      @for (packageItem of packages(); track packageItem.id) {
+        <article class="package-card">
+          <div class="package-card__image" [style.background-image]="packageItem.coverImageUrl ? 'url(' + packageItem.coverImageUrl + ')' : null"><span class="package-card__destination">{{ packageItem.destination }}</span>@if (packageItem.discountPercentage) { <span class="package-card__offer">{{ packageItem.discountPercentage }}% offer</span> } @else { <span class="package-card__offer package-card__offer--plain">Verified agency</span> }</div>
+          <div class="package-card__body"><div class="package-card__agency"><span class="material-symbols-outlined">verified</span><span>{{ packageItem.agency.companyName }}</span></div><h3>{{ packageItem.title }}</h3><p>{{ packageItem.description }}</p><div class="package-card__meta"><span><span class="material-symbols-outlined">calendar_month</span>{{ date(packageItem.startDate) }}</span><span><span class="material-symbols-outlined">schedule</span>{{ packageItem.durationDays }} days</span></div><div class="package-card__footer"><strong>{{ price(packageItem) }}</strong><a [routerLink]="['/marketplace/packages', packageItem.id]" class="marketplace-link">View details <span class="material-symbols-outlined">arrow_forward</span></a></div></div>
+        </article>
+      }
+    </section>
+    <nav class="marketplace-pagination" aria-label="Marketplace pages"><button type="button" (click)="previousPage()" [disabled]="page === 1"><span class="material-symbols-outlined">arrow_back</span>Previous</button><button type="button" (click)="nextPage()" [disabled]="page === totalPages">Next<span class="material-symbols-outlined">arrow_forward</span></button></nav>
+  }
+</main>

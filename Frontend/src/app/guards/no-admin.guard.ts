@@ -9,5 +9,8 @@ export const noAdminGuard: CanActivateFn = () => {
   if (authService.hasAdminRole()) {
     return router.createUrlTree(['/admin']);
   }
+  if (authService.isTravelAgency()) {
+    return router.createUrlTree(['/agency']);
+  }
   return true;
 };

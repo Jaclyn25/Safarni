@@ -5,6 +5,9 @@ import { Observable, map } from 'rxjs';
 import {
   AdminAgencyDetail,
   AdminAgencySummary,
+  AgencyActivityItem,
+  AgencyDashboardSummary,
+  AgencyDashboardTrendPoint,
   AgencyDocumentDecision,
   AgencyOnboardingStatus,
   AgencyProfile,
@@ -86,6 +89,26 @@ export class AgencyService {
   updateProfile(request: UpdateAgencyProfileRequest): Observable<AgencyProfile> {
     return this.http
       .put<ApiResponse<AgencyProfile>>(`${this.agencyApi}/profile`, request)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  getDashboardSummary(): Observable<AgencyDashboardSummary> {
+    return this.http
+      .get<ApiResponse<AgencyDashboardSummary>>(`${this.agencyApi}/dashboard/summary`)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  getDashboardTrends(days: number = 30): Observable<AgencyDashboardTrendPoint[]> {
+    const params = new HttpParams().set('days', days);
+    return this.http
+      .get<ApiResponse<AgencyDashboardTrendPoint[]>>(`${this.agencyApi}/dashboard/trends`, { params })
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  getDashboardRecentActivity(count: number = 10): Observable<AgencyActivityItem[]> {
+    const params = new HttpParams().set('count', count);
+    return this.http
+      .get<ApiResponse<AgencyActivityItem[]>>(`${this.agencyApi}/dashboard/recent-activity`, { params })
       .pipe(map((response) => this.requireData(response)));
   }
 

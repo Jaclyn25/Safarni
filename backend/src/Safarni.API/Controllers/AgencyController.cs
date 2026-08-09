@@ -5,6 +5,7 @@ using Safarni.API.Common;
 using Safarni.API.Extensions;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Features.Agencies.Common;
+using Safarni.Application.Features.Agencies.Dashboard;
 using Safarni.Application.Features.Agencies.Documents;
 using Safarni.Application.Features.Agencies.Profile;
 using Safarni.Application.Features.Agencies.Onboarding;
@@ -207,6 +208,55 @@ public sealed class AgencyController : ControllerBase
             : Ok(ApiResponse<AgencyProfileResponse>.SuccessResponse(
                 result.Value!,
                 "Agency profile updated successfully.",
+                StatusCodes.Status200OK));
+    }
+
+    [HttpGet("dashboard/summary")]
+    public async Task<IActionResult> GetDashboardSummary(CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new GetAgencyDashboardSummaryQuery(User.GetRequiredUserId()),
+            cancellationToken);
+
+        return result.IsFailure
+            ? Failure<AgencyDashboardSummaryResponse>(result.Error, "Failed to load dashboard summary.")
+            : Ok(ApiResponse<AgencyDashboardSummaryResponse>.SuccessResponse(
+                result.Value!,
+                "Dashboard summary loaded.",
+                StatusCodes.Status200OK));
+    }
+
+    [HttpGet("dashboard/trends")]
+    public async Task<IActionResult> GetDashboardTrends(
+        [FromQuery] int days = 30,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(
+            new GetAgencyDashboardTrendsQuery(User.GetRequiredUserId(), days),
+            cancellationToken);
+
+        return result.IsFailure
+            ? Failure<IReadOnlyList<AgencyDashboardTrendPointResponse>>(result.Error, "Failed to load dashboard trends.")
+            : Ok(ApiResponse<IReadOnlyList<AgencyDashboardTrendPointResponse>>.SuccessResponse(
+                result.Value!,
+                "Dashboard trends loaded.",
+                StatusCodes.Status200OK));
+    }
+
+    [HttpGet("dashboard/recent-activity")]
+    public async Task<IActionResult> GetDashboardRecentActivity(
+        [FromQuery] int count = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(
+            new GetAgencyDashboardRecentActivityQuery(User.GetRequiredUserId(), count),
+            cancellationToken);
+
+        return result.IsFailure
+            ? Failure<IReadOnlyList<AgencyActivityItemResponse>>(result.Error, "Failed to load recent activity.")
+            : Ok(ApiResponse<IReadOnlyList<AgencyActivityItemResponse>>.SuccessResponse(
+                result.Value!,
+                "Recent activity loaded.",
                 StatusCodes.Status200OK));
     }
 

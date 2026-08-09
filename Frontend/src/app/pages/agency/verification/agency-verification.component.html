@@ -1,30 +1,180 @@
-<div class="agency-page">
-  <header class="agency-page-header"><div><span class="agency-eyebrow">Trust & verification</span><h1>Company documents</h1><p>Upload the three required business documents. Files remain private and are available only to your agency and authorized Safarni administrators.</p></div></header>
-  @if (isLoading()) { <div class="agency-loading"><span></span><p>Loading secure documents…</p></div> }
-  @else if (verification) {
-  <section class="verification-summary" [attr.data-status]="verification.verificationStatus">
-    <div class="verification-summary__status"><span class="material-symbols-outlined">{{ verification.canPublishPackages ? 'verified' : 'policy' }}</span><div><small>Current status</small><strong>{{ statusLabel(verification.verificationStatus) }}</strong></div></div>
-    <div class="verification-summary__progress"><div><span>Document progress</span><strong>{{ verification.uploadedDocumentCount }}/{{ verification.requiredDocumentCount }}</strong></div><div class="agency-progress"><span [style.width.%]="verification.uploadedDocumentCount / verification.requiredDocumentCount * 100"></span></div></div>
-    <div class="verification-summary__publishing"><small>Package publishing</small><strong>{{ verification.canPublishPackages ? 'Available' : 'Locked until verified' }}</strong></div>
-  </section>
-  @if (verification.decisionReason && verification.verificationStatus !== 'Verified') { <div class="agency-alert agency-alert--info"><span class="material-symbols-outlined">rate_review</span><div><strong>Administrator feedback</strong><p>{{ verification.decisionReason }}</p></div></div> }
-  @if (error()) { <div class="agency-alert agency-alert--error" role="alert"><span class="material-symbols-outlined">error</span><div><strong>Action needed</strong><p>{{ error() }}</p></div></div> }
-  @if (success()) { <div class="agency-alert agency-alert--success" role="status"><span class="material-symbols-outlined">check_circle</span><div><strong>Saved</strong><p>{{ success() }}</p></div></div> }
-  <div class="document-grid">
-    @for (document of verification.documents; track document.documentType) {
-    <article class="document-card" [class.document-card--complete]="document.reviewStatus === 'Approved'" [class.document-card--declined]="document.reviewStatus === 'Declined' && document.isUploaded">
-      <header><span class="document-card__icon material-symbols-outlined">{{ document.documentType === 'TaxCard' ? 'receipt_long' : document.documentType === 'TourismCompanyLicense' ? 'workspace_premium' : 'domain_verification' }}</span><div><h2>{{ document.displayName }}</h2><span class="document-state" [attr.data-state]="documentStatus(document)"><span class="material-symbols-outlined">{{ documentStatusIcon(document) }}</span>{{ documentStatus(document) }}</span></div></header>
-      @if (document.reviewStatus === 'Declined' && document.reviewReason) { <div class="document-feedback"><span class="material-symbols-outlined">report</span><div><strong>Changes required</strong><p>{{ document.reviewReason }}</p></div></div> }
-      @if (document.isUploaded) { <div class="document-current"><span class="material-symbols-outlined">lock</span><div><strong>{{ document.originalFileName }}</strong><small>{{ formatSize(document.fileSizeBytes) }} · Uploaded {{ document.uploadedAt | date:'mediumDate' }}</small></div><button type="button" (click)="open(document.documentType)" [disabled]="busyType() === document.documentType">View</button></div> }
-      <form (ngSubmit)="upload(document.documentType)" novalidate>
-        <label>Document number <span>*</span><input type="text" [(ngModel)]="drafts[document.documentType].documentNumber" [name]="document.documentType + '-number'" maxlength="100" placeholder="Enter the official document number" required /></label>
-        <label>Expiry date <small>Optional</small><input type="date" [(ngModel)]="drafts[document.documentType].expiryDate" [name]="document.documentType + '-expiry'" /></label>
-        <label class="document-file"><span class="material-symbols-outlined">upload_file</span><span><strong>{{ drafts[document.documentType].file?.name || (document.isUploaded ? 'Choose a replacement file' : 'Choose document file') }}</strong><small>PDF, JPG or PNG · Maximum 10 MB</small></span><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="selectFile(document.documentType, $event)" /></label>
-        <div class="document-actions"><button class="agency-button" type="submit" [disabled]="busyType() !== null || !drafts[document.documentType].file"><span class="material-symbols-outlined">{{ busyType() === document.documentType ? 'progress_activity' : 'cloud_upload' }}</span>{{ document.isUploaded ? 'Replace document' : 'Upload document' }}</button>@if (document.isUploaded) { <button class="agency-button agency-button--danger" type="button" [disabled]="busyType() !== null" (click)="remove(document.documentType)">Remove</button> }</div>
-      </form>
-    </article>
+<div class="space-y-6">
+  <!-- Page Header -->
+  <app-agency-page-header
+    eyebrow="Trust & Safety"
+    title="Agency Verification"
+    subtitle="Upload required official business documents to verify your travel agency and unlock package publishing.">
+    <div class="flex items-center gap-2">
+      <button type="button" (click)="load()" class="px-3.5 py-2 bg-white border border-gray-200 text-gray-700 font-semibold text-xs rounded-xl shadow-xs hover:bg-gray-50 transition-all flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-base">refresh</span>
+        <span>Refresh Status</span>
+      </button>
+    </div>
+  </app-agency-page-header>
+
+  @if (isLoading()) {
+    <app-agency-loading-skeleton type="cards" />
+    <app-agency-loading-skeleton type="content" />
+  } @else if (verification) {
+    <!-- Hero Status Overview Card -->
+    <div class="bg-white rounded-3xl border border-gray-100 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div class="flex items-center gap-4">
+        <div [class]="'w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold ' + (verification.canPublishPackages ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100')">
+          <span class="material-symbols-outlined text-3xl">{{ verification.canPublishPackages ? 'verified' : 'hourglass_top' }}</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-xl font-bold text-gray-900 font-display">Verification Progress</h3>
+            <app-agency-status-badge [status]="statusLabel(verification.verificationStatus)" />
+          </div>
+          <p class="text-xs text-gray-500 mt-1 max-w-md">
+            @if (verification.canPublishPackages) {
+              Your agency is verified! You have full access to publish travel packages on Safarni Marketplace.
+            } @else {
+              Submit your 3 official business documents below. Safarni trust team will review your application within 24-48 hours.
+            }
+          </p>
+        </div>
+      </div>
+
+      <div class="w-full md:w-64 bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-2 shrink-0">
+        <div class="flex items-center justify-between text-xs font-semibold text-gray-700">
+          <span>Documents Progress</span>
+          <span class="text-blue-600 font-bold">{{ verification.uploadedDocumentCount }} / {{ verification.requiredDocumentCount }}</span>
+        </div>
+        <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+          <div class="bg-blue-600 h-full rounded-full transition-all duration-300"
+               [style.width.%]="(verification.uploadedDocumentCount / verification.requiredDocumentCount) * 100"></div>
+        </div>
+        <p class="text-[11px] text-gray-400 text-right">
+          Publishing: <strong [class]="verification.canPublishPackages ? 'text-emerald-600' : 'text-amber-600'">{{ verification.canPublishPackages ? 'Unlocked' : 'Locked' }}</strong>
+        </p>
+      </div>
+    </div>
+
+    <!-- Feedback Banner if administrator requested changes -->
+    @if (verification.decisionReason && verification.verificationStatus !== 'Verified') {
+      <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-rose-900">
+        <span class="material-symbols-outlined text-rose-600 text-xl mt-0.5">feedback</span>
+        <div>
+          <h4 class="text-sm font-bold">Administrator Review Note</h4>
+          <p class="text-xs text-rose-700 mt-0.5">{{ verification.decisionReason }}</p>
+        </div>
+      </div>
     }
-  </div>
-  <aside class="privacy-note"><span class="material-symbols-outlined">shield_lock</span><div><strong>Your documents are private</strong><p>They are stored outside the public website and downloaded only through authenticated, ownership-checked endpoints.</p></div></aside>
+
+    <!-- Notifications -->
+    @if (success()) {
+      <div class="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center justify-between">
+        <span>{{ success() }}</span>
+        <button type="button" (click)="success.set('')" class="text-emerald-600 hover:text-emerald-900"><span class="material-symbols-outlined text-base">close</span></button>
+      </div>
+    }
+
+    @if (error()) {
+      <div class="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl flex items-center justify-between">
+        <span>{{ error() }}</span>
+        <button type="button" (click)="error.set('')" class="text-rose-600 hover:text-rose-900"><span class="material-symbols-outlined text-base">close</span></button>
+      </div>
+    }
+
+    <!-- Document Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      @for (document of verification.documents; track document.documentType) {
+        <div class="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm flex flex-col justify-between space-y-6">
+          <div class="space-y-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-xl">
+                  {{ document.documentType === 'TaxCard' ? 'receipt_long' : document.documentType === 'TourismCompanyLicense' ? 'workspace_premium' : 'domain_verification' }}
+                </span>
+              </div>
+              <app-agency-status-badge [status]="documentStatus(document)" />
+            </div>
+
+            <div>
+              <h3 class="font-bold text-gray-900 text-base font-display">{{ document.displayName }}</h3>
+              <p class="text-xs text-gray-400 mt-0.5">Required legal documentation</p>
+            </div>
+
+            <!-- Decline Feedback Note -->
+            @if (document.reviewStatus === 'Declined' && document.reviewReason) {
+              <div class="p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs text-rose-800">
+                <strong>Changes Requested:</strong> {{ document.reviewReason }}
+              </div>
+            }
+
+            <!-- Current Uploaded File Preview Info -->
+            @if (document.isUploaded) {
+              <div class="p-3.5 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-bold text-gray-800 truncate max-w-[160px]">{{ document.originalFileName }}</span>
+                  <button type="button" (click)="open(document.documentType)" [disabled]="busyType() === document.documentType"
+                          class="text-blue-600 font-semibold hover:underline flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">visibility</span>
+                    <span>View</span>
+                  </button>
+                </div>
+                <div class="text-[11px] text-gray-400 flex items-center justify-between">
+                  <span>{{ formatSize(document.fileSizeBytes) }}</span>
+                  <span>Uploaded {{ document.uploadedAt | date:'mediumDate' }}</span>
+                </div>
+              </div>
+            }
+
+            <!-- Upload Form -->
+            <form (ngSubmit)="upload(document.documentType)" class="space-y-3">
+              <div>
+                <label class="block text-[11px] font-bold uppercase text-gray-600 mb-1">Document Number *</label>
+                <input type="text" [(ngModel)]="drafts[document.documentType].documentNumber" [name]="document.documentType + '-number'"
+                       placeholder="e.g. CR-998241" required
+                       class="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold uppercase text-gray-600 mb-1">Expiry Date (Optional)</label>
+                <input type="date" [(ngModel)]="drafts[document.documentType].expiryDate" [name]="document.documentType + '-expiry'"
+                       class="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+              </div>
+
+              <!-- Dropzone File Input -->
+              <div>
+                <label class="block text-[11px] font-bold uppercase text-gray-600 mb-1">Select File</label>
+                <div class="relative border-2 border-dashed border-gray-200 rounded-xl p-3 text-center hover:border-blue-400 transition-colors bg-gray-50/50">
+                  <input type="file" (change)="selectFile(document.documentType, $event)" accept=".pdf,.jpg,.jpeg,.png"
+                         class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                  <span class="material-symbols-outlined text-gray-400 text-xl block mb-0.5">cloud_upload</span>
+                  <span class="text-xs font-semibold text-gray-700 block truncate">
+                    {{ drafts[document.documentType].file?.name || (document.isUploaded ? 'Choose replacement file' : 'Choose document file') }}
+                  </span>
+                  <span class="text-[10px] text-gray-400">PDF, JPG, PNG up to 10MB</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 pt-2">
+                <button type="submit" [disabled]="busyType() !== null || !drafts[document.documentType].file"
+                        class="flex-1 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-2xs transition-all disabled:opacity-50 flex items-center justify-center gap-1.5">
+                  <span class="material-symbols-outlined text-base">cloud_upload</span>
+                  <span>{{ document.isUploaded ? 'Replace' : 'Upload' }}</span>
+                </button>
+
+                @if (document.isUploaded) {
+                  <button type="button" (click)="remove(document.documentType)" [disabled]="busyType() !== null"
+                          class="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-xl transition-all disabled:opacity-50">
+                    Remove
+                  </button>
+                }
+              </div>
+            </form>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Security Info Note -->
+    <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex items-center gap-3 text-xs text-gray-500">
+      <span class="material-symbols-outlined text-blue-600 text-lg">shield_lock</span>
+      <span>Your verification documents are stored securely with encrypted access. Only authorized Safarni compliance reviewers have access.</span>
+    </div>
   }
 </div>

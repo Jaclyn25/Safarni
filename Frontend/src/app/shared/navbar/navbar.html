@@ -136,6 +136,13 @@
 
       <app-notification-center />
 
+      <!-- Mobile Logout Button -->
+      <button (click)="logout()"
+        class="h-9 w-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-error/10 hover:text-error transition-all duration-200 active:scale-95"
+        title="Sign out">
+        <span class="material-symbols-outlined text-[20px]">logout</span>
+      </button>
+
       <!-- Mobile Profile -->
       <a [routerLink]="isAdmin ? '/admin' : isAgency ? '/agency' : '/profile'"
         class="h-9 w-9 rounded-full text-white flex items-center justify-center font-semibold cursor-pointer shadow-sm transition-all duration-200 active:scale-95"

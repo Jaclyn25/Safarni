@@ -99,14 +99,12 @@ public sealed class AddTravelPackageDayCommandHandler
 
         package.Days.Add(new TravelPackageDay
         {
-            Id = Guid.NewGuid(),
             TravelPackageId = package.Id,
             DayNumber = request.DayNumber,
             Title = request.Title.Trim(),
             Description = request.Description.Trim(),
             Activities = NullIfWhiteSpace(request.Activities)
         });
-        package.UpdatedAt = DateTime.UtcNow;
         await _packages.SaveChangesAsync(cancellationToken);
         return Result<TravelPackageResponse>.Success(TravelPackageMapping.ToResponse(package));
     }
@@ -152,7 +150,6 @@ public sealed class UpdateTravelPackageDayCommandHandler
         day.Title = request.Title.Trim();
         day.Description = request.Description.Trim();
         day.Activities = AddTravelPackageDayCommandHandler.NullIfWhiteSpace(request.Activities);
-        package.UpdatedAt = DateTime.UtcNow;
         await _packages.SaveChangesAsync(cancellationToken);
         return Result<TravelPackageResponse>.Success(TravelPackageMapping.ToResponse(package));
     }
@@ -184,7 +181,6 @@ public sealed class DeleteTravelPackageDayCommandHandler
         var day = package.Days.SingleOrDefault(item => item.Id == request.DayId);
         if (day is null) return Result<TravelPackageResponse>.Failure(TravelPackageErrors.DayNotFound);
         _packages.RemoveDay(day);
-        package.UpdatedAt = DateTime.UtcNow;
         await _packages.SaveChangesAsync(cancellationToken);
         return Result<TravelPackageResponse>.Success(TravelPackageMapping.ToResponse(package));
     }

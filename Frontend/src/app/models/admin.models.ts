@@ -30,7 +30,6 @@ export interface DashboardSummary {
   activeUsers: number;
   verifiedUsers: number;
   totalTrips: number;
-  totalVisaApplications: number;
   totalConversations: number;
   totalAiMessages: number;
   itineraryJobsTotal: number;
@@ -72,7 +71,6 @@ export interface AdminUserDetail extends AdminUserSummary {
   profilePhotoUrl: string | null;
   updatedAt: string | null;
   tripsCount: number;
-  visaApplicationsCount: number;
   conversationsCount: number;
   messagesCount: number;
 }
@@ -178,7 +176,6 @@ export interface AnalyticsDailyPoint {
   date: string;
   users: number;
   trips: number;
-  visaApplications: number;
   messages: number;
   itineraryJobs: number;
 }
@@ -192,7 +189,6 @@ export interface AnalyticsFunnel {
   verifiedUsers: number;
   usersWithTrips: number;
   usersWithGeneratedItineraries: number;
-  usersWithVisaApplications: number;
 }
 
 export interface TopDestination {

@@ -28,13 +28,6 @@ export const routes: Routes = [
     title: 'Safarni | Trip Planner'
   },
   {
-    path: 'bookings',
-    loadComponent: () =>
-      import('./pages/bookings/bookings.component').then((m) => m.BookingsComponent),
-    canActivate: [authGuard],
-    title: 'Safarni | Your Bookings'
-  },
-  {
     path: 'agency-trips',
     redirectTo: 'profile/agency-trips',
     pathMatch: 'full',

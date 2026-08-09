@@ -56,7 +56,6 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<ITravelProfileRepository, TravelProfileRepository>();
-        services.AddScoped<IVisaApplicationRepository, VisaApplicationRepository>();
         services.AddScoped<ITripRepository, TripRepository>();
         services.AddScoped<IItineraryRepository, ItineraryRepository>();
         services.AddScoped<

@@ -65,7 +65,6 @@ public sealed class VerifyUserEmailCommandHandler
             AdminUserResponseMapper.ToDetail(
                 user,
                 counts.Trips,
-                counts.VisaApplications,
                 counts.Conversations,
                 counts.Messages));
     }

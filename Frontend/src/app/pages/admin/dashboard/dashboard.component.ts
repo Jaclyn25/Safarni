@@ -205,7 +205,6 @@ export class AdminDashboardComponent implements OnInit {
     if (!s) return [];
     return [
       { label: 'Total Trips Created', value: s.totalTrips, trend: '+8% vs last week', icon: 'luggage', tone: 'default', link: '/admin/analytics' },
-      { label: 'Visa Applications', value: s.totalVisaApplications, trend: 'Tracked requests', icon: 'badge', tone: 'default', link: '/admin/analytics' },
       { label: 'Pending Itineraries', value: s.itineraryJobsPending, trend: 'Queue pending', icon: 'hourglass_top', tone: 'warning', link: '/admin/analytics' },
       { label: 'Failed Job Queue', value: s.itineraryJobsFailed, trend: 'Action required', icon: 'error', tone: 'negative', link: '/admin/analytics' },
     ];
@@ -236,7 +235,6 @@ export class AdminDashboardComponent implements OnInit {
   activityIcon(type: string): string {
     if (type.startsWith('User.')) return 'person';
     if (type.startsWith('Trip.')) return 'luggage';
-    if (type.startsWith('Visa.')) return 'badge';
     if (type.startsWith('Chat.')) return 'chat';
     return 'admin_panel_settings';
   }

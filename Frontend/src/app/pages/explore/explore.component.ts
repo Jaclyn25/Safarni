@@ -124,7 +124,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
     'Cultural exploration in Kyoto'
   ];
 
-  filterCategories: string[] = ['All', 'Beach', 'Culture', 'Budget', 'Visa-friendly', 'Weekend'];
+  filterCategories: string[] = ['All', 'Beach', 'Culture', 'Budget', 'Weekend'];
 
   featuredDestinations: FeaturedDestination[] = [
     {
@@ -227,8 +227,8 @@ export class ExploreComponent implements OnInit, OnDestroy {
       country: 'Iceland',
       duration: '4 Days',
       avgCost: 1200,
-      trendReason: 'Popular visa-friendly stopover destination',
-      category: 'Visa-friendly',
+      trendReason: 'Popular stopover destination',
+      category: 'Culture',
       image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC8h2B3kLKVl5yCEMGPeuwdG-S3HWjeRkxEeVb386op0JODP_DtRJt7hkLCF8HEfVPft0fwBileEWcXQk1f5oMB-2UAvI62Eb2dTHoiP6fYYy4MZNT9vrCGdcAI3z5D5RqMOHM42rhajD9HAvPjKegvgl5M8xBQEIKrMACTg6bSP4NIR33KvbRzFMDydYv1cK7mvua-p0II0eqPKGq5ETwniaQqIDeAiRttbOqTs1j9iF4oLv9jg5qeNg'
     },
     {

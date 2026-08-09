@@ -73,7 +73,6 @@ public sealed class UpdateUserStatusCommandHandler
             AdminUserResponseMapper.ToDetail(
                 user,
                 counts.Trips,
-                counts.VisaApplications,
                 counts.Conversations,
                 counts.Messages));
     }

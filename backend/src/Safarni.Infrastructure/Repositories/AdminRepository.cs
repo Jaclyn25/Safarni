@@ -34,8 +34,6 @@ public sealed class AdminRepository : IAdminRepository
         var verifiedUsers = await _dbContext.Users
             .CountAsync(u => u.IsEmailVerified, cancellationToken);
         var totalTrips = await _dbContext.Trips.CountAsync(cancellationToken);
-        var totalVisaApplications = await _dbContext.VisaApplications
-            .CountAsync(cancellationToken);
         var totalConversations = await _dbContext.Conversations
             .CountAsync(cancellationToken);
         var totalAiMessages = await _dbContext.ConversationMessages
@@ -88,7 +86,6 @@ public sealed class AdminRepository : IAdminRepository
             ActiveUsers: activeUsers,
             VerifiedUsers: verifiedUsers,
             TotalTrips: totalTrips,
-            TotalVisaApplications: totalVisaApplications,
             TotalConversations: totalConversations,
             TotalAiMessages: totalAiMessages,
             ItineraryJobsTotal: itineraryJobsTotal,
@@ -134,20 +131,6 @@ public sealed class AdminRepository : IAdminRepository
                 t.CreatedAt))
             .ToListAsync(cancellationToken);
         items.AddRange(trips);
-
-        var visas = await _dbContext.VisaApplications
-            .AsNoTracking()
-            .OrderByDescending(v => v.CreatedAt)
-            .Take(perSource)
-            .Select(v => new RecentActivityItem(
-                "Visa.Submitted",
-                v.DestinationCountry ?? v.TravelPurpose ?? "Visa application",
-                v.VisaType ?? string.Empty,
-                v.UserId,
-                null,
-                v.CreatedAt))
-            .ToListAsync(cancellationToken);
-        items.AddRange(visas);
 
         var conversationRows = await _dbContext.Conversations
             .AsNoTracking()
@@ -267,8 +250,6 @@ public sealed class AdminRepository : IAdminRepository
     {
         var trips = await _dbContext.Trips
             .CountAsync(t => t.UserId == userId, cancellationToken);
-        var visas = await _dbContext.VisaApplications
-            .CountAsync(v => v.UserId == userId, cancellationToken);
         var conversations = await _dbContext.Conversations
             .CountAsync(c => c.UserId == userId.ToString(), cancellationToken);
         var messages = await _dbContext.ConversationMessages
@@ -278,7 +259,7 @@ public sealed class AdminRepository : IAdminRepository
                     c.UserId == userId.ToString()),
                 cancellationToken);
 
-        return new AdminUserCounts(trips, visas, conversations, messages);
+        return new AdminUserCounts(trips, conversations, messages);
     }
 
     public async Task<PagedResult<TravelKnowledge>> SearchKnowledgeAsync(
@@ -447,13 +428,6 @@ public sealed class AdminRepository : IAdminRepository
             .Select(g => new { Date = g.Key, Count = g.Count() })
             .ToListAsync(cancellationToken);
 
-        var visasByDay = await _dbContext.VisaApplications
-            .AsNoTracking()
-            .Where(v => v.CreatedAt.Date >= start && v.CreatedAt.Date <= end)
-            .GroupBy(v => v.CreatedAt.Date)
-            .Select(g => new { Date = g.Key, Count = g.Count() })
-            .ToListAsync(cancellationToken);
-
         var messagesByDay = await _dbContext.ConversationMessages
             .AsNoTracking()
             .Where(m => m.CreatedAt.Date >= start && m.CreatedAt.Date <= end)
@@ -475,7 +449,6 @@ public sealed class AdminRepository : IAdminRepository
                 day,
                 usersByDay.FirstOrDefault(p => p.Date == day)?.Count ?? 0,
                 tripsByDay.FirstOrDefault(p => p.Date == day)?.Count ?? 0,
-                visasByDay.FirstOrDefault(p => p.Date == day)?.Count ?? 0,
                 messagesByDay.FirstOrDefault(p => p.Date == day)?.Count ?? 0,
                 jobsByDay.FirstOrDefault(p => p.Date == day)?.Count ?? 0));
         }
@@ -498,17 +471,12 @@ public sealed class AdminRepository : IAdminRepository
             .Select(j => j.UserId)
             .Distinct()
             .CountAsync(cancellationToken);
-        var usersWithVisas = await _dbContext.VisaApplications
-            .Select(v => v.UserId)
-            .Distinct()
-            .CountAsync(cancellationToken);
 
         return new AnalyticsFunnelData(
             registered,
             verified,
             usersWithTrips,
-            usersWithItineraries,
-            usersWithVisas);
+            usersWithItineraries);
     }
 
     public async Task<IReadOnlyList<TopDestinationData>> GetTopDestinationsAsync(

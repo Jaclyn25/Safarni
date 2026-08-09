@@ -120,9 +120,9 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
       icon: 'compare_arrows'
     },
     {
-      title: 'Visa & travel requirements',
-      subtitle: 'Passport, visa info & tips',
-      prompt: 'What are the visa requirements and best time to visit for tourists?',
+      title: 'Travel requirements',
+      subtitle: 'Documents & travel tips',
+      prompt: 'What documents and preparations do I need for international travel?',
       icon: 'verified_user'
     },
     {

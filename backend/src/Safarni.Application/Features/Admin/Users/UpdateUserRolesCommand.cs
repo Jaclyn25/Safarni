@@ -87,7 +87,6 @@ public sealed class UpdateUserRolesCommandHandler
             AdminUserResponseMapper.ToDetail(
                 user,
                 counts.Trips,
-                counts.VisaApplications,
                 counts.Conversations,
                 counts.Messages));
     }

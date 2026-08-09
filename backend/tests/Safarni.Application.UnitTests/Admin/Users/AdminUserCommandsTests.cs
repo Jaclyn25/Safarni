@@ -47,7 +47,7 @@ public class AdminUserCommandsTests
             .Setup(x => x.GetUserCountsAsync(
                 It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AdminUserCounts(1, 0, 2, 5));
+            .ReturnsAsync(new AdminUserCounts(1, 2, 5));
         return repository;
     }
 

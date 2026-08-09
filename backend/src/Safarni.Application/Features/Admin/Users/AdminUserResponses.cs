@@ -30,7 +30,6 @@ public sealed record AdminUserDetailResponse(
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     int TripsCount,
-    int VisaApplicationsCount,
     int ConversationsCount,
     int MessagesCount);
 
@@ -57,7 +56,6 @@ public static class AdminUserResponseMapper
     public static AdminUserDetailResponse ToDetail(
         User user,
         int tripsCount,
-        int visaApplicationsCount,
         int conversationsCount,
         int messagesCount)
     {
@@ -77,7 +75,6 @@ public static class AdminUserResponseMapper
             user.CreatedAt,
             user.UpdatedAt,
             tripsCount,
-            visaApplicationsCount,
             conversationsCount,
             messagesCount);
     }

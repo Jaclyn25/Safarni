@@ -40,7 +40,6 @@ export class AdminAnalyticsComponent implements OnInit {
   // Range metrics
   totalRangeUsers = 0;
   totalRangeTrips = 0;
-  totalRangeVisas = 0;
   totalRangeMessages = 0;
 
   // Chart configurations
@@ -184,14 +183,12 @@ export class AdminAnalyticsComponent implements OnInit {
     if (!points || points.length === 0) {
       this.totalRangeUsers = 0;
       this.totalRangeTrips = 0;
-      this.totalRangeVisas = 0;
       this.totalRangeMessages = 0;
       return;
     }
 
     this.totalRangeUsers = points.reduce((acc, p) => acc + p.users, 0);
     this.totalRangeTrips = points.reduce((acc, p) => acc + p.trips, 0);
-    this.totalRangeVisas = points.reduce((acc, p) => acc + p.visaApplications, 0);
     this.totalRangeMessages = points.reduce((acc, p) => acc + p.messages, 0);
   }
 
@@ -222,16 +219,6 @@ export class AdminAnalyticsComponent implements OnInit {
           data: overview.points.map((p) => p.trips),
           backgroundColor: isLine ? 'rgba(59, 130, 246, 0.15)' : '#3b82f6',
           borderColor: '#3b82f6',
-          borderWidth: 2,
-          borderRadius: 4,
-          tension: 0.3,
-          fill: isLine,
-        },
-        {
-          label: 'Visa Applications',
-          data: overview.points.map((p) => p.visaApplications),
-          backgroundColor: isLine ? 'rgba(245, 158, 11, 0.15)' : '#f59e0b',
-          borderColor: '#f59e0b',
           borderWidth: 2,
           borderRadius: 4,
           tension: 0.3,
@@ -316,14 +303,12 @@ export class AdminAnalyticsComponent implements OnInit {
     const ver = funnel.verifiedUsers;
     const trip = funnel.usersWithTrips;
     const itin = funnel.usersWithGeneratedItineraries;
-    const visa = funnel.usersWithVisaApplications;
 
     return [
       { label: 'Registered Users', value: reg, percentage: 100 },
       { label: 'Verified Emails', value: ver, percentage: this.percent(ver, reg), dropoff: this.percent(reg - ver, reg) },
       { label: 'Created a Trip', value: trip, percentage: this.percent(trip, reg), dropoff: this.percent(ver - trip, ver) },
       { label: 'Generated Itinerary', value: itin, percentage: this.percent(itin, reg), dropoff: this.percent(trip - itin, trip) },
-      { label: 'Visa Application', value: visa, percentage: this.percent(visa, reg), dropoff: this.percent(itin - visa, itin) },
     ];
   }
 

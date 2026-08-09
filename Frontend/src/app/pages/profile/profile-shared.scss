@@ -97,6 +97,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
 
   &__nav {
@@ -850,6 +857,11 @@
 
   &__actions {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
   }
 
   @media (max-width: 600px) {

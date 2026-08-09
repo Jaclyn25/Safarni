@@ -14,6 +14,8 @@ export class ProfileTripsComponent implements OnInit {
   readonly trips = signal<TripResponse[]>([]);
   readonly isTripsLoading = signal(true);
   readonly tripsError = signal<string | null>(null);
+  readonly pendingDeleteTripId = signal<string | null>(null);
+  readonly deletingTripId = signal<string | null>(null);
 
   constructor(
     private readonly tripService: TripService
@@ -100,5 +102,34 @@ export class ProfileTripsComponent implements OnInit {
       style: 'currency',
       currency
     }).format(trip.estimatedTotalCost);
+  }
+
+  requestDelete(tripId: string): void {
+    this.pendingDeleteTripId.set(tripId);
+    this.tripsError.set(null);
+  }
+
+  cancelDelete(): void {
+    this.pendingDeleteTripId.set(null);
+  }
+
+  confirmDelete(tripId: string): void {
+    this.deletingTripId.set(tripId);
+    this.tripsError.set(null);
+
+    this.tripService.deleteTrip(tripId).subscribe({
+      next: () => {
+        this.trips.update((trips) => trips.filter((trip) => trip.id !== tripId));
+        this.tripService.forgetTrip(tripId);
+        this.pendingDeleteTripId.set(null);
+        this.deletingTripId.set(null);
+      },
+      error: (error: unknown) => {
+        this.deletingTripId.set(null);
+        this.tripsError.set(
+          this.tripService.getErrorMessage(error, 'Could not delete this trip. Please try again.')
+        );
+      },
+    });
   }
 }

@@ -2,10 +2,13 @@
   <!-- Side Navigation -->
   <aside class="sidenav">
     <div class="sidenav__profile">
-      <div class="sidenav__avatar">{{ initials }}</div>
+      <div class="sidenav__avatar">
+        <img *ngIf="displayProfile?.avatarUrl; else sidebarInitials" [src]="displayProfile?.avatarUrl" alt="Profile photo" />
+        <ng-template #sidebarInitials>{{ initials }}</ng-template>
+      </div>
       <div>
-        <h3>{{ profile?.fullName || 'Traveler' }}</h3>
-        <p>{{ profile?.email || 'Premium Member' }}</p>
+        <h3>{{ displayProfile?.fullName || 'Traveler' }}</h3>
+        <p>{{ displayProfile?.email || 'Premium Member' }}</p>
       </div>
     </div>
 

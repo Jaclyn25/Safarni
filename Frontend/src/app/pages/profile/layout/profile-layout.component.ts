@@ -21,10 +21,10 @@ interface NavItem {
 })
 export class ProfileLayoutComponent implements OnInit {
   private readonly standardNavItems: NavItem[] = [
-    { path: 'trips', label: 'My Trips', icon: 'luggage' },
-    { path: 'agency-trips', label: 'Agency Trips', icon: 'travel_explore' },
     { path: 'account', label: 'Account', icon: 'person' },
     { path: 'password', label: 'Password', icon: 'lock' },
+    { path: 'trips', label: 'My Trips', icon: 'luggage' },
+    { path: 'agency-trips', label: 'Agency Trips', icon: 'travel_explore' },
     { path: 'notifications', label: 'Notifications', icon: 'notifications' },
     { path: 'travel-preferences', label: 'Travel Preferences', icon: 'travel_explore' },
     { path: 'theme', label: 'Theme', icon: 'dark_mode' },
@@ -36,14 +36,20 @@ export class ProfileLayoutComponent implements OnInit {
   readonly loadError = signal<string | null>(null);
 
   constructor(
-    private readonly profileService: ProfileService,
+    public readonly profileService: ProfileService,
     private readonly authService: AuthService
   ) {}
 
   get navItems(): NavItem[] {
-    return this.authService.isTravelAgency()
-      ? [{ path: '/agency', label: 'Agency Dashboard', icon: 'storefront' }, ...this.standardNavItems]
-      : this.standardNavItems;
+    if (!this.authService.isTravelAgency()) {
+      return this.standardNavItems;
+    }
+
+    return [
+      ...this.standardNavItems.slice(0, 4),
+      { path: '/agency', label: 'Agency Dashboard', icon: 'storefront' },
+      ...this.standardNavItems.slice(4),
+    ];
   }
 
   ngOnInit(): void {
@@ -65,8 +71,12 @@ export class ProfileLayoutComponent implements OnInit {
   }
 
   get initials(): string {
-    const name = this.profile?.fullName || 'Traveler';
+    const name = this.displayProfile?.fullName || 'Traveler';
     const parts = name.split(' ').filter(Boolean);
     return ((parts[0]?.charAt(0) ?? 'T') + (parts[1]?.charAt(0) ?? '')).toUpperCase();
+  }
+
+  get displayProfile(): MyProfile | null {
+    return this.profileService.currentProfile() ?? this.profile;
   }
 }

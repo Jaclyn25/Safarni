@@ -4,6 +4,7 @@ import { AuthService } from '../../services/auth.service';
 import { filter } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { NotificationCenterComponent } from '../notifications/notification-center.component';
+import { ProfileService } from '../../services/profile.service';
 
 @Component({
   selector: 'app-navbar',
@@ -19,10 +20,12 @@ export class NavbarComponent implements OnInit {
   isAgencyPage = false;
   navbarBgClass = 'bg-transparent';
   isLogoutModalOpen = false;
+  isUserMenuOpen = false;
   isMobileMenuOpen = false;
 
   constructor(
     public authService: AuthService,
+    public readonly profileService: ProfileService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) { }
@@ -36,7 +39,9 @@ export class NavbarComponent implements OnInit {
       this.isAdminPage = url.startsWith('/admin');
       this.isAgencyPage = url === '/agency' || url.startsWith('/agency/');
       this.isMobileMenuOpen = false;
+      this.isUserMenuOpen = false;
       this.updateBgClass();
+      this.ensureTravelerProfileLoaded();
     });
 
     const currentUrl = window.location.pathname;
@@ -44,6 +49,8 @@ export class NavbarComponent implements OnInit {
     this.isAdminPage = currentUrl.startsWith('/admin');
     this.isAgencyPage = currentUrl === '/agency' || currentUrl.startsWith('/agency/');
     this.updateBgClass();
+
+    this.ensureTravelerProfileLoaded();
   }
 
   @HostListener('window:scroll', [])
@@ -66,9 +73,20 @@ export class NavbarComponent implements OnInit {
   }
 
   get userInitial(): string {
-    const user = this.user;
-    const source = user?.fullName?.trim() || user?.email?.trim() || 'S';
+    const source = this.displayName.trim() || this.displayEmail.trim() || 'S';
     return source.charAt(0).toUpperCase();
+  }
+
+  get displayName(): string {
+    return this.profileService.currentProfile()?.fullName || this.user?.fullName || 'Traveler';
+  }
+
+  get displayEmail(): string {
+    return this.profileService.currentProfile()?.email || this.user?.email || '';
+  }
+
+  get avatarUrl(): string | null {
+    return this.profileService.currentProfile()?.avatarUrl ?? null;
   }
 
   get isAdmin(): boolean {
@@ -83,8 +101,18 @@ export class NavbarComponent implements OnInit {
     this.isMobileMenuOpen = !this.isMobileMenuOpen;
   }
 
+  toggleUserMenu(event: Event): void {
+    event.stopPropagation();
+    this.isUserMenuOpen = !this.isUserMenuOpen;
+  }
+
+  closeUserMenu(): void {
+    this.isUserMenuOpen = false;
+  }
+
   logout(): void {
     this.isLogoutModalOpen = true;
+    this.isUserMenuOpen = false;
     this.isMobileMenuOpen = false;
   }
 
@@ -94,8 +122,18 @@ export class NavbarComponent implements OnInit {
 
   confirmLogout(): void {
     this.isLogoutModalOpen = false;
+    this.profileService.clearCurrentProfile();
     this.authService.logout();
     this.router.navigate(['/']);
+  }
+
+  private ensureTravelerProfileLoaded(): void {
+    const user = this.user;
+    const loadedProfile = this.profileService.currentProfile();
+
+    if (user && !this.isAdmin && !this.isAgency && loadedProfile?.userId !== user.userId) {
+      this.profileService.getMyProfile().subscribe({ error: () => undefined });
+    }
   }
 
   @HostListener('document:keydown.escape')
@@ -106,5 +144,13 @@ export class NavbarComponent implements OnInit {
     if (this.isMobileMenuOpen) {
       this.isMobileMenuOpen = false;
     }
+    if (this.isUserMenuOpen) {
+      this.isUserMenuOpen = false;
+    }
+  }
+
+  @HostListener('document:click')
+  handleDocumentClick(): void {
+    this.isUserMenuOpen = false;
   }
 }

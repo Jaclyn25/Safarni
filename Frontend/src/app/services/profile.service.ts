@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { MyProfile, UpdateMyProfileCommand } from '../shared/models/update-my-profile.model';
 
 /**
@@ -73,13 +73,19 @@ export function getProfileErrorMessage(error: unknown, fallback: string): string
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
   private readonly baseUrl = '/api/profile';
+  private readonly currentProfileState = signal<MyProfile | null>(null);
+
+  readonly currentProfile = this.currentProfileState.asReadonly();
 
   constructor(private http: HttpClient) {}
 
   getMyProfile(): Observable<MyProfile> {
     return this.http
       .get<ApiResponse<GetMyProfileResponse>>(`${this.baseUrl}/me`)
-      .pipe(map((response) => this.toMyProfile(response.data!)));
+      .pipe(
+        map((response) => this.toMyProfile(response.data!)),
+        tap((profile) => this.currentProfileState.set(profile))
+      );
   }
 
   updateMyProfile(command: UpdateMyProfileCommand): Observable<MyProfile> {
@@ -96,7 +102,10 @@ export class ProfileService {
 
     return this.http
       .put<ApiResponse<GetMyProfileResponse>>(`${this.baseUrl}/me`, payload)
-      .pipe(map((response) => this.toMyProfile(response.data!)));
+      .pipe(
+        map((response) => this.toMyProfile(response.data!)),
+        tap((profile) => this.currentProfileState.set(profile))
+      );
   }
 
   uploadAvatar(file: File): Observable<string> {
@@ -106,7 +115,19 @@ export class ProfileService {
 
     return this.http
       .post<ApiResponse<UploadProfilePhotoResponse>>(`${this.baseUrl}/me/photo`, formData)
-      .pipe(map((response) => response.data!.profilePhotoUrl));
+      .pipe(
+        map((response) => response.data!.profilePhotoUrl),
+        tap((avatarUrl) => {
+          const profile = this.currentProfileState();
+          if (profile) {
+            this.currentProfileState.set({ ...profile, avatarUrl });
+          }
+        })
+      );
+  }
+
+  clearCurrentProfile(): void {
+    this.currentProfileState.set(null);
   }
 
   private toMyProfile(data: GetMyProfileResponse): MyProfile {

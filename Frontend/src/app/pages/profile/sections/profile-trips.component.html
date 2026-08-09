@@ -54,6 +54,21 @@
           <span class="material-symbols-outlined">edit_calendar</span>
           View Planner
         </a>
+        <ng-container *ngIf="pendingDeleteTripId() !== trip.id; else confirmDeleteActions">
+          <button type="button" class="btn btn--danger btn--sm" (click)="requestDelete(trip.id)">
+            <span class="material-symbols-outlined">delete</span>
+            Delete
+          </button>
+        </ng-container>
+        <ng-template #confirmDeleteActions>
+          <button type="button" class="btn btn--ghost btn--sm" [disabled]="deletingTripId() === trip.id" (click)="cancelDelete()">
+            Cancel
+          </button>
+          <button type="button" class="btn btn--danger btn--sm" [disabled]="deletingTripId() === trip.id" (click)="confirmDelete(trip.id)">
+            <span class="material-symbols-outlined">delete_forever</span>
+            {{ deletingTripId() === trip.id ? 'Deleting…' : 'Confirm Delete' }}
+          </button>
+        </ng-template>
       </div>
     </article>
   </div>

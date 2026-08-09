@@ -57,42 +57,64 @@
 
         <app-notification-center />
 
-        <!-- Logout Button -->
-        <button (click)="logout()"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full text-on-surface-variant hover:bg-error/10 hover:text-error transition-all duration-200 active:scale-[0.97]"
-          title="Sign out">
-          <span class="material-symbols-outlined text-[20px]">logout</span>
-        </button>
+        <!-- User Profile Menu -->
+        <div class="relative">
+          <button type="button" (click)="toggleUserMenu($event)" [attr.aria-expanded]="isUserMenuOpen"
+            aria-haspopup="menu" aria-label="Open account menu"
+            class="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-full hover:bg-surface-container-high transition-all duration-200 group">
 
-        <!-- User Profile Button -->
-        <button [routerLink]="isAdmin ? '/admin' : isAgency ? '/agency' : '/profile'"
-          class="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-full hover:bg-surface-container-high transition-all duration-200 group">
+            <div
+              class="relative h-8 w-8 rounded-full overflow-hidden flex items-center justify-center font-semibold text-white text-sm transition-shadow duration-200 group-hover:shadow-md"
+              [ngClass]="isAdmin
+                ? 'bg-gradient-to-br from-slate-700 to-slate-900 ring-1 ring-slate-600/30'
+                : isAgency
+                  ? 'bg-primary/15 text-primary ring-1 ring-primary/20'
+                  : 'bg-gradient-to-br from-primary to-primary/80 ring-1 ring-primary/30'">
+              <img *ngIf="!isAdmin && !isAgency && avatarUrl" [src]="avatarUrl" alt="Profile photo"
+                class="h-full w-full object-cover" />
+              <span *ngIf="isAdmin" class="material-symbols-outlined" style="font-size: 16px">admin_panel_settings</span>
+              <span *ngIf="isAgency" class="material-symbols-outlined" style="font-size: 16px">space_dashboard</span>
+              <span *ngIf="!isAdmin && !isAgency && !avatarUrl">{{ userInitial }}</span>
+            </div>
 
-          <div
-            class="relative h-8 w-8 rounded-full flex items-center justify-center font-semibold text-white text-sm transition-shadow duration-200 group-hover:shadow-md"
-            [ngClass]="isAdmin
-              ? 'bg-gradient-to-br from-slate-700 to-slate-900 ring-1 ring-slate-600/30'
-              : isAgency
-                ? 'bg-primary/15 text-primary ring-1 ring-primary/20'
-                : 'bg-gradient-to-br from-primary to-primary/80 ring-1 ring-primary/30'">
-            <span *ngIf="isAdmin" class="material-symbols-outlined" style="font-size: 16px">admin_panel_settings</span>
-            <span *ngIf="isAgency" class="material-symbols-outlined" style="font-size: 16px">space_dashboard</span>
-            <span *ngIf="!isAdmin && !isAgency">{{ userInitial }}</span>
-          </div>
+            <div *ngIf="!isAdmin && !isAgency" class="flex flex-col items-start">
+              <span class="text-label-sm font-semibold text-on-surface leading-tight">
+                {{ displayName }}
+              </span>
+              <span class="text-[11px] text-on-surface-variant/70 leading-tight">
+                {{ displayEmail }}
+              </span>
+            </div>
 
-          <div *ngIf="!isAdmin && !isAgency" class="flex flex-col items-start">
-            <span class="text-label-sm font-semibold text-on-surface leading-tight">
-              {{ user.fullName }}
+            <span class="material-symbols-outlined text-[16px] text-on-surface-variant/50 group-hover:text-on-surface-variant transition-transform"
+              [class.rotate-180]="isUserMenuOpen">
+              expand_more
             </span>
-            <span class="text-[11px] text-on-surface-variant/70 leading-tight">
-              {{ user.email }}
-            </span>
-          </div>
+          </button>
 
-          <span class="material-symbols-outlined text-[16px] text-on-surface-variant/50 group-hover:text-on-surface-variant transition-colors">
-            expand_more
-          </span>
-        </button>
+          @if (isUserMenuOpen) {
+          <div role="menu" (click)="$event.stopPropagation()"
+            class="absolute right-0 top-[calc(100%+0.65rem)] z-[80] w-60 overflow-hidden rounded-2xl border border-outline-variant/50 bg-surface-container-lowest shadow-xl animate-modal-in">
+            <div class="border-b border-outline-variant/30 px-4 py-3">
+              <p class="truncate text-label-sm font-semibold text-on-surface">{{ displayName }}</p>
+              <p class="truncate text-[11px] text-on-surface-variant">{{ displayEmail }}</p>
+            </div>
+            <div class="p-2">
+              <a role="menuitem" [routerLink]="isAdmin ? '/admin' : isAgency ? '/agency' : '/profile/account'"
+                (click)="closeUserMenu()"
+                class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-label-sm font-medium text-on-surface hover:bg-surface-container-high transition-colors">
+                <span class="material-symbols-outlined text-[19px]">person</span>
+                {{ isAdmin ? 'Admin Dashboard' : isAgency ? 'Agency Dashboard' : 'My Account' }}
+              </a>
+              <button type="button" role="menuitem" (click)="logout()"
+                class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-label-sm font-semibold text-error hover:bg-error/10 transition-colors">
+                <span class="material-symbols-outlined text-[19px]">logout</span>
+                Sign Out
+              </button>
+            </div>
+          </div>
+          }
+        </div>
 
       </div>
 
@@ -129,9 +151,11 @@
           : isAgency
             ? 'bg-primary/15 text-primary border border-primary/20'
             : 'bg-gradient-to-br from-primary to-primary/80'">
+        <img *ngIf="!isAdmin && !isAgency && avatarUrl" [src]="avatarUrl" alt="Profile photo"
+          class="h-full w-full rounded-full object-cover" />
         <span *ngIf="isAdmin" class="material-symbols-outlined" style="font-size: 18px">admin_panel_settings</span>
         <span *ngIf="isAgency" class="material-symbols-outlined" style="font-size: 18px">space_dashboard</span>
-        <span *ngIf="!isAdmin && !isAgency">{{ userInitial }}</span>
+        <span *ngIf="!isAdmin && !isAgency && !avatarUrl">{{ userInitial }}</span>
       </a>
 
       }

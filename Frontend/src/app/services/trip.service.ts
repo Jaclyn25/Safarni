@@ -200,6 +200,15 @@ export class TripService {
     );
   }
 
+  deleteTrip(tripId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/${tripId}`,
+      {
+        headers: this.getHeaders()
+      }
+    );
+  }
+
   getTripRoute(
     tripId: string
   ): Observable<ApiResponse<TripRouteResponse>> {

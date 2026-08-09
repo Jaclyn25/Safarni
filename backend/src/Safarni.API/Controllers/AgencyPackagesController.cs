@@ -96,7 +96,7 @@ public sealed class AgencyPackagesController : ControllerBase
     [RequestFormLimits(MultipartBodyLengthLimit = 6 * 1024 * 1024)]
     public async Task<IActionResult> UploadImage(
         Guid packageId,
-        [FromForm] IFormFile? file,
+        IFormFile? file,
         CancellationToken cancellationToken)
     {
         if (file is null)

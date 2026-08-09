@@ -28,14 +28,64 @@
       }
 
       <form (ngSubmit)="submit()" novalidate>
-        <label class="wide">Legal company name <span>*</span><input [(ngModel)]="companyName" name="companyName" maxlength="200" autocomplete="organization" placeholder="e.g. Nile Horizon Travel" required /></label>
-        <label class="wide">Company description <span>*</span><textarea [(ngModel)]="description" name="description" maxlength="2000" rows="4" placeholder="Describe your services, destinations, and experience" required></textarea><small>{{ description.length }}/2000</small></label>
-        <label class="wide">Registered address <span>*</span><input [(ngModel)]="address" name="address" maxlength="500" autocomplete="street-address" required /></label>
-        <label>City <span>*</span><input [(ngModel)]="city" name="city" maxlength="100" autocomplete="address-level2" required /></label>
-        <label>Country <span>*</span><input [(ngModel)]="country" name="country" maxlength="100" autocomplete="country-name" required /></label>
-        <label>Company phone <span>*</span><input [(ngModel)]="companyPhone" name="companyPhone" maxlength="30" type="tel" autocomplete="tel" required /></label>
-        <label>Website or social page<input [(ngModel)]="websiteUrl" name="websiteUrl" maxlength="500" type="url" placeholder="https://" autocomplete="url" /></label>
-        <label class="wide">Company logo URL <small>Optional</small><input [(ngModel)]="logoUrl" name="logoUrl" maxlength="500" type="url" placeholder="https://" /></label>
+        <div class="form-section-intro wide">
+          <div>
+            <h3>Business profile</h3>
+            <p>Enter the public and legal details travelers will use to identify your agency.</p>
+          </div>
+          <span>Required fields are marked *</span>
+        </div>
+
+        <label class="form-field wide">
+          <span class="field-label">Legal company name <span class="required-mark" aria-hidden="true">*</span></span>
+          <input [(ngModel)]="companyName" name="companyName" maxlength="200" autocomplete="organization"
+            placeholder="e.g. Nile Horizon Travel" required />
+        </label>
+
+        <label class="form-field form-field--textarea wide">
+          <span class="field-label">Company description <span class="required-mark" aria-hidden="true">*</span></span>
+          <textarea [(ngModel)]="description" name="description" maxlength="2000" rows="4"
+            placeholder="Describe your services, destinations, and experience" required></textarea>
+          <small class="field-meta">{{ description.length }}/2000</small>
+        </label>
+
+        <div class="form-divider wide" aria-hidden="true"></div>
+
+        <label class="form-field wide">
+          <span class="field-label">Registered address <span class="required-mark" aria-hidden="true">*</span></span>
+          <input [(ngModel)]="address" name="address" maxlength="500" autocomplete="street-address"
+            placeholder="Street address and building number" required />
+        </label>
+
+        <label class="form-field">
+          <span class="field-label">City <span class="required-mark" aria-hidden="true">*</span></span>
+          <input [(ngModel)]="city" name="city" maxlength="100" autocomplete="address-level2"
+            placeholder="e.g. Cairo" required />
+        </label>
+
+        <label class="form-field">
+          <span class="field-label">Country <span class="required-mark" aria-hidden="true">*</span></span>
+          <input [(ngModel)]="country" name="country" maxlength="100" autocomplete="country-name"
+            placeholder="e.g. Egypt" required />
+        </label>
+
+        <label class="form-field">
+          <span class="field-label">Company phone <span class="required-mark" aria-hidden="true">*</span></span>
+          <input [(ngModel)]="companyPhone" name="companyPhone" maxlength="30" type="tel" autocomplete="tel"
+            placeholder="e.g. +20 100 000 0000" required />
+        </label>
+
+        <label class="form-field">
+          <span class="field-label">Website or social page <small>Optional</small></span>
+          <input [(ngModel)]="websiteUrl" name="websiteUrl" maxlength="500" type="url"
+            placeholder="https://" autocomplete="url" />
+        </label>
+
+        <label class="form-field wide">
+          <span class="field-label">Company logo URL <small>Optional</small></span>
+          <input [(ngModel)]="logoUrl" name="logoUrl" maxlength="500" type="url" placeholder="https://" />
+          <small class="field-help">Use a direct link to a square or horizontal logo image.</small>
+        </label>
 
         <div class="onboarding-actions wide">
           <button type="button" class="secondary" (click)="logout()">Sign out</button>

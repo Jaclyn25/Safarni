@@ -215,8 +215,29 @@
   transition: max-width 220ms ease;
 }
 
+.register-form-shell--registration {
+  max-width: 42rem;
+}
+
 .register-form-shell--agency {
   max-width: 42rem;
+}
+
+.auth-fields-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .auth-fields-grid--registration {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .auth-fields-grid__wide {
+    grid-column: 1 / -1;
+  }
 }
 
 .account-type-picker {

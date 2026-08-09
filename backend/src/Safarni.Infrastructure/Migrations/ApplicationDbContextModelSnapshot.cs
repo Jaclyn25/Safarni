@@ -43,7 +43,7 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ChatFolders");
+                    b.ToTable("ChatFolders", (string)null);
                 });
 
             modelBuilder.Entity("ChatBotApi.Domain.Entities.Conversation", b =>
@@ -75,7 +75,7 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasIndex("FolderId");
 
-                    b.ToTable("Conversations");
+                    b.ToTable("Conversations", (string)null);
                 });
 
             modelBuilder.Entity("ChatBotApi.Domain.Entities.ConversationMessage", b =>
@@ -103,7 +103,7 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasIndex("ConversationId");
 
-                    b.ToTable("ConversationMessages");
+                    b.ToTable("ConversationMessages", (string)null);
                 });
 
             modelBuilder.Entity("ChatBotApi.Domain.Entities.TravelKnowledge", b =>
@@ -158,7 +158,7 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TravelKnowledges");
+                    b.ToTable("TravelKnowledges", (string)null);
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.AIRequestLog", b =>
@@ -220,7 +220,7 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AIRequestLogs");
+                    b.ToTable("AIRequestLogs", (string)null);
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.AgencyVerificationDocument", b =>
@@ -345,7 +345,7 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasIndex("CreatedAt");
 
-                    b.ToTable("AuditLogs");
+                    b.ToTable("AuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.Itinerary", b =>
@@ -405,7 +405,7 @@ namespace Safarni.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[IsActive] = 1");
 
-                    b.ToTable("Itineraries");
+                    b.ToTable("Itineraries", (string)null);
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.ItineraryDay", b =>
@@ -437,7 +437,7 @@ namespace Safarni.Infrastructure.Migrations
                     b.HasIndex("ItineraryId", "DayNumber")
                         .IsUnique();
 
-                    b.ToTable("ItineraryDays");
+                    b.ToTable("ItineraryDays", (string)null);
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.ItineraryGenerationJob", b =>
@@ -534,7 +534,7 @@ namespace Safarni.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[IdempotencyKey] IS NOT NULL");
 
-                    b.ToTable("ItineraryGenerationJobs");
+                    b.ToTable("ItineraryGenerationJobs", (string)null);
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.ItineraryItem", b =>
@@ -679,7 +679,7 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasIndex("ItineraryDayId", "OrderIndex");
 
-                    b.ToTable("ItineraryItems");
+                    b.ToTable("ItineraryItems", (string)null);
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.PackageBookingRequest", b =>
@@ -1109,7 +1109,7 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasIndex("UserId", "CreatedAt");
 
-                    b.ToTable("Trips");
+                    b.ToTable("Trips", (string)null);
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.TripCity", b =>
@@ -1146,7 +1146,7 @@ namespace Safarni.Infrastructure.Migrations
                     b.HasIndex("TripId", "OrderIndex")
                         .IsUnique();
 
-                    b.ToTable("TripCities");
+                    b.ToTable("TripCities", (string)null);
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.User", b =>

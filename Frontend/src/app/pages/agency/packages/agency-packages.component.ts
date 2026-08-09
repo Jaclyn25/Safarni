@@ -1,8 +1,10 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { forkJoin } from 'rxjs';
-import { TravelPackage, TravelPackageRequest } from '../../../models/marketplace.models';
+import { Observable, forkJoin, of } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
+import { TravelPackage, TravelPackageDayRequest, TravelPackageRequest } from '../../../models/marketplace.models';
 import { AgencyService } from '../../../services/agency.service';
 import { getApiErrorMessage } from '../../../services/auth.service';
 import { MarketplaceService } from '../../../services/marketplace.service';
@@ -40,6 +42,9 @@ export class AgencyPackagesComponent implements OnInit {
   readonly dayError = signal('');
   readonly editingDayId = signal<string | null>(null);
   readonly isEditorOpen = signal(false);
+  readonly selectedCoverImage = signal<File | null>(null);
+  readonly selectedCoverImagePreview = signal<string | null>(null);
+  readonly draftDays = signal<Array<TravelPackageDayRequest & { localId: string }>>([]);
 
   readonly searchQuery = signal('');
   readonly selectedStatusFilter = signal<'all' | 'published' | 'draft' | 'inactive'>('all');
@@ -127,6 +132,8 @@ export class AgencyPackagesComponent implements OnInit {
   startCreate(): void {
     this.editingId.set(null);
     this.editingDayId.set(null);
+    this.draftDays.set([]);
+    this.clearSelectedCoverImage();
     this.form.reset({
       title: '',
       description: '',
@@ -158,6 +165,8 @@ export class AgencyPackagesComponent implements OnInit {
       offerLabel: item.offerLabel ?? ''
     });
     this.resetDayForm();
+    this.draftDays.set([]);
+    this.clearSelectedCoverImage();
     this.formError.set('');
     this.dayError.set('');
     this.notice.set('');
@@ -186,26 +195,64 @@ export class AgencyPackagesComponent implements OnInit {
 
   resetDayForm(): void {
     this.editingDayId.set(null);
-    this.dayForm.reset({ dayNumber: 1, title: '', description: '', activities: '' });
+    const nextDayNumber = this.nextAvailableDayNumber();
+    this.dayForm.reset({ dayNumber: nextDayNumber, title: '', description: '', activities: '' });
+  }
+
+  private nextAvailableDayNumber(): number {
+    const packageItem = this.editingPackage();
+    const used = new Set([
+      ...(packageItem?.days.map((d) => d.dayNumber) ?? []),
+      ...this.draftDays().map((d) => d.dayNumber)
+    ]);
+    if (used.size === 0) return 1;
+    const maxDay = Math.max(...used);
+    for (let i = 1; i <= maxDay + 1; i++) {
+      if (!used.has(i)) return i;
+    }
+    return maxDay + 1;
   }
 
   saveDay(): void {
+    if (this.daySaving()) return;
     const packageItem = this.editingPackage();
-    if (!packageItem || this.dayForm.invalid) {
+    if (this.dayForm.invalid) {
       this.dayForm.markAllAsTouched();
       this.dayError.set('Complete the day title and description before saving.');
       return;
     }
+    const value = this.dayForm.getRawValue();
+    const dayNumber = Number(value.dayNumber);
+    const isEditing = Boolean(this.editingDayId());
+    const duplicate = packageItem?.days.find(
+      (d) => d.dayNumber === dayNumber && d.id !== this.editingDayId()
+    ) ?? this.draftDays().find((d) => d.dayNumber === dayNumber);
+    if (duplicate) {
+      const suggested = this.nextAvailableDayNumber();
+      this.dayError.set(`Day ${dayNumber} already exists. Next available day is ${suggested}.`);
+      this.dayForm.patchValue({ dayNumber: suggested });
+      this.daySaving.set(false);
+      return;
+    }
+    if (!packageItem) {
+      this.draftDays.update((days) => [
+        ...days,
+        { ...value, dayNumber, activities: value.activities.trim() || null, localId: crypto.randomUUID() }
+      ]);
+      this.dayError.set('');
+      this.resetDayForm();
+      this.notice.set('Day added. Save the package to finish.');
+      return;
+    }
     this.daySaving.set(true);
     this.dayError.set('');
-    const value = this.dayForm.getRawValue();
     const request = {
-      dayNumber: Number(value.dayNumber),
+      dayNumber,
       title: value.title,
       description: value.description,
       activities: value.activities.trim() || null
     };
-    const operation = this.editingDayId()
+    const operation = isEditing
       ? this.marketplace.updateDay(packageItem.id, this.editingDayId()!, request)
       : this.marketplace.addDay(packageItem.id, request);
 
@@ -218,7 +265,27 @@ export class AgencyPackagesComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.daySaving.set(false);
-        this.dayError.set(getApiErrorMessage(error, 'We could not save this itinerary day.'));
+        const isDuplicateDayConflict =
+          error instanceof HttpErrorResponse &&
+          error.status === 409 &&
+          error.error?.errors?.some(
+            (item: { code?: string }) => item.code === 'TravelPackage.DuplicateDayNumber'
+          );
+        if (isDuplicateDayConflict) {
+          this.marketplace.getAgencyPackage(packageItem.id).subscribe({
+            next: (freshPackage) => {
+              this.applyPackage(freshPackage);
+              const suggested = this.nextAvailableDayNumber();
+              this.dayError.set(`Day ${dayNumber} already exists. Next available day is ${suggested}.`);
+              this.dayForm.patchValue({ dayNumber: suggested });
+            },
+            error: () => {
+              this.dayError.set(`Day ${dayNumber} already exists. Refresh the package and try again.`);
+            }
+          });
+        } else {
+          this.dayError.set(getApiErrorMessage(error, 'We could not save this itinerary day.'));
+        }
       }
     });
   }
@@ -242,28 +309,43 @@ export class AgencyPackagesComponent implements OnInit {
     });
   }
 
-  uploadImage(event: Event): void {
-    const packageItem = this.editingPackage();
+  selectCoverImage(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (!packageItem || !file) return;
-    this.imageSaving.set(true);
-    this.error.set('');
-    this.marketplace.uploadPackageImage(packageItem.id, file).subscribe({
-next: (updated) => {
-  this.imageSaving.set(false);
-  this.applyPackage(updated);
-  this.form.patchValue({
-    coverImageUrl: updated.coverImageUrl ?? ''
-  });
-  this.notice.set('Package image updated.');
-},
-      error: (error: unknown) => {
-        this.imageSaving.set(false);
-        this.error.set(getApiErrorMessage(error, 'We could not upload this image.'));
-        input.value = '';
-      }
-    });
+    if (!file) return;
+    if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
+      this.formError.set('Choose an image smaller than 5 MB.');
+      input.value = '';
+      return;
+    }
+    this.formError.set('');
+    this.clearSelectedCoverImage();
+    this.selectedCoverImage.set(file);
+    this.selectedCoverImagePreview.set(URL.createObjectURL(file));
+  }
+
+  removeDraftDay(localId: string): void {
+    this.draftDays.update((days) => days.filter((day) => day.localId !== localId));
+    this.resetDayForm();
+  }
+
+  private clearSelectedCoverImage(): void {
+    const preview = this.selectedCoverImagePreview();
+    if (preview) URL.revokeObjectURL(preview);
+    this.selectedCoverImage.set(null);
+    this.selectedCoverImagePreview.set(null);
+  }
+
+  private saveDraftDays(
+    packageItem: TravelPackage,
+    days: Array<TravelPackageDayRequest & { localId: string }>,
+    index = 0
+  ): Observable<TravelPackage> {
+    if (index >= days.length) return of(packageItem);
+    const { localId, ...request } = days[index];
+    return this.marketplace.addDay(packageItem.id, request).pipe(
+      switchMap((updated) => this.saveDraftDays(updated, days, index + 1))
+    );
   }
 
   save(): void {
@@ -289,12 +371,31 @@ next: (updated) => {
     operation.subscribe({
       next: (item) => {
         const wasEditing = Boolean(this.editingId());
-        this.saving.set(false);
-        this.packages.update((items) =>
-          wasEditing ? items.map((current) => (current.id === item.id ? item : current)) : [item, ...items]
-        );
-        this.notice.set(wasEditing ? 'Package updated.' : 'Draft package created.');
-        this.closeEditor();
+        let completion: Observable<TravelPackage> = this.saveDraftDays(item, this.draftDays());
+        const coverImage = this.selectedCoverImage();
+        if (coverImage) {
+          completion = completion.pipe(
+            switchMap((updated) => this.marketplace.uploadPackageImage(updated.id, coverImage))
+          );
+        }
+        completion.subscribe({
+          next: (savedItem) => {
+            this.saving.set(false);
+            this.packages.update((items) =>
+              wasEditing
+                ? items.map((current) => (current.id === savedItem.id ? savedItem : current))
+                : [savedItem, ...items]
+            );
+            this.draftDays.set([]);
+            this.clearSelectedCoverImage();
+            this.notice.set(wasEditing ? 'Package updated.' : 'Draft package created.');
+            this.closeEditor();
+          },
+          error: (error: unknown) => {
+            this.saving.set(false);
+            this.formError.set(getApiErrorMessage(error, 'The package was saved, but its image or days could not be completed.'));
+          }
+        });
       },
       error: (error: unknown) => {
         this.saving.set(false);

@@ -236,29 +236,35 @@
           <!-- Cover Image Section -->
           <div class="space-y-4 pt-4 border-t border-gray-100">
             <h4 class="text-xs font-bold uppercase tracking-wider text-blue-600">3. Media & Imagery</h4>
-            <div>
-              <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Cover Image URL</label>
-              <input type="url" formControlName="coverImageUrl" placeholder="https://..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
-            </div>
-
-            @if (editingPackage()) {
-              <div class="flex items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-200">
-                <span class="text-xs text-gray-600 font-semibold">Or upload custom cover file:</span>
-                <input type="file" (change)="uploadImage($event)" accept="image/*" class="text-xs text-gray-500">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-200">
+              @if (selectedCoverImagePreview() || editingPackage()?.coverImageUrl) {
+                <img [src]="selectedCoverImagePreview() || editingPackage()?.coverImageUrl" alt="Package cover preview" class="w-20 h-20 rounded-xl object-cover border border-gray-200">
+              } @else {
+                <div class="w-20 h-20 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-400">
+                  <span class="material-symbols-outlined text-2xl">add_photo_alternate</span>
+                </div>
+              }
+              <div class="space-y-1">
+                <label class="block text-xs font-bold uppercase text-gray-700">Choose from your device</label>
+                <p class="text-[11px] text-gray-500">PNG, JPG, or WEBP up to 5 MB.</p>
+                <input type="file" (change)="selectCoverImage($event)" accept="image/*" class="text-xs text-gray-500">
               </div>
-            }
+            </div>
           </div>
 
-          <!-- Itinerary Days (If Editing Existing Package) -->
-          @if (editingPackage(); as pkg) {
-            <div class="space-y-4 pt-4 border-t border-gray-100">
+          <!-- Itinerary Days -->
+          <div class="space-y-4 pt-4 border-t border-gray-100">
               <div class="flex items-center justify-between">
-                <h4 class="text-xs font-bold uppercase tracking-wider text-blue-600">4. Itinerary Days ({{ pkg.days.length }})</h4>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-blue-600">4. Itinerary Days ({{ (editingPackage()?.days?.length ?? 0) + draftDays().length }})</h4>
               </div>
+              @if (!editingPackage()) {
+                <p class="text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">Add your days now. They will be saved with the package.</p>
+              }
 
               <!-- List of existing days -->
-              <div class="space-y-2">
-                @for (day of pkg.days; track day.id) {
+              @if (editingPackage(); as pkg) {
+                <div class="space-y-2">
+                  @for (day of pkg.days; track day.id) {
                   <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between gap-3 text-xs">
                     <div>
                       <span class="font-bold text-gray-900">Day {{ day.dayNumber }}: {{ day.title }}</span>
@@ -269,8 +275,18 @@
                       <button type="button" (click)="removeDay(day.id)" class="p-1 text-rose-600 hover:bg-rose-100 rounded">Delete</button>
                     </div>
                   </div>
-                }
-              </div>
+                  }
+                </div>
+              }
+              @for (day of draftDays(); track day.localId) {
+                <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-between gap-3 text-xs">
+                  <div>
+                    <span class="font-bold text-gray-900">Day {{ day.dayNumber }}: {{ day.title }}</span>
+                    <p class="text-gray-500 line-clamp-1 mt-0.5">{{ day.description }}</p>
+                  </div>
+                  <button type="button" (click)="removeDraftDay(day.localId)" class="p-1 text-rose-600 hover:bg-rose-100 rounded">Remove</button>
+                </div>
+              }
 
               <!-- Day Add / Edit Form -->
               <div [formGroup]="dayForm" class="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-3">
@@ -289,6 +305,11 @@
                   <label class="block text-[10px] font-bold uppercase text-gray-500 mb-1">Day Description *</label>
                   <textarea formControlName="description" rows="2" class="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-xs"></textarea>
                 </div>
+                @if (dayError()) {
+                  <div class="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-lg">
+                    {{ dayError() }}
+                  </div>
+                }
                 <div class="flex items-center justify-end gap-2">
                   @if (editingDayId()) {
                     <button type="button" (click)="resetDayForm()" class="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded-lg font-semibold">Cancel</button>
@@ -298,8 +319,7 @@
                   </button>
                 </div>
               </div>
-            </div>
-          }
+          </div>
 
           <!-- Form Actions -->
           <div class="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">

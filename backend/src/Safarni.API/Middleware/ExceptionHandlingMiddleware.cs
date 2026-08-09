@@ -33,15 +33,23 @@ public sealed class ExceptionHandlingMiddleware
 
             await context.Response.WriteAsJsonAsync(response);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException exception)
         {
+            var entityNames = string.Join(
+                ", ",
+                exception.Entries
+                    .Select(entry => entry.Metadata.ClrType.Name)
+                    .Distinct());
+            Console.WriteLine("========== DATABASE CONCURRENCY CONFLICT ==========");
+            Console.WriteLine(entityNames);
+            Console.WriteLine("====================================================");
             context.Response.StatusCode = StatusCodes.Status409Conflict;
             context.Response.ContentType = "application/json";
 
             var response = ApiResponse<object>.FailureResponse(
                 [new ApiError(
                     "Data.ConcurrencyConflict",
-                    "This trip or itinerary was changed by another request. Reload and try again.")],
+                    $"The record was changed by another request. Affected entity: {entityNames}. Reload and try again.")],
                 "The saved data changed while this request was running.",
                 StatusCodes.Status409Conflict);
 

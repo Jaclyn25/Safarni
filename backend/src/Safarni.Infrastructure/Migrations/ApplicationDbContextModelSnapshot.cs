@@ -1336,50 +1336,6 @@ namespace Safarni.Infrastructure.Migrations
                     b.ToTable("UserSettings", (string)null);
                 });
 
-            modelBuilder.Entity("Safarni.Domain.Entities.VisaApplication", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DestinationCountry")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateOnly>("PlannedTravelDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("TravelPurpose")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("VisaType")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("VisaApplications", (string)null);
-                });
-
             modelBuilder.Entity("ChatBotApi.Domain.Entities.Conversation", b =>
                 {
                     b.HasOne("ChatBotApi.Domain.Entities.ChatFolder", "Folder")
@@ -1585,17 +1541,6 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Safarni.Domain.Entities.VisaApplication", b =>
-                {
-                    b.HasOne("Safarni.Domain.Entities.User", "User")
-                        .WithMany("VisaApplications")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("ChatBotApi.Domain.Entities.ChatFolder", b =>
                 {
                     b.Navigation("Conversations");
@@ -1652,8 +1597,6 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("TravelPreference");
 
                     b.Navigation("Trips");
-
-                    b.Navigation("VisaApplications");
                 });
 #pragma warning restore 612, 618
         }

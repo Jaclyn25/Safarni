@@ -250,12 +250,14 @@ export class AgencyPackagesComponent implements OnInit {
     this.imageSaving.set(true);
     this.error.set('');
     this.marketplace.uploadPackageImage(packageItem.id, file).subscribe({
-      next: (updated) => {
-        this.imageSaving.set(false);
-        this.applyPackage(updated);
-        this.notice.set('Package image updated.');
-        input.value = '';
-      },
+next: (updated) => {
+  this.imageSaving.set(false);
+  this.applyPackage(updated);
+  this.form.patchValue({
+    coverImageUrl: updated.coverImageUrl ?? ''
+  });
+  this.notice.set('Package image updated.');
+},
       error: (error: unknown) => {
         this.imageSaving.set(false);
         this.error.set(getApiErrorMessage(error, 'We could not upload this image.'));

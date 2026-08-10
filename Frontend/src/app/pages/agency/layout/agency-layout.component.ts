@@ -33,7 +33,8 @@ export class AgencyLayoutComponent {
       items: [
         { path: '/agency', label: 'Overview', icon: 'grid_view', exact: true },
         { path: '/agency/packages', label: 'Packages', icon: 'luggage', exact: false },
-        { path: '/agency/booking-requests', label: 'Booking Requests', icon: 'inbox', exact: false }
+        { path: '/agency/booking-requests', label: 'Booking Requests', icon: 'inbox', exact: false },
+        { path: '/agency/pricing', label: 'Subscription & Finance', icon: 'payments', exact: false }
       ]
     },
     {

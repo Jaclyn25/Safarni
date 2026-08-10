@@ -4,7 +4,12 @@ import { RouterLink } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { AdminService } from '../../../services/admin.service';
-import { DashboardSummary, IntegrationHealthCheck, RecentActivityItem } from '../../../models/admin.models';
+import {
+  AdminBillingOverview,
+  DashboardSummary,
+  IntegrationHealthCheck,
+  RecentActivityItem,
+} from '../../../models/admin.models';
 
 interface GroupedKpi {
   label: string;
@@ -28,6 +33,7 @@ export class AdminDashboardComponent implements OnInit {
   readonly actionNotice = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
 
   summary: DashboardSummary | null = null;
+  billing: AdminBillingOverview | null = null;
   activity: RecentActivityItem[] = [];
   subsystems: IntegrationHealthCheck[] = [];
   lastRefreshedAt: Date | null = null;
@@ -73,6 +79,11 @@ export class AdminDashboardComponent implements OnInit {
         this.isLoading.set(false);
         this.loadError.set(this.extractError(error, 'Could not load dashboard summary.'));
       },
+    });
+
+    this.adminService.getBillingOverview().subscribe({
+      next: (billing) => (this.billing = billing),
+      error: () => (this.billing = null),
     });
 
     // Subsystem Health Matrix
@@ -219,6 +230,11 @@ export class AdminDashboardComponent implements OnInit {
       { label: 'AI Failures (24h)', value: s.recentAiFailuresLast24Hours, trend: s.recentAiFailuresLast24Hours > 0 ? 'Requires check' : 'Optimal', icon: 'warning', tone: s.recentAiFailuresLast24Hours > 0 ? 'negative' : 'positive', link: '/admin/ai-activity' },
       { label: 'Degraded Services', value: s.degradedServiceCount, trend: s.degradedServiceCount > 0 ? 'Degraded' : 'All green', icon: 'hub', tone: s.degradedServiceCount > 0 ? 'warning' : 'positive', link: '/admin/integrations' },
     ];
+  }
+
+  get primaryRevenue(): { amount: number; currency: string } | null {
+    const revenue = this.billing?.revenueByCurrency?.[0];
+    return revenue ? { amount: revenue.grossRevenue, currency: revenue.currencyCode } : null;
   }
 
   formatTime(iso: string): string {

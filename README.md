@@ -79,6 +79,36 @@ dotnet ef database update --project backend\src\Safarni.Infrastructure --startup
 
 No migration is needed for prompt/chat-language changes unless entities, `ApplicationDbContext`, or migrations were modified.
 
+## Pricing And Subscriptions
+
+Pricing is implemented as two backend-enforced vertical slices on top of one billing foundation:
+
+- Traveler Premium: `$5/month` or `$50/year`, protecting AI itinerary generation.
+- Agency Marketplace: `$29/month` or `$299/year`, protecting marketplace publishing while keeping agency verification separate.
+
+The pricing catalog is seeded by `PricingCatalogSeeder`. Stripe Checkout is now the active provider. The flow is:
+
+`Pricing -> Stripe Checkout -> checkout.session.completed -> Active -> invoice.paid/invoice.payment_failed renewal updates`
+
+Set these values in the ignored root `.env` file (never commit real secrets):
+
+```text
+Payments__Provider=Stripe
+Payments__StripeSecretKey=sk_test_...
+Payments__StripeWebhookSecret=whsec_...
+Frontend__BaseUrl=http://localhost:4200
+```
+
+For local development, forward Stripe events to the API with the Stripe CLI:
+
+```powershell
+stripe listen --forward-to localhost:5110/api/pricing/webhooks/stripe
+```
+
+Copy the `whsec_...` value printed by the CLI into `Payments__StripeWebhookSecret`. For a deployed environment, create a Stripe Dashboard webhook endpoint at `/api/pricing/webhooks/stripe` and subscribe it to `checkout.session.completed`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `invoice.paid`, and `invoice.payment_failed`.
+
+Useful API routes are `GET /api/pricing/plans`, `GET /api/pricing/subscription`, `POST /api/pricing/checkout`, `POST /api/pricing/subscription/cancel`, and the verified Stripe callback `POST /api/pricing/webhooks/stripe`. The test callback remains available only when `Payments__Provider=Test`.
+
 ## Frontend Setup
 
 From the frontend folder:
@@ -169,6 +199,9 @@ Important configuration keys:
 - `JwtSettings:*`
 - `GoogleSettings:ClientId`
 - `EmailSettings:*`
+- `Payments__Provider`
+- `Payments__StripeSecretKey`
+- `Payments__StripeWebhookSecret`
 - `Groq:ApiKey`
 - `GooglePlaces:ApiKey`
 - `RAG:QdrantUrl`

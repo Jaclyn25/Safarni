@@ -31,6 +31,12 @@ export class AdminLayoutComponent {
       ],
     },
     {
+      sectionTitle: 'Commercial',
+      items: [
+        { path: '/admin/billing', label: 'Pricing & billing', icon: 'payments' },
+      ],
+    },
+    {
       sectionTitle: 'User & Governance',
       items: [
         { path: '/admin/users', label: 'Users', icon: 'group' },

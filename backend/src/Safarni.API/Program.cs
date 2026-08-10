@@ -266,6 +266,11 @@ using (var scope = app.Services.CreateScope())
 
     await marketplaceSeeder.SeedAsync();
 
+    var pricingSeeder = scope.ServiceProvider
+        .GetRequiredService<PricingCatalogSeeder>();
+
+    await pricingSeeder.SeedAsync();
+
 
 
     // RAG Qdrant Auto Indexing

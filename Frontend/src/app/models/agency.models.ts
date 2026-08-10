@@ -131,6 +131,16 @@ export interface AgencyDashboardSummary {
   verificationProgress: string;
   canPublishPackages: boolean;
   lastUpdated: string;
+  acceptedBookingValue: number;
+  bookingCurrencyCode: string;
+  subscriptionPlanName: string | null;
+  subscriptionStatus: string | null;
+  subscriptionPrice: number | null;
+  subscriptionCurrencyCode: string | null;
+  totalSubscriptionPaid: number;
+  subscriptionSuccessfulPayments: number;
+  subscriptionFailedPayments: number;
+  nextBillingDate: string | null;
 }
 
 export interface AgencyDashboardTrendPoint {

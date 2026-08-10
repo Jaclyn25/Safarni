@@ -54,4 +54,7 @@ public class User
 
     public ICollection<UserNotification> Notifications { get; set; } =
         new List<UserNotification>();
+
+    public ICollection<Subscription> Subscriptions { get; set; } =
+        new List<Subscription>();
 }

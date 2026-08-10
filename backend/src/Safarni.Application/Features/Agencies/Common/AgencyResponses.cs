@@ -1,5 +1,6 @@
 using Safarni.Domain.Entities;
 using Safarni.Domain.Enums;
+using Safarni.Application.Features.Billing;
 
 namespace Safarni.Application.Features.Agencies.Common;
 
@@ -71,7 +72,17 @@ public sealed record AgencyDashboardSummaryResponse(
     string VerificationStatus,
     string VerificationProgress,
     bool CanPublishPackages,
-    DateTime LastUpdated);
+    DateTime LastUpdated,
+    decimal AcceptedBookingValue,
+    string BookingCurrencyCode,
+    string? SubscriptionPlanName,
+    SubscriptionStatus? SubscriptionStatus,
+    decimal? SubscriptionPrice,
+    string? SubscriptionCurrencyCode,
+    decimal TotalSubscriptionPaid,
+    int SubscriptionSuccessfulPayments,
+    int SubscriptionFailedPayments,
+    DateTime? NextBillingDate);
 
 public sealed record AgencyDashboardTrendPointResponse(
     string Date,

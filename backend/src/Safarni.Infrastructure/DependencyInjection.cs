@@ -26,6 +26,8 @@ using Safarni.Application.Abstractions.Travel;
 using Safarni.Infrastructure.Travel;
 using Safarni.Infrastructure.BackgroundJobs;
 using Safarni.Infrastructure.Integrations.Weather;
+using Safarni.Application.Abstractions.Payments;
+using Safarni.Infrastructure.Payments;
 
 namespace Safarni.Infrastructure;
 
@@ -63,6 +65,13 @@ public static class DependencyInjection
             ItineraryGenerationJobRepository>();
         services.AddScoped<IAdminRepository, AdminRepository>();
         services.AddScoped<ITravelAgencyRepository, TravelAgencyRepository>();
+        services.AddScoped<IBillingRepository, BillingRepository>();
+        services.AddScoped<IPaymentGateway>(serviceProvider =>
+            configuration["Payments:Provider"]?.Equals("Stripe", StringComparison.OrdinalIgnoreCase) == true
+                ? new StripePaymentGateway(configuration)
+                : new TestPaymentGateway(configuration));
+        services.AddScoped<IEntitlementService, SubscriptionEntitlementService>();
+        services.AddScoped<PricingCatalogSeeder>();
         services.AddScoped<ITravelPackageRepository, TravelPackageRepository>();
         services.AddScoped<ITravelPackageImageStorage, LocalTravelPackageImageStorage>();
         services.AddScoped<IPackageBookingRequestRepository, PackageBookingRequestRepository>();

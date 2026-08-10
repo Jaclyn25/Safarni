@@ -10,7 +10,8 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  ActivatedRoute
+  ActivatedRoute,
+  Router
 } from '@angular/router';
 import {
   Observable,
@@ -457,7 +458,8 @@ export class PlannerComponent
     private readonly generationService: ItineraryGenerationService,
     private readonly tripService: TripService,
     private readonly weatherService: WeatherService,
-    private readonly destroyRef: DestroyRef
+    private readonly destroyRef: DestroyRef,
+    private readonly router: Router
   ) { }
 
   ngOnInit(): void {
@@ -1017,6 +1019,13 @@ export class PlannerComponent
     } catch (error: unknown) {
       this.isGenerating = false;
       this.setGenerationScrollLocked(false);
+      if (this.isPremiumBlocked(error)) {
+        this.errorMessage = 'Premium AI planning requires an active Traveler Premium subscription. Opening Pricing...';
+        window.setTimeout(() => void this.router.navigate(['/pricing'], {
+          queryParams: { reason: 'premium-required', returnUrl: `/planner/${this.tripId}` }
+        }), 700);
+        return;
+      }
       this.errorMessage = this.getErrorMessage(
         error,
         'The itinerary could not be queued. Please try again.'
@@ -1892,6 +1901,11 @@ export class PlannerComponent
     return error instanceof Error
       ? error.message
       : fallback;
+  }
+
+  private isPremiumBlocked(error: unknown): boolean {
+    return error instanceof HttpErrorResponse &&
+      error.error?.errors?.[0]?.code === 'Billing.PremiumAiSubscriptionRequired';
   }
 
   // --- Map and Nearby Logic ---

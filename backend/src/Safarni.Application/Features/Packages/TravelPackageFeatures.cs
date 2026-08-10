@@ -1,9 +1,9 @@
 using FluentValidation;
 using MediatR;
 using Safarni.Application.Abstractions.Persistence;
-using Safarni.Application.Abstractions.Security;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Common.Results;
+using Safarni.Application.Abstractions.Security;
 using Safarni.Domain.Entities;
 
 namespace Safarni.Application.Features.Packages;
@@ -396,12 +396,14 @@ public sealed class PublishTravelPackageCommandHandler
     private readonly ITravelAgencyRepository _agencies;
     private readonly ITravelPackageRepository _packages;
     private readonly ITravelAgencyAuthorizationService _authorization;
+    private readonly IEntitlementService? _entitlements;
 
-    public PublishTravelPackageCommandHandler(ITravelAgencyRepository agencies, ITravelPackageRepository packages, ITravelAgencyAuthorizationService authorization)
+    public PublishTravelPackageCommandHandler(ITravelAgencyRepository agencies, ITravelPackageRepository packages, ITravelAgencyAuthorizationService authorization, IEntitlementService? entitlements = null)
     {
         _agencies = agencies;
         _packages = packages;
         _authorization = authorization;
+        _entitlements = entitlements;
     }
 
     public async Task<Result<TravelPackageResponse>> Handle(PublishTravelPackageCommand request, CancellationToken cancellationToken)
@@ -414,6 +416,14 @@ public sealed class PublishTravelPackageCommandHandler
         if (!await _authorization.IsVerifiedAsync(request.UserId, cancellationToken))
         {
             return Result<TravelPackageResponse>.Failure(TravelPackageErrors.PublishingRequiresVerifiedAgency);
+        }
+        if (_entitlements is not null && !await _entitlements.HasAgencyMarketplacePaidAsync(agency.Id, cancellationToken))
+        {
+            return Result<TravelPackageResponse>.Failure(BillingErrors.AgencyMarketplaceSubscriptionRequired);
+        }
+        if (_entitlements is not null && !(await _entitlements.GetAgencyPackageUsageAsync(agency.Id, cancellationToken)).IsAllowed)
+        {
+            return Result<TravelPackageResponse>.Failure(BillingErrors.AgencyPackageLimitReached);
         }
         var package = await _packages.GetByIdForAgencyAsync(request.PackageId, agency.Id, includeDays: true, cancellationToken: cancellationToken);
         if (package is null)
@@ -530,7 +540,11 @@ public sealed class GetPublishedPackageQueryHandler
     {
         var package = await _packages.GetByIdAsync(request.PackageId, includeDays: true, cancellationToken: cancellationToken);
         if (package is null || !package.IsPublished || !package.IsActive ||
-            package.TravelAgency.VerificationStatus != Domain.Enums.AgencyVerificationStatus.Verified)
+            package.TravelAgency.VerificationStatus != Domain.Enums.AgencyVerificationStatus.Verified ||
+            !package.TravelAgency.Subscriptions.Any(subscription =>
+                subscription.Status == Domain.Enums.SubscriptionStatus.Active &&
+                subscription.CurrentPeriodEnd > DateTime.UtcNow &&
+                subscription.Plan.CustomerType == Domain.Enums.PricingCustomerType.Agency))
         {
             return Result<TravelPackageResponse>.Failure(TravelPackageErrors.NotFound);
         }

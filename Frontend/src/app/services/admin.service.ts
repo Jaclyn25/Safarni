@@ -4,6 +4,7 @@ import { Observable, map } from 'rxjs';
 import { ApiResponse } from '../models/api-response.model';
 import {
   AdminConversation,
+  AdminBillingOverview,
   AdminUserDetail,
   AdminUserSummary,
   AiActivityItem,
@@ -23,6 +24,7 @@ import {
   RoleInfo,
   TopDestination,
   UserRole,
+  UpdatePricingPlanRequest,
 } from '../models/admin.models';
 
 @Injectable({ providedIn: 'root' })
@@ -45,6 +47,18 @@ export class AdminService {
         params: new HttpParams().set('limit', limit.toString()),
       })
       .pipe(map((response) => response.data ?? []));
+  }
+
+  getBillingOverview(): Observable<AdminBillingOverview> {
+    return this.http
+      .get<ApiResponse<AdminBillingOverview>>(`${this.baseUrl}/billing/overview`)
+      .pipe(map((response) => response.data!));
+  }
+
+  updatePricingPlan(planId: string, request: UpdatePricingPlanRequest): Observable<void> {
+    return this.http
+      .put<ApiResponse<unknown>>(`${this.baseUrl}/billing/plans/${planId}`, request)
+      .pipe(map(() => undefined));
   }
 
   // ================= Users =================

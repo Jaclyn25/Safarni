@@ -40,6 +40,65 @@ export interface DashboardSummary {
   degradedServiceCount: number;
 }
 
+export interface AdminBillingRevenue {
+  currencyCode: string;
+  grossRevenue: number;
+  successfulPayments: number;
+}
+
+export interface AdminBillingPlan {
+  id: string;
+  code: string;
+  displayName: string;
+  customerType: 'Traveler' | 'Agency' | string;
+  billingPeriod: 'Monthly' | 'Yearly' | string;
+  price: number;
+  currencyCode: string;
+  aiItineraryGenerationsPerPeriod: number;
+  maxPublishedPackages: number;
+  isActive: boolean;
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  grossRevenue: number;
+  successfulPayments: number;
+}
+
+export interface AdminBillingPayment {
+  id: string;
+  planDisplayName: string;
+  customerType: 'Traveler' | 'Agency' | string;
+  amount: number;
+  currencyCode: string;
+  status: 'Pending' | 'Succeeded' | 'Failed' | string;
+  customerName: string;
+  createdAt: string;
+}
+
+export interface AdminBillingOverview {
+  totalPlans: number;
+  activePlans: number;
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  pendingSubscriptions: number;
+  failedSubscriptions: number;
+  cancelledSubscriptions: number;
+  expiredSubscriptions: number;
+  totalPayments: number;
+  successfulPayments: number;
+  failedPayments: number;
+  revenueByCurrency: AdminBillingRevenue[];
+  plans: AdminBillingPlan[];
+  recentPayments: AdminBillingPayment[];
+}
+
+export interface UpdatePricingPlanRequest {
+  price: number;
+  currencyCode: string;
+  aiItineraryGenerationsPerPeriod: number;
+  maxPublishedPackages: number;
+  isActive: boolean;
+}
+
 export interface RecentActivityItem {
   type: string;
   title: string;

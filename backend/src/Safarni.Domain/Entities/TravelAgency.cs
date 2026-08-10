@@ -43,4 +43,6 @@ public sealed class TravelAgency
         new List<AgencyVerificationDocument>();
 
     public ICollection<TravelPackage> Packages { get; set; } = new List<TravelPackage>();
+
+    public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 }

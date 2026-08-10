@@ -4,6 +4,7 @@ using Safarni.Application.Abstractions.BackgroundJobs;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Common.Errors;
 using Safarni.Application.Common.Results;
+using Safarni.Application.Abstractions.Security;
 using Safarni.Domain.Entities;
 
 namespace Safarni.Application.Features.Trips.GenerateItinerary.Jobs;
@@ -26,17 +27,20 @@ public sealed class StartItineraryGenerationCommandHandler
     private readonly ITripRepository _trips;
     private readonly IItineraryGenerationJobRepository _jobs;
     private readonly IItineraryGenerationQueueSignal? _queueSignal;
+    private readonly IEntitlementService? _entitlements;
 
     public StartItineraryGenerationCommandHandler(
         ICurrentUserService currentUser,
         ITripRepository trips,
         IItineraryGenerationJobRepository jobs,
-        IItineraryGenerationQueueSignal? queueSignal = null)
+        IItineraryGenerationQueueSignal? queueSignal = null,
+        IEntitlementService? entitlements = null)
     {
         _currentUser = currentUser;
         _trips = trips;
         _jobs = jobs;
         _queueSignal = queueSignal;
+        _entitlements = entitlements;
     }
 
     public async Task<Result<ItineraryGenerationJobResponse>> Handle(
@@ -90,6 +94,16 @@ public sealed class StartItineraryGenerationCommandHandler
         {
             return Result<ItineraryGenerationJobResponse>.Failure(
                 ItineraryErrors.Forbidden);
+        }
+
+        if (_entitlements is not null && !await _entitlements.HasTravelerPremiumAiAsync(userId, cancellationToken))
+        {
+            return Result<ItineraryGenerationJobResponse>.Failure(BillingErrors.PremiumAiSubscriptionRequired);
+        }
+
+        if (_entitlements is not null && !(await _entitlements.GetTravelerAiUsageAsync(userId, cancellationToken)).IsAllowed)
+        {
+            return Result<ItineraryGenerationJobResponse>.Failure(BillingErrors.TravelerAiLimitReached);
         }
 
         try

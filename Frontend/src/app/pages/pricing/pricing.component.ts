@@ -41,12 +41,31 @@ export class PricingComponent implements OnInit {
   get isAgency(): boolean { return this.customerType === 'Agency'; }
   get title(): string { return this.isAgency ? 'Grow your agency on Safarni.' : 'Plan more, with a little more room to explore.'; }
   get eyebrow(): string { return this.isAgency ? 'Agency marketplace' : 'Traveler Premium'; }
+  get freePlanName(): string { return this.isAgency ? 'Agency Basic' : 'Traveler Basic'; }
+  get freePlanDescription(): string {
+    return this.isAgency
+      ? 'Create your verified agency presence and prepare packages before publishing.'
+      : 'Explore Safarni and generate up to three AI-powered itineraries every day.';
+  }
+  get freePlanBenefits(): readonly string[] {
+    return this.isAgency
+      ? ['Create your agency profile', 'Build and manage draft packages', 'Upgrade when you are ready to publish']
+      : ['3 AI itinerary generations per day', 'Explore destinations and marketplace packages', 'Create and manage your trips'];
+  }
+  get freePlanButtonLabel(): string {
+    if (!this.auth.isAuthenticated()) return 'Start for free';
+    return this.subscription()?.status === 'Active' ? 'Included with your account' : 'Your current plan';
+  }
 
   price(plan: PricingPlan): string { return new Intl.NumberFormat('en-US', { style: 'currency', currency: plan.currencyCode }).format(plan.price); }
   period(plan: PricingPlan): string { return plan.billingPeriod === 'Monthly' ? '/ month' : '/ year'; }
   statusLabel(status: string): string { return status.replace(/([A-Z])/g, ' $1').trim(); }
   date(value: string | null): string { return value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; }
   isCurrent(plan: PricingPlan): boolean { return this.subscription()?.plan.id === plan.id && this.subscription()?.status === 'Active'; }
+
+  startFree(): void {
+    if (!this.auth.isAuthenticated()) void this.router.navigate(['/register']);
+  }
 
   choose(plan: PricingPlan): void {
     this.actionError.set('');

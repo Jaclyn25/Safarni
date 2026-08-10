@@ -1019,10 +1019,16 @@ export class PlannerComponent
     } catch (error: unknown) {
       this.isGenerating = false;
       this.setGenerationScrollLocked(false);
-      if (this.isPremiumBlocked(error)) {
-        this.errorMessage = 'Premium AI planning requires an active Traveler Premium subscription. Opening Pricing...';
+      if (this.isAiGenerationAccessBlocked(error)) {
+        const limitReached = this.getBillingErrorCode(error) === 'Billing.TravelerAiLimitReached';
+        this.errorMessage = limitReached
+          ? 'You have reached your AI itinerary generation limit for today. Opening Pricing...'
+          : 'Premium AI planning requires an active Traveler Premium subscription. Opening Pricing...';
         window.setTimeout(() => void this.router.navigate(['/pricing'], {
-          queryParams: { reason: 'premium-required', returnUrl: `/planner/${this.tripId}` }
+          queryParams: {
+            reason: limitReached ? 'ai-limit-reached' : 'premium-required',
+            returnUrl: `/planner/${this.tripId}`
+          }
         }), 700);
         return;
       }
@@ -1903,9 +1909,16 @@ export class PlannerComponent
       : fallback;
   }
 
-  private isPremiumBlocked(error: unknown): boolean {
-    return error instanceof HttpErrorResponse &&
-      error.error?.errors?.[0]?.code === 'Billing.PremiumAiSubscriptionRequired';
+  private isAiGenerationAccessBlocked(error: unknown): boolean {
+    const code = this.getBillingErrorCode(error);
+    return code === 'Billing.TravelerAiLimitReached' ||
+      code === 'Billing.PremiumAiSubscriptionRequired';
+  }
+
+  private getBillingErrorCode(error: unknown): string | undefined {
+    return error instanceof HttpErrorResponse
+      ? error.error?.errors?.[0]?.code
+      : undefined;
   }
 
   // --- Map and Nearby Logic ---

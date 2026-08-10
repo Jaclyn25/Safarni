@@ -3,7 +3,7 @@
     <div>
       <span class="pricing-eyebrow">{{ eyebrow }}</span>
       <h1>{{ title }}</h1>
-      <p>{{ isAgency ? 'Paid marketplace access helps you publish and manage packages. Verification remains a separate Safarni trust requirement.' : 'Unlock additional AI itinerary planning with a simple monthly or yearly plan.' }}</p>
+      <p>{{ isAgency ? 'Start with a free agency profile, then upgrade when you are ready to publish packages in the marketplace.' : 'Start with the essentials for free, then unlock additional AI itinerary planning when you need it.' }}</p>
     </div>
     <div class="pricing-hero__orb" aria-hidden="true"><span class="material-symbols-outlined">{{ isAgency ? 'storefront' : 'auto_awesome' }}</span></div>
   </section>
@@ -21,6 +21,20 @@
   @if (loading()) { <div class="pricing-loading">Loading plans...</div> }
   @else {
     <section class="pricing-grid" aria-label="Pricing plans">
+      <article class="pricing-card pricing-card--free">
+        <span class="pricing-card__period">Free forever</span>
+        <h2>{{ freePlanName }}</h2>
+        <p>{{ freePlanDescription }}</p>
+        <div class="pricing-card__price"><strong>$0</strong><span>/ forever</span></div>
+        <ul>
+          @for (benefit of freePlanBenefits; track benefit) {
+            <li><span class="material-symbols-outlined">check</span>{{ benefit }}</li>
+          }
+        </ul>
+        <button class="pricing-button pricing-button--free" type="button" (click)="startFree()"
+          [disabled]="freePlanButtonLabel !== 'Start for free'">{{ freePlanButtonLabel }}</button>
+      </article>
+
       @for (plan of plans(); track plan.id) {
         <article class="pricing-card" [class.pricing-card--featured]="plan.billingPeriod === 'Yearly'">
           @if (plan.billingPeriod === 'Yearly') { <span class="pricing-card__badge">Best value</span> }
@@ -32,5 +46,5 @@
       }
     </section>
   }
-  <p class="pricing-note">Payments are confirmed by Safarni's backend. In local test mode, checkout opens a test payment screen. Agency payment never replaces agency verification.</p>
+  <p class="pricing-note">Paid subscriptions use secure Stripe Checkout and are activated only after Safarni verifies Stripe's signed payment event. Agency payment never replaces agency verification.</p>
 </main>

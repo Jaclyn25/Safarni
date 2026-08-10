@@ -7,6 +7,9 @@ namespace Safarni.Infrastructure.Security;
 
 public sealed class SubscriptionEntitlementService : IEntitlementService
 {
+    private const int FreeTravelerAiGenerationsPerDay = 3;
+    private const string FreeTravelerPlanCode = "traveler-basic";
+
     private readonly ApplicationDbContext _dbContext;
 
     public SubscriptionEntitlementService(ApplicationDbContext dbContext) => _dbContext = dbContext;
@@ -20,7 +23,26 @@ public sealed class SubscriptionEntitlementService : IEntitlementService
     public async Task<UsageEntitlement> GetTravelerAiUsageAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var subscription = await ActiveSubscriptionAsync(userId, null, PricingCustomerType.Traveler, cancellationToken);
-        if (subscription is null) return new(false, 0, 0, null, null);
+        var now = DateTime.UtcNow;
+
+        if (subscription is null)
+        {
+            var freePeriodStart = now.Date;
+            var freePeriodEnd = freePeriodStart.AddDays(1);
+            var freeUsed = await _dbContext.ItineraryGenerationJobs.CountAsync(job =>
+                job.UserId == userId &&
+                job.CreatedAt >= freePeriodStart &&
+                job.CreatedAt < freePeriodEnd,
+                cancellationToken);
+
+            return new(
+                freeUsed < FreeTravelerAiGenerationsPerDay,
+                freeUsed,
+                FreeTravelerAiGenerationsPerDay,
+                freePeriodEnd,
+                FreeTravelerPlanCode);
+        }
+
         var periodStart = subscription.StartAt ?? subscription.CreatedAt;
         var used = await _dbContext.ItineraryGenerationJobs.CountAsync(job =>
             job.UserId == userId && job.CreatedAt >= periodStart && job.CreatedAt < subscription.CurrentPeriodEnd,

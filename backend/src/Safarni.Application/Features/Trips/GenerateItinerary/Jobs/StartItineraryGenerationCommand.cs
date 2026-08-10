@@ -96,11 +96,6 @@ public sealed class StartItineraryGenerationCommandHandler
                 ItineraryErrors.Forbidden);
         }
 
-        if (_entitlements is not null && !await _entitlements.HasTravelerPremiumAiAsync(userId, cancellationToken))
-        {
-            return Result<ItineraryGenerationJobResponse>.Failure(BillingErrors.PremiumAiSubscriptionRequired);
-        }
-
         if (_entitlements is not null && !(await _entitlements.GetTravelerAiUsageAsync(userId, cancellationToken)).IsAllowed)
         {
             return Result<ItineraryGenerationJobResponse>.Failure(BillingErrors.TravelerAiLimitReached);

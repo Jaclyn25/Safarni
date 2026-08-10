@@ -148,6 +148,45 @@
       </div>
     </div>
 
+    <!-- Billing Snapshot -->
+    <section *ngIf="billing" class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p class="text-[10px] font-extrabold uppercase tracking-wider text-primary">Revenue & subscriptions</p>
+          <h2 class="mt-1 text-base font-bold text-on-surface">Commercial health</h2>
+          <p class="mt-1 text-xs text-on-surface-variant">Subscription activity and collected payments at a glance.</p>
+        </div>
+        <a routerLink="/admin/billing" class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary hover:opacity-95">
+          <span class="material-symbols-outlined" style="font-size: 16px">manage_accounts</span>
+          Manage pricing
+        </a>
+      </div>
+      <div class="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div class="rounded-xl border border-outline-variant bg-surface-container-low p-3">
+          <p class="text-[11px] font-semibold text-on-surface-variant">Gross revenue</p>
+          <p class="mt-1 text-xl font-extrabold text-on-surface">
+            {{ primaryRevenue ? (primaryRevenue.amount | number:'1.0-2') + ' ' + primaryRevenue.currency : '—' }}
+          </p>
+          <p class="mt-1 text-[11px] text-on-surface-variant">Successful payments only</p>
+        </div>
+        <div class="rounded-xl border border-outline-variant bg-surface-container-low p-3">
+          <p class="text-[11px] font-semibold text-on-surface-variant">Active subscriptions</p>
+          <p class="mt-1 text-xl font-extrabold text-on-surface">{{ billing.activeSubscriptions }}</p>
+          <p class="mt-1 text-[11px] text-on-surface-variant">{{ billing.totalSubscriptions }} total records</p>
+        </div>
+        <div class="rounded-xl border border-outline-variant bg-surface-container-low p-3">
+          <p class="text-[11px] font-semibold text-on-surface-variant">Payment success rate</p>
+          <p class="mt-1 text-xl font-extrabold text-on-surface">{{ billing.totalPayments ? ((billing.successfulPayments / billing.totalPayments) * 100 | number:'1.0-0') : 0 }}%</p>
+          <p class="mt-1 text-[11px] text-on-surface-variant">{{ billing.failedPayments }} failed payment(s)</p>
+        </div>
+        <div class="rounded-xl border border-outline-variant bg-surface-container-low p-3">
+          <p class="text-[11px] font-semibold text-on-surface-variant">Needs attention</p>
+          <p class="mt-1 text-xl font-extrabold text-on-surface">{{ billing.pendingSubscriptions + billing.failedSubscriptions }}</p>
+          <p class="mt-1 text-[11px] text-on-surface-variant">Pending or failed subscriptions</p>
+        </div>
+      </div>
+    </section>
+
     <!-- Enhanced Grouped KPI Cards -->
     <div class="space-y-6">
       <!-- People & User Accounts -->

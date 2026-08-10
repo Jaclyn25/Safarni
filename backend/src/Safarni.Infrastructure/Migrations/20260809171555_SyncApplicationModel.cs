@@ -11,8 +11,11 @@ namespace Safarni.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "VisaApplications");
+            // The table was removed from the current model, but some databases
+            // were created without the legacy table. Keep this migration
+            // idempotent so those databases can still advance to newer migrations.
+            migrationBuilder.Sql(
+                "IF OBJECT_ID(N'[VisaApplications]', N'U') IS NOT NULL DROP TABLE [VisaApplications];");
         }
 
         /// <inheritdoc />

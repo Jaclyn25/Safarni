@@ -81,6 +81,43 @@
         [subtitle]="'Progress: ' + summary.verificationProgress" />
     </div>
 
+    <!-- Financial Snapshot -->
+    <section class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p class="text-[10px] font-extrabold uppercase tracking-wider text-blue-600">Financial snapshot</p>
+          <h3 class="mt-1 text-base font-bold text-gray-900 font-display">Your agency numbers</h3>
+          <p class="mt-1 text-xs text-gray-400">Booking value is based on accepted requests; subscription paid is based on successful Safarni payments.</p>
+        </div>
+        <a routerLink="/agency/pricing" class="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-700">
+          <span class="material-symbols-outlined text-base">payments</span>
+          Manage subscription
+        </a>
+      </div>
+      <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+          <p class="text-[11px] font-semibold text-blue-700">Accepted booking value</p>
+          <p class="mt-2 text-xl font-extrabold text-gray-900">{{ summary.acceptedBookingValue | number:'1.0-2' }} {{ summary.bookingCurrencyCode }}</p>
+          <p class="mt-1 text-[11px] text-gray-500">{{ summary.acceptedBookingRequests }} accepted request(s)</p>
+        </div>
+        <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+          <p class="text-[11px] font-semibold text-emerald-700">Subscription paid</p>
+          <p class="mt-2 text-xl font-extrabold text-gray-900">{{ summary.totalSubscriptionPaid | number:'1.0-2' }} {{ summary.subscriptionCurrencyCode || 'USD' }}</p>
+          <p class="mt-1 text-[11px] text-gray-500">{{ summary.subscriptionSuccessfulPayments }} successful payment(s)</p>
+        </div>
+        <div class="rounded-xl border border-purple-100 bg-purple-50/60 p-4">
+          <p class="text-[11px] font-semibold text-purple-700">Current plan</p>
+          <p class="mt-2 text-lg font-extrabold text-gray-900">{{ summary.subscriptionPlanName || 'No subscription' }}</p>
+          <p class="mt-1 text-[11px] text-gray-500">{{ summary.subscriptionPrice !== null ? (summary.subscriptionPrice | number:'1.0-2') + ' ' + summary.subscriptionCurrencyCode : 'Choose a plan to unlock marketplace' }}</p>
+        </div>
+        <div class="rounded-xl border border-amber-100 bg-amber-50/60 p-4">
+          <p class="text-[11px] font-semibold text-amber-700">Next billing date</p>
+          <p class="mt-2 text-lg font-extrabold text-gray-900">{{ summary.nextBillingDate ? (summary.nextBillingDate | date:'mediumDate') : '—' }}</p>
+          <p class="mt-1 text-[11px] text-gray-500">Status: {{ summary.subscriptionStatus || 'Not started' }} · {{ summary.subscriptionFailedPayments }} failed payment(s)</p>
+        </div>
+      </div>
+    </section>
+
     <!-- Middle Section: Booking Trends & Quick Actions -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Trends Chart Card -->

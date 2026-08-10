@@ -45,6 +45,17 @@ export const routes: Routes = [
     title: 'Safarni | Package Details'
   },
   {
+    path: 'pricing/checkout',
+    loadComponent: () => import('./pages/pricing/checkout.component').then((m) => m.CheckoutComponent),
+    canActivate: [authGuard],
+    title: 'Safarni | Checkout'
+  },
+  {
+    path: 'pricing',
+    loadComponent: () => import('./pages/pricing/pricing.component').then((m) => m.PricingComponent),
+    title: 'Safarni | Pricing'
+  },
+  {
     path: 'concierge',
     loadComponent: () =>
       import('./pages/concierge/concierge.component').then((m) => m.ConciergeComponent),
@@ -159,6 +170,12 @@ export const routes: Routes = [
         path: 'booking-requests',
         loadComponent: () => import('./pages/agency/booking-requests/agency-booking-requests.component').then((m) => m.AgencyBookingRequestsComponent),
         title: 'Safarni | Booking Requests'
+      },
+      {
+        path: 'pricing',
+        loadComponent: () => import('./pages/pricing/pricing.component').then((m) => m.PricingComponent),
+        data: { customerType: 'Agency' },
+        title: 'Safarni | Agency Pricing'
       }
     ]
   },
@@ -295,6 +312,7 @@ export const routes: Routes = [
       { path: 'ai-activity', loadComponent: () => import('./pages/admin/ai-activity/ai-activity.component').then((m) => m.AdminAiActivityComponent) },
       { path: 'integrations', loadComponent: () => import('./pages/admin/integrations/integrations.component').then((m) => m.AdminIntegrationsComponent) },
       { path: 'analytics', loadComponent: () => import('./pages/admin/analytics/analytics.component').then((m) => m.AdminAnalyticsComponent) },
+      { path: 'billing', loadComponent: () => import('./pages/admin/billing/admin-billing.component').then((m) => m.AdminBillingComponent) },
       { path: 'roles', loadComponent: () => import('./pages/admin/roles/roles.component').then((m) => m.AdminRolesComponent) },
       { path: 'audit-logs', loadComponent: () => import('./pages/admin/audit-logs/audit-logs.component').then((m) => m.AdminAuditLogsComponent) }
     ]

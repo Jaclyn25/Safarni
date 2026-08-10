@@ -1,0 +1,38 @@
+<main class="checkout-page">
+  <section class="checkout-card">
+    @if (state() === 'pending') {
+      <span class="checkout-icon">💳</span>
+      <span class="pricing-eyebrow">{{ stripeCheckout() ? 'Stripe payment' : 'Test payment checkout' }}</span>
+      <h1>{{ stripeCheckout() ? 'Confirming your subscription.' : 'Confirm your Safarni plan' }}</h1>
+      <p>{{ stripeCheckout() ? 'Stripe sent the payment result back to Safarni. We are confirming your subscription securely.' : 'This local test checkout sends the payment result through the same backend subscription processor used by the webhook flow.' }}</p>
+      @if (error()) { <div class="checkout-error">{{ error() }}</div> }
+      @if (!error() && !stripeCheckout()) {
+        <div class="checkout-actions">
+          <button type="button" (click)="complete(true)" [disabled]="processing()">{{ processing() ? 'Processing...' : 'Complete successful payment' }}</button>
+          <button type="button" class="secondary" (click)="complete(false)" [disabled]="processing()">Decline payment</button>
+        </div>
+      }
+    }
+    @else if (state() === 'success') {
+      <span class="checkout-icon checkout-icon--success">✓</span>
+      <span class="pricing-eyebrow">Payment confirmed</span>
+      <h1>Your subscription is active.</h1>
+      <p>Safarni confirmed the payment on the backend. Your protected feature is now available.</p>
+      <a routerLink="/pricing" class="checkout-link">Manage subscription</a>
+    }
+    @else if (state() === 'failure') {
+      <span class="checkout-icon checkout-icon--failure">!</span>
+      <span class="pricing-eyebrow">Payment failed</span>
+      <h1>No paid access was granted.</h1>
+      <p>Your subscription remains unavailable until a payment is confirmed successfully.</p>
+      <a routerLink="/pricing" class="checkout-link">Return to plans</a>
+    }
+    @else {
+      <span class="checkout-icon">↩</span>
+      <span class="pricing-eyebrow">Checkout cancelled</span>
+      <h1>No changes were made.</h1>
+      <p>You can return to pricing whenever you are ready.</p>
+      <a routerLink="/pricing" class="checkout-link">Return to plans</a>
+    }
+  </section>
+</main>

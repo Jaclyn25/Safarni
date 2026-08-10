@@ -56,7 +56,11 @@ public sealed class TravelPackageRepository : ITravelPackageRepository
             .Where(package =>
                 package.IsPublished &&
                 package.IsActive &&
-                package.TravelAgency.VerificationStatus == AgencyVerificationStatus.Verified);
+                package.TravelAgency.VerificationStatus == AgencyVerificationStatus.Verified &&
+                package.TravelAgency.Subscriptions.Any(subscription =>
+                    subscription.Status == SubscriptionStatus.Active &&
+                    subscription.CurrentPeriodEnd > DateTime.UtcNow &&
+                    subscription.Plan.CustomerType == PricingCustomerType.Agency));
 
         if (!string.IsNullOrWhiteSpace(filters.Destination))
         {
@@ -118,7 +122,9 @@ public sealed class TravelPackageRepository : ITravelPackageRepository
     private IQueryable<TravelPackage> BaseQuery(bool includeDays)
     {
         var query = _dbContext.TravelPackages
-            .Include(package => package.TravelAgency);
+            .Include(package => package.TravelAgency)
+            .ThenInclude(agency => agency.Subscriptions)
+            .ThenInclude(subscription => subscription.Plan);
 
         return includeDays
             ? query.Include(package => package.Days)

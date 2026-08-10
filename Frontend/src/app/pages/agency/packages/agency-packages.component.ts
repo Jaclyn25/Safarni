@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Observable, forkJoin, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { TravelPackage, TravelPackageDayRequest, TravelPackageRequest } from '../../../models/marketplace.models';
@@ -55,7 +56,8 @@ export class AgencyPackagesComponent implements OnInit {
   constructor(
     private readonly fb: FormBuilder,
     private readonly marketplace: MarketplaceService,
-    private readonly agencies: AgencyService
+    private readonly agencies: AgencyService,
+    private readonly router: Router
   ) {
     this.form = this.fb.nonNullable.group({
       title: ['', [Validators.required, Validators.maxLength(200)]],
@@ -436,6 +438,12 @@ export class AgencyPackagesComponent implements OnInit {
       error: (error: unknown) => {
         this.actionId.set(null);
         this.error.set(getApiErrorMessage(error, `We could not ${action} this package.`));
+        if (action === 'publish' && error instanceof HttpErrorResponse &&
+          error.error?.errors?.some((item: { code?: string }) => item.code === 'Billing.AgencyMarketplaceSubscriptionRequired')) {
+          window.setTimeout(() => void this.router.navigate(['/agency/pricing'], {
+            queryParams: { reason: 'agency-subscription-required' }
+          }), 700);
+        }
       }
     });
   }

@@ -33,6 +33,9 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<TravelPackage> TravelPackages => Set<TravelPackage>();
     public DbSet<TravelPackageDay> TravelPackageDays => Set<TravelPackageDay>();
     public DbSet<PackageBookingRequest> PackageBookingRequests => Set<PackageBookingRequest>();
+    public DbSet<PricingPlan> PricingPlans => Set<PricingPlan>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
 
     // Chatbot tables
     public DbSet<Conversation> Conversations => Set<Conversation>();

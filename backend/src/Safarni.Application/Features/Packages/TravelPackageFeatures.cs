@@ -545,11 +545,7 @@ public sealed class GetPublishedPackageQueryHandler
     {
         var package = await _packages.GetByIdAsync(request.PackageId, includeDays: true, cancellationToken: cancellationToken);
         if (package is null || !package.IsPublished || !package.IsActive ||
-            package.TravelAgency.VerificationStatus != Domain.Enums.AgencyVerificationStatus.Verified ||
-            !package.TravelAgency.Subscriptions.Any(subscription =>
-                subscription.Status == Domain.Enums.SubscriptionStatus.Active &&
-                subscription.CurrentPeriodEnd > DateTime.UtcNow &&
-                subscription.Plan.CustomerType == Domain.Enums.PricingCustomerType.Agency))
+            package.TravelAgency.VerificationStatus != Domain.Enums.AgencyVerificationStatus.Verified)
         {
             return Result<TravelPackageResponse>.Failure(TravelPackageErrors.NotFound);
         }

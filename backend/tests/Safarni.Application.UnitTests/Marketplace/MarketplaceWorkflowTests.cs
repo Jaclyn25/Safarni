@@ -107,4 +107,38 @@ public sealed class MarketplaceWorkflowTests
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("PackageBooking.PackageUnavailable");
     }
+
+    [Fact]
+    public async Task PublishedPackageDetails_ShouldAllowVerifiedFreeAgencyWithoutSubscription()
+    {
+        var package = new TravelPackage
+        {
+            Id = Guid.NewGuid(),
+            Title = "Cairo Weekend",
+            Description = "A verified free-agency package",
+            Destination = "Cairo",
+            IsPublished = true,
+            IsActive = true,
+            TravelAgency = new TravelAgency
+            {
+                Id = Guid.NewGuid(),
+                CompanyName = "Safarni Test Agency",
+                VerificationStatus = AgencyVerificationStatus.Verified,
+                Subscriptions = []
+            },
+            Days = []
+        };
+        package.TravelAgencyId = package.TravelAgency.Id;
+
+        var packages = new Mock<ITravelPackageRepository>();
+        packages.Setup(value => value.GetByIdAsync(package.Id, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(package);
+
+        var handler = new GetPublishedPackageQueryHandler(packages.Object);
+        var result = await handler.Handle(new GetPublishedPackageQuery(package.Id), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Id.Should().Be(package.Id);
+        result.Value.Agency.IsVerified.Should().BeTrue();
+    }
 }

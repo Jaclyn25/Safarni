@@ -402,6 +402,12 @@ export class AgencyPackagesComponent implements OnInit {
       error: (error: unknown) => {
         this.saving.set(false);
         this.formError.set(getApiErrorMessage(error, 'We could not save this package.'));
+        if (error instanceof HttpErrorResponse &&
+          error.error?.errors?.some((item: { code?: string }) => item.code === 'Billing.AgencyPackageCreationLimitReached')) {
+          window.setTimeout(() => void this.router.navigate(['/agency/pricing'], {
+            queryParams: { reason: 'agency-package-creation-limit' }
+          }), 700);
+        }
       }
     });
   }
@@ -439,9 +445,11 @@ export class AgencyPackagesComponent implements OnInit {
         this.actionId.set(null);
         this.error.set(getApiErrorMessage(error, `We could not ${action} this package.`));
         if (action === 'publish' && error instanceof HttpErrorResponse &&
-          error.error?.errors?.some((item: { code?: string }) => item.code === 'Billing.AgencyMarketplaceSubscriptionRequired')) {
+          error.error?.errors?.some((item: { code?: string }) =>
+            item.code === 'Billing.AgencyMarketplaceSubscriptionRequired' ||
+            item.code === 'Billing.AgencyPackageLimitReached')) {
           window.setTimeout(() => void this.router.navigate(['/agency/pricing'], {
-            queryParams: { reason: 'agency-subscription-required' }
+            queryParams: { reason: 'agency-package-publishing-limit' }
           }), 700);
         }
       }

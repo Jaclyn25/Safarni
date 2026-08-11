@@ -83,7 +83,7 @@ public sealed class BillingWorkflowTests
     }
 
     [Fact]
-    public async Task AgencyPublish_ShouldRequirePaidEntitlementInAdditionToVerification()
+    public async Task FreeAgencyPublish_BelowDailyLimit_ShouldSucceed()
     {
         var userId = Guid.NewGuid();
         var agency = new TravelAgency { Id = Guid.NewGuid(), UserId = userId, VerificationStatus = AgencyVerificationStatus.Verified };
@@ -95,14 +95,18 @@ public sealed class BillingWorkflowTests
         var verification = new Mock<ITravelAgencyAuthorizationService>();
         verification.Setup(value => value.IsVerifiedAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         var entitlement = new Mock<IEntitlementService>();
-        entitlement.Setup(value => value.HasAgencyMarketplacePaidAsync(agency.Id, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        entitlement.Setup(value => value.GetAgencyPackageUsageAsync(agency.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UsageEntitlement(true, 2, 3, DateTime.UtcNow.Date.AddDays(1), "agency-basic"));
 
         var result = await new PublishTravelPackageCommandHandler(agencies.Object, packages.Object, verification.Object, entitlement.Object)
             .Handle(new PublishTravelPackageCommand(userId, package.Id), CancellationToken.None);
 
-        result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Billing.AgencyMarketplaceSubscriptionRequired");
-        packages.Verify(value => value.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        result.IsSuccess.Should().BeTrue();
+        package.IsPublished.Should().BeTrue();
+        package.PublishedAt.Should().NotBeNull();
+        packages.Verify(value => value.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        entitlement.Verify(value => value.HasAgencyMarketplacePaidAsync(
+            It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static PricingPlan Plan(BillingPeriod period) => new()

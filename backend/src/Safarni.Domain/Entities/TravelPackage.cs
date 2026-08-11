@@ -19,6 +19,7 @@ public sealed class TravelPackage
     public bool IsPublished { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
+    public DateTime? PublishedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public TravelAgency TravelAgency { get; set; } = null!;
     public ICollection<TravelPackageDay> Days { get; set; } = new List<TravelPackageDay>();

@@ -44,12 +44,12 @@ export class PricingComponent implements OnInit {
   get freePlanName(): string { return this.isAgency ? 'Agency Basic' : 'Traveler Basic'; }
   get freePlanDescription(): string {
     return this.isAgency
-      ? 'Create your verified agency presence and prepare packages before publishing.'
+      ? 'Create your verified agency presence and publish up to three marketplace packages every day.'
       : 'Explore Safarni and generate up to three AI-powered itineraries every day.';
   }
   get freePlanBenefits(): readonly string[] {
     return this.isAgency
-      ? ['Create your agency profile', 'Build and manage draft packages', 'Upgrade when you are ready to publish']
+      ? ['Create 3 packages per day', 'Publish 3 packages per day', 'Build your verified agency presence']
       : ['3 AI itinerary generations per day', 'Explore destinations and marketplace packages', 'Create and manage your trips'];
   }
   get freePlanButtonLabel(): string {

@@ -37,6 +37,36 @@ public static class TravelPackageErrors
         "The requested package day could not be found.",
         ErrorType.NotFound);
 
+    public static readonly Error CityNotFound = new(
+        "TravelPackage.CityNotFound",
+        "The selected package city could not be found.",
+        ErrorType.NotFound);
+
+    public static readonly Error ItemNotFound = new(
+        "TravelPackage.ItemNotFound",
+        "The selected itinerary item could not be found.",
+        ErrorType.NotFound);
+
+    public static readonly Error ImageNotFound = new(
+        "TravelPackage.ImageNotFound",
+        "The selected image could not be found.",
+        ErrorType.NotFound);
+
+    public static readonly Error IncompleteProgram = new(
+        "TravelPackage.IncompleteProgram",
+        "Complete the route and every itinerary day before publishing.",
+        ErrorType.Validation);
+
+    public static readonly Error RouteRequired = new(
+        "TravelPackage.RouteRequired",
+        "Add at least one route city before creating itinerary days.",
+        ErrorType.Validation);
+
+    public static readonly Error InvalidNightAllocation = new(
+        "TravelPackage.InvalidNightAllocation",
+        "Route nights must equal the trip days, or one less when the final day is the departure day. Adjust the route nights to match the package duration.",
+        ErrorType.Validation);
+
     public static readonly Error InvalidDayNumber = new(
         "TravelPackage.InvalidDayNumber",
         "The day number must be within the package duration.",

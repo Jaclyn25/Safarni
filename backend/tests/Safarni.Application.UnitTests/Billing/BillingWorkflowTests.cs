@@ -87,7 +87,17 @@ public sealed class BillingWorkflowTests
     {
         var userId = Guid.NewGuid();
         var agency = new TravelAgency { Id = Guid.NewGuid(), UserId = userId, VerificationStatus = AgencyVerificationStatus.Verified };
-        var package = new TravelPackage { Id = Guid.NewGuid(), TravelAgencyId = agency.Id, TravelAgency = agency, IsActive = true };
+        var package = new TravelPackage
+        {
+            Id = Guid.NewGuid(), TravelAgencyId = agency.Id, TravelAgency = agency, IsActive = true, DurationDays = 1
+        };
+        var city = new TravelPackageCity { Id = Guid.NewGuid(), TravelPackageId = package.Id, TravelPackage = package, OrderIndex = 0, Nights = 1, Name = "Cairo" };
+        package.Cities.Add(city);
+        package.Days.Add(new TravelPackageDay
+        {
+            Id = Guid.NewGuid(), TravelPackageId = package.Id, TravelPackage = package, DayNumber = 1,
+            TravelPackageCityId = city.Id, TravelPackageCity = city, Title = "Cairo highlights", Description = "A complete first day."
+        });
         var agencies = new Mock<ITravelAgencyRepository>();
         agencies.Setup(value => value.GetByUserIdAsync(userId, false, It.IsAny<CancellationToken>())).ReturnsAsync(agency);
         var packages = new Mock<ITravelPackageRepository>();

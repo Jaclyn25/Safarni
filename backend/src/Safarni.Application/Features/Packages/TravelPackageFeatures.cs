@@ -14,12 +14,61 @@ public sealed record TravelPackageAgencyResponse(
     string? LogoUrl,
     bool IsVerified);
 
+public sealed record TravelPackageImageResponse(
+    Guid Id,
+    string Url,
+    string? Caption,
+    string? AltText,
+    int SortOrder,
+    bool IsCover);
+
+public sealed record TravelPackageItemResponse(
+    Guid Id,
+    string Type,
+    string Source,
+    int OrderIndex,
+    string Title,
+    string? Description,
+    string? LocationName,
+    string? Address,
+    double? Latitude,
+    double? Longitude,
+    string? MapUrl,
+    string? Provider,
+    string? ProviderPlaceId,
+    string? ProviderPhotoUrl,
+    string? WebsiteUrl,
+    string? Cuisine,
+    string? MealType,
+    bool? ReservationRequired,
+    string? AccommodationType,
+    int? StarRating,
+    string? RoomType,
+    string? BoardBasis,
+    string? TransportMode,
+    string? FromLocation,
+    string? ToLocation,
+    string? MeetingPoint,
+    string? DifficultyLevel,
+    string? AdditionalDetails,
+    IReadOnlyList<TravelPackageImageResponse> Images);
+
+public sealed record TravelPackageCityResponse(
+    Guid Id,
+    string Name,
+    int OrderIndex,
+    int Nights,
+    string? Description);
+
 public sealed record TravelPackageDayResponse(
     Guid Id,
     int DayNumber,
     string Title,
     string Description,
-    string? Activities);
+    Guid? CityId,
+    string? CityName,
+    IReadOnlyList<TravelPackageItemResponse> Items,
+    IReadOnlyList<TravelPackageImageResponse> Images);
 
 public sealed record TravelPackageResponse(
     Guid Id,
@@ -33,15 +82,22 @@ public sealed record TravelPackageResponse(
     decimal Price,
     string CurrencyCode,
     int AvailableSeats,
+    int RemainingSeats,
     string? CoverImageUrl,
     decimal? DiscountPercentage,
     string? OfferLabel,
+    string? Inclusions,
+    string? Exclusions,
+    string? ImportantNotes,
+    string? CancellationPolicy,
     bool IsPublished,
     bool IsActive,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     TravelPackageAgencyResponse Agency,
-    IReadOnlyList<TravelPackageDayResponse> Days);
+    IReadOnlyList<TravelPackageCityResponse> Cities,
+    IReadOnlyList<TravelPackageDayResponse> Days,
+    IReadOnlyList<TravelPackageImageResponse> Images);
 
 public sealed record CreateTravelPackageCommand(
     Guid UserId,
@@ -56,7 +112,11 @@ public sealed record CreateTravelPackageCommand(
     int AvailableSeats,
     string? CoverImageUrl,
     decimal? DiscountPercentage,
-    string? OfferLabel)
+    string? OfferLabel,
+    string? Inclusions = null,
+    string? Exclusions = null,
+    string? ImportantNotes = null,
+    string? CancellationPolicy = null)
     : IRequest<Result<TravelPackageResponse>>;
 
 public sealed record UpdateTravelPackageCommand(
@@ -73,7 +133,11 @@ public sealed record UpdateTravelPackageCommand(
     int AvailableSeats,
     string? CoverImageUrl,
     decimal? DiscountPercentage,
-    string? OfferLabel)
+    string? OfferLabel,
+    string? Inclusions = null,
+    string? Exclusions = null,
+    string? ImportantNotes = null,
+    string? CancellationPolicy = null)
     : IRequest<Result<TravelPackageResponse>>;
 
 public sealed record ListAgencyPackagesQuery(Guid UserId)
@@ -113,6 +177,10 @@ public sealed class CreateTravelPackageCommandValidator
             command.Title, command.Description, command.Destination, command.StartDate, command.EndDate,
             command.DurationDays, command.Price, command.CurrencyCode, command.AvailableSeats,
             command.CoverImageUrl, command.DiscountPercentage, command.OfferLabel));
+        RuleFor(command => command.Inclusions).MaximumLength(4000);
+        RuleFor(command => command.Exclusions).MaximumLength(4000);
+        RuleFor(command => command.ImportantNotes).MaximumLength(4000);
+        RuleFor(command => command.CancellationPolicy).MaximumLength(4000);
     }
 }
 
@@ -125,6 +193,10 @@ public sealed class UpdateTravelPackageCommandValidator
             command.Title, command.Description, command.Destination, command.StartDate, command.EndDate,
             command.DurationDays, command.Price, command.CurrencyCode, command.AvailableSeats,
             command.CoverImageUrl, command.DiscountPercentage, command.OfferLabel));
+        RuleFor(command => command.Inclusions).MaximumLength(4000);
+        RuleFor(command => command.Exclusions).MaximumLength(4000);
+        RuleFor(command => command.ImportantNotes).MaximumLength(4000);
+        RuleFor(command => command.CancellationPolicy).MaximumLength(4000);
         RuleFor(command => command.PackageId).NotEmpty();
     }
 }
@@ -189,6 +261,14 @@ internal static class TravelPackageMapping
 {
     public static TravelPackageResponse ToResponse(TravelPackage package)
     {
+        var packageImages = package.Images
+            .Where(image => image.TravelPackageDayId == null && image.TravelPackageItemId == null)
+            .OrderByDescending(image => image.IsCover)
+            .ThenBy(image => image.SortOrder)
+            .ToArray();
+        var canonicalCoverUrl = packageImages.FirstOrDefault(image => image.IsCover)?.Url
+            ?? package.CoverImageUrl;
+
         return new TravelPackageResponse(
             package.Id,
             package.TravelAgencyId,
@@ -201,9 +281,16 @@ internal static class TravelPackageMapping
             package.Price,
             package.CurrencyCode,
             package.AvailableSeats,
-            package.CoverImageUrl,
+            Math.Max(0, package.AvailableSeats - package.BookingRequests
+                .Where(request => request.Status == Domain.Enums.PackageBookingRequestStatus.Accepted)
+                .Sum(request => request.TravelerCount)),
+            canonicalCoverUrl,
             package.DiscountPercentage,
             package.OfferLabel,
+            package.Inclusions,
+            package.Exclusions,
+            package.ImportantNotes,
+            package.CancellationPolicy,
             package.IsPublished,
             package.IsActive,
             package.CreatedAt,
@@ -213,14 +300,29 @@ internal static class TravelPackageMapping
                 package.TravelAgency.CompanyName,
                 package.TravelAgency.LogoUrl,
                 package.TravelAgency.VerificationStatus == Domain.Enums.AgencyVerificationStatus.Verified),
+            package.Cities
+                .OrderBy(city => city.OrderIndex)
+                .Select(city => new TravelPackageCityResponse(
+                    city.Id, city.Name, city.OrderIndex, city.Nights, city.Description))
+                .ToArray(),
             package.Days
                 .OrderBy(day => day.DayNumber)
-                .Select(day => new TravelPackageDayResponse(
-                    day.Id,
-                    day.DayNumber,
-                    day.Title,
-                    day.Description,
-                    day.Activities))
+                .Select(day =>
+                {
+                    var routeCity = TravelPackageRoutePlanner.ResolveCity(package, day.DayNumber);
+                    return new TravelPackageDayResponse(
+                        day.Id,
+                        day.DayNumber,
+                        day.Title,
+                        day.Description,
+                        routeCity?.Id,
+                        routeCity?.Name,
+                        day.Items.OrderBy(item => item.OrderIndex).Select(ToItemResponse).ToArray(),
+                        day.Images.OrderBy(image => image.SortOrder).Select(ToImageResponse).ToArray());
+                })
+                .ToArray(),
+            packageImages
+                .Select(ToImageResponse)
                 .ToArray());
     }
 
@@ -237,7 +339,11 @@ internal static class TravelPackageMapping
         int availableSeats,
         string? coverImageUrl,
         decimal? discountPercentage,
-        string? offerLabel)
+        string? offerLabel,
+        string? inclusions = null,
+        string? exclusions = null,
+        string? importantNotes = null,
+        string? cancellationPolicy = null)
     {
         package.Title = title.Trim();
         package.Description = description.Trim();
@@ -248,10 +354,33 @@ internal static class TravelPackageMapping
         package.Price = price;
         package.CurrencyCode = currencyCode.Trim().ToUpperInvariant();
         package.AvailableSeats = availableSeats;
-        package.CoverImageUrl = NullIfWhiteSpace(coverImageUrl);
+        // An uploaded gallery cover is authoritative. This prevents an older URL retained
+        // in an open edit form from overwriting a newly selected cover on the next save.
+        package.CoverImageUrl = package.Images
+            .FirstOrDefault(image => image.TravelPackageDayId == null &&
+                image.TravelPackageItemId == null && image.IsCover)?.Url
+            ?? NullIfWhiteSpace(coverImageUrl);
         package.DiscountPercentage = discountPercentage;
         package.OfferLabel = NullIfWhiteSpace(offerLabel);
+        package.Inclusions = NullIfWhiteSpace(inclusions);
+        package.Exclusions = NullIfWhiteSpace(exclusions);
+        package.ImportantNotes = NullIfWhiteSpace(importantNotes);
+        package.CancellationPolicy = NullIfWhiteSpace(cancellationPolicy);
     }
+
+    internal static TravelPackageImageResponse ToImageResponse(TravelPackageImage image) =>
+        new(image.Id, image.Url, image.Caption, image.AltText, image.SortOrder, image.IsCover);
+
+    internal static TravelPackageItemResponse ToItemResponse(TravelPackageItem item) =>
+        new(
+            item.Id, item.Type.ToString(), item.Source.ToString(), item.OrderIndex, item.Title,
+            item.Description, item.LocationName,
+            item.Address, item.Latitude, item.Longitude, item.MapUrl, item.Provider, item.ProviderPlaceId,
+            item.ProviderPhotoUrl, item.WebsiteUrl, item.Cuisine,
+            item.MealType, item.ReservationRequired, item.AccommodationType, item.StarRating,
+            item.RoomType, item.BoardBasis, item.TransportMode, item.FromLocation, item.ToLocation,
+            item.MeetingPoint, item.DifficultyLevel, item.AdditionalDetails,
+            item.Images.OrderBy(image => image.SortOrder).Select(ToImageResponse).ToArray());
 
     private static string? NullIfWhiteSpace(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -294,7 +423,8 @@ public sealed class CreateTravelPackageCommandHandler
         };
         TravelPackageMapping.Apply(package, request.Title, request.Description, request.Destination, request.StartDate,
             request.EndDate, request.DurationDays, request.Price, request.CurrencyCode, request.AvailableSeats,
-            request.CoverImageUrl, request.DiscountPercentage, request.OfferLabel);
+            request.CoverImageUrl, request.DiscountPercentage, request.OfferLabel, request.Inclusions,
+            request.Exclusions, request.ImportantNotes, request.CancellationPolicy);
         await _packages.AddAsync(package, cancellationToken);
         await _packages.SaveChangesAsync(cancellationToken);
         return Result<TravelPackageResponse>.Success(TravelPackageMapping.ToResponse(package));
@@ -327,9 +457,16 @@ public sealed class UpdateTravelPackageCommandHandler
             return await OwnershipOrNotFound(request.PackageId, cancellationToken);
         }
 
+        if (package.Days.Any(day => day.DayNumber > request.DurationDays))
+            return Result<TravelPackageResponse>.Failure(TravelPackageErrors.InvalidDayNumber);
+        if (TravelPackageRoutePlanner.TotalNights(package) > request.DurationDays)
+            return Result<TravelPackageResponse>.Failure(TravelPackageErrors.InvalidNightAllocation);
+
         TravelPackageMapping.Apply(package, request.Title, request.Description, request.Destination, request.StartDate,
             request.EndDate, request.DurationDays, request.Price, request.CurrencyCode, request.AvailableSeats,
-            request.CoverImageUrl, request.DiscountPercentage, request.OfferLabel);
+            request.CoverImageUrl, request.DiscountPercentage, request.OfferLabel, request.Inclusions,
+            request.Exclusions, request.ImportantNotes, request.CancellationPolicy);
+        TravelPackageRoutePlanner.AssignCitiesToDays(package);
         package.UpdatedAt = DateTime.UtcNow;
         await _packages.SaveChangesAsync(cancellationToken);
         return Result<TravelPackageResponse>.Success(TravelPackageMapping.ToResponse(package));
@@ -437,6 +574,25 @@ public sealed class PublishTravelPackageCommandHandler
         }
         if (!package.IsActive) return Result<TravelPackageResponse>.Failure(TravelPackageErrors.AlreadyInactive);
         if (package.IsPublished) return Result<TravelPackageResponse>.Failure(TravelPackageErrors.AlreadyPublished);
+        if (!TravelPackageRoutePlanner.HasValidNightAllocation(package))
+        {
+            return Result<TravelPackageResponse>.Failure(TravelPackageErrors.InvalidNightAllocation);
+        }
+
+        // Route nights are the single source of truth. Repair legacy/manual assignments
+        // before validating and publishing so old package data cannot leak into the program.
+        TravelPackageRoutePlanner.AssignCitiesToDays(package);
+        var cityIds = package.Cities.Select(city => city.Id).ToHashSet();
+        var expectedDayNumbers = Enumerable.Range(1, package.DurationDays).ToHashSet();
+        var actualDayNumbers = package.Days.Select(day => day.DayNumber).ToArray();
+        if (package.DurationDays <= 0 ||
+            package.Days.Count != package.DurationDays ||
+            actualDayNumbers.Distinct().Count() != package.DurationDays ||
+            !expectedDayNumbers.SetEquals(actualDayNumbers) ||
+            package.Days.Any(day => day.TravelPackageCityId is null || !cityIds.Contains(day.TravelPackageCityId.Value)))
+        {
+            return Result<TravelPackageResponse>.Failure(TravelPackageErrors.IncompleteProgram);
+        }
         var now = DateTime.UtcNow;
         package.IsPublished = true;
         package.PublishedAt = now;
@@ -544,7 +700,7 @@ public sealed class GetPublishedPackageQueryHandler
     public async Task<Result<TravelPackageResponse>> Handle(GetPublishedPackageQuery request, CancellationToken cancellationToken)
     {
         var package = await _packages.GetByIdAsync(request.PackageId, includeDays: true, cancellationToken: cancellationToken);
-        if (package is null || !package.IsPublished || !package.IsActive ||
+        if (package is null || !package.IsPublished || !package.IsActive || package.EndDate < DateTime.UtcNow.Date ||
             package.TravelAgency.VerificationStatus != Domain.Enums.AgencyVerificationStatus.Verified)
         {
             return Result<TravelPackageResponse>.Failure(TravelPackageErrors.NotFound);

@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { getApiErrorMessage } from '../../services/auth.service';
 import { MarketplaceService } from '../../services/marketplace.service';
 import { TravelPackage } from '../../models/marketplace.models';
+import { packageCoverUrl } from '../../shared/constants/marketplace.constants';
 
 @Component({
   selector: 'app-marketplace',
@@ -53,6 +54,8 @@ export class MarketplaceComponent implements OnInit {
   price(packageItem: TravelPackage): string {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: packageItem.currencyCode }).format(packageItem.price);
   }
+
+  coverUrl(packageItem: TravelPackage): string { return packageCoverUrl(packageItem); }
 
   date(value: string): string { return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
 }

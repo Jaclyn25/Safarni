@@ -3,6 +3,8 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { forkJoin } from 'rxjs';
+import { TravelPackage } from '../../../models/marketplace.models';
 import {
   AdminAgencyDetail,
   AgencyDocumentDecision,
@@ -28,6 +30,7 @@ export class AdminAgencyReviewComponent implements OnInit {
   readonly success = signal('');
 
   detail: AdminAgencyDetail | null = null;
+  packages: TravelPackage[] = [];
   reason = '';
   readonly documentReasons: Record<AgencyVerificationDocumentType, string> = {
     CommercialRegistration: '',
@@ -69,9 +72,10 @@ export class AdminAgencyReviewComponent implements OnInit {
     }
     this.isLoading.set(true);
     this.error.set('');
-    this.agencies.getAdminAgency(this.agencyId).subscribe({
-      next: (detail) => {
+    forkJoin({ detail: this.agencies.getAdminAgency(this.agencyId), packages: this.agencies.getAdminAgencyPackages(this.agencyId) }).subscribe({
+      next: ({ detail, packages }) => {
         this.applyDetail(detail);
+        this.packages = packages;
         this.isLoading.set(false);
       },
       error: (error: unknown) => {

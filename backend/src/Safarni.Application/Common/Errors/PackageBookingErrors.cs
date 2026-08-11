@@ -22,6 +22,21 @@ public static class PackageBookingErrors
         "This package does not have enough available seats.",
         ErrorType.Conflict);
 
+    public static readonly Error DuplicateRequest = new(
+        "PackageBooking.DuplicateRequest",
+        "You already have an active request for this package.",
+        ErrorType.Conflict);
+
+    public static readonly Error ReviewNotAllowed = new(
+        "AgencyReview.NotAllowed",
+        "You can review an agency after your accepted trip has ended.",
+        ErrorType.Forbidden);
+
+    public static readonly Error AlreadyReviewed = new(
+        "AgencyReview.AlreadyReviewed",
+        "This booking has already been reviewed.",
+        ErrorType.Conflict);
+
     public static readonly Error OwnershipDenied = new(
         "PackageBooking.OwnershipDenied",
         "You are not allowed to manage this booking request.",

@@ -9,6 +9,7 @@ using Safarni.Application.Features.Agencies.Dashboard;
 using Safarni.Application.Features.Agencies.Documents;
 using Safarni.Application.Features.Agencies.Profile;
 using Safarni.Application.Features.Agencies.Onboarding;
+using Safarni.Application.Features.Agencies.Public;
 using Safarni.Application.Features.Agencies.Verification;
 using Safarni.Domain.Enums;
 
@@ -260,6 +261,21 @@ public sealed class AgencyController : ControllerBase
                 StatusCodes.Status200OK));
     }
 
+    [HttpPut("reviews/{reviewId:guid}/response")]
+    public async Task<IActionResult> RespondToReview(
+        Guid reviewId,
+        [FromBody] RespondToAgencyReviewRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new RespondToAgencyReviewCommand(User.GetRequiredUserId(), reviewId, request.Response),
+            cancellationToken);
+        return result.IsFailure
+            ? Failure<PublicAgencyReviewResponse>(result.Error, "Failed to publish the agency response.")
+            : Ok(ApiResponse<PublicAgencyReviewResponse>.SuccessResponse(
+                result.Value!, "Agency response published.", StatusCodes.Status200OK));
+    }
+
     private ObjectResult Failure<T>(Error error, string message)
     {
         var statusCode = error.Type switch
@@ -304,4 +320,6 @@ public sealed class AgencyController : ControllerBase
         string CompanyPhone,
         string? LogoUrl,
         string? WebsiteUrl);
+
+    public sealed record RespondToAgencyReviewRequest(string Response);
 }

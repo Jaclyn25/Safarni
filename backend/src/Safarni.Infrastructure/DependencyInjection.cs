@@ -75,6 +75,7 @@ public static class DependencyInjection
         services.AddScoped<ITravelPackageRepository, TravelPackageRepository>();
         services.AddScoped<ITravelPackageImageStorage, LocalTravelPackageImageStorage>();
         services.AddScoped<IPackageBookingRequestRepository, PackageBookingRequestRepository>();
+        services.AddScoped<IAgencyReviewRepository, AgencyReviewRepository>();
         services.AddScoped<IUserNotificationRepository, UserNotificationRepository>();
         services.AddScoped<IMarketplaceNotificationService, MarketplaceNotificationService>();
 

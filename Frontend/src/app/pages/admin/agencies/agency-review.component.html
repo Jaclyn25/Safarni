@@ -36,6 +36,11 @@
         </section>
 
         <section class="review-card">
+          <header><div><p>Marketplace inventory</p><h2>Agency packages</h2></div><span>{{ packages.length }} total</span></header>
+          @if (packages.length) { <div class="review-documents">@for (packageItem of packages; track packageItem.id) { <article class="review-document"><div class="review-document__heading">@if (packageItem.coverImageUrl) { <img [src]="packageItem.coverImageUrl" [alt]="packageItem.title" class="h-12 w-16 rounded-lg object-cover"> } @else { <span class="material-symbols-outlined">luggage</span> }<div><strong>{{ packageItem.title }}</strong><small>{{ packageItem.destination }} · {{ packageItem.durationDays }} days · {{ packageItem.days.length }} itinerary days</small><small>{{ packageItem.cities.length ? packageItem.cities.length + ' route stops' : 'No structured route yet' }}</small></div><span class="document-review-badge">{{ !packageItem.isActive ? 'Inactive' : packageItem.isPublished ? 'Published' : 'Draft' }}</span>@if (packageItem.isPublished && packageItem.isActive) { <a [routerLink]="['/marketplace/packages', packageItem.id]" target="_blank" class="secure-view"><span class="material-symbols-outlined">visibility</span>Preview</a> }</div></article> }</div> } @else { <p class="text-sm text-slate-500">This agency has not created any packages yet.</p> }
+        </section>
+
+        <section class="review-card">
           <header>
             <div><p>Private records</p><h2>Verification documents</h2></div>
             <span>{{ detail.verification.uploadedDocumentCount }}/{{ detail.verification.requiredDocumentCount }} submitted</span>

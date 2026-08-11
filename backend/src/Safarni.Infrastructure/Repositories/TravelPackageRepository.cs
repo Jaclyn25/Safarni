@@ -56,6 +56,7 @@ public sealed class TravelPackageRepository : ITravelPackageRepository
             .Where(package =>
                 package.IsPublished &&
                 package.IsActive &&
+                package.EndDate >= DateTime.UtcNow.Date &&
                 package.TravelAgency.VerificationStatus == AgencyVerificationStatus.Verified);
 
         if (!string.IsNullOrWhiteSpace(filters.Destination))
@@ -100,6 +101,26 @@ public sealed class TravelPackageRepository : ITravelPackageRepository
         return _dbContext.TravelPackages.AddAsync(package, cancellationToken).AsTask();
     }
 
+    public Task AddCityAsync(TravelPackageCity city, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.TravelPackageCities.AddAsync(city, cancellationToken).AsTask();
+    }
+
+    public Task AddDayAsync(TravelPackageDay day, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.TravelPackageDays.AddAsync(day, cancellationToken).AsTask();
+    }
+
+    public Task AddItemAsync(TravelPackageItem item, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.TravelPackageItems.AddAsync(item, cancellationToken).AsTask();
+    }
+
+    public Task AddImageAsync(TravelPackageImage image, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.TravelPackageImages.AddAsync(image, cancellationToken).AsTask();
+    }
+
     public void Remove(TravelPackage package)
     {
         _dbContext.TravelPackages.Remove(package);
@@ -110,6 +131,20 @@ public sealed class TravelPackageRepository : ITravelPackageRepository
         _dbContext.TravelPackageDays.Remove(day);
     }
 
+    public async Task<IReadOnlyList<TravelPackage>> ListPublishedByAgencyAsync(Guid agencyId, CancellationToken cancellationToken = default)
+    {
+        return await BaseQuery(includeDays: false).AsNoTracking()
+            .Where(package => package.TravelAgencyId == agencyId && package.IsPublished && package.IsActive && package.EndDate >= DateTime.UtcNow.Date)
+            .OrderBy(package => package.StartDate)
+            .ToListAsync(cancellationToken);
+    }
+
+    public void RemoveCity(TravelPackageCity city) => _dbContext.TravelPackageCities.Remove(city);
+
+    public void RemoveItem(TravelPackageItem item) => _dbContext.TravelPackageItems.Remove(item);
+
+    public void RemoveImage(TravelPackageImage image) => _dbContext.TravelPackageImages.Remove(image);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return _dbContext.SaveChangesAsync(cancellationToken);
@@ -117,13 +152,28 @@ public sealed class TravelPackageRepository : ITravelPackageRepository
 
     private IQueryable<TravelPackage> BaseQuery(bool includeDays)
     {
-        var query = _dbContext.TravelPackages
+        IQueryable<TravelPackage> query = _dbContext.TravelPackages
             .Include(package => package.TravelAgency)
             .ThenInclude(agency => agency.Subscriptions)
-            .ThenInclude(subscription => subscription.Plan);
+            .ThenInclude(subscription => subscription.Plan)
+            .Include(package => package.BookingRequests);
 
-        return includeDays
-            ? query.Include(package => package.Days)
-            : query;
+        query = query
+            .Include(package => package.Cities)
+            .Include(package => package.Images);
+
+        if (!includeDays)
+        {
+            return query;
+        }
+
+        return query
+            .Include(package => package.Days)
+                .ThenInclude(day => day.TravelPackageCity)
+            .Include(package => package.Days)
+                .ThenInclude(day => day.Images)
+            .Include(package => package.Days)
+                .ThenInclude(day => day.Items)
+                    .ThenInclude(item => item.Images);
     }
 }

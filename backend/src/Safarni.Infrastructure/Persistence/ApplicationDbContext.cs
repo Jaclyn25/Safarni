@@ -32,7 +32,11 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<TravelPackage> TravelPackages => Set<TravelPackage>();
     public DbSet<TravelPackageDay> TravelPackageDays => Set<TravelPackageDay>();
+    public DbSet<TravelPackageCity> TravelPackageCities => Set<TravelPackageCity>();
+    public DbSet<TravelPackageItem> TravelPackageItems => Set<TravelPackageItem>();
+    public DbSet<TravelPackageImage> TravelPackageImages => Set<TravelPackageImage>();
     public DbSet<PackageBookingRequest> PackageBookingRequests => Set<PackageBookingRequest>();
+    public DbSet<AgencyReview> AgencyReviews => Set<AgencyReview>();
     public DbSet<PricingPlan> PricingPlans => Set<PricingPlan>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();

@@ -19,6 +19,7 @@ import {
   UpdateAgencyProfileRequest
 } from '../models/agency.models';
 import { ApiResponse } from './auth.service';
+import { TravelPackage } from '../models/marketplace.models';
 
 @Injectable({ providedIn: 'root' })
 export class AgencyService {
@@ -136,6 +137,11 @@ export class AgencyService {
   getAdminAgency(agencyId: string): Observable<AdminAgencyDetail> {
     return this.http
       .get<ApiResponse<AdminAgencyDetail>>(`${this.adminApi}/${agencyId}`)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  getAdminAgencyPackages(agencyId: string): Observable<TravelPackage[]> {
+    return this.http.get<ApiResponse<TravelPackage[]>>(`${this.adminApi}/${agencyId}/packages`)
       .pipe(map((response) => this.requireData(response)));
   }
 

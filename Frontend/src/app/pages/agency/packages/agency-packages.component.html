@@ -86,14 +86,7 @@
       @for (item of filteredPackages(); track item.id) {
         <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div class="flex items-start gap-4 flex-1 min-w-0">
-            <div class="w-20 h-20 rounded-xl bg-gray-100 border border-gray-200 shrink-0 overflow-hidden bg-cover bg-center"
-                 [style.background-image]="item.coverImageUrl ? 'url(' + item.coverImageUrl + ')' : ''">
-              @if (!item.coverImageUrl) {
-                <div class="w-full h-full flex items-center justify-center text-gray-300">
-                  <span class="material-symbols-outlined text-2xl">image</span>
-                </div>
-              }
-            </div>
+            <div class="w-20 h-20 rounded-xl bg-gray-100 border border-gray-200 shrink-0 overflow-hidden bg-cover bg-center" [style.background-image]="'url(' + packageCover(item) + ')'" role="img" [attr.aria-label]="item.title + ' cover'"></div>
             <div class="space-y-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <h3 class="font-bold text-gray-900 text-base font-display truncate">{{ item.title }}</h3>
@@ -113,6 +106,13 @@
                   <span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-semibold text-[10px]">{{ item.offerLabel }}</span>
                 }
               </div>
+              @if (!item.isPublished) {
+                @if (publishIssues(item).length) {
+                  <div class="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-900"><span class="material-symbols-outlined mt-0.5 text-sm">assignment_late</span><span><strong class="block">Not ready to publish</strong>{{ publishReadinessMessage(item) }}</span></div>
+                } @else {
+                  <div class="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700"><span class="material-symbols-outlined text-sm">task_alt</span>Ready to publish</div>
+                }
+              }
             </div>
           </div>
 
@@ -129,7 +129,7 @@
                 <span>Unpublish</span>
               </button>
             } @else {
-              <button type="button" (click)="publish(item)" [disabled]="actionId() === item.id || !canPublish()" [title]="!canPublish() ? 'Agency verification required to publish' : ''" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-2xs flex items-center gap-1 disabled:opacity-50">
+              <button type="button" (click)="publish(item)" [disabled]="actionId() === item.id || !canPublish() || publishIssues(item).length > 0" [title]="!canPublish() ? 'Agency verification required to publish' : publishReadinessMessage(item)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-2xs flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-50">
                 <span class="material-symbols-outlined text-sm">publish</span>
                 <span>Publish</span>
               </button>
@@ -151,7 +151,7 @@
   @if (isEditorOpen()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" (click)="closeEditor()"></div>
-      <div class="relative bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl z-10 overflow-y-auto max-h-[90vh] space-y-6">
+      <div class="relative bg-white rounded-3xl max-w-6xl w-full p-5 sm:p-8 shadow-2xl z-10 overflow-y-auto max-h-[94vh] space-y-6">
         <div class="flex items-center justify-between pb-4 border-b border-gray-100">
           <div>
             <h3 class="text-lg font-bold text-gray-900 font-display">{{ editingId() ? 'Edit Package' : 'Create Package' }}</h3>
@@ -178,7 +178,8 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Destination *</label>
-                <input type="text" formControlName="destination" placeholder="e.g. Hurghada, Egypt" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+                <input type="text" formControlName="destination" list="package-country-options" (change)="destinationChanged($any($event.target).value)" placeholder="Choose or type a country" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+                <datalist id="package-country-options">@for (country of countries(); track country.iso2) { <option [value]="country.name"></option> }</datalist>
               </div>
               <div>
                 <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Duration (Days) *</label>
@@ -189,6 +190,17 @@
             <div>
               <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Description *</label>
               <textarea formControlName="description" rows="3" placeholder="Overview of what travelers will experience..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"></textarea>
+            </div>
+          </div>
+
+          <!-- Traveler-facing details -->
+          <div class="space-y-4 pt-4 border-t border-gray-100">
+            <div><h4 class="text-xs font-bold uppercase tracking-wider text-blue-600">3. What travelers should know</h4><p class="text-xs text-gray-500 mt-1">Use one line per point. Clear inclusions and policies reduce questions before booking.</p></div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <label class="block"><span class="block text-xs font-bold uppercase text-gray-600 mb-1">Included</span><textarea formControlName="inclusions" rows="4" placeholder="Airport transfers&#10;Breakfast and dinner&#10;Guided tours" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm"></textarea></label>
+              <label class="block"><span class="block text-xs font-bold uppercase text-gray-600 mb-1">Not included</span><textarea formControlName="exclusions" rows="4" placeholder="International flights&#10;Personal expenses" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm"></textarea></label>
+              <label class="block"><span class="block text-xs font-bold uppercase text-gray-600 mb-1">Important notes</span><textarea formControlName="importantNotes" rows="4" placeholder="What travelers should prepare or bring" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm"></textarea></label>
+              <label class="block"><span class="block text-xs font-bold uppercase text-gray-600 mb-1">Cancellation policy</span><textarea formControlName="cancellationPolicy" rows="4" placeholder="Explain deadlines, refunds, and changes" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm"></textarea></label>
             </div>
           </div>
 
@@ -235,72 +247,122 @@
 
           <!-- Cover Image Section -->
           <div class="space-y-4 pt-4 border-t border-gray-100">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-blue-600">3. Media & Imagery</h4>
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-200">
-              @if (selectedCoverImagePreview() || editingPackage()?.coverImageUrl) {
-                <img [src]="selectedCoverImagePreview() || editingPackage()?.coverImageUrl" alt="Package cover preview" class="w-20 h-20 rounded-xl object-cover border border-gray-200">
-              } @else {
-                <div class="w-20 h-20 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-400">
-                  <span class="material-symbols-outlined text-2xl">add_photo_alternate</span>
+            <div><h4 class="text-xs font-bold uppercase tracking-wider text-blue-600">4. Package cover & gallery</h4><p class="mt-1 text-xs text-gray-500">This cover is the main image travelers see in the marketplace and package details.</p></div>
+            <div class="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50/60">
+              <div class="grid gap-4 p-4 sm:grid-cols-[11rem_1fr] sm:items-center">
+                @if (!editingPackage()) {
+                  <label for="new-package-cover" class="group relative block h-32 cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-blue-200 bg-white shadow-sm transition hover:border-blue-500 hover:shadow-md">
+                    <img [src]="selectedCoverImagePreview() || defaultPackageCover" alt="Package cover preview" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                    <span class="absolute inset-x-2 bottom-2 flex items-center justify-center gap-1 rounded-xl bg-slate-950/80 px-2 py-1.5 text-[10px] font-bold text-white backdrop-blur"><span class="material-symbols-outlined text-sm">photo_camera</span>{{ selectedCoverImage() ? 'Change selected cover' : 'Choose cover photo' }}</span>
+                    <input id="new-package-cover" type="file" (change)="selectCoverImage($event)" accept="image/jpeg,image/png,image/webp" class="sr-only">
+                  </label>
+                } @else {
+                  <label for="existing-package-cover" class="group relative block h-32 cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-500 hover:shadow-md">
+                    <img [src]="packageCover(editingPackage()!)" [alt]="editingPackage()!.title + ' cover'" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                    <span class="absolute inset-x-2 bottom-2 flex items-center justify-center gap-1 rounded-xl bg-slate-950/80 px-2 py-1.5 text-[10px] font-bold text-white backdrop-blur"><span class="material-symbols-outlined text-sm">wallpaper</span>{{ uploadingTarget() === 'package' ? 'Uploading cover…' : 'Replace package cover' }}</span>
+                    <input id="existing-package-cover" type="file" (change)="uploadImages($event, { cover: true })" accept="image/jpeg,image/png,image/webp" class="sr-only" [disabled]="uploadingTarget() === 'package'">
+                  </label>
+                }
+                <div class="space-y-3">
+                  @if (!editingPackage()) {
+                    @if (selectedCoverImage(); as coverFile) {
+                      <div class="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-emerald-900"><span class="material-symbols-outlined text-lg text-emerald-600">check_circle</span><div class="min-w-0 flex-1"><strong class="block text-xs">New cover ready</strong><span class="block truncate text-[11px]">{{ coverFile.name }} · uploads automatically when you create the draft</span></div><button type="button" (click)="removeSelectedCoverImage()" class="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100" aria-label="Remove selected cover"><span class="material-symbols-outlined text-base">close</span></button></div>
+                    } @else {
+                      <div class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-amber-900"><span class="material-symbols-outlined text-lg text-amber-600">image</span><div><strong class="block text-xs">Default cover currently selected</strong><span class="text-[11px]">Click the image and choose your own JPG, PNG, or WEBP file before creating the draft.</span></div></div>
+                    }
+                  } @else {
+                    <div><strong class="block text-xs text-slate-800">Package cover</strong><p class="mt-1 text-[11px] leading-5 text-slate-500">Click the large preview to replace it. The new cover uploads immediately and becomes the main image everywhere.</p></div>
+                    <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-slate-700 shadow-sm hover:border-blue-300 hover:text-blue-700"><span class="material-symbols-outlined text-sm">add_photo_alternate</span>Add supporting gallery photos<input type="file" multiple (change)="uploadImages($event)" accept="image/jpeg,image/png,image/webp" class="sr-only"></label>
+                  }
+                  <p class="text-[10px] text-slate-400">Maximum 5 MB per image. Package gallery photos are separate from day and activity photos.</p>
                 </div>
-              }
-              <div class="space-y-1">
-                <label class="block text-xs font-bold uppercase text-gray-700">Choose from your device</label>
-                <p class="text-[11px] text-gray-500">PNG, JPG, or WEBP up to 5 MB.</p>
-                <input type="file" (change)="selectCoverImage($event)" accept="image/*" class="text-xs text-gray-500">
               </div>
             </div>
+            @if (editingPackage()?.images?.length) {
+              <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                @for (image of editingPackage()!.images; track image.id) {
+                  <figure class="group relative aspect-square overflow-hidden rounded-xl border border-gray-200 bg-gray-100"><img [src]="image.url" [alt]="image.altText || editingPackage()!.title" class="w-full h-full object-cover">@if (image.isCover) { <span class="absolute left-2 top-2 rounded-full bg-slate-950/75 px-2 py-1 text-[9px] font-bold text-white">Cover</span> }<button type="button" (click)="deleteImage(image.id)" class="absolute right-2 top-2 rounded-full bg-white/90 p-1 text-rose-600 opacity-0 shadow group-hover:opacity-100 focus:opacity-100" aria-label="Remove image"><span class="material-symbols-outlined text-sm">delete</span></button></figure>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Route cities -->
+          <div class="space-y-4 pt-4 border-t border-gray-100">
+            <div><h4 class="text-xs font-bold uppercase tracking-wider text-blue-600">5. Route cities</h4><p class="text-xs text-gray-500 mt-1">Build the package route in order—for example Cairo → Hurghada → Sharm El-Sheikh.</p></div>
+            @if (editingPackage()) { <div class="flex flex-wrap gap-2"><span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">{{ editingPackage()!.cities.length }} route stops</span><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{{ routeNights() }} nights · {{ editingPackage()!.durationDays }} days</span></div> }
+            @if (!editingPackage()) { <div class="rounded-2xl border border-dashed border-blue-200 bg-blue-50/60 p-4 text-sm text-blue-900"><strong>Save the draft first.</strong> The route builder will unlock here immediately without closing this editor.</div> }
+            @else {
+              @if (editingPackage()!.cities.length) {
+                <div class="flex gap-2 overflow-x-auto pb-2">
+                  @for (city of editingPackage()!.cities; track city.id; let last = $last) {
+                    <button type="button" (click)="editCity(city)" class="flex min-w-44 items-center gap-3 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-3 text-left hover:border-blue-300"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">{{ city.orderIndex + 1 }}</span><span><strong class="block text-sm text-slate-900">{{ city.name }}</strong><small class="text-slate-500">{{ city.nights }} night{{ city.nights === 1 ? '' : 's' }}</small></span></button>@if (!last) { <span class="material-symbols-outlined self-center text-blue-300">arrow_forward</span> }
+                  }
+                </div>
+              }
+              <div [formGroup]="cityForm" class="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-12">
+                <div class="sm:col-span-12 flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs text-slate-600"><span class="material-symbols-outlined text-base text-blue-600">public</span><span>All route stops are in <strong>{{ editingPackage()!.destination }}</strong>, inherited from the package destination.</span></div>
+                <label class="sm:col-span-7"><span class="block text-[10px] font-bold uppercase text-slate-500 mb-1">City or area *</span><input formControlName="name" list="package-city-options" placeholder="Choose a suggested city or type your own" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"><datalist id="package-city-options">@for (city of citySuggestions(); track city) { <option [value]="city"></option> }</datalist></label>
+                <label class="sm:col-span-3"><span class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Nights *</span><input type="number" min="1" [max]="editingPackage()!.durationDays" formControlName="nights" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"><small class="mt-1 block text-[10px] text-slate-400">Used to assign days automatically</small></label>
+                <div class="sm:col-span-2 flex items-start pt-5"><button type="button" (click)="saveCity()" [disabled]="citySaving()" class="flex h-10 w-full items-center justify-center gap-1 rounded-xl bg-blue-600 text-xs font-bold text-white"><span class="material-symbols-outlined text-base">{{ editingCityId() ? 'save' : 'add' }}</span>{{ editingCityId() ? 'Update' : 'Add stop' }}</button></div>
+                <label class="sm:col-span-10"><span class="sr-only">City description</span><input formControlName="description" placeholder="Optional: what travelers will experience in this city" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"></label><button type="button" (click)="resetCityForm()" class="self-center text-xs font-bold text-slate-500">Clear</button>
+              </div>
+              @if (routeNightsRemaining() > 0) { <div class="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"><span class="material-symbols-outlined text-base">bedtime</span>Add {{ routeNightsRemaining() }} more night{{ routeNightsRemaining() === 1 ? '' : 's' }} across the route before publishing.</div> } @else { <div class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900"><span class="material-symbols-outlined text-base">check_circle</span>The route covers the package stay. Day cities will be assigned automatically.</div> }
+              @if (editingPackage()!.cities.length) { <div class="flex flex-wrap gap-2">@for (city of editingPackage()!.cities; track city.id) { <button type="button" (click)="removeCity(city.id)" class="rounded-full border border-rose-100 px-3 py-1 text-[10px] font-bold text-rose-600 hover:bg-rose-50">Remove {{ city.name }}</button> }</div> }
+            }
           </div>
 
           <!-- Itinerary Days -->
           <div class="space-y-4 pt-4 border-t border-gray-100">
               <div class="flex items-center justify-between">
-                <h4 class="text-xs font-bold uppercase tracking-wider text-blue-600">4. Itinerary Days ({{ (editingPackage()?.days?.length ?? 0) + draftDays().length }})</h4>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-blue-600">6. Day-by-day program ({{ editingPackage()?.days?.length ?? 0 }})</h4>
               </div>
-              @if (!editingPackage()) {
-                <p class="text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">Add your days now. They will be saved with the package.</p>
-              }
+              @if (!editingPackage()) { <p class="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-gray-500">Save the basic package first, then add route cities. Days are created only after their city can be resolved.</p> }
 
               <!-- List of existing days -->
               @if (editingPackage(); as pkg) {
-                <div class="space-y-2">
+                <div class="space-y-4">
                   @for (day of pkg.days; track day.id) {
-                  <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between gap-3 text-xs">
-                    <div>
-                      <span class="font-bold text-gray-900">Day {{ day.dayNumber }}: {{ day.title }}</span>
-                      <p class="text-gray-500 line-clamp-1 mt-0.5">{{ day.description }}</p>
+                  <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <header class="flex flex-col gap-3 bg-slate-50 p-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div class="flex gap-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-sm font-black text-white">{{ day.dayNumber }}</span><div><div class="flex flex-wrap items-center gap-2"><strong class="text-sm text-slate-950">{{ day.title }}</strong>@if (day.cityName) { <span class="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-bold text-blue-700"><span class="material-symbols-outlined align-middle text-xs">location_on</span>{{ day.cityName }}</span> } @else { <span class="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-700">City needed</span> }</div><p class="mt-1 text-xs leading-5 text-slate-500">{{ day.description }}</p></div></div>
+                      <div class="flex gap-1"><button type="button" (click)="editDay(day)" class="rounded-lg px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-100">Edit day</button><button type="button" (click)="removeDay(day.id)" class="rounded-lg px-2 py-1 text-xs font-bold text-rose-600 hover:bg-rose-100">Delete</button></div>
+                    </header>
+                    <div class="space-y-3 p-4">
+                      @if (day.items.length) {
+                        <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                          @for (programItem of day.items; track programItem.id) {
+                            <div class="group rounded-2xl border border-slate-200 p-3 hover:border-blue-200 hover:shadow-sm">
+                              <div class="flex gap-3"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><span class="material-symbols-outlined text-lg">{{ itemIcon(programItem.type) }}</span></span><div class="min-w-0 flex-1"><div class="flex items-start justify-between gap-2"><div><span class="text-[9px] font-black uppercase tracking-widest text-blue-500">{{ programItem.type }}</span><strong class="block truncate text-sm text-slate-900">{{ programItem.title }}</strong></div><div class="flex opacity-70 group-hover:opacity-100"><button type="button" (click)="editItem(day.id, programItem)" class="p-1 text-blue-600" aria-label="Edit item"><span class="material-symbols-outlined text-base">edit</span></button><button type="button" (click)="removeItem(day.id, programItem.id)" class="p-1 text-rose-600" aria-label="Delete item"><span class="material-symbols-outlined text-base">delete</span></button></div></div>@if (programItem.locationName) { <p class="mt-1 truncate text-[11px] text-slate-500"><span class="material-symbols-outlined align-middle text-xs">pin_drop</span>{{ programItem.locationName }}</p> } @if (programItem.description) { <p class="mt-2 line-clamp-2 text-xs leading-5 text-slate-600">{{ programItem.description }}</p> }</div></div>
+                              @if (programItem.images.length) { <div class="mt-3 flex gap-2 overflow-x-auto">@for (image of programItem.images; track image.id) { <div class="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg"><img [src]="image.url" [alt]="image.altText || programItem.title" class="h-full w-full object-cover"><button type="button" (click)="deleteImage(image.id)" class="absolute right-1 top-1 rounded bg-white/90 p-0.5 text-rose-600"><span class="material-symbols-outlined text-xs">close</span></button></div> }</div> } @else if (programItem.providerPhotoUrl) { <img [src]="programItem.providerPhotoUrl" [alt]="programItem.title" class="mt-3 h-24 w-full rounded-xl object-cover"> }
+                              <label class="mt-3 inline-flex cursor-pointer items-center gap-1 rounded-lg border border-dashed border-slate-300 px-2 py-1 text-[10px] font-bold text-slate-600 hover:border-blue-400 hover:text-blue-600"><span class="material-symbols-outlined text-sm">add_photo_alternate</span>Add photos<input type="file" multiple accept="image/jpeg,image/png,image/webp" class="sr-only" (change)="uploadImages($event, { dayId: day.id, itemId: programItem.id })"></label>
+                            </div>
+                          }
+                        </div>
+                      } @else { <div class="rounded-xl border border-dashed border-slate-200 p-3 text-center text-xs text-slate-400">No program items yet. Choose what happens during this day.</div> }
+                      @if (day.images.length) { <div class="flex gap-2 overflow-x-auto border-t border-slate-100 pt-3">@for (image of day.images; track image.id) { <div class="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl"><img [src]="image.url" [alt]="image.altText || day.title" class="h-full w-full object-cover"><button type="button" (click)="deleteImage(image.id)" class="absolute right-1 top-1 rounded bg-white/90 p-1 text-rose-600" aria-label="Delete day photo"><span class="material-symbols-outlined text-sm">close</span></button></div> }</div> }
+                      <div class="flex flex-wrap gap-2 border-t border-slate-100 pt-3"><span class="mr-1 self-center text-[10px] font-black uppercase tracking-wider text-slate-400">Add</span>@for (option of itemTypes; track option.type) { <button type="button" (click)="startItem(day.id, option.type)" class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-bold text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700" [title]="option.hint"><span class="material-symbols-outlined text-sm">{{ option.icon }}</span>{{ option.label }}</button> }<label class="inline-flex cursor-pointer items-center gap-1 rounded-full border border-dashed border-slate-300 bg-slate-50 px-2.5 py-1.5 text-[10px] font-bold text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700" title="These photos appear inside this day only, not as the marketplace cover"><span class="material-symbols-outlined text-sm">photo_library</span>Day-only photos<input type="file" multiple accept="image/jpeg,image/png,image/webp" class="sr-only" (change)="uploadImages($event, { dayId: day.id })"></label></div>
                     </div>
-                    <div class="flex items-center gap-1 shrink-0">
-                      <button type="button" (click)="editDay(day)" class="p-1 text-blue-600 hover:bg-blue-100 rounded">Edit</button>
-                      <button type="button" (click)="removeDay(day.id)" class="p-1 text-rose-600 hover:bg-rose-100 rounded">Delete</button>
-                    </div>
-                  </div>
+                  </article>
                   }
                 </div>
               }
-              @for (day of draftDays(); track day.localId) {
-                <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-between gap-3 text-xs">
-                  <div>
-                    <span class="font-bold text-gray-900">Day {{ day.dayNumber }}: {{ day.title }}</span>
-                    <p class="text-gray-500 line-clamp-1 mt-0.5">{{ day.description }}</p>
-                  </div>
-                  <button type="button" (click)="removeDraftDay(day.localId)" class="p-1 text-rose-600 hover:bg-rose-100 rounded">Remove</button>
-                </div>
-              }
-
               <!-- Day Add / Edit Form -->
-              <div [formGroup]="dayForm" class="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-3">
+              @if (editingPackage() && !editingPackage()!.cities.length) { <div class="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><strong>Add the route first.</strong> Once you add the first city, each day will automatically show the correct city based on route order and nights.</div> }
+              @if (editingPackage() && editingPackage()!.cities.length && programComplete() && !editingDayId()) { <div class="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><span class="material-symbols-outlined">task_alt</span><span><strong>Every package day has a program.</strong> Edit a day above whenever you need to refine it.</span></div> }
+              @if (editingPackage() && editingPackage()!.cities.length && (!programComplete() || editingDayId())) { <div [formGroup]="dayForm" class="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-3">
                 <h5 class="text-xs font-bold text-blue-900">{{ editingDayId() ? 'Edit Day' : 'Add Itinerary Day' }}</h5>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div>
-                    <label class="block text-[10px] font-bold uppercase text-gray-500 mb-1">Day #</label>
-                    <input type="number" formControlName="dayNumber" class="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-xs">
+                    <span class="block text-[10px] font-bold uppercase text-gray-500 mb-1">Program day</span>
+                    <div class="flex h-8 items-center rounded-lg border border-blue-100 bg-white px-3 text-xs font-bold text-blue-700">Day {{ dayForm.get('dayNumber')!.value }}</div>
                   </div>
-                  <div class="sm:col-span-2">
+                  <div class="sm:col-span-3">
                     <label class="block text-[10px] font-bold uppercase text-gray-500 mb-1">Day Title *</label>
                     <input type="text" formControlName="title" placeholder="e.g. Arrival & Coral Reef Safari" class="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-xs">
                   </div>
                 </div>
+                @if (cityForDay(+dayForm.get('dayNumber')!.value); as resolvedCity) { <div class="flex items-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-2 text-xs text-slate-600"><span class="material-symbols-outlined text-base text-blue-600">location_on</span><span>Day {{ dayForm.get('dayNumber')!.value }} is automatically assigned to <strong>{{ resolvedCity.name }}</strong> from your route.</span></div> }
                 <div>
                   <label class="block text-[10px] font-bold uppercase text-gray-500 mb-1">Day Description *</label>
                   <textarea formControlName="description" rows="2" class="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-xs"></textarea>
@@ -318,8 +380,42 @@
                     {{ daySaving() ? 'Saving...' : 'Save Day' }}
                   </button>
                 </div>
-              </div>
+              </div> }
           </div>
+
+          @if (itemPanelOpen()) {
+            <div class="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+              <section [formGroup]="itemForm" class="max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl" role="dialog" aria-modal="true" aria-labelledby="program-item-title">
+                <header class="sticky top-0 z-10 flex items-start justify-between border-b border-slate-100 bg-white/95 p-5 backdrop-blur sm:p-6"><div><span class="text-[10px] font-black uppercase tracking-[.2em] text-blue-600">Flexible program builder</span><h3 id="program-item-title" class="mt-1 text-xl font-black text-slate-950">{{ editingItemId() ? 'Edit program item' : 'What would you like to add?' }}</h3><p class="mt-1 text-xs text-slate-500">Search for a known place or enter your own experience. Location is always optional.</p></div><button type="button" (click)="itemPanelOpen.set(false)" class="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200" aria-label="Close item editor"><span class="material-symbols-outlined">close</span></button></header>
+                <div class="space-y-6 p-5 sm:p-6">
+                  <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">@for (option of itemTypes; track option.type) { <button type="button" (click)="chooseItemType(option.type)" [class]="'rounded-2xl border p-3 text-left transition ' + (selectedItemType() === option.type ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100' : 'border-slate-200 hover:border-blue-200')"><span [class]="'material-symbols-outlined mb-2 block ' + (selectedItemType() === option.type ? 'text-blue-600' : 'text-slate-400')">{{ option.icon }}</span><strong class="block text-xs text-slate-900">{{ option.label }}</strong><small class="mt-1 block text-[9px] leading-3 text-slate-500">{{ option.hint }}</small></button> }</div>
+
+                  @if (isSearchableType()) {
+                    <div class="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-blue-600">travel_explore</span><div class="flex-1"><strong class="block text-sm text-slate-900">Real suggestions for {{ activeItemCity() }}</strong><small class="text-xs text-slate-500">Popular options load automatically from the travel-data API. Search again or enter your own below.</small></div><span class="rounded-full bg-white px-3 py-1 text-[10px] font-bold text-blue-700"><span class="material-symbols-outlined align-middle text-xs">location_on</span>{{ activeItemCity() }}</span></div><div class="mt-3 flex flex-col gap-2 sm:flex-row"><input formControlName="searchQuery" (keydown.enter)="$event.preventDefault(); searchPlaces()" [placeholder]="'Search ' + (selectedItemType() === 'Accommodation' ? 'stays' : selectedItemType().toLowerCase()) + ' in ' + activeItemCity()" class="min-w-0 flex-1 rounded-xl border border-white bg-white px-4 py-2.5 text-sm shadow-sm"><button type="button" (click)="searchPlaces()" [disabled]="placeSearching()" class="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50">{{ placeSearching() ? 'Searching…' : 'Search' }}</button></div>
+                    @if (placeResults().length) { <div class="mt-3 grid max-h-64 grid-cols-1 gap-2 overflow-y-auto lg:grid-cols-2">@for (result of placeResults(); track result.providerPlaceId) { <button type="button" (click)="usePlace(result)" class="flex gap-3 rounded-xl border border-white bg-white p-3 text-left shadow-sm hover:border-blue-300">@if (result.photoUrl) { <img [src]="result.photoUrl" [alt]="result.name" class="h-16 w-16 shrink-0 rounded-lg object-cover"> } @else { <span class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400"><span class="material-symbols-outlined">image</span></span> }<span class="min-w-0"><strong class="block truncate text-xs text-slate-900">{{ result.name }}</strong><small class="mt-1 block line-clamp-2 text-[10px] text-slate-500">{{ result.address }}</small>@if (result.rating) { <span class="mt-1 block text-[10px] font-bold text-amber-600">★ {{ result.rating }} <span class="font-normal text-slate-400">({{ result.reviewCount ?? 0 }})</span></span> }</span></button> }</div> }
+                    </div>
+                  }
+
+                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <label class="sm:col-span-2"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Title *</span><input formControlName="title" placeholder="A clear traveler-facing title" class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm"></label>
+                    <label class="sm:col-span-2"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Description</span><textarea formControlName="description" rows="3" placeholder="Describe what happens, what travelers experience, and anything they should know" class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm"></textarea></label>
+                  </div>
+
+                  <div class="rounded-2xl border border-slate-200 p-4"><label class="flex cursor-pointer items-start gap-3"><input type="checkbox" class="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600" [checked]="includeLocation()" (change)="includeLocation.set($any($event.target).checked)"><span><strong class="block text-sm text-slate-900">Include a location</strong><small class="text-xs text-slate-500">API selections fill this automatically. For a custom entry, location remains optional.</small></span></label>@if (includeLocation()) { <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"><label><span class="mb-1 block text-[10px] font-bold uppercase text-slate-500">Location name</span><input formControlName="locationName" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"></label><label><span class="mb-1 block text-[10px] font-bold uppercase text-slate-500">Address</span><input formControlName="address" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"></label><label class="sm:col-span-2"><span class="mb-1 block text-[10px] font-bold uppercase text-slate-500">Map link</span><input type="url" formControlName="mapUrl" placeholder="Optional Google Maps link" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"></label></div> }</div>
+
+                  @if (selectedItemType() === 'Restaurant') { <div class="grid grid-cols-1 gap-3 rounded-2xl bg-orange-50 p-4 sm:grid-cols-3"><label><span class="mb-1 block text-[10px] font-bold uppercase text-orange-700">Cuisine</span><input formControlName="cuisine" placeholder="Egyptian, seafood…" class="w-full rounded-xl border border-orange-100 px-3 py-2 text-sm"></label><label><span class="mb-1 block text-[10px] font-bold uppercase text-orange-700">Meal</span><select formControlName="mealType" class="w-full rounded-xl border border-orange-100 px-3 py-2 text-sm"><option value="">Choose</option><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select></label><label class="flex items-end gap-2 pb-2 text-xs font-bold text-orange-900"><input type="checkbox" formControlName="reservationRequired">Reservation required</label></div> }
+                  @if (selectedItemType() === 'Accommodation') { <div class="grid grid-cols-2 gap-3 rounded-2xl bg-indigo-50 p-4 lg:grid-cols-4"><label><span class="mb-1 block text-[10px] font-bold uppercase text-indigo-700">Stay type</span><select formControlName="accommodationType" class="w-full rounded-xl border border-indigo-100 px-3 py-2 text-sm"><option value="">Choose</option><option>Hotel</option><option>Resort</option><option>Apartment</option><option>Camp</option><option>Guesthouse</option></select></label><label><span class="mb-1 block text-[10px] font-bold uppercase text-indigo-700">Stars</span><input type="number" min="1" max="5" formControlName="starRating" class="w-full rounded-xl border border-indigo-100 px-3 py-2 text-sm"></label><label><span class="mb-1 block text-[10px] font-bold uppercase text-indigo-700">Room</span><input formControlName="roomType" placeholder="Double sea view" class="w-full rounded-xl border border-indigo-100 px-3 py-2 text-sm"></label><label><span class="mb-1 block text-[10px] font-bold uppercase text-indigo-700">Board</span><input formControlName="boardBasis" placeholder="Breakfast included" class="w-full rounded-xl border border-indigo-100 px-3 py-2 text-sm"></label></div> }
+                  @if (selectedItemType() === 'Transport') { <div class="grid grid-cols-1 gap-3 rounded-2xl bg-cyan-50 p-4 sm:grid-cols-3"><label><span class="mb-1 block text-[10px] font-bold uppercase text-cyan-700">Mode</span><input formControlName="transportMode" placeholder="Private coach, ferry…" class="w-full rounded-xl border border-cyan-100 px-3 py-2 text-sm"></label><label><span class="mb-1 block text-[10px] font-bold uppercase text-cyan-700">From</span><input formControlName="fromLocation" class="w-full rounded-xl border border-cyan-100 px-3 py-2 text-sm"></label><label><span class="mb-1 block text-[10px] font-bold uppercase text-cyan-700">To</span><input formControlName="toLocation" class="w-full rounded-xl border border-cyan-100 px-3 py-2 text-sm"></label></div> }
+                  @if (selectedItemType() === 'Activity' || selectedItemType() === 'WalkingTour') { <div class="grid grid-cols-1 gap-3 rounded-2xl bg-emerald-50 p-4 sm:grid-cols-2"><label><span class="mb-1 block text-[10px] font-bold uppercase text-emerald-700">Meeting point</span><input formControlName="meetingPoint" class="w-full rounded-xl border border-emerald-100 px-3 py-2 text-sm"></label><label><span class="mb-1 block text-[10px] font-bold uppercase text-emerald-700">Difficulty</span><select formControlName="difficultyLevel" class="w-full rounded-xl border border-emerald-100 px-3 py-2 text-sm"><option value="">Not specified</option><option>Easy</option><option>Moderate</option><option>Challenging</option></select></label></div> }
+
+                  @if (itemForm.get('providerPlaceId')?.value) { <div class="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-900"><span class="material-symbols-outlined">verified</span><span><strong class="block">API place selected</strong>Available address, map, website, coordinates, and image were filled automatically. You can still adjust the traveler-facing text.</span></div> }
+                  <label><span class="mb-1 block text-[10px] font-bold uppercase text-slate-500">Notes for travelers <span class="normal-case font-medium text-slate-400">(optional)</span></span><textarea formControlName="additionalDetails" rows="2" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Accessibility, dress code, what to bring, or another useful instruction"></textarea></label>
+                  @if (itemError()) { <div class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">{{ itemError() }}</div> }
+                </div>
+                <footer class="sticky bottom-0 flex items-center justify-end gap-3 border-t border-slate-100 bg-white/95 p-4 backdrop-blur sm:px-6"><button type="button" (click)="itemPanelOpen.set(false)" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-700">Cancel</button><button type="button" (click)="saveItem()" [disabled]="itemSaving()" class="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-200 disabled:opacity-50">{{ itemSaving() ? 'Saving…' : (editingItemId() ? 'Save changes' : 'Add to program') }}</button></footer>
+              </section>
+            </div>
+          }
 
           <!-- Form Actions -->
           <div class="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">

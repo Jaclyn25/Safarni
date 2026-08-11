@@ -262,11 +262,13 @@ public sealed class CreateTravelPackageCommandHandler
 {
     private readonly ITravelAgencyRepository _agencies;
     private readonly ITravelPackageRepository _packages;
+    private readonly IEntitlementService? _entitlements;
 
-    public CreateTravelPackageCommandHandler(ITravelAgencyRepository agencies, ITravelPackageRepository packages)
+    public CreateTravelPackageCommandHandler(ITravelAgencyRepository agencies, ITravelPackageRepository packages, IEntitlementService? entitlements = null)
     {
         _agencies = agencies;
         _packages = packages;
+        _entitlements = entitlements;
     }
 
     public async Task<Result<TravelPackageResponse>> Handle(CreateTravelPackageCommand request, CancellationToken cancellationToken)
@@ -275,6 +277,11 @@ public sealed class CreateTravelPackageCommandHandler
         if (agency is null)
         {
             return Result<TravelPackageResponse>.Failure(TravelAgencyErrors.AgencyAccountRequired);
+        }
+        if (_entitlements is not null &&
+            !(await _entitlements.GetAgencyPackageCreationUsageAsync(agency.Id, cancellationToken)).IsAllowed)
+        {
+            return Result<TravelPackageResponse>.Failure(BillingErrors.AgencyPackageCreationLimitReached);
         }
 
         var package = new TravelPackage
@@ -417,10 +424,6 @@ public sealed class PublishTravelPackageCommandHandler
         {
             return Result<TravelPackageResponse>.Failure(TravelPackageErrors.PublishingRequiresVerifiedAgency);
         }
-        if (_entitlements is not null && !await _entitlements.HasAgencyMarketplacePaidAsync(agency.Id, cancellationToken))
-        {
-            return Result<TravelPackageResponse>.Failure(BillingErrors.AgencyMarketplaceSubscriptionRequired);
-        }
         if (_entitlements is not null && !(await _entitlements.GetAgencyPackageUsageAsync(agency.Id, cancellationToken)).IsAllowed)
         {
             return Result<TravelPackageResponse>.Failure(BillingErrors.AgencyPackageLimitReached);
@@ -434,8 +437,10 @@ public sealed class PublishTravelPackageCommandHandler
         }
         if (!package.IsActive) return Result<TravelPackageResponse>.Failure(TravelPackageErrors.AlreadyInactive);
         if (package.IsPublished) return Result<TravelPackageResponse>.Failure(TravelPackageErrors.AlreadyPublished);
+        var now = DateTime.UtcNow;
         package.IsPublished = true;
-        package.UpdatedAt = DateTime.UtcNow;
+        package.PublishedAt = now;
+        package.UpdatedAt = now;
         await _packages.SaveChangesAsync(cancellationToken);
         return Result<TravelPackageResponse>.Success(TravelPackageMapping.ToResponse(package));
     }

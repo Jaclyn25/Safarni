@@ -26,6 +26,7 @@ public sealed class TravelPackageConfiguration : IEntityTypeConfiguration<Travel
             .HasForeignKey(package => package.TravelAgencyId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(package => package.TravelAgencyId);
+        builder.HasIndex(package => new { package.TravelAgencyId, package.PublishedAt });
         builder.HasIndex(package => new { package.IsPublished, package.IsActive, package.StartDate });
     }
 }

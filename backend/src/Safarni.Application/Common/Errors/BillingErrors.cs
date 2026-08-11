@@ -62,6 +62,11 @@ public static class BillingErrors
         "Your plan's published package limit has been reached.",
         ErrorType.Forbidden);
 
+    public static readonly Error AgencyPackageCreationLimitReached = new(
+        "Billing.AgencyPackageCreationLimitReached",
+        "Your plan's package creation limit has been reached for the current period.",
+        ErrorType.Forbidden);
+
     public static readonly Error InvalidPlanPrice = new(
         "Billing.InvalidPlanPrice",
         "The plan price must be zero or greater.",

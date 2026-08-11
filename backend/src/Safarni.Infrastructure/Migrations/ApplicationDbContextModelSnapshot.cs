@@ -1124,6 +1124,9 @@ namespace Safarni.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
@@ -1141,6 +1144,8 @@ namespace Safarni.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("TravelAgencyId");
+
+                    b.HasIndex("TravelAgencyId", "PublishedAt");
 
                     b.HasIndex("IsPublished", "IsActive", "StartDate");
 

@@ -8,7 +8,10 @@ namespace Safarni.Infrastructure.Security;
 public sealed class SubscriptionEntitlementService : IEntitlementService
 {
     private const int FreeTravelerAiGenerationsPerDay = 3;
+    private const int FreeAgencyPackageCreationsPerDay = 3;
+    private const int FreeAgencyPackagePublicationsPerDay = 3;
     private const string FreeTravelerPlanCode = "traveler-basic";
+    private const string FreeAgencyPlanCode = "agency-basic";
 
     private readonly ApplicationDbContext _dbContext;
 
@@ -54,12 +57,50 @@ public sealed class SubscriptionEntitlementService : IEntitlementService
     public async Task<UsageEntitlement> GetAgencyPackageUsageAsync(Guid agencyId, CancellationToken cancellationToken = default)
     {
         var subscription = await ActiveSubscriptionAsync(null, agencyId, PricingCustomerType.Agency, cancellationToken);
-        if (subscription is null) return new(false, 0, 0, null, null);
+        if (subscription is null)
+        {
+            var periodStart = DateTime.UtcNow.Date;
+            var periodEnd = periodStart.AddDays(1);
+            var freeUsed = await _dbContext.TravelPackages.CountAsync(package =>
+                package.TravelAgencyId == agencyId &&
+                package.PublishedAt >= periodStart &&
+                package.PublishedAt < periodEnd,
+                cancellationToken);
+            return new(
+                freeUsed < FreeAgencyPackagePublicationsPerDay,
+                freeUsed,
+                FreeAgencyPackagePublicationsPerDay,
+                periodEnd,
+                FreeAgencyPlanCode);
+        }
         var used = await _dbContext.TravelPackages.CountAsync(package =>
             package.TravelAgencyId == agencyId && package.IsPublished && package.IsActive,
             cancellationToken);
         return new(used < subscription.Plan.MaxPublishedPackages, used,
             subscription.Plan.MaxPublishedPackages, subscription.CurrentPeriodEnd, subscription.Plan.Code);
+    }
+
+    public async Task<UsageEntitlement> GetAgencyPackageCreationUsageAsync(Guid agencyId, CancellationToken cancellationToken = default)
+    {
+        var subscription = await ActiveSubscriptionAsync(null, agencyId, PricingCustomerType.Agency, cancellationToken);
+        if (subscription is not null)
+        {
+            return new(true, 0, int.MaxValue, subscription.CurrentPeriodEnd, subscription.Plan.Code);
+        }
+
+        var periodStart = DateTime.UtcNow.Date;
+        var periodEnd = periodStart.AddDays(1);
+        var freeUsed = await _dbContext.TravelPackages.CountAsync(package =>
+            package.TravelAgencyId == agencyId &&
+            package.CreatedAt >= periodStart &&
+            package.CreatedAt < periodEnd,
+            cancellationToken);
+        return new(
+            freeUsed < FreeAgencyPackageCreationsPerDay,
+            freeUsed,
+            FreeAgencyPackageCreationsPerDay,
+            periodEnd,
+            FreeAgencyPlanCode);
     }
 
     private async Task<bool> HasActiveAsync(Guid? userId, Guid? agencyId, PricingCustomerType type, CancellationToken cancellationToken)

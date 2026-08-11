@@ -3,6 +3,7 @@ namespace Safarni.Application.Abstractions.Security;
 public interface IEntitlementService
 {
     Task<UsageEntitlement> GetTravelerAiUsageAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<UsageEntitlement> GetAgencyPackageCreationUsageAsync(Guid agencyId, CancellationToken cancellationToken = default);
     Task<UsageEntitlement> GetAgencyPackageUsageAsync(Guid agencyId, CancellationToken cancellationToken = default);
     Task<bool> HasTravelerPremiumAiAsync(
         Guid userId,

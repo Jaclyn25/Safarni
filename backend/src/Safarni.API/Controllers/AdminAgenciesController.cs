@@ -8,6 +8,7 @@ using Safarni.Application.Common.Results;
 using Safarni.Application.Features.Admin.Agencies;
 using Safarni.Application.Features.Agencies.Common;
 using Safarni.Application.Features.Agencies.Documents;
+using Safarni.Application.Features.Packages;
 using Safarni.Domain.Enums;
 
 namespace Safarni.API.Controllers;
@@ -54,6 +55,15 @@ public sealed class AdminAgenciesController : AdminControllerBase
                 result.Value!,
                 "Agency loaded.",
                 StatusCodes.Status200OK));
+    }
+
+    [HttpGet("{agencyId:guid}/packages")]
+    public async Task<IActionResult> Packages(Guid agencyId, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new ListAdminAgencyPackagesQuery(agencyId), cancellationToken);
+        return result.IsFailure
+            ? Failure<IReadOnlyList<TravelPackageResponse>>(result.Error, "Failed to load agency packages.")
+            : Ok(ApiResponse<IReadOnlyList<TravelPackageResponse>>.SuccessResponse(result.Value!, "Agency packages loaded.", StatusCodes.Status200OK));
     }
 
     [HttpGet("{agencyId:guid}/verification-documents/{documentType}/content")]

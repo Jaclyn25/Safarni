@@ -44,5 +44,7 @@ public sealed class TravelAgency
 
     public ICollection<TravelPackage> Packages { get; set; } = new List<TravelPackage>();
 
+    public ICollection<AgencyReview> Reviews { get; set; } = new List<AgencyReview>();
+
     public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 }

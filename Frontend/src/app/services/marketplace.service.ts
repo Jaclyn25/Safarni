@@ -6,7 +6,13 @@ import {
   MarketplaceFilters,
   MarketplacePage,
   PackageBookingRequest,
+  PackagePlaceSearchResult,
+  PublicAgencyProfile,
+  PublicAgencyReview,
   TravelPackage,
+  TravelPackageCityRequest,
+  TravelPackageItemRequest,
+  TravelPackageItemType,
   TravelPackageRequest,
   TravelPackageDayRequest
 } from '../models/marketplace.models';
@@ -72,6 +78,65 @@ export class MarketplaceService {
       .pipe(map((response) => this.requireData(response)));
   }
 
+  addCity(packageId: string, request: TravelPackageCityRequest): Observable<TravelPackage> {
+    return this.http.post<ApiResponse<TravelPackage>>(`/api/agency/packages/${packageId}/cities`, request)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  updateCity(packageId: string, cityId: string, request: TravelPackageCityRequest): Observable<TravelPackage> {
+    return this.http.put<ApiResponse<TravelPackage>>(`/api/agency/packages/${packageId}/cities/${cityId}`, request)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  deleteCity(packageId: string, cityId: string): Observable<TravelPackage> {
+    return this.http.delete<ApiResponse<TravelPackage>>(`/api/agency/packages/${packageId}/cities/${cityId}`)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  addItem(packageId: string, dayId: string, request: TravelPackageItemRequest): Observable<TravelPackage> {
+    return this.http.post<ApiResponse<TravelPackage>>(`/api/agency/packages/${packageId}/days/${dayId}/items`, request)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  updateItem(packageId: string, dayId: string, itemId: string, request: TravelPackageItemRequest): Observable<TravelPackage> {
+    return this.http.put<ApiResponse<TravelPackage>>(`/api/agency/packages/${packageId}/days/${dayId}/items/${itemId}`, request)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  deleteItem(packageId: string, dayId: string, itemId: string): Observable<TravelPackage> {
+    return this.http.delete<ApiResponse<TravelPackage>>(`/api/agency/packages/${packageId}/days/${dayId}/items/${itemId}`)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  searchPlaces(packageId: string, dayId: string, input: {
+    query?: string; type: TravelPackageItemType;
+  }): Observable<PackagePlaceSearchResult[]> {
+    const params = new HttpParams()
+      .set('query', input.query ?? '').set('type', input.type);
+    return this.http.get<ApiResponse<PackagePlaceSearchResult[]>>(
+      `/api/agency/packages/${packageId}/days/${dayId}/place-search`, { params })
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  uploadGalleryImage(packageId: string, file: File, options: {
+    dayId?: string | null; itemId?: string | null; caption?: string; altText?: string; isCover?: boolean;
+  } = {}): Observable<TravelPackage> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    if (options.dayId) form.append('dayId', options.dayId);
+    if (options.itemId) form.append('itemId', options.itemId);
+    if (options.caption) form.append('caption', options.caption);
+    if (options.altText) form.append('altText', options.altText);
+    form.append('isCover', String(options.isCover ?? false));
+    return this.http.post<ApiResponse<TravelPackage>>(`/api/agency/packages/${packageId}/images`, form)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  deleteGalleryImage(packageId: string, imageId: string): Observable<TravelPackage> {
+    return this.http.delete<ApiResponse<TravelPackage>>(`/api/agency/packages/${packageId}/images/${imageId}`)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
   uploadPackageImage(packageId: string, file: File): Observable<TravelPackage> {
     const form = new FormData();
     form.append('file', file, file.name);
@@ -79,10 +144,24 @@ export class MarketplaceService {
       .pipe(map((response) => this.requireData(response)));
   }
 
-  createBooking(packageId: string, travelerCount: number, message: string | null): Observable<PackageBookingRequest> {
+  createBooking(packageId: string, request: {
+    adultCount: number; childrenAges: number[]; contactPhone: string; alternatePhone: string | null;
+    country: string; city: string; message: string | null;
+  }): Observable<PackageBookingRequest> {
+    const travelerCount = request.adultCount + request.childrenAges.length;
     return this.http.post<ApiResponse<PackageBookingRequest>>(
-      `/api/marketplace/packages/${packageId}/booking-requests`, { travelerCount, message })
+      `/api/marketplace/packages/${packageId}/booking-requests`, { ...request, travelerCount })
       .pipe(map((response) => this.requireData(response)));
+  }
+
+  getPublicAgency(agencyId: string): Observable<PublicAgencyProfile> {
+    return this.http.get<ApiResponse<PublicAgencyProfile>>(`/api/marketplace/agencies/${agencyId}`)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  createAgencyReview(agencyId: string, bookingRequestId: string, rating: number, comment: string): Observable<PublicAgencyReview> {
+    return this.http.post<ApiResponse<PublicAgencyReview>>(`/api/marketplace/agencies/${agencyId}/reviews`,
+      { bookingRequestId, rating, comment }).pipe(map((response) => this.requireData(response)));
   }
 
   listTravelerBookings(): Observable<PackageBookingRequest[]> {

@@ -18,6 +18,10 @@ public sealed class TravelPackageConfiguration : IEntityTypeConfiguration<Travel
         builder.Property(package => package.CoverImageUrl).HasMaxLength(1000);
         builder.Property(package => package.DiscountPercentage).HasPrecision(5, 2);
         builder.Property(package => package.OfferLabel).HasMaxLength(200);
+        builder.Property(package => package.Inclusions).HasMaxLength(4000);
+        builder.Property(package => package.Exclusions).HasMaxLength(4000);
+        builder.Property(package => package.ImportantNotes).HasMaxLength(4000);
+        builder.Property(package => package.CancellationPolicy).HasMaxLength(4000);
         builder.Property(package => package.IsPublished).HasDefaultValue(false).IsRequired();
         builder.Property(package => package.IsActive).HasDefaultValue(true).IsRequired();
         builder.Property(package => package.CreatedAt).IsRequired();

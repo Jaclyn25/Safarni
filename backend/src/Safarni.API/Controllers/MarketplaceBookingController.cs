@@ -28,7 +28,9 @@ public sealed class MarketplaceBookingController : ControllerBase
     {
         var result = await _sender.Send(
             new CreatePackageBookingRequestCommand(
-                User.GetRequiredUserId(), packageId, request.TravelerCount, request.Message),
+                User.GetRequiredUserId(), packageId, request.TravelerCount, request.Message,
+                request.AdultCount, request.ChildrenAges, request.ContactPhone, request.AlternatePhone,
+                request.Country, request.City),
             cancellationToken);
         if (result.IsFailure) return Failure<PackageBookingRequestResponse>(result.Error, "Booking request failed.");
         return StatusCode(StatusCodes.Status201Created,
@@ -48,5 +50,13 @@ public sealed class MarketplaceBookingController : ControllerBase
         return StatusCode(status, ApiResponse<T>.FailureResponse([new ApiError(error.Code, error.Message)], message, status));
     }
 
-    public sealed record CreateBookingRequest(int TravelerCount, string? Message);
+    public sealed record CreateBookingRequest(
+        int TravelerCount,
+        string? Message,
+        int AdultCount,
+        IReadOnlyList<int> ChildrenAges,
+        string ContactPhone,
+        string? AlternatePhone,
+        string Country,
+        string City);
 }

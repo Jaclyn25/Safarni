@@ -40,6 +40,7 @@ export class AgencyLayoutComponent {
     {
       sectionTitle: 'Trust & Governance',
       items: [
+        { path: '/agency/profile', label: 'Company Profile', icon: 'storefront', exact: false },
         { path: '/agency/verification', label: 'Verification', icon: 'verified_user', exact: false }
       ]
     }

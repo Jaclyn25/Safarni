@@ -90,7 +90,7 @@
               <p class="text-xs text-gray-400 flex items-center gap-3 flex-wrap">
                 <span>Requested {{ request.createdAt | date:'mediumDate' }}</span>
                 <span>•</span>
-                <span>{{ request.travelerCount }} Guest(s)</span>
+                <span>{{ request.adultCount }} adult{{ request.adultCount === 1 ? '' : 's' }}@if (request.childCount) { + {{ request.childCount }} child{{ request.childCount === 1 ? '' : 'ren' }} }</span>
                 <span>•</span>
                 <span>{{ request.travelerEmail }}</span>
               </p>
@@ -130,8 +130,12 @@
             <div class="text-xs text-gray-600 space-y-1">
               <p><strong>Package:</strong> {{ req.packageTitle }}</p>
               <p><strong>Destination:</strong> {{ req.destination }}</p>
-              <p><strong>Guests:</strong> {{ req.travelerCount }} traveler(s)</p>
+              <p><strong>Travel party:</strong> {{ req.adultCount }} adult{{ req.adultCount === 1 ? '' : 's' }}@if (req.childCount) { and {{ req.childCount }} child{{ req.childCount === 1 ? '' : 'ren' }} (ages {{ req.childrenAges.join(', ') }}) }</p>
+              <p><strong>Total travelers:</strong> {{ req.travelerCount }}</p>
               <p><strong>Contact Email:</strong> {{ req.travelerEmail }}</p>
+              <p><strong>Primary phone:</strong> <a [href]="'tel:' + req.contactPhone" class="text-blue-600 font-bold">{{ req.contactPhone }}</a></p>
+              @if (req.alternatePhone) { <p><strong>Alternative phone:</strong> <a [href]="'tel:' + req.alternatePhone" class="text-blue-600 font-bold">{{ req.alternatePhone }}</a></p> }
+              <p><strong>Traveling from:</strong> {{ req.travelerCity }}, {{ req.travelerCountry }}</p>
             </div>
           </div>
 

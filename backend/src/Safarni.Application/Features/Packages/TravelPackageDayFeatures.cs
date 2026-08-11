@@ -12,8 +12,7 @@ public sealed record AddTravelPackageDayCommand(
     Guid PackageId,
     int DayNumber,
     string Title,
-    string Description,
-    string? Activities)
+    string Description)
     : IRequest<Result<TravelPackageResponse>>;
 
 public sealed record UpdateTravelPackageDayCommand(
@@ -22,8 +21,7 @@ public sealed record UpdateTravelPackageDayCommand(
     Guid DayId,
     int DayNumber,
     string Title,
-    string Description,
-    string? Activities)
+    string Description)
     : IRequest<Result<TravelPackageResponse>>;
 
 public sealed record DeleteTravelPackageDayCommand(
@@ -38,7 +36,7 @@ public sealed class AddTravelPackageDayCommandValidator
     public AddTravelPackageDayCommandValidator()
     {
         DayRules.Apply(this, command => command.DayNumber, command => command.Title,
-            command => command.Description, command => command.Activities);
+            command => command.Description);
     }
 }
 
@@ -49,7 +47,7 @@ public sealed class UpdateTravelPackageDayCommandValidator
     {
         RuleFor(command => command.DayId).NotEmpty();
         DayRules.Apply(this, command => command.DayNumber, command => command.Title,
-            command => command.Description, command => command.Activities);
+            command => command.Description);
     }
 }
 
@@ -59,13 +57,11 @@ internal static class DayRules
         AbstractValidator<T> validator,
         Func<T, int> dayNumber,
         Func<T, string> title,
-        Func<T, string> description,
-        Func<T, string?> activities)
+        Func<T, string> description)
     {
         validator.RuleFor(command => dayNumber(command)).GreaterThan(0);
         validator.RuleFor(command => title(command)).NotEmpty().MaximumLength(200);
         validator.RuleFor(command => description(command)).NotEmpty().MaximumLength(2000);
-        validator.RuleFor(command => activities(command)).MaximumLength(4000);
     }
 }
 
@@ -96,15 +92,22 @@ public sealed class AddTravelPackageDayCommandHandler
             return Result<TravelPackageResponse>.Failure(TravelPackageErrors.InvalidDayNumber);
         if (package.Days.Any(day => day.DayNumber == request.DayNumber))
             return Result<TravelPackageResponse>.Failure(TravelPackageErrors.DuplicateDayNumber);
+        var city = TravelPackageRoutePlanner.ResolveCity(package, request.DayNumber);
+        if (city is null) return Result<TravelPackageResponse>.Failure(TravelPackageErrors.RouteRequired);
 
-        package.Days.Add(new TravelPackageDay
+        var day = new TravelPackageDay
         {
+            Id = Guid.NewGuid(),
             TravelPackageId = package.Id,
+            TravelPackage = package,
             DayNumber = request.DayNumber,
             Title = request.Title.Trim(),
             Description = request.Description.Trim(),
-            Activities = NullIfWhiteSpace(request.Activities)
-        });
+            TravelPackageCityId = city.Id,
+            TravelPackageCity = city
+        };
+        package.Days.Add(day);
+        await _packages.AddDayAsync(day, cancellationToken);
         await _packages.SaveChangesAsync(cancellationToken);
         return Result<TravelPackageResponse>.Success(TravelPackageMapping.ToResponse(package));
     }
@@ -112,8 +115,6 @@ public sealed class AddTravelPackageDayCommandHandler
     internal static bool IsValidDayNumber(TravelPackage package, int dayNumber) =>
         dayNumber >= 1 && dayNumber <= package.DurationDays;
 
-    internal static string? NullIfWhiteSpace(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
 public sealed class UpdateTravelPackageDayCommandHandler
@@ -145,11 +146,14 @@ public sealed class UpdateTravelPackageDayCommandHandler
         if (day is null) return Result<TravelPackageResponse>.Failure(TravelPackageErrors.DayNotFound);
         if (package.Days.Any(item => item.Id != request.DayId && item.DayNumber == request.DayNumber))
             return Result<TravelPackageResponse>.Failure(TravelPackageErrors.DuplicateDayNumber);
+        var city = TravelPackageRoutePlanner.ResolveCity(package, request.DayNumber);
+        if (city is null) return Result<TravelPackageResponse>.Failure(TravelPackageErrors.RouteRequired);
 
         day.DayNumber = request.DayNumber;
         day.Title = request.Title.Trim();
         day.Description = request.Description.Trim();
-        day.Activities = AddTravelPackageDayCommandHandler.NullIfWhiteSpace(request.Activities);
+        day.TravelPackageCityId = city.Id;
+        day.TravelPackageCity = city;
         await _packages.SaveChangesAsync(cancellationToken);
         return Result<TravelPackageResponse>.Success(TravelPackageMapping.ToResponse(package));
     }

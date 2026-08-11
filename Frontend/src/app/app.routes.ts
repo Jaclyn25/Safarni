@@ -45,6 +45,11 @@ export const routes: Routes = [
     title: 'Safarni | Package Details'
   },
   {
+    path: 'marketplace/agencies/:agencyId',
+    loadComponent: () => import('./pages/marketplace/agency-public-profile.component').then((m) => m.AgencyPublicProfileComponent),
+    title: 'Safarni | Travel Agency'
+  },
+  {
     path: 'pricing/checkout',
     loadComponent: () => import('./pages/pricing/checkout.component').then((m) => m.CheckoutComponent),
     canActivate: [authGuard],
@@ -158,8 +163,8 @@ export const routes: Routes = [
       },
       {
         path: 'profile',
-        redirectTo: '',
-        pathMatch: 'full'
+        loadComponent: () => import('./pages/agency/profile/agency-profile.component').then((m) => m.AgencyProfileComponent),
+        title: 'Safarni | Company Profile'
       },
       {
         path: 'packages',

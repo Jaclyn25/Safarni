@@ -1,4 +1,5 @@
 using FluentValidation;
+using System.Text.Json;
 using MediatR;
 using Safarni.Application.Abstractions.Notifications;
 using Safarni.Application.Abstractions.Persistence;
@@ -14,24 +15,39 @@ public sealed record PackageBookingRequestResponse(
     Guid PackageId,
     string PackageTitle,
     string Destination,
+    DateTime PackageEndDate,
     Guid TravelAgencyId,
     string CompanyName,
     Guid TravelerUserId,
     string TravelerName,
     string TravelerEmail,
     int TravelerCount,
+    int AdultCount,
+    int ChildCount,
+    IReadOnlyList<int> ChildrenAges,
+    string ContactPhone,
+    string? AlternatePhone,
+    string TravelerCountry,
+    string TravelerCity,
     string? Message,
     PackageBookingRequestStatus Status,
     string? AgencyResponse,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
-    DateTime? RespondedAt);
+    DateTime? RespondedAt,
+    bool HasReview);
 
 public sealed record CreatePackageBookingRequestCommand(
     Guid TravelerUserId,
     Guid PackageId,
     int TravelerCount,
-    string? Message)
+    string? Message,
+    int? AdultCount = null,
+    IReadOnlyList<int>? ChildrenAges = null,
+    string? ContactPhone = null,
+    string? AlternatePhone = null,
+    string? TravelerCountry = null,
+    string? TravelerCity = null)
     : IRequest<Result<PackageBookingRequestResponse>>;
 
 public sealed record ListTravelerBookingRequestsQuery(Guid TravelerUserId)
@@ -61,6 +77,19 @@ public sealed class CreatePackageBookingRequestCommandValidator
         RuleFor(command => command.PackageId).NotEmpty();
         RuleFor(command => command.TravelerCount).InclusiveBetween(1, 100);
         RuleFor(command => command.Message).MaximumLength(2000);
+        RuleFor(command => command.AdultCount).InclusiveBetween(1, 100)
+            .When(command => command.AdultCount is not null);
+        RuleForEach(command => command.ChildrenAges).InclusiveBetween(0, 17);
+        RuleFor(command => command.ContactPhone).NotEmpty().MaximumLength(40)
+            .When(command => command.AdultCount is not null);
+        RuleFor(command => command.AlternatePhone).MaximumLength(40);
+        RuleFor(command => command.TravelerCountry).NotEmpty().MaximumLength(100)
+            .When(command => command.AdultCount is not null);
+        RuleFor(command => command.TravelerCity).NotEmpty().MaximumLength(100)
+            .When(command => command.AdultCount is not null);
+        RuleFor(command => command).Must(command => command.AdultCount is null ||
+                command.TravelerCount == command.AdultCount + (command.ChildrenAges?.Count ?? 0))
+            .WithMessage("Traveler count must equal adults plus children.");
     }
 }
 
@@ -97,18 +126,33 @@ internal static class PackageBookingMapping
             request.TravelPackageId,
             request.TravelPackage.Title,
             request.TravelPackage.Destination,
+            request.TravelPackage.EndDate,
             request.TravelPackage.TravelAgencyId,
             request.TravelPackage.TravelAgency.CompanyName,
             request.TravelerUserId,
             request.TravelerUser.FullName,
             request.TravelerUser.Email,
             request.TravelerCount,
+            request.AdultCount,
+            request.ChildCount,
+            DeserializeAges(request.ChildrenAgesJson),
+            request.ContactPhone,
+            request.AlternatePhone,
+            request.TravelerCountry,
+            request.TravelerCity,
             request.Message,
             request.Status,
             request.AgencyResponse,
             request.CreatedAt,
             request.UpdatedAt,
-            request.RespondedAt);
+            request.RespondedAt,
+            request.AgencyReview is not null);
+
+    private static IReadOnlyList<int> DeserializeAges(string json)
+    {
+        try { return JsonSerializer.Deserialize<int[]>(json) ?? []; }
+        catch (JsonException) { return []; }
+    }
 }
 
 public sealed class CreatePackageBookingRequestCommandHandler
@@ -140,6 +184,10 @@ public sealed class CreatePackageBookingRequestCommandHandler
         {
             return Result<PackageBookingRequestResponse>.Failure(PackageBookingErrors.PackageExpired);
         }
+        if (await _requests.HasOpenRequestAsync(command.PackageId, command.TravelerUserId, cancellationToken))
+        {
+            return Result<PackageBookingRequestResponse>.Failure(PackageBookingErrors.DuplicateRequest);
+        }
 
         var acceptedSeats = await _requests.GetAcceptedTravelerCountAsync(command.PackageId, cancellationToken);
         if (acceptedSeats + command.TravelerCount > package.AvailableSeats)
@@ -154,6 +202,13 @@ public sealed class CreatePackageBookingRequestCommandHandler
             TravelPackage = package,
             TravelerUserId = command.TravelerUserId,
             TravelerCount = command.TravelerCount,
+            AdultCount = command.AdultCount ?? command.TravelerCount,
+            ChildCount = command.ChildrenAges?.Count ?? 0,
+            ChildrenAgesJson = JsonSerializer.Serialize(command.ChildrenAges ?? []),
+            ContactPhone = ValueOrFallback(command.ContactPhone),
+            AlternatePhone = string.IsNullOrWhiteSpace(command.AlternatePhone) ? null : command.AlternatePhone.Trim(),
+            TravelerCountry = ValueOrFallback(command.TravelerCountry),
+            TravelerCity = ValueOrFallback(command.TravelerCity),
             Message = string.IsNullOrWhiteSpace(command.Message) ? null : command.Message.Trim(),
             Status = PackageBookingRequestStatus.Pending,
             CreatedAt = DateTime.UtcNow
@@ -174,6 +229,9 @@ public sealed class CreatePackageBookingRequestCommandHandler
             cancellationToken);
         return Result<PackageBookingRequestResponse>.Success(PackageBookingMapping.ToResponse(loaded!));
     }
+
+    private static string ValueOrFallback(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "Not provided" : value.Trim();
 }
 
 public sealed class ListTravelerBookingRequestsQueryHandler

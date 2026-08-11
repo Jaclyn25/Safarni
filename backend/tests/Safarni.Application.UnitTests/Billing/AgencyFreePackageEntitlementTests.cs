@@ -10,7 +10,7 @@ namespace Safarni.Application.UnitTests.Billing;
 public sealed class AgencyFreePackageEntitlementTests
 {
     [Fact]
-    public async Task FreeAgencyAtDailyCreationLimit_ShouldRejectFourthPackage()
+    public async Task FreeAgencyAtDailyCreationLimit_ShouldRejectTwentyFirstPackage()
     {
         var userId = Guid.NewGuid();
         var agency = new TravelAgency { Id = Guid.NewGuid(), UserId = userId };
@@ -21,7 +21,7 @@ public sealed class AgencyFreePackageEntitlementTests
         var entitlements = new Mock<IEntitlementService>();
         entitlements.Setup(service => service.GetAgencyPackageCreationUsageAsync(
             agency.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new UsageEntitlement(false, 3, 3, DateTime.UtcNow.Date.AddDays(1), "agency-basic"));
+            .ReturnsAsync(new UsageEntitlement(false, 20, 20, DateTime.UtcNow.Date.AddDays(1), "agency-basic"));
         var handler = new CreateTravelPackageCommandHandler(
             agencies.Object, packages.Object, entitlements.Object);
 
@@ -47,7 +47,7 @@ public sealed class AgencyFreePackageEntitlementTests
     }
 
     [Fact]
-    public async Task FreeAgencyAtDailyPublicationLimit_ShouldRejectFourthPublication()
+    public async Task FreeAgencyAtDailyPublicationLimit_ShouldRejectTwentyFirstPublication()
     {
         var userId = Guid.NewGuid();
         var agency = new TravelAgency { Id = Guid.NewGuid(), UserId = userId };
@@ -68,7 +68,7 @@ public sealed class AgencyFreePackageEntitlementTests
         var entitlements = new Mock<IEntitlementService>();
         entitlements.Setup(service => service.GetAgencyPackageUsageAsync(
             agency.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new UsageEntitlement(false, 3, 3, DateTime.UtcNow.Date.AddDays(1), "agency-basic"));
+            .ReturnsAsync(new UsageEntitlement(false, 20, 20, DateTime.UtcNow.Date.AddDays(1), "agency-basic"));
         var handler = new PublishTravelPackageCommandHandler(
             agencies.Object, packages.Object, authorization.Object, entitlements.Object);
 

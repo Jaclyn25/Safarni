@@ -52,6 +52,25 @@ public sealed class PackageBookingRequestRepository : IPackageBookingRequestRepo
         return count ?? 0;
     }
 
+    public Task<bool> HasOpenRequestAsync(Guid packageId, Guid travelerUserId, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.PackageBookingRequests.AnyAsync(request =>
+            request.TravelPackageId == packageId &&
+            request.TravelerUserId == travelerUserId &&
+            (request.Status == PackageBookingRequestStatus.Pending || request.Status == PackageBookingRequestStatus.Accepted),
+            cancellationToken);
+    }
+
+    public Task<int> CountAcceptedByAgencyAsync(Guid agencyId, CancellationToken cancellationToken = default) =>
+        _dbContext.PackageBookingRequests.CountAsync(request =>
+            request.TravelPackage.TravelAgencyId == agencyId && request.Status == PackageBookingRequestStatus.Accepted,
+            cancellationToken);
+
+    public async Task<int> SumAcceptedTravelersByAgencyAsync(Guid agencyId, CancellationToken cancellationToken = default) =>
+        await _dbContext.PackageBookingRequests
+            .Where(request => request.TravelPackage.TravelAgencyId == agencyId && request.Status == PackageBookingRequestStatus.Accepted)
+            .SumAsync(request => (int?)request.TravelerCount, cancellationToken) ?? 0;
+
     public Task AddAsync(PackageBookingRequest request, CancellationToken cancellationToken = default)
     {
         return _dbContext.PackageBookingRequests.AddAsync(request, cancellationToken).AsTask();
@@ -67,6 +86,7 @@ public sealed class PackageBookingRequestRepository : IPackageBookingRequestRepo
         return _dbContext.PackageBookingRequests
             .Include(request => request.TravelPackage)
                 .ThenInclude(package => package.TravelAgency)
-            .Include(request => request.TravelerUser);
+            .Include(request => request.TravelerUser)
+            .Include(request => request.AgencyReview);
     }
 }

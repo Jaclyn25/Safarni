@@ -85,7 +85,7 @@ public sealed class StripePaymentGateway : IPaymentGateway
         {
             // Stripe signs the exact raw request body. EventUtility also validates
             // the timestamp in Stripe-Signature to reduce replay attacks.
-            EventUtility.ConstructEvent(payload, signature, _webhookSecret);
+            EventUtility.ValidateSignature(payload, signature, _webhookSecret);
         }
         catch (StripeException exception)
         {

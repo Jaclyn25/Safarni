@@ -1,13 +1,20 @@
 import {
+  AfterViewInit,
   ChangeDetectorRef,
   Component,
   DestroyRef,
+  ElementRef,
   HostListener,
   OnDestroy,
   OnInit,
+  PLATFORM_ID,
+  ViewChild,
   inject
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  CommonModule,
+  isPlatformBrowser
+} from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   ActivatedRoute,
@@ -68,7 +75,8 @@ export interface AiRecommendation {
   templateUrl: './explore.component.html',
   styleUrl: './explore.component.css'
 })
-export class ExploreComponent implements OnInit, OnDestroy {
+export class ExploreComponent
+  implements OnInit, AfterViewInit, OnDestroy {
   private static readonly TRIP_DRAFT_KEY =
     'safarni_trip_draft';
 
@@ -78,8 +86,20 @@ export class ExploreComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
+  private platformId = inject(PLATFORM_ID);
+
+  @ViewChild('explorePage', { static: true })
+  private explorePage!: ElementRef<HTMLElement>;
+
+  @ViewChild('bgVideo', { static: true })
+  private bgVideo!: ElementRef<HTMLVideoElement>;
+
+  private revealObserver: IntersectionObserver | null = null;
+  private reducedMotionMediaQuery: MediaQueryList | null = null;
+  private closeAnimationTimer: ReturnType<typeof setTimeout> | null = null;
 
   isCreateTripOpen = false;
+  isCreateTripClosing = false;
   isLoadingCountries = false;
   isLoadingCities = false;
   isLoadingOriginAirports = false;
@@ -117,6 +137,8 @@ export class ExploreComponent implements OnInit, OnDestroy {
   searchQuery: string = '';
   selectedFilter: string = 'All';
   videoLoaded: boolean = false;
+  motionReady = false;
+  prefersReducedMotion = false;
 
   quickPrompts: string[] = [
     'Romantic weekend in Paris',
@@ -404,9 +426,144 @@ export class ExploreComponent implements OnInit, OnDestroy {
       });
   }
 
+  ngAfterViewInit(): void {
+    this.initializeMotion();
+  }
+
   ngOnDestroy(): void {
+    this.stopRevealObserver();
+
+    if (this.reducedMotionMediaQuery) {
+      this.reducedMotionMediaQuery.removeEventListener(
+        'change',
+        this.handleReducedMotionChange
+      );
+    }
+
+    if (this.closeAnimationTimer !== null) {
+      clearTimeout(this.closeAnimationTimer);
+    }
+
     this.setPageScrollLocked(false);
   }
+
+  handleVideoLoaded(video: HTMLVideoElement): void {
+    this.videoLoaded = true;
+
+    if (this.prefersReducedMotion) {
+      video.pause();
+      return;
+    }
+
+    void video.play().catch(() => undefined);
+  }
+
+  private initializeMotion(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    this.reducedMotionMediaQuery = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    );
+    this.prefersReducedMotion =
+      this.reducedMotionMediaQuery.matches;
+    this.reducedMotionMediaQuery.addEventListener(
+      'change',
+      this.handleReducedMotionChange
+    );
+
+    if (this.prefersReducedMotion) {
+      this.bgVideo.nativeElement.pause();
+      this.showAllRevealElements();
+      return;
+    }
+
+    this.setupRevealObserver();
+  }
+
+  private setupRevealObserver(): void {
+    if (
+      !isPlatformBrowser(this.platformId) ||
+      this.prefersReducedMotion ||
+      !('IntersectionObserver' in window)
+    ) {
+      return;
+    }
+
+    const revealElements = Array.from(
+      this.explorePage.nativeElement.querySelectorAll<HTMLElement>(
+        '[data-reveal]'
+      )
+    );
+
+    if (revealElements.length === 0) {
+      return;
+    }
+
+    this.stopRevealObserver();
+    this.revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) {
+            return;
+          }
+
+          entry.target.classList.add('is-visible');
+          this.revealObserver?.unobserve(entry.target);
+        });
+      },
+      {
+        rootMargin: '0px 0px -8% 0px',
+        threshold: 0.1
+      }
+    );
+
+    this.motionReady = true;
+    revealElements.forEach((element) => {
+      this.revealObserver?.observe(element);
+    });
+    this.cdr.markForCheck();
+  }
+
+  private stopRevealObserver(): void {
+    this.revealObserver?.disconnect();
+    this.revealObserver = null;
+  }
+
+  private showAllRevealElements(): void {
+    const revealElements =
+      this.explorePage?.nativeElement.querySelectorAll<HTMLElement>(
+        '[data-reveal]'
+      );
+
+    revealElements?.forEach((element) => {
+      element.classList.add('is-visible');
+    });
+  }
+
+  private handleReducedMotionChange = (
+    event: MediaQueryListEvent
+  ): void => {
+    this.prefersReducedMotion = event.matches;
+    this.stopRevealObserver();
+    this.showAllRevealElements();
+    this.motionReady = false;
+
+    if (this.prefersReducedMotion) {
+      this.bgVideo.nativeElement.pause();
+    } else {
+      this.setupRevealObserver();
+
+      if (this.videoLoaded) {
+        void this.bgVideo.nativeElement
+          .play()
+          .catch(() => undefined);
+      }
+    }
+
+    this.cdr.markForCheck();
+  };
 
   @HostListener('document:keydown.escape')
   handleEscape(): void {
@@ -431,6 +588,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.cancelCloseAnimation();
     this.restoreTripDraft();
     this.createTripError = '';
     this.tripDraft.name =
@@ -459,30 +617,24 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   closeCreateTrip(): void {
-    if (this.isCreatingTrip) {
+    if (this.isCreatingTrip || this.isCreateTripClosing) {
       return;
     }
 
-    this.isCreateTripOpen = false;
+    this.isCreateTripClosing = true;
     this.setPageScrollLocked(false);
+    this.clearCreateTripQueryParams();
 
-    if (
-      this.route.snapshot.queryParamMap.get(
-        'createTrip'
-      ) === '1'
-    ) {
-      void this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: {
-          createTrip: null,
-          destination: null,
-          trip: null,
-          days: null
-        },
-        queryParamsHandling: 'merge',
-        replaceUrl: true
-      });
-    }
+    const closeDuration = this.prefersReducedMotion
+      ? 0
+      : 180;
+
+    this.closeAnimationTimer = setTimeout(() => {
+      this.isCreateTripOpen = false;
+      this.isCreateTripClosing = false;
+      this.closeAnimationTimer = null;
+      this.cdr.markForCheck();
+    }, closeDuration);
   }
 
   async onOriginCountryChanged(): Promise<void> {
@@ -1087,12 +1239,48 @@ export class ExploreComponent implements OnInit, OnDestroy {
   private setPageScrollLocked(
     locked: boolean
   ): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     document.body.style.overflow = locked
       ? 'hidden'
       : '';
   }
 
+  private clearCreateTripQueryParams(): void {
+    if (
+      this.route.snapshot.queryParamMap.get(
+        'createTrip'
+      ) !== '1'
+    ) {
+      return;
+    }
+
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        createTrip: null,
+        destination: null,
+        trip: null,
+        days: null
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+  }
+
+  private cancelCloseAnimation(): void {
+    if (this.closeAnimationTimer !== null) {
+      clearTimeout(this.closeAnimationTimer);
+      this.closeAnimationTimer = null;
+    }
+
+    this.isCreateTripClosing = false;
+  }
+
   private closeCreateTripAfterSuccess(): void {
+    this.cancelCloseAnimation();
     this.isCreateTripOpen = false;
     this.setPageScrollLocked(false);
   }

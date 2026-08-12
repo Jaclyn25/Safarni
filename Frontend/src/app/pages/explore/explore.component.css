@@ -1,3 +1,62 @@
+:host {
+  --explore-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --explore-ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
+.explore-page.motion-ready:not(.reduced-motion) [data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+.explore-page.motion-ready:not(.reduced-motion)
+  [data-reveal].is-visible {
+  animation: explore-reveal 520ms var(--explore-ease-out)
+    var(--reveal-delay, 0ms) both;
+}
+
+.explore-stagger > [data-reveal]:nth-child(2) {
+  --reveal-delay: 70ms;
+}
+
+.explore-stagger > [data-reveal]:nth-child(3) {
+  --reveal-delay: 140ms;
+}
+
+.explore-stagger > [data-reveal]:nth-child(4) {
+  --reveal-delay: 210ms;
+}
+
+.explore-stagger > [data-reveal]:nth-child(n + 5) {
+  --reveal-delay: 280ms;
+}
+
+.explore-destination-card:focus-visible {
+  outline: 3px solid color-mix(
+    in srgb,
+    var(--primary) 60%,
+    var(--surface-container-lowest)
+  );
+  outline-offset: 3px;
+}
+
+.explore-card-enter {
+  animation: explore-card-enter 260ms var(--explore-ease-out) both;
+}
+
+.explore-card-leave {
+  animation: explore-card-leave 180ms var(--explore-ease-in) both;
+}
+
+.city-results-enter,
+.city-row-enter {
+  animation: explore-card-enter 220ms var(--explore-ease-out) both;
+}
+
+.city-results-leave,
+.city-row-leave {
+  animation: explore-card-leave 150ms var(--explore-ease-in) both;
+}
+
 .create-trip-backdrop {
   animation: trip-modal-fade 180ms ease-out;
 }
@@ -5,6 +64,15 @@
 .create-trip-dialog {
   height: min(820px, 92dvh);
   animation: trip-modal-rise 240ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.create-trip-backdrop-closing {
+  animation: trip-modal-fade-out 140ms var(--explore-ease-in) both;
+  pointer-events: none;
+}
+
+.create-trip-dialog-closing {
+  animation: trip-modal-drop 180ms var(--explore-ease-in) both;
 }
 
 .create-trip-content {
@@ -80,6 +148,48 @@
   }
 }
 
+@keyframes trip-modal-fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes trip-modal-drop {
+  to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+}
+
+@keyframes explore-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes explore-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes explore-card-leave {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -116,6 +226,10 @@
 }
 
 @media (max-width: 767px) {
+  .explore-page.motion-ready:not(.reduced-motion) [data-reveal] {
+    transform: translateY(12px);
+  }
+
   .create-trip-dialog {
     height: 94dvh;
     width: 100%;
@@ -164,6 +278,29 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .explore-page [data-reveal],
+  .explore-card-enter,
+  .explore-card-leave,
+  .city-results-enter,
+  .city-results-leave,
+  .city-row-enter,
+  .city-row-leave,
+  .create-trip-backdrop,
+  .create-trip-dialog {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .explore-page video,
+  .explore-page .transition-opacity {
+    transition: none;
+  }
+
+  .explore-page .animate-pulse {
+    animation: none;
+  }
+
   .footer-link,
   .footer-social-link {
     transition: none;

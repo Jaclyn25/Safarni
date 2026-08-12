@@ -1,21 +1,26 @@
-<main class="hero-gradient pb-24 md:pb-12">
+<main
+  #explorePage
+  class="explore-page hero-gradient pb-24 md:pb-12"
+  [class.motion-ready]="motionReady"
+  [class.reduced-motion]="prefersReducedMotion">
 
   <!-- Hero Search Section -->
   <div
     class="relative overflow-hidden w-full min-h-[550px] flex items-center justify-center pt-16 pb-12 mb-8">
     <!-- Background Video -->
-    <video #bgVideo autoplay loop [muted]="true" playsinline 
+    <video #bgVideo [autoplay]="!prefersReducedMotion" loop [muted]="true" playsinline
       class="absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-700"
-      [class.opacity]="videoLoaded ? 1 : 0"
+      [class.opacity-100]="videoLoaded"
       [class.opacity-0]="!videoLoaded"
       aria-hidden="true" 
-      (loadeddata)="videoLoaded = true; bgVideo.play()">
+      (loadeddata)="handleVideoLoaded(bgVideo)">
       <source src="assets/safarni.mp4" type="video/mp4">
     </video>
 
     <!-- Loading skeleton -->
-    <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-primary/10 animate-pulse z-0"
-      [class.opacity-0]="videoLoaded" [class.hidden]="videoLoaded"></div>
+    <div
+      class="absolute inset-0 z-0 bg-gradient-to-br from-primary/10 via-primary/5 to-primary/10 animate-pulse transition-opacity duration-500"
+      [class.opacity-0]="videoLoaded" [attr.aria-hidden]="videoLoaded"></div>
 
     <!-- Gradient Overlay for readability -->
     <div class="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-black/70 z-0 pointer-events-none"></div>
@@ -95,7 +100,7 @@
 
   <!-- Featured Destinations Section -->
   <section class="px-margin-mobile md:px-margin-desktop py-stack-lg max-w-container-max mx-auto">
-    <div class="mb-stack-lg flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div data-reveal class="mb-stack-lg flex flex-col md:flex-row md:items-end justify-between gap-4">
       <div>
         <div class="flex items-center gap-2 mb-1">
           <span class="material-symbols-outlined text-primary"
@@ -107,10 +112,12 @@
     </div>
 
     <!-- Bento Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div class="explore-stagger grid grid-cols-1 md:grid-cols-3 gap-5">
       @for (dest of featuredDestinations; track dest.id) {
-      <div (click)="navigateToDestination(dest.country)"
-        class="relative group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer flex flex-col justify-end p-6 border border-outline-variant/10"
+      <div data-reveal role="link" tabindex="0" (click)="navigateToDestination(dest.country)"
+        (keydown.enter)="navigateToDestination(dest.country)"
+        (keydown.space)="$event.preventDefault(); navigateToDestination(dest.country)"
+        class="explore-destination-card relative group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer flex flex-col justify-end p-6 border border-outline-variant/10"
         [class]="dest.gridSpanClass">
         <!-- Destination Image -->
         <img [src]="dest.image" [alt]="dest.title + ' in ' + dest.country"
@@ -158,14 +165,14 @@
 
   <!-- Trending Now Section -->
   <section class="py-stack-lg overflow-hidden max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
-    <div class="mb-stack-md flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div data-reveal class="mb-stack-md flex flex-col md:flex-row md:items-end justify-between gap-4">
       <div>
         <h2 class="text-headline-sm font-headline-sm text-on-background">Trending Now</h2>
         <p class="text-label-md text-on-surface-variant">Popular choices loved by travelers right now</p>
       </div>
 
       <!-- Filter Chips -->
-      <div class="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
+      <div data-reveal class="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
         @for (category of filterCategories; track category) {
         <button (click)="setFilter(category)"
           class="px-4 py-1.5 rounded-full text-label-sm font-semibold transition-all whitespace-nowrap"
@@ -183,7 +190,10 @@
     <div
       class="flex gap-5 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-4 -mx-margin-mobile px-margin-mobile md:mx-0 md:px-0">
       @for (item of filteredTrendingDestinations; track item.id) {
-      <div (click)="navigateToDestination(item.city)"
+      <div animate.enter="explore-card-enter" animate.leave="explore-card-leave"
+        role="link" tabindex="0" (click)="navigateToDestination(item.city)"
+        (keydown.enter)="navigateToDestination(item.city)"
+        (keydown.space)="$event.preventDefault(); navigateToDestination(item.city)"
         class="min-w-[280px] md:min-w-[320px] max-w-[320px] snap-start group cursor-pointer bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm border border-outline-variant/15 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
         <div class="relative h-48 md:h-52 overflow-hidden">
           <img [src]="item.image" [alt]="item.city"
@@ -220,7 +230,7 @@
 
   <!-- Trip inspiration section -->
   <section class="px-margin-mobile md:px-margin-desktop py-stack-lg max-w-container-max mx-auto">
-    <div class="mb-stack-lg">
+    <div data-reveal class="mb-stack-lg">
       <div class="flex items-center gap-2 mb-1">
         <span class="material-symbols-outlined text-primary"
           style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
@@ -230,10 +240,11 @@
       </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="explore-stagger grid grid-cols-1 md:grid-cols-3 gap-6">
       @for (rec of aiRecommendations; track rec.id; let first = $first) {
       @if (first) {
       <div
+        data-reveal
         class="md:col-span-2 relative group rounded-2xl overflow-hidden shadow-sm bg-surface-container-lowest border border-outline-variant/15 hover:shadow-md transition-all">
         <div class="grid grid-cols-1 md:grid-cols-2">
           <div class="h-60 md:h-full relative overflow-hidden">
@@ -287,6 +298,7 @@
       </div>
       } @else {
       <div
+        data-reveal
         class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/15 shadow-sm flex flex-col justify-between group transition-all duration-300 hover:shadow-md">
         <div>
           <div class="h-44 rounded-xl overflow-hidden mb-4 relative">
@@ -319,6 +331,7 @@
 
       <!-- Create trip handoff -->
       <div
+        data-reveal
         class="md:col-span-3 bg-gradient-to-r from-primary via-primary/90 to-secondary rounded-2xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden shadow-lg">
         <div
           class="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl">
@@ -479,9 +492,11 @@
 @if (isCreateTripOpen) {
 <div
   class="create-trip-backdrop fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-[3px] md:items-center md:p-6"
+  [class.create-trip-backdrop-closing]="isCreateTripClosing"
   role="presentation" (mousedown)="closeCreateTrip()">
   <section
     class="create-trip-dialog relative grid max-h-[94dvh] w-full max-w-[1040px] overflow-hidden rounded-t-[26px] bg-white shadow-[0_32px_100px_rgba(15,23,42,0.32)] md:grid-cols-[0.85fr_1.15fr] md:rounded-[28px]"
+    [class.create-trip-dialog-closing]="isCreateTripClosing"
     role="dialog" aria-modal="true" aria-labelledby="create-trip-title" (mousedown)="$event.stopPropagation()">
     <aside
       class="create-trip-art relative hidden min-h-[680px] overflow-hidden md:flex md:flex-col md:justify-between md:p-8">
@@ -713,6 +728,7 @@
 
             @if (citySearch && filteredCities.length) {
             <div
+              animate.enter="city-results-enter" animate.leave="city-results-leave"
               class="city-result-list absolute inset-x-0 top-[54px] z-30 max-h-64 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-1.5">
               @for (city of filteredCities; track city) {
               <button type="button" (click)="addCity(city)"
@@ -736,6 +752,7 @@
           <div class="mt-4 max-h-72 space-y-2.5 overflow-y-auto overscroll-contain pr-1">
             @for (city of selectedCities; track city.name) {
             <div
+              animate.enter="city-row-enter" animate.leave="city-row-leave"
               class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm">
               <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-blue-50 text-primary">
                 <span class="material-symbols-outlined text-[20px]">location_on</span>

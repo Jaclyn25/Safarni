@@ -28,6 +28,9 @@
               "./src/styles.css",
               "./src/app/shared/password-recovery-shell/password-recovery-shared.css"
             ],
+            "allowedCommonJsDependencies": [
+              "leaflet"
+            ],
             "scripts": []
           },
           "configurations": {
@@ -35,8 +38,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kb",
-                  "maximumError": "1mb"
+                  "maximumWarning": "550kb",
+                  "maximumError": "700kb"
                 }
               ],
               "outputHashing": "all"

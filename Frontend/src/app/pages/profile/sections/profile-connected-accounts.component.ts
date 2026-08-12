@@ -1,11 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../../services/auth.service';
 
 interface ConnectedAccount {
   provider: 'google' | 'facebook';
   label: string;
   status: string;
   connected: boolean;
+  available: boolean;
 }
 
 @Component({
@@ -16,8 +18,29 @@ interface ConnectedAccount {
   styleUrls: ['../profile-shared.scss'],
 })
 export class ProfileConnectedAccountsComponent {
-  connectedAccounts: ConnectedAccount[] = [
-    { provider: 'google', label: 'Google', status: 'Connected as julian.w@gmail.com', connected: true },
-    { provider: 'facebook', label: 'Facebook', status: 'Not connected', connected: false },
-  ];
+  readonly trackByIndex = (index: number): number => index;
+
+  constructor(readonly authService: AuthService) {}
+
+  get connectedAccounts(): ConnectedAccount[] {
+    const user = this.authService.getCurrentUser();
+    return [
+      {
+        provider: 'google',
+        label: 'Google',
+        status: user
+          ? `Primary sign-in · ${user.email}`
+          : 'Primary sign-in',
+        connected: true,
+        available: true
+      },
+      {
+        provider: 'facebook',
+        label: 'Facebook',
+        status: 'Not available yet',
+        connected: false,
+        available: false
+      }
+    ];
+  }
 }

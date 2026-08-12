@@ -26,6 +26,7 @@ export class ProfileLayoutComponent implements OnInit {
     { path: 'trips', label: 'My Trips', icon: 'luggage' },
     { path: 'agency-trips', label: 'Agency Trips', icon: 'travel_explore' },
     { path: 'notifications', label: 'Notifications', icon: 'notifications' },
+    { path: 'privacy', label: 'Privacy', icon: 'shield_lock' },
     { path: 'travel-preferences', label: 'Travel Preferences', icon: 'travel_explore' },
     { path: 'theme', label: 'Theme', icon: 'dark_mode' },
     { path: 'language', label: 'Language', icon: 'language' },

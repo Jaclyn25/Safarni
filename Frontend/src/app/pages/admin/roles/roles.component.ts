@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+﻿import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -24,6 +24,7 @@ export interface ModulePermission {
 })
 export class AdminRolesComponent implements OnInit {
   readonly isLoading = signal(true);
+  readonly trackByIndex = (index: number): number => index;
   readonly loadError = signal<string | null>(null);
   readonly selectedRole = signal<RoleInfo | null>(null);
   readonly notice = signal<{ kind: 'success' | 'error'; text: string } | null>(null);

@@ -1,4 +1,4 @@
-<div class="space-y-6">
+﻿<div class="space-y-6">
   <!-- Header & Toolbar -->
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
@@ -178,7 +178,7 @@
           </div>
 
           <div *ngIf="funnelStages.length > 0" class="space-y-3">
-            <div *ngFor="let stage of funnelStages; let i = index" class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-2.5 text-xs">
+            <div *ngFor="let stage of funnelStages; let i = index; trackBy: trackByIndex" class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-2.5 text-xs">
               <div class="flex items-center justify-between">
                 <span class="font-semibold text-on-surface">{{ i + 1 }}. {{ stage.label }}</span>
                 <span class="font-bold text-primary">{{ stage.value }} ({{ stage.percentage }}%)</span>
@@ -228,7 +228,7 @@
         <!-- Rank List Cards -->
         <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
           <div
-            *ngFor="let d of destinations; let i = index"
+            *ngFor="let d of destinations; let i = index; trackBy: trackByIndex"
             class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-3 text-xs space-y-1.5"
           >
             <div class="flex items-center justify-between">

@@ -5,6 +5,109 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---- Design tokens (light + dark) ----
+   Tailwind colors map to these variables (see tailwind.config.js),
+   so every bg-, text-, border- utility is theme-aware. */
+:root {
+  --on-primary-container: #eeefff;
+  --on-secondary-container: #006172;
+  --primary-container: #2563eb;
+  --on-primary-fixed-variant: #003ea8;
+  --inverse-primary: #b4c5ff;
+  --on-secondary: #ffffff;
+  --inverse-surface: #2d3133;
+  --secondary-container: #57dffe;
+  --on-primary-fixed: #00174b;
+  --tertiary-fixed: #71f8e4;
+  --surface-bright: #f7f9fb;
+  --on-secondary-fixed-variant: #004e5c;
+  --primary-fixed-dim: #b4c5ff;
+  --secondary-fixed: #acedff;
+  --surface: #f7f9fb;
+  --surface-container-high: #e6e8ea;
+  --surface-container-low: #f2f4f6;
+  --background: #f7f9fb;
+  --surface-container-lowest: #ffffff;
+  --surface-container-highest: #e0e3e5;
+  --error: #ba1a1a;
+  --on-primary: #ffffff;
+  --on-tertiary-fixed-variant: #005048;
+  --on-error-container: #93000a;
+  --secondary: #00687a;
+  --primary-fixed: #dbe1ff;
+  --outline: #737686;
+  --on-tertiary-container: #b1fff1;
+  --on-error: #ffffff;
+  --inverse-on-surface: #eff1f3;
+  --on-surface-variant: #434655;
+  --on-secondary-fixed: #001f26;
+  --on-tertiary: #ffffff;
+  --on-tertiary-fixed: #00201c;
+  --outline-variant: #c3c6d7;
+  --surface-tint: #0053db;
+  --error-container: #ffdad6;
+  --surface-variant: #e0e3e5;
+  --tertiary-container: #007b6e;
+  --surface-container: #eceef0;
+  --tertiary-fixed-dim: #4fdbc8;
+  --on-background: #191c1e;
+  --on-surface: #191c1e;
+  --surface-dim: #d8dadc;
+  --tertiary: #006056;
+  --secondary-fixed-dim: #4cd7f6;
+  --primary: #004ac6;
+}
+
+.dark {
+  --on-primary-container: #dbe1ff;
+  --on-secondary-container: #acedff;
+  --primary-container: #1f3a7d;
+  --on-primary-fixed-variant: #dbe1ff;
+  --inverse-primary: #004ac6;
+  --on-secondary: #00363d;
+  --inverse-surface: #e0e3e5;
+  --secondary-container: #004e5c;
+  --on-primary-fixed: #dbe1ff;
+  --tertiary-fixed: #71f8e4;
+  --surface-bright: #383c40;
+  --on-secondary-fixed-variant: #acedff;
+  --primary-fixed-dim: #b4c5ff;
+  --secondary-fixed: #acedff;
+  --surface: #1a1c1f;
+  --surface-container-high: #2d3136;
+  --surface-container-low: #1e2124;
+  --background: #121417;
+  --surface-container-lowest: #0e1113;
+  --surface-container-highest: #383c41;
+  --error: #ffb4ab;
+  --on-primary: #00194d;
+  --on-tertiary-fixed-variant: #b1fff1;
+  --on-error-container: #ffdad6;
+  --secondary: #4cd7f6;
+  --primary-fixed: #dbe1ff;
+  --outline: #8f93a3;
+  --on-tertiary-container: #b1fff1;
+  --on-error: #690005;
+  --inverse-on-surface: #191c1e;
+  --on-surface-variant: #c3c6d7;
+  --on-secondary-fixed: #acedff;
+  --on-tertiary: #003830;
+  --on-tertiary-fixed: #b1fff1;
+  --outline-variant: #434655;
+  --surface-tint: #b4c5ff;
+  --error-container: #93000a;
+  --surface-variant: #434655;
+  --tertiary-container: #005048;
+  --surface-container: #23262a;
+  --tertiary-fixed-dim: #4fdbc8;
+  --on-background: #e0e3e5;
+  --on-surface: #e0e3e5;
+  --surface-dim: #121417;
+  --tertiary: #4fdbc8;
+  --secondary-fixed-dim: #4cd7f6;
+  --primary: #b4c5ff;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -17,7 +120,7 @@ body {
 
 body {
   min-height: 100dvh;
-  background-color: #f7f9fb;
+  background-color: var(--background);
   font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -137,9 +240,9 @@ app-root {
 }
 .assistant-response {
   max-width: min(720px, calc(100vw - 104px));
-  background: color-mix(in srgb, #f7f9fb 92%, #2563EB 8%);
-  border: 1px solid rgba(37, 99, 235, 0.14);
-  color: #172033;
+  background: color-mix(in srgb, var(--surface) 92%, var(--primary) 8%);
+  border: 1px solid color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--on-surface);
   line-height: 1.7;
   overflow-wrap: anywhere;
 }
@@ -189,8 +292,8 @@ app-root {
   width: fit-content;
   max-width: 100%;
   border-radius: 999px;
-  background: #2563EB;
-  color: #f8fbff;
+  background: var(--primary);
+  color: var(--on-primary);
   font-size: 0.85rem;
   font-weight: 700;
   line-height: 1;
@@ -199,7 +302,7 @@ app-root {
   transition: background-color 180ms ease-out, transform 180ms ease-out;
 }
 .assistant-link-button:hover {
-  background: #1d4ed8;
+  background: color-mix(in srgb, var(--primary) 82%, black);
   transform: translateY(-1px);
 }
 .concierge-empty-state {
@@ -326,7 +429,7 @@ app-root {
 .floating-label-input:focus-within label,
 .floating-label-input input:not(:placeholder-shown) + label {
   transform: translateY(-1.25rem) scale(0.85);
-  color: #2563eb;
+  color: var(--primary);
 }
 
 @keyframes float {
@@ -349,4 +452,56 @@ app-root {
 .recovery-primary-button,
 .recovery-secondary-button {
   text-decoration: none;
+}
+
+/* ---- Dark-mode overrides for components with hardcoded light palettes ---- */
+.dark {
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #434655;
+  }
+
+  .assistant-error {
+    background: oklch(0.24 0.02 65);
+    border-color: color-mix(in srgb, var(--error) 40%, transparent);
+    color: oklch(0.9 0.03 65);
+    box-shadow: none;
+  }
+
+  .assistant-error__title {
+    color: var(--error);
+  }
+
+  .assistant-error-icon {
+    background: oklch(0.3 0.04 66);
+    border-color: color-mix(in srgb, var(--error) 35%, transparent);
+    color: var(--error);
+  }
+
+  .concierge-empty-state__icon {
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    color: var(--primary);
+  }
+
+  .concierge-empty-state h3 {
+    color: var(--on-surface);
+  }
+
+  .concierge-empty-state p,
+  .mobile-chat-switcher,
+  .mobile-chat-switcher select,
+  .concierge-suggestions button,
+  .concierge-character-count {
+    color: var(--on-surface-variant);
+  }
+
+  .concierge-suggestions button,
+  .mobile-chat-switcher select {
+    border-color: var(--outline-variant);
+    background: var(--surface-container-low);
+  }
+
+  .concierge-suggestions button:hover {
+    border-color: color-mix(in srgb, var(--primary) 70%, transparent);
+    background: var(--surface-container-high);
+  }
 }

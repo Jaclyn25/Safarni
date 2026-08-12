@@ -147,10 +147,10 @@
 
   padding-inline: 1rem;
 
-  border: 1px solid rgba(37, 99, 235, 0.18);
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent);
   border-radius: 0.75rem;
 
-  color: #1d4ed8;
+  color: var(--primary);
   background: rgba(248, 250, 252, 0.94);
 
   font-size: 0.875rem;
@@ -252,7 +252,7 @@
 
 .account-type-picker__legend {
   margin-bottom: 0.65rem;
-  color: #434655;
+  color: var(--on-surface-variant);
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -272,9 +272,9 @@
   gap: 0.7rem;
   min-height: 5.25rem;
   padding: 0.85rem;
-  border: 1px solid rgba(115, 118, 134, 0.28);
+  border: 1px solid color-mix(in srgb, var(--outline) 28%, transparent);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.72);
+  background: color-mix(in srgb, var(--surface-container-lowest) 72%, transparent);
   cursor: pointer;
   transition:
     border-color 160ms ease,
@@ -289,14 +289,14 @@
 }
 
 .account-type-option:focus-within {
-  outline: 3px solid rgba(37, 99, 235, 0.18);
+  outline: 3px solid color-mix(in srgb, var(--primary) 18%, transparent);
   outline-offset: 2px;
 }
 
 .account-type-option--selected {
-  border-color: #2563eb;
+  border-color: var(--primary);
   background: rgba(219, 225, 255, 0.52);
-  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
 .account-type-option__icon {
@@ -317,19 +317,19 @@
 }
 
 .account-type-option__copy strong {
-  color: #191c1e;
+  color: var(--on-surface);
   font-size: 0.9rem;
   line-height: 1.25;
 }
 
 .account-type-option__copy small {
-  color: #5d6070;
+  color: var(--on-surface-variant);
   font-size: 0.72rem;
   line-height: 1.35;
 }
 
 .account-type-option__check {
-  color: #2563eb;
+  color: var(--primary);
   font-size: 1.2rem;
   opacity: 0;
   transform: scale(0.75);
@@ -392,7 +392,7 @@
 
 .form-section-heading h3 {
   margin: 0;
-  color: #191c1e;
+  color: var(--on-surface);
   font-size: 0.95rem;
   font-weight: 800;
   line-height: 1.3;
@@ -400,7 +400,7 @@
 
 .form-section-heading p {
   margin: 0.15rem 0 0;
-  color: #5d6070;
+  color: var(--on-surface-variant);
   font-size: 0.76rem;
   line-height: 1.45;
 }
@@ -410,9 +410,9 @@
   gap: 1rem;
   margin-top: 1.25rem;
   padding: 1rem;
-  border: 1px solid rgba(115, 118, 134, 0.2);
+  border: 1px solid color-mix(in srgb, var(--outline) 20%, transparent);
   border-radius: 1rem;
-  background: rgba(242, 244, 246, 0.58);
+  background: color-mix(in srgb, var(--surface-container-low) 58%, transparent);
 }
 
 .agency-fields-grid {
@@ -433,22 +433,22 @@
 }
 
 .agency-field label {
-  color: #434655;
+  color: var(--on-surface-variant);
   font-size: 0.76rem;
   font-weight: 700;
 }
 
 .agency-field label span {
-  color: #ba1a1a;
+  color: var(--error);
 }
 
 .agency-field input,
 .agency-field textarea {
   width: 100%;
-  border: 1px solid rgba(115, 118, 134, 0.3);
+  border: 1px solid color-mix(in srgb, var(--outline) 30%, transparent);
   border-radius: 0.75rem;
-  color: #191c1e;
-  background: rgba(255, 255, 255, 0.9);
+  color: var(--on-surface);
+  background: color-mix(in srgb, var(--surface-container-lowest) 90%, transparent);
   font: inherit;
   font-size: 0.9rem;
   transition: border-color 150ms ease, box-shadow 150ms ease;
@@ -467,14 +467,14 @@
 
 .agency-field input:focus,
 .agency-field textarea:focus {
-  border-color: #2563eb;
+  border-color: var(--primary);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
 }
 
 .agency-field small {
   justify-self: end;
-  color: #737686;
+  color: var(--outline);
   font-size: 0.7rem;
   line-height: 1.35;
 }

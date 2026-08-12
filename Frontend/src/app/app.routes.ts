@@ -42,7 +42,7 @@ export const routes: Routes = [
   {
     path: 'marketplace/packages/:packageId',
     loadComponent: () => import('./pages/marketplace/package-details.component').then((m) => m.PackageDetailsComponent),
-    title: 'Safarni | Package Details'
+    title: 'Safarni | Travel Package'
   },
   {
     path: 'marketplace/agencies/:agencyId',
@@ -151,7 +151,8 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/agency/dashboard/agency-dashboard.component').then(
             (m) => m.AgencyDashboardComponent
-          )
+          ),
+        title: 'Safarni | Agency Dashboard'
       },
       {
         path: 'verification',
@@ -237,10 +238,10 @@ export const routes: Routes = [
       {
         path: 'privacy',
         loadComponent: () =>
-          import('./pages/profile/sections/profile-notifications.component').then(
-            (m) => m.ProfileNotificationsComponent
+          import('./pages/profile/sections/profile-privacy.component').then(
+            (m) => m.ProfilePrivacyComponent
           ),
-        title: 'Safarni | Privacy'
+        title: 'Safarni | Privacy Policy'
       },
       {
         path: 'travel-preferences',
@@ -309,17 +310,17 @@ export const routes: Routes = [
     canActivate: [authGuard, adminGuard],
     title: 'Safarni | Admin',
     children: [
-      { path: '', pathMatch: 'full', loadComponent: () => import('./pages/admin/dashboard/dashboard.component').then((m) => m.AdminDashboardComponent) },
-      { path: 'users', loadComponent: () => import('./pages/admin/users/users.component').then((m) => m.AdminUsersComponent) },
-      { path: 'agencies', canActivate: [adminAgencyGuard], loadComponent: () => import('./pages/admin/agencies/agencies.component').then((m) => m.AdminAgenciesComponent) },
-      { path: 'agencies/:agencyId', canActivate: [adminAgencyGuard], loadComponent: () => import('./pages/admin/agencies/agency-review.component').then((m) => m.AdminAgencyReviewComponent) },
-      { path: 'knowledge', loadComponent: () => import('./pages/admin/knowledge/knowledge.component').then((m) => m.AdminKnowledgeComponent) },
-      { path: 'ai-activity', loadComponent: () => import('./pages/admin/ai-activity/ai-activity.component').then((m) => m.AdminAiActivityComponent) },
-      { path: 'integrations', loadComponent: () => import('./pages/admin/integrations/integrations.component').then((m) => m.AdminIntegrationsComponent) },
-      { path: 'analytics', loadComponent: () => import('./pages/admin/analytics/analytics.component').then((m) => m.AdminAnalyticsComponent) },
-      { path: 'billing', loadComponent: () => import('./pages/admin/billing/admin-billing.component').then((m) => m.AdminBillingComponent) },
-      { path: 'roles', loadComponent: () => import('./pages/admin/roles/roles.component').then((m) => m.AdminRolesComponent) },
-      { path: 'audit-logs', loadComponent: () => import('./pages/admin/audit-logs/audit-logs.component').then((m) => m.AdminAuditLogsComponent) }
+      { path: '', pathMatch: 'full', loadComponent: () => import('./pages/admin/dashboard/dashboard.component').then((m) => m.AdminDashboardComponent), title: 'Safarni | Admin Dashboard' },
+      { path: 'users', loadComponent: () => import('./pages/admin/users/users.component').then((m) => m.AdminUsersComponent), title: 'Safarni | Users' },
+      { path: 'agencies', canActivate: [adminAgencyGuard], loadComponent: () => import('./pages/admin/agencies/agencies.component').then((m) => m.AdminAgenciesComponent), title: 'Safarni | Agency Applications' },
+      { path: 'agencies/:agencyId', canActivate: [adminAgencyGuard], loadComponent: () => import('./pages/admin/agencies/agency-review.component').then((m) => m.AdminAgencyReviewComponent), title: 'Safarni | Agency Review' },
+      { path: 'knowledge', loadComponent: () => import('./pages/admin/knowledge/knowledge.component').then((m) => m.AdminKnowledgeComponent), title: 'Safarni | Knowledge Base' },
+      { path: 'ai-activity', loadComponent: () => import('./pages/admin/ai-activity/ai-activity.component').then((m) => m.AdminAiActivityComponent), title: 'Safarni | AI Activity' },
+      { path: 'integrations', loadComponent: () => import('./pages/admin/integrations/integrations.component').then((m) => m.AdminIntegrationsComponent), title: 'Safarni | Integrations' },
+      { path: 'analytics', loadComponent: () => import('./pages/admin/analytics/analytics.component').then((m) => m.AdminAnalyticsComponent), title: 'Safarni | Analytics' },
+      { path: 'billing', loadComponent: () => import('./pages/admin/billing/admin-billing.component').then((m) => m.AdminBillingComponent), title: 'Safarni | Billing' },
+      { path: 'roles', loadComponent: () => import('./pages/admin/roles/roles.component').then((m) => m.AdminRolesComponent), title: 'Safarni | Roles & Permissions' },
+      { path: 'audit-logs', loadComponent: () => import('./pages/admin/audit-logs/audit-logs.component').then((m) => m.AdminAuditLogsComponent), title: 'Safarni | Audit Logs' }
     ]
   },
   { path: '**', redirectTo: '' }

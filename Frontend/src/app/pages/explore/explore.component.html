@@ -2,47 +2,56 @@
 
   <!-- Hero Search Section -->
   <div
-    class="relative overflow-hidden w-full min-h-[550px] flex items-center justify-center -mt-[88px] pt-[136px] pb-12 mb-8">
+    class="relative overflow-hidden w-full min-h-[550px] flex items-center justify-center pt-16 pb-12 mb-8">
     <!-- Background Video -->
-    <video #bgVideo autoplay loop [muted]="true" playsinline class="absolute inset-0 w-full h-full object-cover z-0"
-      aria-hidden="true" (loadedmetadata)="bgVideo.play()">
+    <video #bgVideo autoplay loop [muted]="true" playsinline 
+      class="absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-700"
+      [class.opacity]="videoLoaded ? 1 : 0"
+      [class.opacity-0]="!videoLoaded"
+      aria-hidden="true" 
+      (loadeddata)="videoLoaded = true; bgVideo.play()">
       <source src="assets/safarni.mp4" type="video/mp4">
     </video>
 
+    <!-- Loading skeleton -->
+    <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-primary/10 animate-pulse z-0"
+      [class.opacity-0]="videoLoaded" [class.hidden]="videoLoaded"></div>
+
     <!-- Gradient Overlay for readability -->
-    <div class="absolute inset-0 bg-gradient-to-b from-surface/10 via-surface/30 to-surface z-0 pointer-events-none">
-    </div>
+    <div class="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-black/70 z-0 pointer-events-none"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-black/15 via-transparent to-black/15 z-0 pointer-events-none"></div>
 
     <section class="relative z-10 px-margin-mobile md:px-margin-desktop w-full max-w-4xl mx-auto text-center">
       <div
-        class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 backdrop-blur text-primary text-label-sm font-semibold mb-4 shadow-sm border border-white/40">
-        <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
-        <span>Travel planning made personal</span>
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 backdrop-blur-md text-white text-label-sm font-semibold mb-4 border border-white/25 shadow-lg animate-fade-in-up">
+        <span class="material-symbols-outlined text-[16px] text-primary-300">auto_awesome</span>
+        <span>AI-Powered Travel Planning</span>
+        <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
       </div>
 
       <h1
-        class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-background mb-stack-md tracking-tight drop-shadow-sm">
-        Plan your next trip, your way
+        class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-white mb-stack-md tracking-tight drop-shadow-lg animate-fade-in-up animation-delay-100">
+        Plan your next trip, <span class="text-primary-300">your way</span>
       </h1>
 
-      <p class="text-body-lg text-on-background font-medium opacity-90 mb-8 max-w-2xl mx-auto drop-shadow-md">
-        Choose the places you love, set your pace, and turn your travel ideas into a beautiful day-by-day plan.
+      <p class="text-body-lg text-white/85 font-medium mb-8 max-w-2xl mx-auto drop-shadow-md animate-fade-in-up animation-delay-200">
+        Turn your travel ideas into beautiful day-by-day plans with AI
       </p>
 
       <!-- Search Input Box -->
-      <div class="relative group max-w-2xl mx-auto">
+      <div class="relative group max-w-2xl mx-auto animate-fade-in-up animation-delay-300">
         <div
-          class="absolute inset-0 bg-primary/15 blur-2xl rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500">
+          class="absolute -inset-1 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500">
         </div>
         <div
-          class="relative flex items-center bg-surface-container-lowest/95 backdrop-blur shadow-lg rounded-2xl border border-outline-variant/20 h-14 md:h-16 px-4 md:px-6 transition-all duration-300 focus-within:shadow-xl focus-within:ring-2 focus-within:ring-primary/30">
+          class="relative flex items-center bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl border border-white/50 h-14 md:h-16 px-4 md:px-6 transition-all duration-300 focus-within:shadow-2xl focus-within:ring-2 focus-within:ring-white/40">
           <span class="material-symbols-outlined text-primary mr-3 text-[24px]">search</span>
           <input [(ngModel)]="searchQuery" (keyup.enter)="onSearch()"
-            class="bg-transparent border-none focus:ring-0 w-full text-body-lg text-on-background placeholder:text-on-surface-variant/70 outline-none"
+            class="bg-transparent border-none focus:ring-0 w-full text-body-lg text-on-background placeholder:text-on-surface-variant/60 outline-none"
             placeholder="Where do you want to go or what do you want to experience?" type="text"
             aria-label="Search destinations" />
           <button (click)="onSearch()"
-            class="bg-primary text-on-primary rounded-xl px-5 py-2.5 text-label-md font-semibold hover:bg-primary/90 transition-all active:scale-95 duration-200 flex items-center gap-2 flex-shrink-0">
+            class="bg-primary text-on-primary rounded-xl px-6 py-2.5 text-label-md font-bold hover:bg-primary/90 transition-all active:scale-95 duration-200 flex items-center gap-2 flex-shrink-0 shadow-lg hover:shadow-xl">
             <span>Search</span>
             <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
           </button>
@@ -50,14 +59,36 @@
       </div>
 
       <!-- Quick Prompt Chips -->
-      <div class="flex flex-wrap justify-center items-center gap-2 mt-6">
-        <span class="text-label-sm text-on-background font-semibold drop-shadow-sm">Try:</span>
+      <div class="flex flex-wrap justify-center items-center gap-2.5 mt-6 animate-fade-in-up animation-delay-400">
+        <span class="text-label-sm text-white/60 font-medium flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px]">lightbulb</span>
+          Try:
+        </span>
         @for (prompt of quickPrompts; track prompt) {
         <button (click)="onSelectPrompt(prompt)"
-          class="text-label-sm bg-white/70 backdrop-blur px-3.5 py-1.5 rounded-full hover:bg-primary hover:text-white shadow-sm transition-all text-on-surface-variant font-medium cursor-pointer border border-white/50 active:scale-95">
+          class="text-label-sm bg-white/10 backdrop-blur-sm text-white/90 px-4 py-2 rounded-full border border-white/20 hover:bg-white/20 hover:border-white/40 hover:text-white shadow-sm transition-all duration-300 font-medium cursor-pointer active:scale-95">
+          <span class="material-symbols-outlined text-[12px] mr-1 align-middle">bolt</span>
           "{{ prompt }}"
         </button>
         }
+      </div>
+
+      <!-- Social Proof -->
+      <div class="flex flex-wrap items-center justify-center gap-6 mt-8 animate-fade-in-up animation-delay-500">
+        <div class="flex items-center gap-2 text-white/70 text-sm">
+          <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+          <span>AI-Powered Recommendations</span>
+        </div>
+        <div class="w-1 h-1 rounded-full bg-white/40"></div>
+        <div class="flex items-center gap-2 text-white/70 text-sm">
+          <span class="material-symbols-outlined text-[16px]">public</span>
+          <span>190+ Destinations</span>
+        </div>
+        <div class="w-1 h-1 rounded-full bg-white/40"></div>
+        <div class="flex items-center gap-2 text-white/70 text-sm">
+          <span class="material-symbols-outlined text-[16px]">verified</span>
+          <span>Trusted Platform</span>
+        </div>
       </div>
     </section>
   </div>

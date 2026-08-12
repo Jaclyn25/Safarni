@@ -86,12 +86,6 @@ export class ChatService {
       .pipe(timeout(this.requestTimeoutMs));
   }
 
-  sendMessage(conversationId: string, message: string): Observable<Conversation> {
-    return this.http
-      .post<Conversation>(`${this.apiUrl}/send`, { conversationId, message }, { headers: this.getHeaders() })
-      .pipe(timeout(this.responseTimeoutMs));
-  }
-
   async streamMessage(
     conversationId: string,
     message: string,

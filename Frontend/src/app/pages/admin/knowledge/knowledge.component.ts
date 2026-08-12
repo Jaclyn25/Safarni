@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+﻿import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../services/admin.service';
@@ -12,6 +12,7 @@ import { KnowledgeInput, KnowledgeItem, PagedResult } from '../../../models/admi
 })
 export class AdminKnowledgeComponent implements OnInit {
   readonly isLoading = signal(true);
+  readonly trackByIndex = (index: number): number => index;
   readonly isActionPending = signal(false);
   readonly loadError = signal<string | null>(null);
   readonly notice = signal<{ kind: 'success' | 'error'; text: string } | null>(null);

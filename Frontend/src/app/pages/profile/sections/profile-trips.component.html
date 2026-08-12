@@ -1,4 +1,4 @@
-<section class="card" id="trips">
+﻿<section class="card" id="trips">
   <div class="card__header">
     <h2><span class="material-symbols-outlined">luggage</span> My Trips</h2>
     <a routerLink="/" [queryParams]="{ createTrip: 1 }" class="btn btn--primary btn--sm">
@@ -20,7 +20,7 @@
   </div>
 
   <div class="trips-list" *ngIf="!isTripsLoading() && trips().length > 0">
-    <article class="trip" *ngFor="let trip of trips()">
+    <article class="trip" *ngFor="let trip of trips(); trackBy: trackByIndex">
       <div class="trip__icon">
         <span class="material-symbols-outlined">flight</span>
       </div>

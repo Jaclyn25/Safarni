@@ -1,9 +1,13 @@
 /* Navbar link styles */
 .nav-link {
-  @apply flex items-center gap-1.5 px-3 py-2 rounded-lg text-label-md font-label-md text-on-surface-variant;
-  @apply hover:bg-surface-container-high hover:text-on-surface;
+  @apply flex items-center gap-1.5 px-3 py-2 rounded-xl text-label-md font-label-md text-on-surface-variant;
   @apply transition-all duration-200 ease-out;
   @apply relative;
+}
+
+.nav-link:hover {
+  color: var(--primary);
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
 .nav-link::after {
@@ -19,6 +23,7 @@
 
 .nav-link.active-link {
   @apply text-primary font-semibold;
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
 .nav-link.active-link::after {

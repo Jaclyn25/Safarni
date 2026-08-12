@@ -1,7 +1,7 @@
-import { Component, OnInit, signal } from '@angular/core';
+﻿import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { BaseChartDirective } from 'ng2-charts';
+import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { AdminService } from '../../../services/admin.service';
 import {
@@ -24,10 +24,12 @@ interface GroupedKpi {
   selector: 'app-admin-dashboard',
   standalone: true,
   imports: [CommonModule, RouterLink, BaseChartDirective],
+  providers: [provideCharts(withDefaultRegisterables())],
   templateUrl: './dashboard.component.html',
 })
 export class AdminDashboardComponent implements OnInit {
   readonly isLoading = signal(true);
+  readonly trackByIndex = (index: number): number => index;
   readonly loadError = signal<string | null>(null);
   readonly isReindexing = signal(false);
   readonly actionNotice = signal<{ kind: 'success' | 'error'; text: string } | null>(null);

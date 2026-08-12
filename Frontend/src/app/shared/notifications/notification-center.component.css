@@ -1,26 +1,160 @@
-:host { display: block; position: relative; }
-.notification-center { position: relative; }
-.notification-trigger { position: relative; display: grid; width: 2.5rem; height: 2.5rem; place-items: center; border: 1px solid #d2dae6; border-radius: 999px; background: #fff; color: #181c24; transition: .2s ease; }
-.notification-trigger:hover { border-color: #0052cc; color: #0052cc; transform: translateY(-1px); }
-.notification-count { position: absolute; top: -.35rem; right: -.35rem; min-width: 1.15rem; height: 1.15rem; padding: 0 .25rem; display: grid; place-items: center; border: 2px solid white; border-radius: 999px; background: #dc2626; color: white; font-size: .62rem; font-weight: 800; }
-.notification-panel { position: absolute; top: calc(100% + .75rem); right: 0; z-index: 80; width: min(24rem, calc(100vw - 2rem)); overflow: hidden; border: 1px solid #dbe3ef; border-radius: 1.25rem; background: white; box-shadow: 0 22px 60px rgba(15, 38, 75, .18); color: #151b26; }
-.notification-panel header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.1rem; border-bottom: 1px solid #e7edf5; }
-.notification-panel header div { display: flex; flex-direction: column; }
-.notification-panel header strong { font: 700 .95rem 'Sora', sans-serif; }
-.notification-panel header small { color: #64748b; font-size: .72rem; }
-.notification-panel header button { color: #0757c9; font-size: .72rem; font-weight: 700; }
-.notification-list { max-height: 26rem; overflow-y: auto; }
-.notification-item { width: 100%; display: flex; gap: .75rem; align-items: flex-start; padding: .9rem 1rem; text-align: left; border-bottom: 1px solid #edf1f6; transition: background .2s ease; }
-.notification-item:hover { background: #f5f9ff; }
-.notification-item--unread { background: #eef6ff; }
-.notification-item__icon { width: 2.25rem; height: 2.25rem; display: grid; flex: 0 0 auto; place-items: center; border-radius: .75rem; background: #dcecff; color: #0757c9; font-size: 1.15rem; }
-.notification-item__copy { min-width: 0; display: flex; flex: 1; flex-direction: column; gap: .15rem; }
-.notification-item__copy strong { font-size: .8rem; }
-.notification-item__copy span { color: #536174; font-size: .75rem; line-height: 1.35; }
-.notification-item__copy small { color: #8491a3; font-size: .67rem; }
-.notification-dot { width: .48rem; height: .48rem; margin-top: .35rem; flex: 0 0 auto; border-radius: 999px; background: #0757c9; }
-.notification-state, .notification-empty { padding: 2rem 1rem; text-align: center; color: #64748b; font-size: .8rem; }
-.notification-state--error { color: #b42318; }
-.notification-empty { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
-.notification-empty .material-symbols-outlined { color: #0757c9; font-size: 2rem; }
-.notification-empty strong { color: #1f2937; }
+:host {
+  display: block;
+  position: relative;
+}
+.notification-center {
+  position: relative;
+}
+.notification-trigger {
+  position: relative;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid #d2dae6;
+  border-radius: 999px;
+  background: var(--surface-container-lowest);
+  color: #181c24;
+  transition: 0.2s ease;
+}
+.notification-trigger:hover {
+  border-color: #0052cc;
+  color: #0052cc;
+  transform: translateY(-1px);
+}
+.notification-count {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  display: grid;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 999px;
+  background: #dc2626;
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+.notification-panel {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  z-index: 80;
+  width: min(24rem, calc(100vw - 2rem));
+  overflow: hidden;
+  border: 1px solid #dbe3ef;
+  border-radius: 1.25rem;
+  background: white;
+  box-shadow: 0 22px 60px rgba(15, 38, 75, 0.18);
+  color: #151b26;
+}
+.notification-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid #e7edf5;
+}
+.notification-panel header div {
+  display: flex;
+  flex-direction: column;
+}
+.notification-panel header strong {
+  font:
+    700 0.95rem "Sora",
+    sans-serif;
+}
+.notification-panel header small {
+  color: #64748b;
+  font-size: 0.72rem;
+}
+.notification-panel header button {
+  color: #0757c9;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.notification-list {
+  max-height: 26rem;
+  overflow-y: auto;
+}
+.notification-item {
+  width: 100%;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.9rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #edf1f6;
+  transition: background 0.2s ease;
+}
+.notification-item:hover {
+  background: #f5f9ff;
+}
+.notification-item--unread {
+  background: #eef6ff;
+}
+.notification-item__icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.75rem;
+  background: #dcecff;
+  color: #0757c9;
+  font-size: 1.15rem;
+}
+.notification-item__copy {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.notification-item__copy strong {
+  font-size: 0.8rem;
+}
+.notification-item__copy span {
+  color: #536174;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+.notification-item__copy small {
+  color: #8491a3;
+  font-size: 0.67rem;
+}
+.notification-dot {
+  width: 0.48rem;
+  height: 0.48rem;
+  margin-top: 0.35rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #0757c9;
+}
+.notification-state,
+.notification-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+.notification-state--error {
+  color: #b42318;
+}
+.notification-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+.notification-empty .material-symbols-outlined {
+  color: #0757c9;
+  font-size: 2rem;
+}
+.notification-empty strong {
+  color: #1f2937;
+}

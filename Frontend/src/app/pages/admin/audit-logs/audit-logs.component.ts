@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+﻿import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../services/admin.service';
@@ -12,6 +12,7 @@ import { AuditLogEntry, AuditSeverity, PagedResult } from '../../../models/admin
 })
 export class AdminAuditLogsComponent implements OnInit {
   readonly isLoading = signal(true);
+  readonly trackByIndex = (index: number): number => index;
   readonly loadError = signal<string | null>(null);
   readonly detailsOpen = signal(false);
   readonly notice = signal<{ kind: 'success' | 'error'; text: string } | null>(null);

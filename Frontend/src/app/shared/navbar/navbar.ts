@@ -60,11 +60,7 @@ export class NavbarComponent implements OnInit {
   }
 
   private updateBgClass() {
-    if (this.isExplorePage && !this.isScrolled) {
-      this.navbarBgClass = 'bg-transparent';
-    } else {
-      this.navbarBgClass = 'bg-surface/85 backdrop-blur-xl';
-    }
+    this.navbarBgClass = 'bg-surface-container-lowest/90 backdrop-blur-lg';
     this.cdr.detectChanges();
   }
 

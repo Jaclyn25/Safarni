@@ -116,6 +116,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
 
   searchQuery: string = '';
   selectedFilter: string = 'All';
+  videoLoaded: boolean = false;
 
   quickPrompts: string[] = [
     'Romantic weekend in Paris',

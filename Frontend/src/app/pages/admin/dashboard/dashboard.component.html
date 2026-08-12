@@ -197,7 +197,7 @@
         </h2>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <a
-            *ngFor="let kpi of peopleKpis"
+            *ngFor="let kpi of peopleKpis; trackBy: trackByIndex"
             [routerLink]="kpi.link"
             class="group relative block rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm transition-all hover:border-primary hover:shadow-md"
           >
@@ -222,7 +222,7 @@
         </h2>
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <a
-            *ngFor="let kpi of travelKpis"
+            *ngFor="let kpi of travelKpis; trackBy: trackByIndex"
             [routerLink]="kpi.link"
             class="group relative block rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm transition-all hover:border-primary hover:shadow-md"
           >
@@ -259,7 +259,7 @@
         </h2>
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <a
-            *ngFor="let kpi of operationsKpis"
+            *ngFor="let kpi of operationsKpis; trackBy: trackByIndex"
             [routerLink]="kpi.link"
             class="group relative block rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm transition-all hover:border-primary hover:shadow-md"
           >
@@ -436,7 +436,7 @@
       </div>
 
       <ul *ngIf="filteredActivity.length > 0" class="divide-y divide-outline-variant max-h-80 overflow-y-auto">
-        <li *ngFor="let item of filteredActivity" class="flex items-center gap-3 px-5 py-3.5 hover:bg-surface-container-low transition-colors">
+        <li *ngFor="let item of filteredActivity; trackBy: trackByIndex" class="flex items-center gap-3 px-5 py-3.5 hover:bg-surface-container-low transition-colors">
           <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-container/20 text-primary">
             <span class="material-symbols-outlined" style="font-size: 18px">
               {{ activityIcon(item.type) }}

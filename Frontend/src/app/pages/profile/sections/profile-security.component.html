@@ -1,8 +1,7 @@
 <section class="card" id="security">
   <h2><span class="material-symbols-outlined">security</span> Security</h2>
   <p class="card__hint">
-    Manage your account security. Changing your password, reviewing connected
-    accounts, and understanding what happens if you delete your account.
+    Manage your account security. Change your password from the Password page.
   </p>
 
   <div class="toggle-row">
@@ -25,12 +24,29 @@
         <span class="material-symbols-outlined">report</span>
         <h2>Danger Zone</h2>
       </div>
-      <p>Once you delete your account, there is no going back. Please be certain.</p>
+      <p>
+        Closing your account permanently removes your profile, trips, itineraries, chat
+        history, and marketplace data. Once deleted, it cannot be recovered.
+      </p>
 
       <button type="button" class="btn btn--danger" (click)="toggleConfirm()">
         <span class="material-symbols-outlined">delete</span>
-        {{ confirmDelete() ? 'Are you sure? This cannot be undone.' : 'Delete My Account' }}
+        {{ confirmRequest() ? 'Request account closure' : 'Close My Account' }}
       </button>
+
+      <div *ngIf="confirmRequest()" class="closure-confirm">
+        <p>
+          Instant deletion is not available yet. Send a closure request and our support team
+          will remove your account and data within 30 days.
+        </p>
+        <div class="closure-confirm__actions">
+          <a [href]="closureMailto" class="btn btn--danger">
+            <span class="material-symbols-outlined">mail</span>
+            Send Closure Request
+          </a>
+          <button type="button" class="btn btn--outline" (click)="toggleConfirm()">Cancel</button>
+        </div>
+      </div>
     </div>
   </div>
 </section>

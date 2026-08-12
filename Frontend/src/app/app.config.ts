@@ -1,8 +1,7 @@
 import { ApplicationConfig } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
-import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 
@@ -12,8 +11,7 @@ export const appConfig: ApplicationConfig = {
       routes,
       withInMemoryScrolling({ scrollPositionRestoration: 'top' })
     ),
-    provideAnimations(),
-    provideHttpClient(withInterceptors([authInterceptor])),
-    provideCharts(withDefaultRegisterables())
+    provideNoopAnimations(),
+    provideHttpClient(withInterceptors([authInterceptor]))
   ]
 };

@@ -11,6 +11,7 @@ import { TripResponse, TripService } from '../../../services/trip.service';
   styleUrls: ['../profile-shared.scss'],
 })
 export class ProfileTripsComponent implements OnInit {
+  readonly trackByIndex = (index: number): number => index;
   readonly trips = signal<TripResponse[]>([]);
   readonly isTripsLoading = signal(true);
   readonly tripsError = signal<string | null>(null);

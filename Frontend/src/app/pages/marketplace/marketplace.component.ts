@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { getApiErrorMessage } from '../../services/auth.service';
 import { MarketplaceService } from '../../services/marketplace.service';
+import { CurrencyService } from '../../services/currency.service';
 import { TravelPackage } from '../../models/marketplace.models';
 import { packageCoverUrl } from '../../shared/constants/marketplace.constants';
 
@@ -28,7 +29,10 @@ export class MarketplaceComponent implements OnInit {
   page = 1;
   totalPages = 1;
 
-  constructor(private readonly marketplace: MarketplaceService) {}
+  constructor(
+    private readonly marketplace: MarketplaceService,
+    private readonly currency: CurrencyService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -52,7 +56,7 @@ export class MarketplaceComponent implements OnInit {
   previousPage(): void { if (this.page > 1) { this.page--; this.load(); } }
 
   price(packageItem: TravelPackage): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: packageItem.currencyCode }).format(packageItem.price);
+    return this.currency.format(packageItem.price, packageItem.currencyCode);
   }
 
   coverUrl(packageItem: TravelPackage): string { return packageCoverUrl(packageItem); }

@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PackageBookingRequest, PublicAgencyProfile } from '../../models/marketplace.models';
 import { AuthService, getApiErrorMessage } from '../../services/auth.service';
 import { MarketplaceService } from '../../services/marketplace.service';
+import { CurrencyService } from '../../services/currency.service';
 import { packageCoverUrl } from '../../shared/constants/marketplace.constants';
 
 @Component({
@@ -29,7 +30,8 @@ export class AgencyPublicProfileComponent implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly marketplace: MarketplaceService,
-    private readonly auth: AuthService
+    private readonly auth: AuthService,
+    private readonly currency: CurrencyService
   ) {}
 
   ngOnInit(): void {
@@ -43,7 +45,7 @@ export class AgencyPublicProfileComponent implements OnInit {
 
   isTraveler(): boolean { return this.auth.getUserRole() === 'User'; }
   date(value: string): string { return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
-  price(value: number, currency: string): string { return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value); }
+  price(value: number, currency: string): string { return this.currency.format(value, currency); }
   stars(value: number): number[] { return Array.from({ length: 5 }, (_, index) => index < Math.round(value) ? 1 : 0); }
   packageCover(packageItem: PublicAgencyProfile['packages'][number]): string { return packageCoverUrl(packageItem); }
 

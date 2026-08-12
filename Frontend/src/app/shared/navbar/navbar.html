@@ -1,8 +1,5 @@
 <header *ngIf="!isAdminPage && !isAgencyPage" [ngClass]="navbarBgClass"
-  class="docked full-width top-0 sticky z-50 transition-all duration-300"
-  [class.shadow-sm]="isScrolled"
-  [class.border-b]="isScrolled"
-  [class.border-outline-variant/10]="isScrolled">
+  class="docked full-width top-0 sticky z-50 transition-all duration-300">
   <div
     class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-3.5 max-w-container-max mx-auto">
 
@@ -51,7 +48,7 @@
       @if (!user) {
 
       <a routerLink="/login"
-        class="flex items-center gap-2 bg-primary text-on-primary px-5 py-2 rounded-full font-label-md text-label-md hover:bg-primary/90 active:scale-[0.97] transition-all duration-200 shadow-sm shadow-primary/20">
+        class="flex items-center gap-2 bg-primary text-on-primary px-5 py-2 rounded-full font-label-md text-label-md hover:bg-primary/90 active:scale-[0.97] transition-all duration-200">
         <span class="material-symbols-outlined text-[18px]">person</span>
         Sign In
       </a>
@@ -99,20 +96,20 @@
 
           @if (isUserMenuOpen) {
           <div role="menu" (click)="$event.stopPropagation()"
-            class="absolute right-0 top-[calc(100%+0.65rem)] z-[80] w-60 overflow-hidden rounded-2xl border border-outline-variant/50 bg-surface-container-lowest shadow-xl animate-modal-in">
-            <div class="border-b border-outline-variant/30 px-4 py-3">
+            class="absolute right-0 top-[calc(100%+0.65rem)] z-[80] w-60 overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-lowest shadow-xl animate-modal-in">
+            <div class="border-b border-outline-variant/20 px-4 py-3">
               <p class="truncate text-label-sm font-semibold text-on-surface">{{ displayName }}</p>
-              <p class="truncate text-[11px] text-on-surface-variant">{{ displayEmail }}</p>
+              <p class="truncate text-[11px] text-on-surface-variant/70">{{ displayEmail }}</p>
             </div>
-            <div class="p-2">
+            <div class="p-1.5">
               <a role="menuitem" [routerLink]="isAdmin ? '/admin' : isAgency ? '/agency' : '/profile/account'"
                 (click)="closeUserMenu()"
-                class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-label-sm font-medium text-on-surface hover:bg-surface-container-high transition-colors">
+                class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-label-sm font-medium text-on-surface hover:bg-surface-container-high hover:text-primary transition-colors">
                 <span class="material-symbols-outlined text-[19px]">person</span>
                 {{ isAdmin ? 'Admin Dashboard' : isAgency ? 'Agency Dashboard' : 'My Account' }}
               </a>
               <button type="button" role="menuitem" (click)="logout()"
-                class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-label-sm font-semibold text-error hover:bg-error/10 transition-colors">
+                class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-label-sm font-semibold text-error hover:bg-error-container/50 transition-colors">
                 <span class="material-symbols-outlined text-[19px]">logout</span>
                 Sign Out
               </button>
@@ -130,10 +127,16 @@
     <!-- Mobile -->
     <div class="md:hidden flex items-center gap-2">
 
+      <button type="button" (click)="toggleMobileMenu()" [attr.aria-expanded]="isMobileMenuOpen"
+        aria-controls="mobile-nav" aria-label="Toggle navigation menu"
+        class="h-11 w-11 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors">
+        <span class="material-symbols-outlined text-[22px]">{{ isMobileMenuOpen ? 'close' : 'menu' }}</span>
+      </button>
+
       @if (!user) {
 
       <a routerLink="/login"
-        class="bg-primary text-on-primary px-4 py-1.5 rounded-full font-label-sm text-label-sm shadow-sm shadow-primary/20 active:scale-[0.97] transition-all duration-200">
+        class="bg-primary text-on-primary px-4 py-1.5 rounded-full font-label-sm text-label-sm active:scale-[0.97] transition-all duration-200">
         Sign In
       </a>
 
@@ -143,7 +146,7 @@
 
       <!-- Mobile Logout Button -->
       <button (click)="logout()"
-        class="h-9 w-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-error/10 hover:text-error transition-all duration-200 active:scale-95"
+        class="h-9 w-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-error-container/50 hover:text-error transition-all duration-200 active:scale-95"
         title="Sign out">
         <span class="material-symbols-outlined text-[20px]">logout</span>
       </button>
@@ -168,6 +171,60 @@
     </div>
 
   </div>
+
+  <!-- Mobile Menu -->
+  @if (isMobileMenuOpen) {
+  <div id="mobile-nav" class="md:hidden bg-surface-container-lowest border-t border-outline-variant shadow-lg">
+    <nav class="max-w-container-max mx-auto px-margin-mobile py-4 flex flex-col"
+      aria-label="Mobile navigation">
+      <a routerLink="/" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }"
+        (click)="isMobileMenuOpen = false"
+        class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
+        <span class="material-symbols-outlined text-[20px]">explore</span>
+        Explore
+      </a>
+      <a routerLink="/" [queryParams]="{ createTrip: '1' }" (click)="isMobileMenuOpen = false"
+        class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
+        <span class="material-symbols-outlined text-[20px]">add_circle</span>
+        Create Trip
+      </a>
+      <a routerLink="/concierge" routerLinkActive="active-link" (click)="isMobileMenuOpen = false"
+        class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
+        <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+        Concierge
+      </a>
+      <a routerLink="/marketplace" routerLinkActive="active-link" (click)="isMobileMenuOpen = false"
+        class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
+        <span class="material-symbols-outlined text-[20px]">storefront</span>
+        Marketplace
+      </a>
+      <a routerLink="/pricing" routerLinkActive="active-link" (click)="isMobileMenuOpen = false"
+        class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
+        <span class="material-symbols-outlined text-[20px]">payments</span>
+        Pricing
+      </a>
+
+      <div class="h-px bg-outline-variant/40 my-3" role="separator"></div>
+
+      <p class="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/70">Company</p>
+      <a routerLink="/about" routerLinkActive="active-link" (click)="isMobileMenuOpen = false"
+        class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
+        <span class="material-symbols-outlined text-[20px]">public</span>
+        About Us
+      </a>
+      <a routerLink="/journal" routerLinkActive="active-link" (click)="isMobileMenuOpen = false"
+        class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
+        <span class="material-symbols-outlined text-[20px]">article</span>
+        Journal
+      </a>
+      <a routerLink="/contact" routerLinkActive="active-link" (click)="isMobileMenuOpen = false"
+        class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
+        <span class="material-symbols-outlined text-[20px]">mail</span>
+        Contact
+      </a>
+    </nav>
+  </div>
+  }
 </header>
 
 <!-- Logout Modal -->
@@ -204,7 +261,7 @@
           Cancel
         </button>
         <button type="button" (click)="confirmLogout()"
-          class="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-label-md font-label-md text-white bg-error hover:bg-error/90 active:scale-[0.97] transition-all duration-200 shadow-sm shadow-error/20">
+          class="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-label-md font-label-md text-white bg-error hover:bg-error/90 active:scale-[0.97] transition-all duration-200">
           <span class="material-symbols-outlined text-lg">logout</span>
           Sign Out
         </button>

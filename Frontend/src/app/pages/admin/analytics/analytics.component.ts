@@ -1,7 +1,7 @@
-import { Component, OnInit, signal } from '@angular/core';
+﻿import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { BaseChartDirective } from 'ng2-charts';
+import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { AdminService } from '../../../services/admin.service';
 import {
@@ -22,10 +22,12 @@ interface FunnelStage {
   selector: 'app-admin-analytics',
   standalone: true,
   imports: [CommonModule, FormsModule, BaseChartDirective],
+  providers: [provideCharts(withDefaultRegisterables())],
   templateUrl: './analytics.component.html',
 })
 export class AdminAnalyticsComponent implements OnInit {
   readonly isLoading = signal(true);
+  readonly trackByIndex = (index: number): number => index;
   readonly loadError = signal<string | null>(null);
 
   from = '';

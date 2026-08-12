@@ -1,20 +1,10 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, tap } from 'rxjs';
+import { ApiError, ApiResponse, getApiErrorMessage } from '../models/api-response.model';
+import { ADMIN_ROLES, decodeJwtPayload, extractJwtRoles } from '../shared/utils/jwt';
 
-export interface ApiError {
-  code: string;
-  message: string;
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T | null;
-  errors: ApiError[];
-  statusCode: number;
-  timestamp: string;
-}
+export { ApiError, ApiResponse, getApiErrorMessage } from '../models/api-response.model';
 
 export interface RegisterUserResponse {
   id: string;
@@ -212,32 +202,13 @@ export class AuthService {
   getUserRole(): string | null {
     const token = localStorage.getItem('access_token');
     if (!token) return null;
-    try {
-      const payloadPart = token.split('.')[1];
-      if (!payloadPart) return null;
-      const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
-      const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
-      const payload = JSON.parse(
-        decodeURIComponent(
-          atob(padded)
-            .split('')
-            .map((char) => '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2))
-            .join('')
-        )
-      );
-      const roleClaim = payload.role ?? payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-      if (Array.isArray(roleClaim)) {
-        return roleClaim.find((r: string) => ['Admin', 'Support', 'ContentManager', 'Analyst'].includes(r)) ?? roleClaim[0] ?? null;
-      }
-      return typeof roleClaim === 'string' ? roleClaim : null;
-    } catch {
-      return null;
-    }
+    const roles = extractJwtRoles(decodeJwtPayload(token));
+    return roles.find((role) => ADMIN_ROLES.includes(role as (typeof ADMIN_ROLES)[number])) ?? roles[0] ?? null;
   }
 
   hasAdminRole(): boolean {
     const role = this.getUserRole();
-    return Boolean(role && ['Admin', 'Support', 'ContentManager', 'Analyst'].includes(role));
+    return Boolean(role && ADMIN_ROLES.includes(role as (typeof ADMIN_ROLES)[number]));
   }
 
   isTravelAgency(): boolean {
@@ -262,27 +233,6 @@ export class AuthService {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
   }
-}
-
-export function getApiErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof HttpErrorResponse) {
-    const apiResponse = error.error as Partial<ApiResponse<unknown>> | null;
-    const firstError = apiResponse?.errors?.[0]?.message;
-
-    if (firstError) {
-      return firstError;
-    }
-
-    if (apiResponse?.message) {
-      return apiResponse.message;
-    }
-
-    if (error.status === 0) {
-      return 'The API is unavailable. Make sure the backend is running on http://localhost:5110.';
-    }
-  }
-
-  return fallback;
 }
 
 export function getAuthFormErrorMessage(

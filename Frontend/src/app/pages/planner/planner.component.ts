@@ -1674,6 +1674,8 @@ export class PlannerComponent
     return city.name;
   }
 
+  readonly trackByIndex = (_index: number): number => _index;
+
   trackByVenue(
     _index: number,
     venue: VenueSuggestion

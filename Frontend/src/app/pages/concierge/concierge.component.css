@@ -17,22 +17,22 @@
 }
 
 .concierge-textarea::-webkit-scrollbar-thumb {
-  background-color: rgba(148, 163, 184, 0.4);
+  background-color: color-mix(in srgb, var(--outline) 40%, transparent);
   border-radius: 4px;
 }
 
 /* Day-by-Day Itinerary Card */
 .itinerary-day-card {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: color-mix(in srgb, var(--surface-container-lowest) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--surface-variant) 80%, transparent);
   border-radius: 1rem;
   padding: 1.25rem;
   transition: all 0.25s ease;
 }
 
 .itinerary-day-card:hover {
-  border-color: rgba(37, 99, 235, 0.3);
-  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.08);
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  box-shadow: 0 10px 25px -5px color-mix(in srgb, var(--primary) 8%, transparent);
 }
 
 /* Action Chips */
@@ -44,19 +44,19 @@
   font-weight: 600;
   padding: 0.4rem 0.85rem;
   border-radius: 9999px;
-  background: #ffffff;
-  color: #2563eb;
-  border: 1px solid rgba(37, 99, 235, 0.25);
+  background: var(--surface-container-lowest);
+  color: var(--primary);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .action-chip:hover {
-  background: #2563eb;
-  color: #ffffff;
+  background: var(--primary);
+  color: var(--on-primary);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 20%, transparent);
 }
 
 /* Message Toolbar Buttons */
@@ -67,18 +67,18 @@
   width: 28px;
   height: 28px;
   border-radius: 0.5rem;
-  color: #64748b;
-  background: rgba(248, 250, 252, 0.8);
-  border: 1px solid rgba(226, 232, 240, 0.6);
+  color: var(--on-surface-variant);
+  background: color-mix(in srgb, var(--surface-container-lowest) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--surface-variant) 60%, transparent);
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .msg-toolbar-btn:hover {
-  color: #2563eb;
-  background: #ffffff;
-  border-color: rgba(37, 99, 235, 0.3);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+  color: var(--primary);
+  background: var(--surface-container-lowest);
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 12%, transparent);
 }
 
 .msg-toolbar-btn.copied {
@@ -94,11 +94,11 @@
   gap: 0.25rem;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #475569;
-  background: rgba(241, 245, 249, 0.9);
+  color: var(--on-surface-variant);
+  background: color-mix(in srgb, var(--surface-container-low) 90%, transparent);
   padding: 0.2rem 0.6rem;
   border-radius: 9999px;
-  border: 1px solid rgba(203, 213, 225, 0.6);
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 60%, transparent);
 }
 
 /* Message Entrance Animation */

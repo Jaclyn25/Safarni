@@ -1067,31 +1067,6 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.renderNow();
   }
 
-  private sendMessage(convId: string, text: string): void {
-    this.messageSubscription = this.chatService.sendMessage(convId, text).subscribe({
-      next: (conv) => {
-        this.zone.run(() => {
-          this.stopThinkingAnimation();
-          this.messageSubscription = undefined;
-          this.updateMessagesWithStreaming(conv);
-          this.refreshConversations();
-          this.shouldScroll = true;
-          this.renderNow();
-        });
-      },
-      error: (err) => {
-        this.zone.run(() => {
-          this.stopThinkingAnimation();
-          this.messageSubscription = undefined;
-          console.error('Error sending message', err);
-          const errorDetails = this.getSendErrorDetails(err);
-          this.addErrorMessage(errorDetails.text, errorDetails.action);
-          this.renderNow();
-        });
-      }
-    });
-  }
-
   private renderNow(): void {
     const shouldScrollAfterRender = this.shouldScroll;
     this.cdr.detectChanges();

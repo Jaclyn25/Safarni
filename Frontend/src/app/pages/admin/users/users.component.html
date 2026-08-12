@@ -183,7 +183,7 @@
               <p class="mt-2 font-medium">No user accounts found matching your search filters.</p>
             </td>
           </tr>
-          <tr *ngFor="let user of result.items" (click)="openDetail(user)"
+          <tr *ngFor="let user of result.items; trackBy: trackByIndex" (click)="openDetail(user)"
             class="hover:bg-surface-container-low transition-colors cursor-pointer group">
             <!-- User Profile Avatar & Name -->
             <td class="px-5 py-3.5">
@@ -437,7 +437,7 @@
           <div class="space-y-2">
             <label class="font-bold text-on-surface">Assign System Role Privilege:</label>
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
-              <button *ngFor="let r of assignableRoles"
+              <button *ngFor="let r of assignableRoles; trackBy: trackByIndex"
                 [disabled]="selectedUser.role === r || (isSelf(selectedUser.id) && r !== 'Admin')"
                 (click)="confirmingRoleChange = r"
                 class="rounded-xl border border-outline-variant px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-40"

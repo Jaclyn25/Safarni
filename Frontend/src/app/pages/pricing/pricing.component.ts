@@ -3,12 +3,14 @@ import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService, getApiErrorMessage } from '../../services/auth.service';
 import { PricingService } from '../../services/pricing.service';
+import { CurrencyService } from '../../services/currency.service';
 import { PricingCustomerType, PricingPlan, Subscription } from '../../models/billing.models';
+import { CurrencyPipe } from '../../shared/pipes/currency.pipe';
 
 @Component({
   selector: 'app-pricing',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, CurrencyPipe],
   templateUrl: './pricing.component.html',
   styleUrl: './pricing.component.css'
 })
@@ -25,7 +27,8 @@ export class PricingComponent implements OnInit {
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly auth: AuthService,
-    private readonly pricing: PricingService
+    private readonly pricing: PricingService,
+    private readonly currency: CurrencyService
   ) {
     this.customerType = (route.snapshot.data['customerType'] as PricingCustomerType | undefined)
       ?? (auth.getUserRole() === 'TravelAgency' ? 'Agency' : 'Traveler');
@@ -57,7 +60,7 @@ export class PricingComponent implements OnInit {
     return this.subscription()?.status === 'Active' ? 'Included with your account' : 'Your current plan';
   }
 
-  price(plan: PricingPlan): string { return new Intl.NumberFormat('en-US', { style: 'currency', currency: plan.currencyCode }).format(plan.price); }
+  price(plan: PricingPlan): string { return this.currency.format(plan.price, plan.currencyCode); }
   period(plan: PricingPlan): string { return plan.billingPeriod === 'Monthly' ? '/ month' : '/ year'; }
   statusLabel(status: string): string { return status.replace(/([A-Z])/g, ' $1').trim(); }
   date(value: string | null): string { return value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; }

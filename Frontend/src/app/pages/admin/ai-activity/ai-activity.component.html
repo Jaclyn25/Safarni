@@ -188,7 +188,7 @@
               <p class="mt-2 font-medium">No AI activity logs matching the selected provider or status filter.</p>
             </td>
           </tr>
-          <tr *ngFor="let item of result.items" class="hover:bg-surface-container-low transition-colors group">
+          <tr *ngFor="let item of result.items; trackBy: trackByIndex" class="hover:bg-surface-container-low transition-colors group">
             <!-- Timestamp -->
             <td class="px-5 py-3.5 font-mono text-[11px] text-on-surface-variant whitespace-nowrap">
               {{ formatDateTime(item.createdAt) }}
@@ -301,7 +301,7 @@
         <!-- Conversation Messages Feed -->
         <div *ngIf="!conversationLoading() && conversation" class="max-h-[60vh] overflow-y-auto space-y-3 p-5">
           <div
-            *ngFor="let msg of conversation.messages"
+            *ngFor="let msg of conversation.messages; trackBy: trackByIndex"
             class="rounded-2xl p-4 text-xs leading-relaxed shadow-2xs"
             [class.bg-primary-container/20]="isUserMessage(msg)"
             [class.border]="isUserMessage(msg)"

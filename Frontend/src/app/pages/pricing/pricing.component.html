@@ -25,7 +25,7 @@
         <span class="pricing-card__period">Free forever</span>
         <h2>{{ freePlanName }}</h2>
         <p>{{ freePlanDescription }}</p>
-        <div class="pricing-card__price"><strong>$0</strong><span>/ forever</span></div>
+        <div class="pricing-card__price"><strong>{{ 0 | currency: 'USD' }}</strong><span>/ forever</span></div>
         <ul>
           @for (benefit of freePlanBenefits; track benefit) {
             <li><span class="material-symbols-outlined">check</span>{{ benefit }}</li>

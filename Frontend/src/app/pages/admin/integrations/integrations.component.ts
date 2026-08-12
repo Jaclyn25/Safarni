@@ -1,6 +1,6 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+﻿import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BaseChartDirective } from 'ng2-charts';
+import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { AdminService } from '../../../services/admin.service';
 import { IntegrationConfigEntry, IntegrationHealthCheck } from '../../../models/admin.models';
@@ -23,10 +23,12 @@ export interface FeatureTopology {
   selector: 'app-admin-integrations',
   standalone: true,
   imports: [CommonModule, BaseChartDirective],
+  providers: [provideCharts(withDefaultRegisterables())],
   templateUrl: './integrations.component.html',
 })
 export class AdminIntegrationsComponent implements OnInit, OnDestroy {
   readonly isLoading = signal(true);
+  readonly trackByIndex = (index: number): number => index;
   readonly loadError = signal<string | null>(null);
   readonly notice = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
   readonly testingName = signal<string | null>(null);

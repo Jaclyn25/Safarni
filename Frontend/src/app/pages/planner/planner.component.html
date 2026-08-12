@@ -1,4 +1,4 @@
-<main class="planner-shell min-h-screen px-margin-mobile py-8 md:px-margin-desktop md:py-12">
+﻿<main class="planner-shell min-h-screen px-margin-mobile py-8 md:px-margin-desktop md:py-12">
   <section *ngIf="!itinerary || isEditingPreferences" class="mx-auto max-w-5xl">
     <span class="text-label-md font-bold uppercase tracking-[0.2em] text-primary">
       Make it yours
@@ -416,7 +416,7 @@
         <div class="flex flex-wrap items-center gap-2 bg-surface p-1.5 rounded-2xl border border-outline/10 shadow-sm">
           <select [(ngModel)]="searchCategory"
             class="rounded-xl border-none bg-transparent px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer hover:bg-surface-container-low transition-colors">
-            <option *ngFor="let cat of nearbyCategories" [value]="cat.value">
+            <option *ngFor="let cat of nearbyCategories; trackBy: trackByIndex" [value]="cat.value">
               {{ cat.label }}
             </option>
           </select>
@@ -475,7 +475,7 @@
             </div>
 
             <div class="divide-y divide-outline/5" *ngIf="!isSearchingNearby && nearbyAttractions().length > 0">
-              <button *ngFor="let place of nearbyAttractions()" (click)="focusAttraction(place)"
+              <button *ngFor="let place of nearbyAttractions(); trackBy: trackByIndex" (click)="focusAttraction(place)"
                 class="w-full text-left p-4 hover:bg-surface-container-lowest transition-colors flex gap-4 group">
                 <div
                   class="flex-shrink-0 mt-0.5 h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shadow-sm group-hover:bg-primary group-hover:text-on-primary transition-colors">
@@ -704,7 +704,7 @@
             <span class="material-symbols-outlined text-red-600">warning</span>
             <div>
               <strong class="block text-sm font-bold">Severe Weather Warning</strong>
-              <p class="mt-1 text-xs text-red-800" *ngFor="let alert of dayWeather.weather.alerts">{{ alert.headline }} - {{ alert.event }}</p>
+              <p class="mt-1 text-xs text-red-800" *ngFor="let alert of dayWeather.weather.alerts; trackBy: trackByIndex">{{ alert.headline }} - {{ alert.event }}</p>
             </div>
           </div>
 

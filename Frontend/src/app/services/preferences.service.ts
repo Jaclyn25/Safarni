@@ -1,6 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
+import { ApiResponse, getApiErrorMessage } from '../models/api-response.model';
+
+export { getApiErrorMessage as getPreferencesErrorMessage } from '../models/api-response.model';
 
 /**
  * Mirrors Safarni.Application.Features.Preferences.TravelProfileResponse.
@@ -31,42 +34,6 @@ export interface UpsertTravelProfileCommand {
   passportNumber: string;
   nationality: string;
   passportExpiryDate: string;
-}
-
-interface ApiError {
-  code: string;
-  message: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T | null;
-  errors: ApiError[];
-  statusCode: number;
-  timestamp: string;
-}
-
-/** Extracts the first backend error message, with a fallback. */
-export function getPreferencesErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof HttpErrorResponse) {
-    const apiResponse = error.error as Partial<ApiResponse<unknown>> | null;
-    const firstError = apiResponse?.errors?.[0]?.message;
-
-    if (firstError) {
-      return firstError;
-    }
-
-    if (apiResponse?.message) {
-      return apiResponse.message;
-    }
-
-    if (error.status === 0) {
-      return 'The API is unavailable. Make sure the backend is running on http://localhost:5110.';
-    }
-  }
-
-  return fallback;
 }
 
 @Injectable({ providedIn: 'root' })

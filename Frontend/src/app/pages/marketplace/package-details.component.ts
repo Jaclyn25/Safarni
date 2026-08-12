@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { getApiErrorMessage, AuthService } from '../../services/auth.service';
 import { MarketplaceService } from '../../services/marketplace.service';
+import { CurrencyService } from '../../services/currency.service';
 import { TravelPackage } from '../../models/marketplace.models';
 import { TravelCountry, TripService } from '../../services/trip.service';
 import { orderedPackageImages, packageCoverUrl } from '../../shared/constants/marketplace.constants';
@@ -38,7 +39,8 @@ export class PackageDetailsComponent implements OnInit {
     private readonly route: ActivatedRoute,
     private readonly marketplace: MarketplaceService,
     private readonly auth: AuthService,
-    private readonly trips: TripService
+    private readonly trips: TripService,
+    private readonly currency: CurrencyService
   ) {}
 
   ngOnInit(): void {
@@ -56,7 +58,7 @@ export class PackageDetailsComponent implements OnInit {
   }
 
   isTraveler(): boolean { return this.auth.getUserRole() === 'User'; }
-  price(): string { const item = this.package(); return item ? new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currencyCode }).format(item.price) : ''; }
+  price(): string { const item = this.package(); return item ? this.currency.format(item.price, item.currencyCode) : ''; }
   date(value: string): string { return new Date(value).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); }
   totalTravelers(): number { return this.adultCount + this.childrenAges.length; }
   coverUrl(packageItem: TravelPackage): string { return packageCoverUrl(packageItem); }

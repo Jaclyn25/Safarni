@@ -1,6 +1,6 @@
 import { TravelPackage } from '../../models/marketplace.models';
 
-export const DEFAULT_PACKAGE_COVER_URL = 'assets/default-package-cover.png';
+export const DEFAULT_PACKAGE_COVER_URL = 'assets/default-package-cover.jpg';
 
 export function packageCoverUrl(packageItem: TravelPackage): string {
   return packageItem.images.find(image => image.isCover)?.url

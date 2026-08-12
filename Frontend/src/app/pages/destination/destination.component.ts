@@ -427,15 +427,21 @@ export class DestinationComponent implements OnInit {
   }
 
   onGenerateCustomTrip(): void {
-    const query = `Create a ${this.builderDays}-day ${this.builderStyle} itinerary for ${this.destination.country} (${this.builderGroup}, ${this.builderBudget} budget).`;
-    this.router.navigate(['/planner'], {
+    const countryAliases: Record<string, string> = {
+      turkey: 'Türkiye',
+      'dubai, uae': 'United Arab Emirates',
+      uae: 'United Arab Emirates'
+    };
+    const destination =
+      countryAliases[this.destination.country.toLocaleLowerCase()] ??
+      this.destination.country;
+
+    void this.router.navigate(['/'], {
       queryParams: {
-        destination: this.destination.country,
-        days: this.builderDays,
-        budget: this.builderBudget,
-        style: this.builderStyle,
-        group: this.builderGroup,
-        trip: `${this.builderDays}-Day ${this.destination.country} ${this.builderStyle}`
+        createTrip: '1',
+        destination,
+        trip: `${this.builderDays}-Day ${this.destination.country} ${this.builderStyle}`,
+        days: this.builderDays
       }
     });
   }

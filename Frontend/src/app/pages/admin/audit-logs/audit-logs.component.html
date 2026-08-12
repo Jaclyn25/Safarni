@@ -207,7 +207,7 @@
             </td>
           </tr>
           <tr
-            *ngFor="let log of result.items"
+            *ngFor="let log of result.items; trackBy: trackByIndex"
             (click)="openDetails(log)"
             class="hover:bg-surface-container-low transition-colors cursor-pointer group"
           >

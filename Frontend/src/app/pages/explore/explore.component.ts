@@ -29,37 +29,41 @@ import {
   FlightAirportSuggestion,
   TravelCountry,
   TripCitySelection,
+  TripResponse,
   TripService
 } from '../../services/trip.service';
 import { AuthService } from '../../services/auth.service';
+import {
+  PreferencesService,
+  TravelProfile
+} from '../../services/preferences.service';
+import { MarketplaceService } from '../../services/marketplace.service';
+import { CurrencyService } from '../../services/currency.service';
+import { TravelPackage } from '../../models/marketplace.models';
+import { packageCoverUrl } from '../../shared/constants/marketplace.constants';
 
 export interface FeaturedDestination {
   id: string;
+  slug: string;
   country: string;
   title: string;
   description: string;
-  price: number;
+  bestFor: string;
+  suggestedLength: string;
   image: string;
+  imageSrcset: string;
   tag?: string;
   tagType?: 'hot' | 'luxury' | 'popular' | 'budget';
-  gridSpanClass?: string;
-}
-
-export interface TrendingDestination {
-  id: string;
-  city: string;
-  country: string;
-  duration: string;
-  avgCost: number;
-  trendReason: string;
-  category: 'Beach' | 'Culture' | 'Budget' | 'Visa-friendly' | 'Weekend';
-  image: string;
+  /** Primary spotlight card (50% width on large screens, spans both tablet columns). */
+  featured?: boolean;
+  /** Large-screen column span tier for supporting cards (3 = first row, 4 = second row). */
+  lgSpan?: 3 | 4;
 }
 
 export interface AiRecommendation {
   id: string;
+  destination: string;
   title: string;
-  subtitle: string;
   description: string;
   durationDays: number;
   styleTags: string[];
@@ -84,6 +88,9 @@ export class ExploreComponent
   private route = inject(ActivatedRoute);
   private tripService = inject(TripService);
   private authService = inject(AuthService);
+  private preferencesService = inject(PreferencesService);
+  private marketplaceService = inject(MarketplaceService);
+  private currencyService = inject(CurrencyService);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
   private platformId = inject(PLATFORM_ID);
@@ -97,6 +104,8 @@ export class ExploreComponent
   private revealObserver: IntersectionObserver | null = null;
   private reducedMotionMediaQuery: MediaQueryList | null = null;
   private closeAnimationTimer: ReturnType<typeof setTimeout> | null = null;
+  private motionInitTimer: ReturnType<typeof setTimeout> | null = null;
+  private revealRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   isCreateTripOpen = false;
   isCreateTripClosing = false;
@@ -121,6 +130,15 @@ export class ExploreComponent
   citySearch = '';
   selectedCities: TripCitySelection[] = [];
 
+  currentTrip: TripResponse | null = null;
+  isTripsLoading = false;
+  tripsLoadError = '';
+  travelProfile: TravelProfile | null = null;
+  isPreferencesLoading = false;
+  marketplacePackages: TravelPackage[] = [];
+  isMarketplaceLoading = true;
+  marketplaceLoadError = '';
+
   tripDraft: CreateTripRequest = {
     name: '',
     destination: '',
@@ -135,142 +153,107 @@ export class ExploreComponent
   };
 
   searchQuery: string = '';
-  selectedFilter: string = 'All';
   videoLoaded: boolean = false;
   motionReady = false;
   prefersReducedMotion = false;
 
+  loadedImages = new Set<string>();
+  carouselIndex = 0;
+  isCarouselScrolling = false;
+  private carouselScrollTimer: ReturnType<typeof setTimeout> | null = null;
+
   quickPrompts: string[] = [
     'Romantic weekend in Paris',
     'Beach holiday in Maldives',
-    'Best street food in Bangkok',
-    'Cultural exploration in Kyoto'
+    'Cultural and food trip in Kyoto'
   ];
-
-  filterCategories: string[] = ['All', 'Beach', 'Culture', 'Budget', 'Weekend'];
 
   featuredDestinations: FeaturedDestination[] = [
     {
       id: 'maldives',
+      slug: 'maldives',
       country: 'Maldives',
       title: 'Tropical Paradise',
       description: 'Crystal clear waters, overwater villas & unforgettable sunsets',
-      price: 1850,
-      image: 'assets/countries/maldives.png',
+      bestFor: 'Beach escapes',
+      suggestedLength: '5–7 days',
+      image: 'assets/countries/maldives.webp',
+      imageSrcset: 'assets/countries/maldives-480.webp 480w, assets/countries/maldives-800.webp 800w, assets/countries/maldives.webp 1024w',
       tag: 'Hot',
       tagType: 'hot',
-      gridSpanClass: 'h-72 md:h-80'
+      featured: true
     },
     {
       id: 'thailand',
+      slug: 'thailand',
       country: 'Thailand',
       title: 'Land of Smiles',
       description: 'Ancient temples, vibrant street food & pristine islands',
-      price: 980,
-      image: 'assets/countries/thailand.png',
-      gridSpanClass: 'h-72 md:h-80'
+      bestFor: 'Culture & food',
+      suggestedLength: '7–10 days',
+      image: 'assets/countries/thailand.webp',
+      imageSrcset: 'assets/countries/thailand-480.webp 480w, assets/countries/thailand-800.webp 800w, assets/countries/thailand.webp 1024w',
+      lgSpan: 3
     },
     {
       id: 'turkey',
+      slug: 'turkey',
       country: 'Turkey',
       title: 'Where East Meets West',
       description: 'Majestic mosques, hot air balloons & the Bosphorus',
-      price: 1120,
-      image: 'assets/countries/turkey.png',
-      gridSpanClass: 'h-72 md:h-80'
+      bestFor: 'History & cities',
+      suggestedLength: '6–9 days',
+      image: 'assets/countries/turkey.webp',
+      imageSrcset: 'assets/countries/turkey-480.webp 480w, assets/countries/turkey-800.webp 800w, assets/countries/turkey.webp 1024w',
+      lgSpan: 3
     },
     {
       id: 'dubai',
+      slug: 'dubai',
       country: 'Dubai, UAE',
       title: 'City of Gold',
       description: 'Futuristic skyline, desert safaris & world-class luxury',
-      price: 2200,
-      image: 'assets/countries/dubai.png',
+      bestFor: 'Luxury & adventure',
+      suggestedLength: '4–6 days',
+      image: 'assets/countries/dubai.webp',
+      imageSrcset: 'assets/countries/dubai-480.webp 480w, assets/countries/dubai-800.webp 800w, assets/countries/dubai.webp 1024w',
       tag: 'Luxury',
       tagType: 'luxury',
-      gridSpanClass: 'h-64 md:h-72'
+      lgSpan: 4
     },
     {
       id: 'japan',
+      slug: 'japan',
       country: 'Japan',
       title: 'Ancient & Modern',
       description: 'Cherry blossoms, neon lights & centuries of tradition',
-      price: 1650,
-      image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&q=80&auto=format',
-      gridSpanClass: 'h-64 md:h-72'
+      bestFor: 'Culture & cuisine',
+      suggestedLength: '8–12 days',
+      image: 'assets/countries/japan.webp',
+      imageSrcset: 'assets/countries/japan-480.webp 480w, assets/countries/japan-800.webp 800w, assets/countries/japan-1200.webp 1200w, assets/countries/japan.webp 1600w',
+      lgSpan: 4
     },
     {
       id: 'france',
+      slug: 'france',
       country: 'France',
       title: 'City of Love',
       description: 'Eiffel Tower, Louvre Museum & French countryside charm',
-      price: 1340,
-      image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80&auto=format',
+      bestFor: 'Art & romance',
+      suggestedLength: '5–8 days',
+      image: 'assets/countries/france.webp',
+      imageSrcset: 'assets/countries/france-480.webp 480w, assets/countries/france-800.webp 800w, assets/countries/france-1200.webp 1200w, assets/countries/france.webp 1600w',
       tag: 'Popular',
       tagType: 'popular',
-      gridSpanClass: 'h-64 md:h-72'
-    },
-    {
-      id: 'poland',
-      country: 'Poland',
-      title: "Europe's Hidden Gem",
-      description: 'Medieval castles, vibrant culture & incredible value — Kraków, Warsaw & beyond',
-      price: 720,
-      image: 'https://images.unsplash.com/photo-1519197924294-4ba991a11128?w=1200&q=80&auto=format',
-      tag: 'Budget Friendly',
-      tagType: 'budget',
-      gridSpanClass: 'h-64 md:h-72 md:col-span-3'
-    }
-  ];
-
-  trendingDestinations: TrendingDestination[] = [
-    {
-      id: 'amalfi',
-      city: 'Amalfi Coast',
-      country: 'Italy',
-      duration: '5 Days',
-      avgCost: 1450,
-      trendReason: 'Trending for romantic summer getaways',
-      category: 'Weekend',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAaWkyby5OElt9D0zwD8mQkEIF-vUIcDQjqZyKFAQCIMMDjMKgNLgbuwxareniZ1HSKiFV1Uq02IBw2mdPj8BZb0Zwf0B2qaTyttnl398vIR_L5Mync_YQ1MUaG7M6MyncUDI54Eph5tTmO66vZO7545KHCBnikbC0QNsxE46s8IvEBG9B8god24vC7RxLne2W4eD4TRNLrgIPlETJzSFXVd1HFg8WenuQq8qkNBBTaqUTBWh8vef5svQw'
-    },
-    {
-      id: 'tokyo',
-      city: 'Tokyo',
-      country: 'Japan',
-      duration: '7 Days',
-      avgCost: 1650,
-      trendReason: 'Top choice for urban culture & culinary tours',
-      category: 'Culture',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDECYyjvqzEQlav3dRYNAAfx1pGt8BcoWc5zwwIw-Qns-bBtlc08fM577hRJCmfIrLtUZMMz84_QpPvptGbFxoq9cTybqSYk8eAPyJPlFQvfqvRNAf66uRxgv38ISyNMjkVpUTQhHR0IQuZQRCfQb-1gM62iQuZO6KDwpcDEvwCtOrbfdbs6P3rua6GBSd7nZjCMgX7dR8hOeDJ14E6FIaF4jro_hFGHDJUsVzHGGcftpaXdmJRuin_-g'
-    },
-    {
-      id: 'iceland',
-      city: 'Blue Lagoon',
-      country: 'Iceland',
-      duration: '4 Days',
-      avgCost: 1200,
-      trendReason: 'Popular stopover destination',
-      category: 'Culture',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC8h2B3kLKVl5yCEMGPeuwdG-S3HWjeRkxEeVb386op0JODP_DtRJt7hkLCF8HEfVPft0fwBileEWcXQk1f5oMB-2UAvI62Eb2dTHoiP6fYYy4MZNT9vrCGdcAI3z5D5RqMOHM42rhajD9HAvPjKegvgl5M8xBQEIKrMACTg6bSP4NIR33KvbRzFMDydYv1cK7mvua-p0II0eqPKGq5ETwniaQqIDeAiRttbOqTs1j9iF4oLv9jg5qeNg'
-    },
-    {
-      id: 'zermatt',
-      city: 'Zermatt',
-      country: 'Switzerland',
-      duration: '6 Days',
-      avgCost: 2100,
-      trendReason: 'High demand for luxury mountain retreats',
-      category: 'Beach', // Nature/Weekend
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuChIhItiwOVpkGXc4hdCP3Vhk341Z3LTdYmPdzis3Qip8ZNVh-L4QNGyLelEtA1Cwj0nfMqVjCA-sb4McdsuZwoV8EuLHaH0lZnwsgw2u2MPK01B2VyJ3TJpPnH7IBmZl_o_snlMPQ7B1BMvsnA4CYbTZv7XIZ92RV9Ukx3TSt5bqQroPmzWZJtDvW8HDMNatKRdQ57_lGXnKGv4E84rLEs0J_vFOZvGO_8UKJgniuKJiwoA7NqfmGrDQ'
+      lgSpan: 4
     }
   ];
 
   aiRecommendations: AiRecommendation[] = [
     {
       id: 'kyoto-modernism',
+      destination: 'Japan',
       title: 'Kyoto Modernism',
-      subtitle: 'Top Match for You',
       description: "Discover the intersection of ancient tradition and contemporary architecture in Japan's cultural heart.",
       durationDays: 6,
       styleTags: ['Culture', 'Architecture', 'Foodie'],
@@ -280,8 +263,8 @@ export class ExploreComponent
     },
     {
       id: 'lisbon-textures',
+      destination: 'Portugal',
       title: 'Lisbon Textures',
-      subtitle: 'Coastal Architecture & Dining',
       description: 'Perfect for a 4-day deep dive into tile art and coastal dining.',
       durationDays: 4,
       styleTags: ['Art & Tile', 'Coastal Dining'],
@@ -291,8 +274,8 @@ export class ExploreComponent
     },
     {
       id: 'santorini-escape',
+      destination: 'Greece',
       title: 'Santorini Escape',
-      subtitle: 'Luxury Caldera Villas',
       description: 'A curated selection of private villas with caldera views and sunset cruises.',
       durationDays: 5,
       styleTags: ['Relaxation', 'Luxury', 'Views'],
@@ -302,11 +285,173 @@ export class ExploreComponent
     }
   ];
 
-  get filteredTrendingDestinations(): TrendingDestination[] {
-    if (this.selectedFilter === 'All') {
-      return this.trendingDestinations;
+  get isSignedIn(): boolean {
+    return this.authService.isAuthenticated();
+  }
+
+  get travelerFirstName(): string {
+    const fullName = this.authService.getCurrentUser()?.fullName?.trim();
+    return fullName?.split(/\s+/)[0] || 'Traveler';
+  }
+
+  get hasPersonalizedIdeas(): boolean {
+    return Boolean(
+      this.travelProfile &&
+      (
+        this.travelProfile.preferredDestinationCountry?.trim() ||
+        this.travelProfile.travelStyle?.trim() ||
+        this.travelProfile.travelPurpose?.trim()
+      )
+    );
+  }
+
+  get tripIdeas(): AiRecommendation[] {
+    if (!this.hasPersonalizedIdeas || !this.travelProfile) {
+      return this.aiRecommendations;
     }
-    return this.trendingDestinations.filter(d => d.category === this.selectedFilter);
+
+    const destination = this.travelProfile.preferredDestinationCountry
+      .trim()
+      .toLocaleLowerCase();
+    const preferenceWords = `${this.travelProfile.travelStyle} ${this.travelProfile.travelPurpose}`
+      .toLocaleLowerCase()
+      .split(/[,\s]+/)
+      .filter(Boolean);
+
+    return [...this.aiRecommendations].sort((first, second) =>
+      this.ideaMatchScore(second, destination, preferenceWords) -
+      this.ideaMatchScore(first, destination, preferenceWords)
+    );
+  }
+
+  get tripIdeasHeading(): string {
+    return this.hasPersonalizedIdeas
+      ? 'Picked around your preferences'
+      : 'Trip ideas to get you started';
+  }
+
+  get tripIdeasSubtitle(): string {
+    if (!this.hasPersonalizedIdeas || !this.travelProfile) {
+      return 'Use a complete idea as the starting point for your own trip.';
+    }
+
+    const details = [
+      this.travelProfile.preferredDestinationCountry?.trim(),
+      this.travelProfile.travelStyle?.trim()
+    ].filter(Boolean);
+
+    return `Starting points shaped by ${details.join(' and ')}.`;
+  }
+
+  tripIdeaLabel(index: number): string {
+    return this.hasPersonalizedIdeas && index === 0
+      ? 'Best preference match'
+      : 'Trip template';
+  }
+
+  tripDateRange(trip: TripResponse): string {
+    const format = (value: string): string =>
+      new Date(value).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+
+    return `${format(trip.startDate)} – ${format(trip.endDate)}`;
+  }
+
+  tripCitySummary(trip: TripResponse): string {
+    const cities = (trip.cities ?? []).map((city) => city.name);
+    return cities.length > 0 ? cities.join(' · ') : trip.destination;
+  }
+
+  currentTripStatusLabel(trip: TripResponse): string {
+    switch (trip.itineraryStatus) {
+      case 'completed':
+        return 'Itinerary ready';
+      case 'generating':
+        return 'Building your itinerary';
+      case 'failed':
+        return 'Itinerary needs attention';
+      default:
+        return 'Ready for the next step';
+    }
+  }
+
+  currentTripActionLabel(trip: TripResponse): string {
+    switch (trip.itineraryStatus) {
+      case 'completed':
+        return 'Open itinerary';
+      case 'generating':
+        return 'View progress';
+      case 'failed':
+        return 'Review trip';
+      default:
+        return 'Continue planning';
+    }
+  }
+
+  currentTripCost(trip: TripResponse): string | null {
+    if (trip.estimatedTotalCost == null) {
+      return null;
+    }
+
+    return this.currencyService.format(
+      trip.estimatedTotalCost,
+      trip.itineraryCurrency ?? 'USD'
+    );
+  }
+
+  openCurrentTrip(): void {
+    if (!this.currentTrip) {
+      return;
+    }
+
+    void this.router.navigate(['/planner', this.currentTrip.id]);
+  }
+
+  retryCurrentTrip(): void {
+    this.loadCurrentTrip();
+  }
+
+  marketplaceCover(packageItem: TravelPackage): string {
+    return packageCoverUrl(packageItem);
+  }
+
+  marketplacePrice(packageItem: TravelPackage): string {
+    return this.currencyService.format(
+      packageItem.price,
+      packageItem.currencyCode
+    );
+  }
+
+  marketplaceDate(packageItem: TravelPackage): string {
+    return new Date(packageItem.startDate).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  retryMarketplace(): void {
+    this.loadMarketplacePackages();
+  }
+
+  private ideaMatchScore(
+    idea: AiRecommendation,
+    destination: string,
+    preferenceWords: string[]
+  ): number {
+    const searchable = `${idea.destination} ${idea.title} ${idea.styleTags.join(' ')}`
+      .toLocaleLowerCase();
+    const destinationScore = destination && searchable.includes(destination)
+      ? 5
+      : 0;
+    const styleScore = preferenceWords.reduce(
+      (score, word) => score + (searchable.includes(word) ? 1 : 0),
+      0
+    );
+    return destinationScore + styleScore;
   }
 
   get today(): string {
@@ -424,10 +569,15 @@ export class ExploreComponent
           );
         }
       });
+
+    this.loadExploreData();
   }
 
   ngAfterViewInit(): void {
-    this.initializeMotion();
+    this.motionInitTimer = setTimeout(() => {
+      this.motionInitTimer = null;
+      this.initializeMotion();
+    }, 0);
   }
 
   ngOnDestroy(): void {
@@ -442,6 +592,18 @@ export class ExploreComponent
 
     if (this.closeAnimationTimer !== null) {
       clearTimeout(this.closeAnimationTimer);
+    }
+
+    if (this.carouselScrollTimer !== null) {
+      clearTimeout(this.carouselScrollTimer);
+    }
+
+    if (this.motionInitTimer !== null) {
+      clearTimeout(this.motionInitTimer);
+    }
+
+    if (this.revealRefreshTimer !== null) {
+      clearTimeout(this.revealRefreshTimer);
     }
 
     this.setPageScrollLocked(false);
@@ -524,6 +686,27 @@ export class ExploreComponent
       this.revealObserver?.observe(element);
     });
     this.cdr.markForCheck();
+  }
+
+  private scheduleRevealRefresh(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    if (this.revealRefreshTimer !== null) {
+      clearTimeout(this.revealRefreshTimer);
+    }
+
+    this.revealRefreshTimer = setTimeout(() => {
+      this.revealRefreshTimer = null;
+
+      if (this.prefersReducedMotion) {
+        this.showAllRevealElements();
+        return;
+      }
+
+      this.setupRevealObserver();
+    }, 0);
   }
 
   private stopRevealObserver(): void {
@@ -973,8 +1156,64 @@ export class ExploreComponent
     this.onSearch();
   }
 
-  setFilter(category: string): void {
-    this.selectedFilter = category;
+  onImageLoad(destId: string): void {
+    this.loadedImages.add(destId);
+  }
+
+  featuredAriaLabel(dest: FeaturedDestination): string {
+    return `Explore ${dest.title} in ${dest.country}, suggested for ${dest.bestFor}`;
+  }
+
+  /** Horizontal distance (in px) between consecutive carousel card starts. */
+  private carouselStep(track: HTMLElement): number {
+    const count = this.featuredDestinations.length;
+    if (count <= 1) {
+      return 0;
+    }
+    return (
+      Math.max(0, track.scrollWidth - track.clientWidth) / (count - 1)
+    );
+  }
+
+  onCarouselScroll(track: HTMLElement): void {
+    const step = this.carouselStep(track);
+    this.carouselIndex =
+      step > 0 ? Math.min(
+        Math.round(track.scrollLeft / step),
+        this.featuredDestinations.length - 1
+      ) : 0;
+
+    this.isCarouselScrolling = true;
+    if (this.carouselScrollTimer !== null) {
+      clearTimeout(this.carouselScrollTimer);
+    }
+    this.carouselScrollTimer = setTimeout(() => {
+      this.isCarouselScrolling = false;
+      this.carouselScrollTimer = null;
+      this.cdr.markForCheck();
+    }, 260);
+  }
+
+  scrollCarousel(track: HTMLElement, direction: 1 | -1): void {
+    const step = this.carouselStep(track);
+    const target = Math.min(
+      Math.max(0, this.carouselIndex + direction),
+      this.featuredDestinations.length - 1
+    );
+    track.scrollTo({
+      left: target * step,
+      behavior: this.prefersReducedMotion ? 'auto' : 'smooth'
+    });
+    this.carouselIndex = target;
+  }
+
+  goToCarouselCard(track: HTMLElement, index: number): void {
+    const step = this.carouselStep(track);
+    track.scrollTo({
+      left: index * step,
+      behavior: this.prefersReducedMotion ? 'auto' : 'smooth'
+    });
+    this.carouselIndex = index;
   }
 
   navigateToDestination(destId: string): void {
@@ -982,10 +1221,8 @@ export class ExploreComponent
     this.router.navigate(['/destination', slug]);
   }
 
-  buildRecommendation(title: string): void {
-    const destination =
-      title.split(' ')[0] || '';
-    void this.openCreateTrip(title, destination);
+  buildRecommendation(idea: AiRecommendation): void {
+    void this.openCreateTrip(idea.title, idea.destination);
   }
 
   private async loadCountries(): Promise<void> {
@@ -1283,5 +1520,112 @@ export class ExploreComponent
     this.cancelCloseAnimation();
     this.isCreateTripOpen = false;
     this.setPageScrollLocked(false);
+  }
+
+  private loadExploreData(): void {
+    this.loadMarketplacePackages();
+
+    if (!this.isSignedIn) {
+      return;
+    }
+
+    this.loadCurrentTrip();
+    this.loadTravelPreferences();
+  }
+
+  private loadCurrentTrip(): void {
+    this.isTripsLoading = true;
+    this.tripsLoadError = '';
+
+    this.tripService.getTrips()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          this.currentTrip = this.pickCurrentTrip(response.data ?? []);
+          this.isTripsLoading = false;
+          this.cdr.markForCheck();
+          this.scheduleRevealRefresh();
+        },
+        error: (error: unknown) => {
+          this.isTripsLoading = false;
+          this.tripsLoadError = this.tripService.getErrorMessage(
+            error,
+            'We could not load your trips right now.'
+          );
+          this.cdr.markForCheck();
+          this.scheduleRevealRefresh();
+        }
+      });
+  }
+
+  private pickCurrentTrip(trips: TripResponse[]): TripResponse | null {
+    if (trips.length === 0) {
+      return null;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const upcoming = trips
+      .filter((trip) => new Date(trip.endDate).getTime() >= today.getTime())
+      .sort(
+        (first, second) =>
+          new Date(first.startDate).getTime() -
+          new Date(second.startDate).getTime()
+      );
+
+    if (upcoming.length > 0) {
+      return upcoming[0];
+    }
+
+    return [...trips].sort(
+      (first, second) =>
+        new Date(second.updatedAt ?? second.createdAt).getTime() -
+        new Date(first.updatedAt ?? first.createdAt).getTime()
+    )[0];
+  }
+
+  private loadTravelPreferences(): void {
+    this.isPreferencesLoading = true;
+
+    this.preferencesService.getTravelProfile()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profile) => {
+          this.travelProfile = profile;
+          this.isPreferencesLoading = false;
+          this.cdr.markForCheck();
+          this.scheduleRevealRefresh();
+        },
+        error: () => {
+          this.travelProfile = null;
+          this.isPreferencesLoading = false;
+          this.cdr.markForCheck();
+          this.scheduleRevealRefresh();
+        }
+      });
+  }
+
+  private loadMarketplacePackages(): void {
+    this.isMarketplaceLoading = true;
+    this.marketplaceLoadError = '';
+
+    this.marketplaceService.list({ page: 1, pageSize: 4 })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          this.marketplacePackages = result.items;
+          this.isMarketplaceLoading = false;
+          this.cdr.markForCheck();
+          this.scheduleRevealRefresh();
+        },
+        error: () => {
+          this.marketplacePackages = [];
+          this.isMarketplaceLoading = false;
+          this.marketplaceLoadError =
+            'Verified agency trips are temporarily unavailable.';
+          this.cdr.markForCheck();
+          this.scheduleRevealRefresh();
+        }
+      });
   }
 }

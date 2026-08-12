@@ -327,43 +327,43 @@ export const routes: Routes = [
     path: 'about',
     loadComponent: () =>
       import('./pages/static/about/about.component').then((m) => m.AboutComponent),
-    title: 'Safarni | About Us'
+    title: 'Safarni | About Us',
+    data: { description: 'Safarni is an AI-powered travel companion that turns scattered ideas into personalized itineraries, backed by a marketplace of verified travel agencies.' }
   },
   {
     path: 'journal',
     loadComponent: () =>
       import('./pages/static/journal/journal.component').then((m) => m.JournalComponent),
-    title: 'Safarni | Journal'
-  },
-  {
-    path: 'careers',
-    loadComponent: () =>
-      import('./pages/static/careers/careers.component').then((m) => m.CareersComponent),
-    title: 'Safarni | Careers'
+    title: 'Safarni | Journal',
+    data: { description: 'Travel stories, practical guides, and thinking from the Safarni team on smarter trip planning.' }
   },
   {
     path: 'contact',
     loadComponent: () =>
       import('./pages/static/contact/contact.component').then((m) => m.ContactComponent),
-    title: 'Safarni | Contact Us'
+    title: 'Safarni | Contact Us',
+    data: { description: 'Questions, feedback, or partnership ideas? Reach the Safarni team and we will respond within one business day.' }
   },
   {
     path: 'privacy',
     loadComponent: () =>
       import('./pages/static/privacy/privacy.component').then((m) => m.PrivacyComponent),
-    title: 'Safarni | Privacy Policy'
+    title: 'Safarni | Privacy Policy',
+    data: { description: 'How Safarni collects, uses, and protects your personal information when you use our travel planning platform.' }
   },
   {
     path: 'terms',
     loadComponent: () =>
       import('./pages/static/terms/terms.component').then((m) => m.TermsComponent),
-    title: 'Safarni | Terms of Service'
+    title: 'Safarni | Terms of Service',
+    data: { description: 'The terms and conditions that govern your use of Safarni\'s travel planning platform and marketplace.' }
   },
   {
     path: 'cookies',
     loadComponent: () =>
       import('./pages/static/cookies/cookies.component').then((m) => m.CookiesComponent),
-    title: 'Safarni | Cookie Policy'
+    title: 'Safarni | Cookie Policy',
+    data: { description: 'How Safarni uses cookies and similar technologies, and how you can manage your preferences.' }
   },
   { path: '**', redirectTo: '' }
 ];

@@ -1,14 +1,17 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { StaticPageLayoutComponent } from '../shared/static-page.layout';
+import { EditorialPageLayoutComponent } from '../shared/editorial-page.layout';
 
 @Component({
   selector: 'app-contact',
   standalone: true,
-  imports: [CommonModule, FormsModule, StaticPageLayoutComponent],
+  imports: [CommonModule, FormsModule, EditorialPageLayoutComponent],
   template: `
-    <app-static-page-layout title="Contact" subtitle="Questions, feedback, or partnership ideas? We're here.">
+    <app-editorial-page
+      title="Contact"
+      intro="Questions, feedback, or partnership ideas? We're here."
+      kicker="Contact">
 
       <div class="contact">
 
@@ -38,23 +41,23 @@ import { StaticPageLayoutComponent } from '../shared/static-page.layout';
         </section>
 
         <!-- Form -->
-        <section class="contact-form-section">
-          <h2 class="contact-heading">Send a message</h2>
+        <section class="pub-section">
+          <h2 class="pub-heading">Send a message</h2>
           <form class="contact-form" (ngSubmit)="submitForm()">
             <div class="contact-row">
-              <label class="contact-field">
-                <span class="contact-field__label">Name</span>
-                <input type="text" [(ngModel)]="formName" name="name" required class="contact-input" placeholder="Your name" />
+              <label class="pub-field">
+                <span class="pub-label">Name</span>
+                <input type="text" [(ngModel)]="formName" name="name" required class="pub-input" placeholder="Your name" />
               </label>
-              <label class="contact-field">
-                <span class="contact-field__label">Email</span>
-                <input type="email" [(ngModel)]="formEmail" name="email" required class="contact-input" placeholder="your&#64;email.com" />
+              <label class="pub-field">
+                <span class="pub-label">Email</span>
+                <input type="email" [(ngModel)]="formEmail" name="email" required class="pub-input" placeholder="your&#64;email.com" />
               </label>
             </div>
 
-            <label class="contact-field">
-              <span class="contact-field__label">Subject</span>
-              <select [(ngModel)]="formSubject" name="subject" class="contact-input contact-select">
+            <label class="pub-field">
+              <span class="pub-label">Subject</span>
+              <select [(ngModel)]="formSubject" name="subject" class="pub-input pub-select">
                 <option value="">Select a topic</option>
                 <option value="general">General inquiry</option>
                 <option value="support">Support</option>
@@ -64,19 +67,19 @@ import { StaticPageLayoutComponent } from '../shared/static-page.layout';
               </select>
             </label>
 
-            <label class="contact-field">
-              <span class="contact-field__label">Message</span>
-              <textarea [(ngModel)]="formMessage" name="message" required rows="5" class="contact-input contact-textarea" placeholder="How can we help?"></textarea>
+            <label class="pub-field">
+              <span class="pub-label">Message</span>
+              <textarea [(ngModel)]="formMessage" name="message" required rows="5" class="pub-input pub-textarea" placeholder="How can we help?"></textarea>
             </label>
 
             @if (formSuccess()) {
-              <div class="contact-success">
+              <div class="pub-status pub-status--success" role="status">
                 <span class="material-symbols-outlined" style="font-size:18px">check_circle</span>
                 Thanks! We'll respond within 24 hours.
               </div>
             }
 
-            <button type="submit" class="contact-submit" [disabled]="isSubmitting()">
+            <button type="submit" class="pub-btn pub-btn--primary contact-submit" [disabled]="isSubmitting()">
               @if (isSubmitting()) {
                 <span class="material-symbols-outlined animate-spin" style="font-size:16px">progress_activity</span>
                 Sending
@@ -101,11 +104,9 @@ import { StaticPageLayoutComponent } from '../shared/static-page.layout';
         </section>
 
       </div>
-    </app-static-page-layout>
+    </app-editorial-page>
   `,
   styles: [`
-    .contact {}
-
     /* Channels */
     .contact-channels {
       display: grid;
@@ -114,7 +115,7 @@ import { StaticPageLayoutComponent } from '../shared/static-page.layout';
       background: var(--outline-variant);
       border-radius: 12px;
       overflow: hidden;
-      margin-bottom: 3rem;
+      margin-block-end: 3rem;
     }
 
     .contact-channel {
@@ -129,33 +130,28 @@ import { StaticPageLayoutComponent } from '../shared/static-page.layout';
       font-size: 20px;
       color: var(--primary);
       flex-shrink: 0;
-      margin-top: 0.125rem;
+      margin-block-start: 0.125rem;
     }
 
     .contact-channel__label {
-      font: 600 0.8125rem/1.33 Manrope, sans-serif;
+      font: 600 0.875rem/1.33 Manrope, sans-serif;
       color: var(--on-surface);
       margin: 0 0 0.125rem;
     }
 
     .contact-channel__value {
-      font: 400 0.8125rem/1.4 Manrope, sans-serif;
+      font: 400 0.875rem/1.4 Manrope, sans-serif;
       color: var(--primary);
       text-decoration: none;
     }
     .contact-channel__value:hover { text-decoration: underline; }
 
     /* Form */
-    .contact-heading {
-      font: 600 1.125rem/1.33 Sora, sans-serif;
-      color: var(--on-surface);
-      margin: 0 0 1.25rem;
-    }
-
     .contact-form {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.25rem;
+      max-width: 45rem;
     }
 
     .contact-row {
@@ -164,66 +160,11 @@ import { StaticPageLayoutComponent } from '../shared/static-page.layout';
       gap: 1rem;
     }
 
-    .contact-field { display: flex; flex-direction: column; gap: 0.25rem; }
-
-    .contact-field__label {
-      font: 600 0.75rem/1 Manrope, sans-serif;
-      color: var(--on-surface);
-    }
-
-    .contact-input {
-      padding: 0.5rem 0.75rem;
-      border-radius: 8px;
-      border: 1px solid var(--outline-variant);
-      background: var(--surface);
-      color: var(--on-surface);
-      font: 400 0.875rem/1.5 Manrope, sans-serif;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    .contact-input:focus { border-color: var(--primary); }
-    .contact-input::placeholder { color: var(--on-surface-variant); }
-
-    .contact-select {
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.625rem center;
-      padding-right: 2rem;
-    }
-
-    .contact-textarea { resize: vertical; min-height: 100px; }
-
-    .contact-success {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.75rem;
-      border-radius: 8px;
-      background: color-mix(in srgb, #16a34a 8%, transparent);
-      color: #16a34a;
-      font: 500 0.8125rem/1 Manrope, sans-serif;
-    }
-
-    .contact-submit {
-      align-self: flex-start;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.625rem 1.25rem;
-      border-radius: 8px;
-      border: none;
-      background: var(--primary);
-      color: var(--on-primary);
-      font: 600 0.8125rem/1 Manrope, sans-serif;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .contact-submit:hover { background: color-mix(in srgb, var(--primary) 88%, black); }
+    .contact-submit { align-self: flex-start; }
     .contact-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
     /* Social */
-    .contact-social { margin-top: 3rem; text-align: center; }
+    .contact-social { margin-block-start: 3rem; text-align: center; }
 
     .contact-social__divider {
       width: 3rem;
@@ -233,7 +174,7 @@ import { StaticPageLayoutComponent } from '../shared/static-page.layout';
     }
 
     .contact-social__text {
-      font: 400 0.8125rem/1.5 Manrope, sans-serif;
+      font: 400 0.875rem/1.5 Manrope, sans-serif;
       color: var(--on-surface-variant);
       margin: 0 0 0.875rem;
     }
@@ -247,9 +188,9 @@ import { StaticPageLayoutComponent } from '../shared/static-page.layout';
     .contact-social__link {
       display: inline-grid;
       place-items: center;
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: 8px;
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 12px;
       border: 1px solid var(--outline-variant);
       color: var(--on-surface-variant);
       text-decoration: none;

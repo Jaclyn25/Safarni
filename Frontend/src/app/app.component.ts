@@ -9,6 +9,7 @@ import { NavbarComponent } from './shared/navbar/navbar';
     NavbarComponent
   ],
   template: `
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <app-navbar></app-navbar>
 
     <router-outlet></router-outlet>

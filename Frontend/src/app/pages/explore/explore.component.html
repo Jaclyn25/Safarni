@@ -1,5 +1,6 @@
 <main
   #explorePage
+  id="main-content"
   class="explore-page hero-gradient pb-24 md:pb-12"
   [class.motion-ready]="motionReady"
   [class.reduced-motion]="prefersReducedMotion">
@@ -26,25 +27,40 @@
     <div class="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-black/70 z-0 pointer-events-none"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-black/15 via-transparent to-black/15 z-0 pointer-events-none"></div>
 
-    <section class="relative z-10 px-margin-mobile md:px-margin-desktop w-full max-w-4xl mx-auto text-center">
+    <section class="relative z-10 px-margin-mobile md:px-margin-desktop w-full max-w-5xl mx-auto text-center">
       <div
         class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 backdrop-blur-md text-white text-label-sm font-semibold mb-4 border border-white/25 shadow-lg animate-fade-in-up">
         <span class="material-symbols-outlined text-[16px] text-primary-300">auto_awesome</span>
-        <span>AI-Powered Travel Planning</span>
-        <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+        <span>From first idea to a usable trip</span>
       </div>
 
       <h1
         class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-white mb-stack-md tracking-tight drop-shadow-lg animate-fade-in-up animation-delay-100">
-        Plan your next trip, <span class="text-primary-300">your way</span>
+        Turn a travel idea into <span class="text-primary-300">your next step</span>
       </h1>
 
       <p class="text-body-lg text-white/85 font-medium mb-8 max-w-2xl mx-auto drop-shadow-md animate-fade-in-up animation-delay-200">
-        Turn your travel ideas into beautiful day-by-day plans with AI
+        Discover destinations, build a day-by-day itinerary, or compare trips from verified local agencies.
       </p>
 
-      <!-- Search Input Box -->
-      <div class="relative group max-w-2xl mx-auto animate-fade-in-up animation-delay-300">
+      <div class="hero-primary-actions animate-fade-in-up animation-delay-300">
+        <button type="button" class="hero-action hero-action--primary" (click)="openCreateTrip()">
+          <span class="material-symbols-outlined" aria-hidden="true">add_circle</span>
+          <span>Create a trip</span>
+        </button>
+        <a routerLink="/marketplace" class="hero-action hero-action--secondary">
+          <span class="material-symbols-outlined" aria-hidden="true">storefront</span>
+          <span>Browse verified trips</span>
+        </a>
+      </div>
+
+      <!-- Concierge prompt -->
+      <div class="hero-concierge animate-fade-in-up animation-delay-400">
+        <p class="hero-concierge__label">
+          <span class="material-symbols-outlined" aria-hidden="true">forum</span>
+          Not sure where to start? Ask Safarni.
+        </p>
+      <div class="relative group max-w-2xl mx-auto">
         <div
           class="absolute -inset-1 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500">
         </div>
@@ -53,18 +69,19 @@
           <span class="material-symbols-outlined text-primary mr-3 text-[24px]">search</span>
           <input [(ngModel)]="searchQuery" (keyup.enter)="onSearch()"
             class="bg-transparent border-none focus:ring-0 w-full text-body-lg text-on-background placeholder:text-on-surface-variant/60 outline-none"
-            placeholder="Where do you want to go or what do you want to experience?" type="text"
-            aria-label="Search destinations" />
+            placeholder="Ask about a destination, budget, or travel style" type="text"
+            aria-label="Ask Safarni about a trip" />
           <button (click)="onSearch()"
             class="bg-primary text-on-primary rounded-xl px-6 py-2.5 text-label-md font-bold hover:bg-primary/90 transition-all active:scale-95 duration-200 flex items-center gap-2 flex-shrink-0 shadow-lg hover:shadow-xl">
-            <span>Search</span>
+            <span>Ask Safarni</span>
             <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
           </button>
         </div>
       </div>
+      </div>
 
       <!-- Quick Prompt Chips -->
-      <div class="flex flex-wrap justify-center items-center gap-2.5 mt-6 animate-fade-in-up animation-delay-400">
+      <div class="flex flex-wrap justify-center items-center gap-2.5 mt-5 animate-fade-in-up animation-delay-500">
         <span class="text-label-sm text-white/60 font-medium flex items-center gap-1">
           <span class="material-symbols-outlined text-[14px]">lightbulb</span>
           Try:
@@ -78,170 +95,363 @@
         }
       </div>
 
-      <!-- Social Proof -->
-      <div class="flex flex-wrap items-center justify-center gap-6 mt-8 animate-fade-in-up animation-delay-500">
+      <!-- Product proof -->
+      <div class="hero-proof animate-fade-in-up animation-delay-500">
         <div class="flex items-center gap-2 text-white/70 text-sm">
-          <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
-          <span>AI-Powered Recommendations</span>
+          <span class="material-symbols-outlined text-[16px]">calendar_view_day</span>
+          <span>Day-by-day itineraries</span>
         </div>
-        <div class="w-1 h-1 rounded-full bg-white/40"></div>
-        <div class="flex items-center gap-2 text-white/70 text-sm">
-          <span class="material-symbols-outlined text-[16px]">public</span>
-          <span>190+ Destinations</span>
-        </div>
-        <div class="w-1 h-1 rounded-full bg-white/40"></div>
         <div class="flex items-center gap-2 text-white/70 text-sm">
           <span class="material-symbols-outlined text-[16px]">verified</span>
-          <span>Trusted Platform</span>
+          <span>Verified agency packages</span>
+        </div>
+        <div class="flex items-center gap-2 text-white/70 text-sm">
+          <span class="material-symbols-outlined text-[16px]">travel</span>
+          <span>Flights, stays and local places</span>
         </div>
       </div>
     </section>
   </div>
 
-  <!-- Featured Destinations Section -->
-  <section class="px-margin-mobile md:px-margin-desktop py-stack-lg max-w-container-max mx-auto">
-    <div data-reveal class="mb-stack-lg flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <div>
-        <div class="flex items-center gap-2 mb-1">
-          <span class="material-symbols-outlined text-primary"
-            style="font-variation-settings: 'FILL' 1;">travel_explore</span>
-          <h2 class="text-headline-sm font-headline-sm text-on-background">Featured Destinations</h2>
+  @if (isSignedIn) {
+  <section class="explore-product-section continue-section px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto"
+    aria-labelledby="continue-heading">
+    @if (isTripsLoading) {
+    <div class="continue-card continue-card--loading" aria-label="Loading your latest trip">
+      <span class="continue-skeleton continue-skeleton--eyebrow"></span>
+      <span class="continue-skeleton continue-skeleton--title"></span>
+      <span class="continue-skeleton continue-skeleton--body"></span>
+    </div>
+    } @else if (currentTrip) {
+    <article data-reveal class="continue-card">
+      <div class="continue-card__copy">
+        <div class="continue-card__topline">
+          <span class="section-kicker">Continue planning</span>
+          <span class="continue-status">
+            <span class="material-symbols-outlined" aria-hidden="true">route</span>
+            {{ currentTripStatusLabel(currentTrip) }}
+          </span>
         </div>
-        <p class="text-label-md text-on-surface-variant">Handpicked iconic spots tailored for your next journey</p>
+        <p class="continue-card__welcome">Welcome back, {{ travelerFirstName }}</p>
+        <h2 id="continue-heading">{{ currentTrip.name }}</h2>
+        <p class="continue-card__destination">{{ currentTrip.destination }}</p>
+        <div class="continue-card__meta">
+          <span><span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>{{ tripDateRange(currentTrip) }}</span>
+          <span><span class="material-symbols-outlined" aria-hidden="true">location_on</span>{{ tripCitySummary(currentTrip) }}</span>
+          @if (currentTripCost(currentTrip); as tripCost) {
+          <span><span class="material-symbols-outlined" aria-hidden="true">payments</span>{{ tripCost }}</span>
+          }
+        </div>
+      </div>
+      <div class="continue-card__actions">
+        <button type="button" class="product-button product-button--primary" (click)="openCurrentTrip()">
+          {{ currentTripActionLabel(currentTrip) }}
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </button>
+        <button type="button" class="product-button product-button--quiet" (click)="openCreateTrip()">
+          Start another trip
+        </button>
+      </div>
+    </article>
+    } @else if (tripsLoadError) {
+    <div class="continue-card continue-card--state">
+      <span class="state-icon material-symbols-outlined" aria-hidden="true">cloud_off</span>
+      <div>
+        <h2 id="continue-heading">Your trips could not be loaded</h2>
+        <p>{{ tripsLoadError }}</p>
+      </div>
+      <button type="button" class="product-button product-button--quiet" (click)="retryCurrentTrip()">Try again</button>
+    </div>
+    } @else {
+    <div data-reveal class="continue-card continue-card--state">
+      <span class="state-icon material-symbols-outlined" aria-hidden="true">luggage</span>
+      <div>
+        <span class="section-kicker">Your first trip</span>
+        <h2 id="continue-heading">Give your next idea somewhere to live</h2>
+        <p>Choose the destination, dates and cities. Safarni will carry the plan from there.</p>
+      </div>
+      <button type="button" class="product-button product-button--primary" (click)="openCreateTrip()">
+        Create your first trip
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+      </button>
+    </div>
+    }
+  </section>
+  }
+
+<!-- Featured Destinations Section -->
+  <section class="featured-section px-margin-mobile md:px-margin-desktop py-stack-lg max-w-container-max mx-auto">
+    <div class="mb-stack-lg md:mb-stack-md">
+      <div class="featured-head md:flex md:items-end md:justify-between md:gap-8">
+        <div class="max-w-2xl">
+          <div data-reveal class="flex items-center gap-3 mb-2">
+            <span class="explore-head-icon" aria-hidden="true">
+              <span class="material-symbols-outlined"
+                style="font-variation-settings: 'FILL' 1;">travel_explore</span>
+            </span>
+            <h2 class="font-heading text-[26px] md:text-4xl font-bold tracking-tight text-on-background">
+              Places worth building a trip around
+            </h2>
+          </div>
+          <p data-reveal class="featured-subtitle text-body-md text-on-surface-variant max-w-md">
+            Curated destination guides with a clear handoff into trip planning.
+          </p>
+        </div>
+
+        <div data-reveal class="md:shrink-0 mt-4 md:mt-1">
+          <a routerLink="/marketplace" class="explore-view-all">
+            <span>Browse travel packages</span>
+            <span class="explore-view-all__arrow material-symbols-outlined text-[18px]"
+              aria-hidden="true">arrow_forward</span>
+          </a>
+        </div>
       </div>
     </div>
 
-    <!-- Bento Grid -->
-    <div class="explore-stagger grid grid-cols-1 md:grid-cols-3 gap-5">
+    <!-- Asymmetric showcase: horizontal snap carousel on mobile, bento grid on tablet/desktop -->
+    <div
+      #featuredTrack
+      (scroll)="onCarouselScroll(featuredTrack)"
+      [class.is-scrolling]="isCarouselScrolling"
+      class="featured-stagger flex md:grid md:grid-cols-2 lg:grid-cols-12 gap-3 md:gap-5 overflow-x-auto md:overflow-visible overscroll-x-contain snap-x snap-mandatory md:snap-none hide-scrollbar pb-2 md:pb-0"
+      aria-label="Featured destination cards">
       @for (dest of featuredDestinations; track dest.id) {
-      <div data-reveal role="link" tabindex="0" (click)="navigateToDestination(dest.country)"
-        (keydown.enter)="navigateToDestination(dest.country)"
-        (keydown.space)="$event.preventDefault(); navigateToDestination(dest.country)"
-        class="explore-destination-card relative group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer flex flex-col justify-end p-6 border border-outline-variant/10"
-        [class]="dest.gridSpanClass">
-        <!-- Destination Image -->
-        <img [src]="dest.image" [alt]="dest.title + ' in ' + dest.country"
-          class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          loading="lazy" />
+      <div data-reveal
+        class="explore-card-wrap w-[82%] shrink-0 snap-start aspect-[4/5] md:w-auto md:aspect-[4/3] lg:aspect-[16/10]"
+        [class.explore-card-wrap--featured]="dest.featured"
+        [class.md:col-span-2]="dest.featured"
+        [class.lg:col-span-6]="dest.featured"
+        [class.lg:col-span-3]="dest.lgSpan === 3"
+        [class.lg:col-span-4]="dest.lgSpan === 4">
+        <a [routerLink]="['/destination', dest.slug]"
+          [attr.aria-label]="featuredAriaLabel(dest)"
+          class="explore-card">
+          <span class="explore-card__media">
+            <span class="explore-card__skeleton" aria-hidden="true"></span>
+            <img
+              [src]="dest.image"
+              [srcset]="dest.imageSrcset"
+              [sizes]="dest.featured
+                ? '(min-width: 1024px) 48vw, (min-width: 768px) 92vw, 82vw'
+                : '(min-width: 1024px) 30vw, (min-width: 768px) 46vw, 82vw'"
+              [alt]="dest.title + ' in ' + dest.country"
+              decoding="async"
+              [loading]="dest.featured ? 'eager' : 'lazy'"
+              [attr.fetchpriority]="dest.featured ? 'high' : 'auto'"
+              class="explore-card__img"
+              [class.is-loaded]="loadedImages.has(dest.id)"
+              (load)="onImageLoad(dest.id)" />
+          </span>
 
-        <!-- Gradient Overlay -->
-        <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent"></div>
+          <span class="explore-card__topscrim" aria-hidden="true"></span>
+          <span class="explore-card__overlay" aria-hidden="true"></span>
+          <span class="explore-card__shade" aria-hidden="true"></span>
+          <span class="explore-card__ring" aria-hidden="true"></span>
 
-        <!-- Tag Badge -->
-        @if (dest.tag) {
-        <div
-          class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1 rounded-full text-label-sm font-bold flex items-center gap-1 shadow-md"
-          [class.text-primary]="dest.tagType === 'hot'" [class.text-secondary]="dest.tagType === 'luxury'"
-          [class.text-error]="dest.tagType === 'popular'" [class.text-emerald-600]="dest.tagType === 'budget'">
-          @if (dest.tagType === 'hot') { <span
-            class="material-symbols-outlined text-[14px]">local_fire_department</span> }
-          @if (dest.tagType === 'luxury') { <span class="material-symbols-outlined text-[14px]">diamond</span> }
-          @if (dest.tagType === 'popular') { <span class="material-symbols-outlined text-[14px]">favorite</span> }
-          @if (dest.tagType === 'budget') { <span class="material-symbols-outlined text-[14px]">savings</span> }
-          <span>{{ dest.tag }}</span>
-        </div>
-        }
-
-        <!-- Content Info -->
-        <div class="relative z-10 text-white">
-          <p class="text-label-sm text-white/80 uppercase font-semibold tracking-wider mb-1">{{ dest.country }}</p>
-          <h3 class="text-headline-md font-bold text-white mb-1.5">{{ dest.title }}</h3>
-          <p class="text-body-sm text-white/90 mb-4 line-clamp-2">{{ dest.description }}</p>
-
-          <div class="flex items-center justify-between pt-2 border-t border-white/20">
-            <span class="text-label-md text-white/90">From <strong class="text-white text-headline-sm">${{ dest.price
-                }}</strong> /trip</span>
-            <span
-              class="inline-flex items-center gap-1 text-label-md font-semibold group-hover:translate-x-1 transition-transform">
-              Explore
-              <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+          <span class="explore-card__badges">
+            <span class="explore-card__badge">
+              <span class="material-symbols-outlined text-[13px]" aria-hidden="true">location_on</span>
+              <span>{{ dest.country }}</span>
             </span>
-          </div>
-        </div>
+            @if (dest.tag) {
+            <span class="explore-card__tag"
+              [class.explore-tag--hot]="dest.tagType === 'hot'"
+              [class.explore-tag--luxury]="dest.tagType === 'luxury'"
+              [class.explore-tag--popular]="dest.tagType === 'popular'"
+              [class.explore-tag--budget]="dest.tagType === 'budget'">
+              @if (dest.tagType === 'hot') {
+              <span class="material-symbols-outlined text-[13px]" aria-hidden="true">local_fire_department</span>
+              }
+              @if (dest.tagType === 'luxury') {
+              <span class="material-symbols-outlined text-[13px]" aria-hidden="true">diamond</span>
+              }
+              @if (dest.tagType === 'popular') {
+              <span class="material-symbols-outlined text-[13px]" aria-hidden="true">favorite</span>
+              }
+              @if (dest.tagType === 'budget') {
+              <span class="material-symbols-outlined text-[13px]" aria-hidden="true">savings</span>
+              }
+              <span>{{ dest.tag }}</span>
+            </span>
+            }
+          </span>
+
+          <span class="explore-card__body">
+            <h3 class="explore-card__title font-heading tracking-tight"
+              [class.text-[22px]]="dest.featured"
+              [class.md:text-2xl]="dest.featured"
+              [class.text-lg]="!dest.featured">
+              {{ dest.title }}
+            </h3>
+            <p class="explore-card__desc line-clamp-2" [class.line-clamp-3]="dest.featured">
+              {{ dest.description }}
+            </p>
+
+            <span class="explore-card__footer">
+              <span class="explore-card__facts">
+                <span><span class="material-symbols-outlined" aria-hidden="true">interests</span>{{ dest.bestFor }}</span>
+                <span><span class="material-symbols-outlined" aria-hidden="true">schedule</span>{{ dest.suggestedLength }}</span>
+              </span>
+              <span class="explore-card__cta" aria-hidden="true">
+                <span class="explore-card__cta-text">Explore</span>
+                <span class="explore-card__cta-icon material-symbols-outlined">arrow_forward</span>
+              </span>
+            </span>
+          </span>
+        </a>
       </div>
       }
     </div>
-  </section>
 
-  <!-- Trending Now Section -->
-  <section class="py-stack-lg overflow-hidden max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
-    <div data-reveal class="mb-stack-md flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <div>
-        <h2 class="text-headline-sm font-headline-sm text-on-background">Trending Now</h2>
-        <p class="text-label-md text-on-surface-variant">Popular choices loved by travelers right now</p>
-      </div>
-
-      <!-- Filter Chips -->
-      <div data-reveal class="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
-        @for (category of filterCategories; track category) {
-        <button (click)="setFilter(category)"
-          class="px-4 py-1.5 rounded-full text-label-sm font-semibold transition-all whitespace-nowrap"
-          [class.bg-primary]="selectedFilter === category" [class.text-on-primary]="selectedFilter === category"
-          [class.bg-surface-container]="selectedFilter !== category"
-          [class.text-on-surface-variant]="selectedFilter !== category"
-          [class.hover:bg-surface-container-high]="selectedFilter !== category">
-          {{ category }}
+    <!-- Carousel controls (mobile only) -->
+    <div class="featured-carousel-controls mt-4 flex items-center justify-between gap-4 md:hidden">
+      <div class="flex items-center">
+        @for (dest of featuredDestinations; track dest.id; let i = $index) {
+        <button type="button" class="explore-carousel-dot-btn"
+          [attr.aria-label]="'Go to ' + dest.title"
+          [attr.aria-current]="carouselIndex === i ? 'true' : null"
+          (click)="goToCarouselCard(featuredTrack, i)">
+          <span class="explore-carousel-dot" [class.is-active]="carouselIndex === i"></span>
         </button>
         }
       </div>
-    </div>
-
-    <!-- Cards Scroll Container -->
-    <div
-      class="flex gap-5 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-4 -mx-margin-mobile px-margin-mobile md:mx-0 md:px-0">
-      @for (item of filteredTrendingDestinations; track item.id) {
-      <div animate.enter="explore-card-enter" animate.leave="explore-card-leave"
-        role="link" tabindex="0" (click)="navigateToDestination(item.city)"
-        (keydown.enter)="navigateToDestination(item.city)"
-        (keydown.space)="$event.preventDefault(); navigateToDestination(item.city)"
-        class="min-w-[280px] md:min-w-[320px] max-w-[320px] snap-start group cursor-pointer bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm border border-outline-variant/15 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
-        <div class="relative h-48 md:h-52 overflow-hidden">
-          <img [src]="item.image" [alt]="item.city"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
-          <div
-            class="absolute top-3 left-3 bg-black/60 backdrop-blur text-white px-2.5 py-1 rounded-md text-label-sm font-semibold">
-            {{ item.duration }}
-          </div>
-          <div class="absolute bottom-3 left-3 text-white">
-            <p class="text-label-sm opacity-80 uppercase font-medium tracking-wider">{{ item.country }}</p>
-            <h3 class="text-headline-sm font-bold">{{ item.city }}</h3>
-          </div>
-        </div>
-
-        <div class="p-4 flex flex-col justify-between">
-          <p class="text-body-sm text-on-surface-variant mb-3 flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-primary text-[16px]">trending_up</span>
-            <span>{{ item.trendReason }}</span>
-          </p>
-          <div class="flex items-center justify-between pt-2 border-t border-outline-variant/10">
-            <span class="text-label-sm text-on-surface-variant">Est. <strong class="text-primary text-body-md">${{
-                item.avgCost }}</strong></span>
-            <span
-              class="text-label-sm font-bold text-primary group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
-              Plan trip <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-            </span>
-          </div>
-        </div>
+      <div class="flex items-center gap-2">
+        <button type="button" class="explore-carousel-arrow" [attr.aria-label]="'Previous destination'"
+          [disabled]="carouselIndex === 0" (click)="scrollCarousel(featuredTrack, -1)">
+          <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+        </button>
+        <button type="button" class="explore-carousel-arrow" [attr.aria-label]="'Next destination'"
+          [disabled]="carouselIndex >= featuredDestinations.length - 1" (click)="scrollCarousel(featuredTrack, 1)">
+          <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+        </button>
       </div>
-      }
     </div>
   </section>
 
-  <!-- Trip inspiration section -->
-  <section class="px-margin-mobile md:px-margin-desktop py-stack-lg max-w-container-max mx-auto">
-    <div data-reveal class="mb-stack-lg">
-      <div class="flex items-center gap-2 mb-1">
-        <span class="material-symbols-outlined text-primary"
-          style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-        <h2 class="text-headline-sm font-headline-sm text-on-background">Trip inspiration</h2>
+  <!-- Live marketplace packages -->
+  <section class="explore-product-section marketplace-preview px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto"
+    aria-labelledby="marketplace-heading">
+    <div data-reveal class="section-heading-row">
+      <div>
+        <span class="section-kicker">Book with local expertise</span>
+        <h2 id="marketplace-heading">Trips from verified travel agencies</h2>
+        <p>Real dates, remaining seats and package prices from Safarni's marketplace.</p>
       </div>
-      <p class="text-label-md text-on-surface-variant">Smart travel plans generated from preferences and travel trends
-      </p>
+      <a routerLink="/marketplace" class="section-link">
+        Browse all packages
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+      </a>
+    </div>
+
+    @if (isMarketplaceLoading) {
+    <div class="marketplace-grid" aria-label="Loading verified travel packages">
+      @for (item of [1, 2, 3, 4]; track item) {
+      <div class="package-preview package-preview--loading">
+        <span class="package-skeleton package-skeleton--image"></span>
+        <span class="package-skeleton package-skeleton--line"></span>
+        <span class="package-skeleton package-skeleton--title"></span>
+        <span class="package-skeleton package-skeleton--line"></span>
+      </div>
+      }
+    </div>
+    } @else if (marketplaceLoadError) {
+    <div class="marketplace-state">
+      <span class="state-icon material-symbols-outlined" aria-hidden="true">storefront</span>
+      <div>
+        <h3>Agency packages are taking a little longer</h3>
+        <p>{{ marketplaceLoadError }}</p>
+      </div>
+      <button type="button" class="product-button product-button--quiet" (click)="retryMarketplace()">Try again</button>
+    </div>
+    } @else if (marketplacePackages.length === 0) {
+    <div class="marketplace-state">
+      <span class="state-icon material-symbols-outlined" aria-hidden="true">map_search</span>
+      <div>
+        <h3>No live agency packages right now</h3>
+        <p>You can still build a personal itinerary while agencies prepare their next departures.</p>
+      </div>
+      <button type="button" class="product-button product-button--primary" (click)="openCreateTrip()">Create your own trip</button>
+    </div>
+    } @else {
+    <div class="marketplace-grid explore-stagger"
+      [class.marketplace-grid--single]="marketplacePackages.length === 1">
+      @for (packageItem of marketplacePackages; track packageItem.id) {
+      <article data-reveal class="package-preview">
+        <a [routerLink]="['/marketplace/packages', packageItem.id]" class="package-preview__image-link"
+          [attr.aria-label]="'View ' + packageItem.title">
+          <img [src]="marketplaceCover(packageItem)" [alt]="packageItem.title + ' in ' + packageItem.destination"
+            loading="lazy" decoding="async" />
+          <span class="package-preview__destination">{{ packageItem.destination }}</span>
+          @if (packageItem.discountPercentage) {
+          <span class="package-preview__offer">Save {{ packageItem.discountPercentage }}%</span>
+          }
+        </a>
+        <div class="package-preview__body">
+          <a [routerLink]="['/marketplace/agencies', packageItem.agency.agencyId]" class="package-preview__agency">
+            <span class="material-symbols-outlined" aria-hidden="true">verified</span>
+            {{ packageItem.agency.companyName }}
+          </a>
+          <h3><a [routerLink]="['/marketplace/packages', packageItem.id]">{{ packageItem.title }}</a></h3>
+          <p>{{ packageItem.description }}</p>
+          <div class="package-preview__meta">
+            <span><span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>{{ marketplaceDate(packageItem) }}</span>
+            <span><span class="material-symbols-outlined" aria-hidden="true">schedule</span>{{ packageItem.durationDays }} days</span>
+            <span><span class="material-symbols-outlined" aria-hidden="true">group</span>{{ packageItem.remainingSeats }} left</span>
+          </div>
+          <div class="package-preview__footer">
+            <span><small>From</small><strong>{{ marketplacePrice(packageItem) }}</strong><small>/ traveler</small></span>
+            <a [routerLink]="['/marketplace/packages', packageItem.id]">
+              View trip
+              <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+            </a>
+          </div>
+        </div>
+      </article>
+      }
+      @if (marketplacePackages.length === 1) {
+      <aside data-reveal class="marketplace-companion" aria-label="Build a personal Safarni trip">
+        <div class="marketplace-companion__icon">
+          <span class="material-symbols-outlined" aria-hidden="true">route</span>
+        </div>
+        <div>
+          <span class="section-kicker">Not your route?</span>
+          <h3>Build the trip around your own dates and stops.</h3>
+          <p>Use this agency departure as inspiration, or create a personal itinerary that stays completely in your control.</p>
+        </div>
+        <ul>
+          <li><span class="material-symbols-outlined" aria-hidden="true">edit_calendar</span>Your dates</li>
+          <li><span class="material-symbols-outlined" aria-hidden="true">location_city</span>Your cities</li>
+          <li><span class="material-symbols-outlined" aria-hidden="true">tune</span>Your pace</li>
+        </ul>
+        <button type="button" class="product-button product-button--primary" (click)="openCreateTrip()">
+          Build a personal trip
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </button>
+      </aside>
+      }
+    </div>
+    }
+  </section>
+
+  <!-- Honest trip templates, personalized when preferences exist -->
+  <section class="explore-product-section trip-ideas px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto"
+    aria-labelledby="trip-ideas-heading">
+    <div data-reveal class="section-heading-row">
+      <div>
+        <span class="section-kicker">A practical starting point</span>
+        <h2 id="trip-ideas-heading">{{ tripIdeasHeading }}</h2>
+        <p>{{ tripIdeasSubtitle }}</p>
+      </div>
+      @if (isSignedIn && !hasPersonalizedIdeas && !isPreferencesLoading) {
+      <a routerLink="/profile/travel-preferences" class="section-link">
+        Set travel preferences
+        <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+      </a>
+      }
     </div>
 
     <div class="explore-stagger grid grid-cols-1 md:grid-cols-3 gap-6">
-      @for (rec of aiRecommendations; track rec.id; let first = $first) {
+      @for (rec of tripIdeas; track rec.id; let first = $first; let ideaIndex = $index) {
       @if (first) {
       <div
         data-reveal
@@ -253,7 +463,7 @@
               loading="lazy" />
             <div
               class="absolute top-4 left-4 bg-primary text-on-primary px-3 py-1 rounded-full text-label-sm font-semibold">
-              {{ rec.subtitle }}
+              {{ tripIdeaLabel(ideaIndex) }}
             </div>
           </div>
           <div class="p-6 md:p-8 flex flex-col justify-between">
@@ -287,9 +497,9 @@
                 <span class="text-label-sm text-on-surface-variant block">Estimated Cost</span>
                 <span class="text-headline-sm font-bold text-primary">${{ rec.estimatedBudget }}</span>
               </div>
-              <button (click)="buildRecommendation(rec.title)"
+              <button (click)="buildRecommendation(rec)"
                 class="bg-primary text-on-primary font-semibold py-2.5 px-6 rounded-xl shadow-sm hover:bg-primary/90 transition-all active:scale-95 flex items-center gap-2">
-                <span>Build this trip</span>
+                <span>Use this trip idea</span>
                 <span class="material-symbols-outlined text-[18px]">map</span>
               </button>
             </div>
@@ -319,9 +529,9 @@
             <span class="text-label-sm text-on-surface-variant block">Avg Budget</span>
             <span class="text-headline-sm font-bold text-primary">${{ rec.estimatedBudget }}</span>
           </div>
-          <button (click)="buildRecommendation(rec.title)"
+          <button (click)="buildRecommendation(rec)"
             class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors"
-            aria-label="View itinerary">
+            [attr.aria-label]="'Use ' + rec.title + ' as a trip starting point'">
             <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
           </button>
         </div>
@@ -329,36 +539,125 @@
       }
       }
 
-      <!-- Create trip handoff -->
-      <div
-        data-reveal
-        class="md:col-span-3 bg-gradient-to-r from-primary via-primary/90 to-secondary rounded-2xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden shadow-lg">
-        <div
-          class="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl">
-        </div>
-        <div class="relative z-10 text-center md:text-left max-w-xl">
-          <div
-            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white text-label-sm font-semibold mb-3">
-            <span class="material-symbols-outlined text-[16px]">lightbulb</span>
-            <span>Your trip, shaped around you</span>
-          </div>
-          <h3 class="text-headline-md md:text-headline-lg font-bold mb-2">Ready to create your dream trip?</h3>
-          <p class="text-body-md text-white/90">Choose your dates, destination cities, and travel style, then receive a
-            complete day-by-day plan built around your choices.</p>
-        </div>
+    </div>
+  </section>
 
-        <div class="relative z-10 flex flex-col sm:flex-row items-center gap-3">
-          <button routerLink="/concierge"
-            class="bg-white text-primary font-bold py-3.5 px-8 rounded-xl shadow-md hover:bg-surface-container-lowest transition-all active:scale-95 flex items-center gap-2">
-            <span class="material-symbols-outlined text-[20px]">chat</span>
-            <span>Ask Safarni</span>
-          </button>
-          <button type="button" (click)="openCreateTrip()"
-            class="bg-white/15 text-white border border-white/30 font-semibold py-3.5 px-6 rounded-xl hover:bg-white/25 transition-all active:scale-95 flex items-center gap-2">
-            <span class="material-symbols-outlined text-[20px]">add_circle</span>
-            <span>Create Trip</span>
-          </button>
-        </div>
+  <section class="explore-product-section how-it-works px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto"
+    aria-labelledby="how-heading">
+    <div data-reveal class="section-heading-row how-it-works__heading">
+      <div>
+        <span class="section-kicker">One connected travel flow</span>
+        <h2 id="how-heading">From a loose idea to a plan you can act on</h2>
+        <p>Start wherever you are. Safarni turns each choice into the input for the next useful step.</p>
+      </div>
+      <div class="journey-summary" aria-label="One workspace, four connected steps">
+        <span class="material-symbols-outlined" aria-hidden="true">conversion_path</span>
+        <span><strong>One workspace</strong>Four connected steps</span>
+      </div>
+    </div>
+    <div data-reveal class="journey-shell">
+      <div class="journey-shell__label">
+        <span class="material-symbols-outlined" aria-hidden="true">flight_takeoff</span>
+        Your idea moves forward without starting over
+      </div>
+      <ol class="journey-steps explore-stagger">
+        <li data-reveal>
+          <div class="journey-step__marker">
+            <span class="journey-step__number">01</span>
+            <span class="material-symbols-outlined" aria-hidden="true">travel_explore</span>
+          </div>
+          <div class="journey-step__copy">
+            <h3>Discover</h3>
+            <p>Explore destination guides or ask the Concierge for a focused starting point.</p>
+            <span class="journey-step__output"><strong>Output</strong>A focused direction</span>
+          </div>
+        </li>
+        <li data-reveal>
+          <div class="journey-step__marker">
+            <span class="journey-step__number">02</span>
+            <span class="material-symbols-outlined" aria-hidden="true">edit_calendar</span>
+          </div>
+          <div class="journey-step__copy">
+            <h3>Shape the trip</h3>
+            <p>Choose your dates, cities, airports and how long you want to stay.</p>
+            <span class="journey-step__output"><strong>Output</strong>A clear trip brief</span>
+          </div>
+        </li>
+        <li data-reveal>
+          <div class="journey-step__marker">
+            <span class="journey-step__number">03</span>
+            <span class="material-symbols-outlined" aria-hidden="true">auto_awesome</span>
+          </div>
+          <div class="journey-step__copy">
+            <h3>Generate the itinerary</h3>
+            <p>Build a day-by-day plan with flights, stays, local places and estimated costs.</p>
+            <span class="journey-step__output"><strong>Output</strong>A usable daily plan</span>
+          </div>
+        </li>
+        <li data-reveal>
+          <div class="journey-step__marker">
+            <span class="journey-step__number">04</span>
+            <span class="material-symbols-outlined" aria-hidden="true">handshake</span>
+          </div>
+          <div class="journey-step__copy">
+            <h3>Book with confidence</h3>
+            <p>Compare complete packages from verified agencies when you want local support.</p>
+            <span class="journey-step__output"><strong>Output</strong>An offer you can inspect</span>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="explore-product-section trust-section px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto"
+    aria-labelledby="trust-heading">
+    <div data-reveal class="trust-panel">
+      <div class="trust-panel__intro">
+        <span class="section-kicker">Trust should be specific</span>
+        <h2 id="trust-heading">Know what you are comparing before you commit</h2>
+        <p>Safarni keeps planning flexible and makes agency offers easier to inspect.</p>
+        <a routerLink="/marketplace" class="section-link">
+          Explore the marketplace
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </a>
+      </div>
+      <ul class="trust-list">
+        <li><span class="material-symbols-outlined" aria-hidden="true">verified_user</span><div><strong>Verified agencies</strong><span>Agency profiles and published packages are reviewed before they reach travelers.</span></div></li>
+        <li><span class="material-symbols-outlined" aria-hidden="true">rate_review</span><div><strong>Verified traveler reviews</strong><span>Reviews are tied to accepted, completed Safarni bookings.</span></div></li>
+        <li><span class="material-symbols-outlined" aria-hidden="true">fact_check</span><div><strong>Clear package details</strong><span>Dates, seats, inclusions, exclusions and cancellation information stay visible.</span></div></li>
+        <li><span class="material-symbols-outlined" aria-hidden="true">contact_support</span><div><strong>Request first, confirm second</strong><span>The agency confirms availability and contacts you before the next commitment.</span></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="explore-final-cta px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+    <div data-reveal class="final-cta-panel">
+      <div>
+        <span class="section-kicker">Your next useful step</span>
+        @if (currentTrip) {
+        <h2>Pick up where you left off.</h2>
+        <p>{{ currentTrip.name }} is ready for your attention.</p>
+        } @else if (isSignedIn) {
+        <h2>Start with the choices only you can make.</h2>
+        <p>Give Safarni the destination, dates and cities. The itinerary comes next.</p>
+        } @else {
+        <h2>Make the next trip easier to begin.</h2>
+        <p>Create a structured trip now, or ask Safarni to help narrow the idea first.</p>
+        }
+      </div>
+      <div class="final-cta-panel__actions">
+        @if (currentTrip) {
+        <button type="button" class="product-button product-button--primary" (click)="openCurrentTrip()">
+          {{ currentTripActionLabel(currentTrip) }}
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </button>
+        } @else {
+        <button type="button" class="product-button product-button--primary" (click)="openCreateTrip()">
+          Create a trip
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </button>
+        }
+        <a routerLink="/concierge" class="product-button product-button--quiet">Ask Safarni first</a>
       </div>
     </div>
   </section>
@@ -420,25 +719,10 @@
           Thoughtful travel planning that keeps your choices at the center of every journey.
         </p>
 
-        <!-- Social Links -->
-        <div class="flex items-center gap-2">
-          <a href="#" aria-label="Instagram"
-            class="footer-social-link">
-            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-          </a>
-          <a href="#" aria-label="Twitter"
-            class="footer-social-link">
-            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          </a>
-          <a href="#" aria-label="YouTube"
-            class="footer-social-link">
-            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-          </a>
-          <a href="#" aria-label="TikTok"
-            class="footer-social-link">
-            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
-          </a>
-        </div>
+        <a routerLink="/contact" class="footer-link inline-flex items-center gap-2 font-semibold">
+          Questions? Contact Safarni
+          <span class="material-symbols-outlined text-[17px]" aria-hidden="true">arrow_forward</span>
+        </a>
       </div>
 
       <!-- Links Grid -->
@@ -457,7 +741,6 @@
           <ul class="space-y-3">
             <li><a class="footer-link" routerLink="/about">About Us</a></li>
             <li><a class="footer-link" routerLink="/journal">Journal</a></li>
-            <li><a class="footer-link" routerLink="/careers">Careers</a></li>
             <li><a class="footer-link" routerLink="/contact">Contact</a></li>
           </ul>
         </div>

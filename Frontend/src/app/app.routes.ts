@@ -323,5 +323,47 @@ export const routes: Routes = [
       { path: 'audit-logs', loadComponent: () => import('./pages/admin/audit-logs/audit-logs.component').then((m) => m.AdminAuditLogsComponent), title: 'Safarni | Audit Logs' }
     ]
   },
+  {
+    path: 'about',
+    loadComponent: () =>
+      import('./pages/static/about/about.component').then((m) => m.AboutComponent),
+    title: 'Safarni | About Us'
+  },
+  {
+    path: 'journal',
+    loadComponent: () =>
+      import('./pages/static/journal/journal.component').then((m) => m.JournalComponent),
+    title: 'Safarni | Journal'
+  },
+  {
+    path: 'careers',
+    loadComponent: () =>
+      import('./pages/static/careers/careers.component').then((m) => m.CareersComponent),
+    title: 'Safarni | Careers'
+  },
+  {
+    path: 'contact',
+    loadComponent: () =>
+      import('./pages/static/contact/contact.component').then((m) => m.ContactComponent),
+    title: 'Safarni | Contact Us'
+  },
+  {
+    path: 'privacy',
+    loadComponent: () =>
+      import('./pages/static/privacy/privacy.component').then((m) => m.PrivacyComponent),
+    title: 'Safarni | Privacy Policy'
+  },
+  {
+    path: 'terms',
+    loadComponent: () =>
+      import('./pages/static/terms/terms.component').then((m) => m.TermsComponent),
+    title: 'Safarni | Terms of Service'
+  },
+  {
+    path: 'cookies',
+    loadComponent: () =>
+      import('./pages/static/cookies/cookies.component').then((m) => m.CookiesComponent),
+    title: 'Safarni | Cookie Policy'
+  },
   { path: '**', redirectTo: '' }
 ];

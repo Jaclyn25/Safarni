@@ -28,6 +28,12 @@ internal static class TripResponseFactory
             OriginAirportCode: trip.OriginAirportCode,
             OriginAirportName: trip.OriginAirportName,
             Cities: TripRouteSerializer.ReadFromTrip(trip),
+            Status: trip.Status
+                .ToString()
+                .ToLowerInvariant(),
+            IsPublished: trip.IsPublished,
+            PublishedAt: trip.PublishedAt,
+            Visibility: trip.Visibility,
             StartDate: trip.StartDate,
             EndDate: trip.EndDate,
             CreatedAt: trip.CreatedAt,

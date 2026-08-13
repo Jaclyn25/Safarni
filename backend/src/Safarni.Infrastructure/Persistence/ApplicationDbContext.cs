@@ -15,36 +15,66 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Trip> Trips => Set<Trip>();
     public DbSet<TripCity> TripCities => Set<TripCity>();
+
     public DbSet<Itinerary> Itineraries => Set<Itinerary>();
     public DbSet<ItineraryDay> ItineraryDays => Set<ItineraryDay>();
     public DbSet<ItineraryItem> ItineraryItems => Set<ItineraryItem>();
     public DbSet<ItineraryGenerationJob> ItineraryGenerationJobs =>
         Set<ItineraryGenerationJob>();
+
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<TravelPreference> TravelPreferences => Set<TravelPreference>();
     public DbSet<PassportInfo> PassportInfos => Set<PassportInfo>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
+
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<AIRequestLog> AIRequestLogs => Set<AIRequestLog>();
+
+    // Travel Agency / Packages
     public DbSet<TravelAgency> TravelAgencies => Set<TravelAgency>();
+
     public DbSet<AgencyVerificationDocument> AgencyVerificationDocuments =>
         Set<AgencyVerificationDocument>();
+
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+
     public DbSet<TravelPackage> TravelPackages => Set<TravelPackage>();
     public DbSet<TravelPackageDay> TravelPackageDays => Set<TravelPackageDay>();
     public DbSet<TravelPackageCity> TravelPackageCities => Set<TravelPackageCity>();
     public DbSet<TravelPackageItem> TravelPackageItems => Set<TravelPackageItem>();
     public DbSet<TravelPackageImage> TravelPackageImages => Set<TravelPackageImage>();
-    public DbSet<PackageBookingRequest> PackageBookingRequests => Set<PackageBookingRequest>();
+    public DbSet<PackageBookingRequest> PackageBookingRequests =>
+        Set<PackageBookingRequest>();
+
     public DbSet<AgencyReview> AgencyReviews => Set<AgencyReview>();
+
+    // Subscription / Payment
     public DbSet<PricingPlan> PricingPlans => Set<PricingPlan>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
-    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+    public DbSet<PaymentTransaction> PaymentTransactions =>
+        Set<PaymentTransaction>();
+
+    // Public Trips
+    public DbSet<PublicTripSnapshot> PublicTripSnapshots =>
+        Set<PublicTripSnapshot>();
+
+    public DbSet<SnapshotVersion> SnapshotVersions =>
+        Set<SnapshotVersion>();
+
+    public DbSet<TripInteraction> TripInteractions =>
+        Set<TripInteraction>();
+
+    public DbSet<TripRating> TripRatings =>
+        Set<TripRating>();
 
     // Chatbot tables
     public DbSet<Conversation> Conversations => Set<Conversation>();
-    public DbSet<ConversationMessage> ConversationMessages => Set<ConversationMessage>();
-    public DbSet<TravelKnowledge> TravelKnowledges => Set<TravelKnowledge>();
+    public DbSet<ConversationMessage> ConversationMessages =>
+        Set<ConversationMessage>();
+
+    public DbSet<TravelKnowledge> TravelKnowledges =>
+        Set<TravelKnowledge>();
+
     public DbSet<ChatFolder> ChatFolders => Set<ChatFolder>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -78,10 +108,7 @@ public sealed class ApplicationDbContext : DbContext
                 .WithMany(f => f.Conversations)
                 .HasForeignKey(e => e.FolderId)
                 .OnDelete(DeleteBehavior.SetNull);
-
         });
-
-
 
         modelBuilder.Entity<ChatFolder>(entity =>
         {

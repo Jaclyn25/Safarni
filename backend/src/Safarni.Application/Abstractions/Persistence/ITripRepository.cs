@@ -12,12 +12,24 @@ public interface ITripRepository
         Guid id,
         CancellationToken cancellationToken = default);
 
+    Task<Trip?> GetByIdWithSnapshotAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Trip>> ListByUserIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Trip>> GetPublishedTripsAsync(
         Guid userId,
         CancellationToken cancellationToken = default);
 
     Task AddAsync(
         Trip trip,
+        CancellationToken cancellationToken = default);
+
+    Task AddPublicSnapshotAsync(
+        PublicTripSnapshot snapshot,
         CancellationToken cancellationToken = default);
 
     void Remove(Trip trip);

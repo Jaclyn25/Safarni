@@ -59,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<ITravelProfileRepository, TravelProfileRepository>();
         services.AddScoped<ITripRepository, TripRepository>();
+        services.AddScoped<IPublicTripRepository, PublicTripRepository>();
         services.AddScoped<IItineraryRepository, ItineraryRepository>();
         services.AddScoped<
             IItineraryGenerationJobRepository,
@@ -78,7 +79,6 @@ public static class DependencyInjection
         services.AddScoped<IAgencyReviewRepository, AgencyReviewRepository>();
         services.AddScoped<IUserNotificationRepository, UserNotificationRepository>();
         services.AddScoped<IMarketplaceNotificationService, MarketplaceNotificationService>();
-
         services.AddScoped<IPasswordHasher, PasswordHasherService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<

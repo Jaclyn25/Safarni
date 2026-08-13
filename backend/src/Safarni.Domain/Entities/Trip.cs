@@ -1,3 +1,5 @@
+using Safarni.Domain.Enums;
+
 namespace Safarni.Domain.Entities;
 
 public class Trip
@@ -19,6 +21,14 @@ public class Trip
     public string? OriginAirportCode { get; set; }
 
     public string? OriginAirportName { get; set; }
+
+    public TripStatus Status { get; set; } = TripStatus.Draft;
+
+    public bool IsPublished { get; set; }
+
+    public DateTime? PublishedAt { get; set; }
+
+    public TripVisibility Visibility { get; set; } = TripVisibility.Private;
 
     /// <summary>
     /// Legacy compatibility copy. New code reads ordered <see cref="Cities"/> rows.
@@ -44,4 +54,6 @@ public class Trip
 
     public ICollection<ItineraryGenerationJob> GenerationJobs { get; set; } =
         new List<ItineraryGenerationJob>();
+
+    public PublicTripSnapshot? PublicSnapshot { get; set; }
 }

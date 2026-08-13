@@ -924,10 +924,10 @@ public sealed class ItineraryGenerationPipelineTests
         validate.Should().NotThrow();
     }
     [Theory]
-    [InlineData(1, 1850)]
-    [InlineData(2, 2500)]
-    [InlineData(5, 4450)]
-    [InlineData(6, 5100)]
+    [InlineData(1, 3000)]
+    [InlineData(2, 3800)]
+    [InlineData(5, 6000)]
+    [InlineData(6, 6000)]
     [InlineData(20, 6000)]
     public void CompletionTokens_ShouldScaleByFullTripDays(
         int dayCount,

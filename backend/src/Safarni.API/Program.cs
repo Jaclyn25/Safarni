@@ -151,8 +151,6 @@ builder.Services.AddScoped<IItineraryAIProvider>(
 builder.Services.UseGeminiForItineraryGeneration();
 
 // Embeddings
-builder.Services.AddSingleton<
-    SmartComponents.LocalEmbeddings.LocalEmbedder>();
 
 builder.Services.AddScoped<IEmbeddingService, EmbeddingService>();
 
@@ -288,16 +286,18 @@ using (var scope = app.Services.CreateScope())
 
         if (await qdrantService.IsHealthyAsync())
         {
-
-            await qdrantService.CreateCollectionAsync();
-
-
-            await indexingService.ReindexAllAsync();
-
-
-            Console.WriteLine(
-                "RAG indexing completed successfully.");
-
+            bool wasCreatedOrRecreated = await qdrantService.CreateCollectionAsync();
+            
+            if (wasCreatedOrRecreated)
+            {
+                Console.WriteLine("Qdrant collection was created or re-created. Starting full RAG indexing...");
+                await indexingService.IndexAllAsync();
+                Console.WriteLine("RAG indexing completed successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Qdrant collection already exists with correct dimensions. Skipping full re-index.");
+            }
         }
         else
         {

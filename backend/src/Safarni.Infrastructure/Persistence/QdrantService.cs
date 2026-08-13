@@ -31,6 +31,7 @@ public class QdrantService : IQdrantService
 
     private string QdrantUrl => (_configuration["RAG:QdrantUrl"] ?? "http://localhost:6333").TrimEnd('/');
     private string CollectionName => _configuration["RAG:QdrantCollectionName"] ?? "safarni_knowledge";
+    private int VectorSize => int.TryParse(_configuration["RAG:QdrantVectorSize"], out var size) ? size : 384;
 
     public async Task<bool> IsHealthyAsync()
     {
@@ -48,7 +49,7 @@ public class QdrantService : IQdrantService
         }
     }
 
-    public async Task CreateCollectionAsync()
+    public async Task<bool> CreateCollectionAsync()
     {
         // Check if Qdrant is healthy first
         if (!await IsHealthyAsync())
@@ -69,15 +70,15 @@ public class QdrantService : IQdrantService
                 exists = true;
                 var details = await checkResponse.Content.ReadFromJsonAsync<QdrantCollectionDetailsResponse>();
                 var size = details?.Result?.Config?.Params?.Vectors?.Size ?? 0;
-                if (size != 384)
+                if (size != VectorSize)
                 {
-                    _logger.LogWarning("Qdrant collection {Collection} exists but has dimension {ActualSize} instead of 384. Re-creating...", CollectionName, size);
+                    _logger.LogWarning("Qdrant collection {Collection} exists but has dimension {ActualSize} instead of {ExpectedSize}. Re-creating...", CollectionName, size, VectorSize);
                     recreateNeeded = true;
                 }
                 else
                 {
-                    _logger.LogInformation("Qdrant collection {Collection} already exists with correct dimension 384.", CollectionName);
-                    return;
+                    _logger.LogInformation("Qdrant collection {Collection} already exists with correct dimension {ExpectedSize}.", CollectionName, VectorSize);
+                    return false;
                 }
             }
         }
@@ -96,12 +97,12 @@ public class QdrantService : IQdrantService
         {
             var createUrl = $"{QdrantUrl}/collections/{CollectionName}";
             
-            // Local embeddings are 384 dimensions, Cosine distance metric.
+            // Embeddings distance metric.
             var createPayload = new
             {
                 vectors = new
                 {
-                    size = 384,
+                    size = VectorSize,
                     distance = "Cosine"
                 }
             };
@@ -117,14 +118,18 @@ public class QdrantService : IQdrantService
                     throw new HttpRequestException($"فشل إنشاء مجموعة Qdrant: {response.StatusCode} - {errorText}");
                 }
 
-                _logger.LogInformation("Successfully created Qdrant collection {Collection} with dimension 384.", CollectionName);
+                _logger.LogInformation("Successfully created Qdrant collection {Collection} with dimension {ExpectedSize}.", CollectionName, VectorSize);
             }
             catch (Exception ex) when (ex is not HttpRequestException)
             {
                 _logger.LogError(ex, "Exception occurred during Qdrant collection creation.");
                 throw new InvalidOperationException("حدث خطأ أثناء محاولة إنشاء مجموعة البيانات في Qdrant.", ex);
             }
+            
+            return true;
         }
+
+        return false;
     }
 
     public async Task DeleteCollectionAsync()

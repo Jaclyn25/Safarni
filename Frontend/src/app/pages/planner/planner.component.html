@@ -1,4 +1,19 @@
-﻿<main class="planner-shell min-h-screen px-margin-mobile py-8 md:px-margin-desktop md:py-12">
+﻿
+<main class="planner-shell min-h-screen px-margin-mobile py-8 md:px-margin-desktop md:py-12">
+
+  <div *ngIf="toastMessage"
+    class="fixed right-4 top-4 z-[130] flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 shadow-2xl backdrop-blur-xl"
+    [ngClass]="{
+      'bg-emerald-950/90 text-emerald-200': toastType === 'success',
+      'bg-rose-950/90 text-rose-200': toastType === 'error',
+      'bg-sky-950/90 text-sky-200': toastType === 'info'
+    }">
+    <span class="material-symbols-outlined text-lg">
+      {{ toastType === 'success' ? 'check_circle' : toastType === 'error' ? 'error' : 'info' }}
+    </span>
+    <span class="text-sm font-medium">{{ toastMessage }}</span>
+  </div>
+
   <section *ngIf="!itinerary || isEditingPreferences" class="mx-auto max-w-5xl">
     <span class="text-label-md font-bold uppercase tracking-[0.2em] text-primary">
       Make it yours
@@ -31,6 +46,9 @@
     </div>
   </section>
 
+  <!-- ============================================================ -->
+  <!-- [مشترك] Preferences panel -->
+  <!-- ============================================================ -->
   <section id="preferences" *ngIf="!itinerary || isEditingPreferences"
     class="mx-auto mt-8 max-w-5xl scroll-mt-28 overflow-hidden rounded-[28px] border border-outline-variant/20 bg-surface-container-lowest shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
     <div
@@ -267,6 +285,9 @@
     </div>
   </section>
 
+  <!-- ============================================================ -->
+  <!-- [مشترك] Generation overlay -->
+  <!-- ============================================================ -->
   <div *ngIf="isGenerating"
     class="generation-overlay fixed inset-0 z-[120] grid place-items-center bg-slate-950/60 p-5 backdrop-blur-md"
     aria-busy="true">
@@ -350,22 +371,49 @@
     </section>
   </div>
 
+  <!-- ============================================================ -->
+  <!-- [مشترك + إضافات الملف 2] Itinerary hero -->
+  <!-- ============================================================ -->
   <section *ngIf="visibleDays.length" class="mx-auto max-w-7xl space-y-6" [dir]="contentDirection">
     <div
       class="itinerary-hero relative -mx-margin-mobile mb-8 min-h-[430px] overflow-hidden bg-slate-900 bg-cover bg-center px-6 py-8 text-white md:mx-0 md:min-h-[480px] md:rounded-[30px] md:px-10 md:py-10"
       [style.background-image]="'url(' + itineraryHeroImage + ')'">
       <div class="flex min-h-[365px] flex-col justify-between md:min-h-[400px]">
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
           <span
             class="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur-md">
             <span class="material-symbols-outlined text-[17px]">verified</span>
             Ready for your journey
           </span>
-          <button type="button" (click)="editPreferences()"
-            class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-slate-950/30 px-4 py-2 text-sm font-bold text-white backdrop-blur-md transition hover:bg-white hover:text-slate-900">
-            <span class="material-symbols-outlined text-[18px]">tune</span>
-            Edit preferences
-          </button>
+
+          <!-- [من الملف 2 فقط] Publish / Visibility controls -->
+          <div class="flex flex-wrap items-center gap-2">
+            <div *ngIf="trip?.isPublished" class="flex items-center gap-2 rounded-full border border-white/20 bg-slate-950/25 px-3 py-2 backdrop-blur-md">
+              <select [(ngModel)]="publishVisibility"
+                class="bg-transparent text-sm font-semibold text-white outline-none">
+                <option *ngFor="let option of publishVisibilityOptions; trackBy: trackByVisibilityOption" [value]="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <button type="button" (click)="updateTripVisibility()" [disabled]="isUpdatingVisibility"
+                class="rounded-full border border-white/25 px-3 py-1.5 text-sm font-bold text-white transition hover:bg-white hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60">
+                {{ isUpdatingVisibility ? 'Saving...' : 'Update visibility' }}
+              </button>
+            </div>
+            <button type="button" (click)="openPublishModal()" [disabled]="!isTripPublishable()"
+              [title]="!isTripPublishable() ? 'Only completed trips can be published' : ''"
+              class="inline-flex items-center gap-2 rounded-full border border-teal-300/40 bg-teal-400/15 px-4 py-2 text-sm font-bold text-teal-100 backdrop-blur-md transition hover:bg-teal-300 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60">
+              <span class="material-symbols-outlined text-[18px]">
+                {{ trip?.isPublished ? 'update' : 'public' }}
+              </span>
+              {{ trip?.isPublished ? 'Republish' : 'Make Public' }}
+            </button>
+            <button type="button" (click)="editPreferences()"
+              class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-slate-950/30 px-4 py-2 text-sm font-bold text-white backdrop-blur-md transition hover:bg-white hover:text-slate-900">
+              <span class="material-symbols-outlined text-[18px]">tune</span>
+              Edit preferences
+            </button>
+          </div>
         </div>
 
         <div class="max-w-3xl">
@@ -399,7 +447,10 @@
         </div>
       </div>
     </div>
-    <!-- Trip Map & Nearby Attractions Section -->
+
+    <!-- ============================================================ -->
+    <!-- [مشترك] Trip Map & Nearby Attractions -->
+    <!-- ============================================================ -->
     <div class="mb-8 overflow-hidden rounded-2xl bg-surface shadow-sm">
       <div
         class="p-5 border-b border-outline/10 flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-surface-container-lowest">
@@ -414,6 +465,7 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2 bg-surface p-1.5 rounded-2xl border border-outline/10 shadow-sm">
+          <!-- trackBy مُعاد من الملف 1 -->
           <select [(ngModel)]="searchCategory"
             class="rounded-xl border-none bg-transparent px-4 py-2.5 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer hover:bg-surface-container-low transition-colors">
             <option *ngFor="let cat of nearbyCategories; trackBy: trackByIndex" [value]="cat.value">
@@ -440,10 +492,8 @@
       </div>
 
       <div class="flex flex-col md:flex-row h-[600px] bg-surface">
-        <!-- Leaflet Map Container -->
         <div id="trip-map" class="h-[300px] w-full md:h-full md:flex-1 z-0 relative"></div>
 
-        <!-- Nearby Attractions List -->
         <div
           class="w-full md:w-[35%] lg:w-[30%] bg-surface flex flex-col h-[300px] md:h-full border-t md:border-t-0 md:border-s border-outline/10 relative z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.03)]">
           <div
@@ -474,6 +524,7 @@
               <p class="text-sm mt-1 text-on-surface-variant">Looking for the best spots</p>
             </div>
 
+            <!-- trackBy مُعاد من الملف 1 -->
             <div class="divide-y divide-outline/5" *ngIf="!isSearchingNearby && nearbyAttractions().length > 0">
               <button *ngFor="let place of nearbyAttractions(); trackBy: trackByIndex" (click)="focusAttraction(place)"
                 class="w-full text-left p-4 hover:bg-surface-container-lowest transition-colors flex gap-4 group">
@@ -504,23 +555,16 @@
       </div>
     </div>
 
+    <!-- ============================================================ -->
+    <!-- [مشترك] Cost summary + quality safeguards -->
+    <!-- ============================================================ -->
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <span class="text-label-sm uppercase tracking-[0.18em] text-primary">
-          {{
-          planText(
-          'Validated itinerary',
-          'خط سير تم التحقق منه'
-          )
-          }}
+          {{ planText('Validated itinerary', 'خط سير تم التحقق منه') }}
         </span>
         <h3 class="mt-1 text-headline-md text-on-surface">
-          {{
-          planText(
-          'Your practical day-by-day plan',
-          'خطتك العملية يوماً بيوم'
-          )
-          }}
+          {{ planText('Your practical day-by-day plan', 'خطتك العملية يوماً بيوم') }}
         </h3>
       </div>
 
@@ -528,34 +572,19 @@
         <p class="text-label-sm opacity-75">
           {{
           planText(
-          itinerary.isCompleteCostEstimate
-          ? 'Complete planning estimate'
-          : 'Known-cost estimate',
-          itinerary.isCompleteCostEstimate
-          ? 'التكلفة التقديرية الكاملة'
-          : 'تقدير التكاليف المعروفة'
+          itinerary.isCompleteCostEstimate ? 'Complete planning estimate' : 'Known-cost estimate',
+          itinerary.isCompleteCostEstimate ? 'التكلفة التقديرية الكاملة' : 'تقدير التكاليف المعروفة'
           )
           }}
         </p>
         <strong class="text-title-lg">
-          {{
-          itinerary.estimatedTotalCost
-          | currency:itinerary.currencyCode
-          }}
+          {{ itinerary.estimatedTotalCost | currency:itinerary.currencyCode }}
         </strong>
         <p class="mt-1 text-xs">
           {{ itinerary.travelerCount }}
-          {{
-          planText(
-          itinerary.travelerCount === 1
-          ? 'traveler'
-          : 'travelers',
-          'مسافر'
-          )
-          }}
+          {{ planText(itinerary.travelerCount === 1 ? 'traveler' : 'travelers', 'مسافر') }}
           <ng-container *ngIf="itinerary.unknownCostItemCount > 0">
-            · {{ itinerary.unknownCostItemCount }}
-            {{ planText('costs unavailable', 'تكاليف غير متاحة') }}
+            · {{ itinerary.unknownCostItemCount }} {{ planText('costs unavailable', 'تكاليف غير متاحة') }}
           </ng-container>
         </p>
       </div>
@@ -563,58 +592,37 @@
 
     <div *ngIf="usesQualitySafeguards; else legacyQualityNotice" class="grid gap-3 sm:grid-cols-3">
       <div class="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-        <span class="material-symbols-outlined text-emerald-600">
-          location_on
-        </span>
+        <span class="material-symbols-outlined text-emerald-600">location_on</span>
         <div>
           <strong class="block text-label-md text-on-surface">
             {{ planText('Destination checked', 'تم التحقق من الوجهة') }}
           </strong>
           <span class="mt-1 block text-body-sm text-on-surface-variant">
-            {{
-            planText(
-            'Every suggested venue is matched to the trip destination.',
-            'تمت مطابقة كل مكان مقترح مع وجهة الرحلة.'
-            )
-            }}
+            {{ planText('Every suggested venue is matched to the trip destination.', 'تمت مطابقة كل مكان مقترح مع وجهة الرحلة.') }}
           </span>
         </div>
       </div>
 
       <div class="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-        <span class="material-symbols-outlined text-primary">
-          verified
-        </span>
+        <span class="material-symbols-outlined text-primary">verified</span>
         <div>
           <strong class="block text-label-md text-on-surface">
             {{ planText('Unique verified places', 'أماكن موثقة وغير مكررة') }}
           </strong>
           <span class="mt-1 block text-body-sm text-on-surface-variant">
-            {{
-            planText(
-            'Restaurants and attractions are not repeated.',
-            'لا تتكرر المطاعم أو المعالم في الخطة.'
-            )
-            }}
+            {{ planText('Restaurants and attractions are not repeated.', 'لا تتكرر المطاعم أو المعالم في الخطة.') }}
           </span>
         </div>
       </div>
 
       <div class="flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4">
-        <span class="material-symbols-outlined text-amber-600">
-          price_check
-        </span>
+        <span class="material-symbols-outlined text-amber-600">price_check</span>
         <div>
           <strong class="block text-label-md text-on-surface">
             {{ planText('Honest pricing', 'تسعير واضح') }}
           </strong>
           <span class="mt-1 block text-body-sm text-on-surface-variant">
-            {{
-            planText(
-            'Date-specific hotel ranges include a direct booking link.',
-            'نطاقات أسعار الفنادق مرتبطة بالتواريخ وتشمل رابط حجز مباشر.'
-            )
-            }}
+            {{ planText('Date-specific hotel ranges include a direct booking link.', 'نطاقات أسعار الفنادق مرتبطة بالتواريخ وتشمل رابط حجز مباشر.') }}
           </span>
         </div>
       </div>
@@ -622,23 +630,15 @@
 
     <ng-template #legacyQualityNotice>
       <div class="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-on-surface">
-        <span class="material-symbols-outlined text-amber-700">
-          update
-        </span>
+        <span class="material-symbols-outlined text-amber-700">update</span>
         <div>
           <strong class="block text-label-lg">
-            {{
-            planText(
-            'Regenerate to apply the new accuracy safeguards',
-            'أعد الإنشاء لتطبيق ضوابط الدقة الجديدة'
-            )
-            }}
+            {{ planText('Regenerate to apply the new accuracy safeguards', 'أعد الإنشاء لتطبيق ضوابط الدقة الجديدة') }}
           </strong>
           <p class="mt-1 text-body-sm text-on-surface-variant">
             {{
             planText(
-            'This saved plan was created before destination, duplicate-place, language and lodging-price validation was
-            added.',
+            'This saved plan was created before destination, duplicate-place, language and lodging-price validation was added.',
             'تم إنشاء هذه الخطة قبل إضافة التحقق من الوجهة وتكرار الأماكن واللغة وأسعار الإقامة.'
             )
             }}
@@ -647,6 +647,9 @@
       </div>
     </ng-template>
 
+    <!-- ============================================================ -->
+    <!-- [مشترك] Day cards -->
+    <!-- ============================================================ -->
     <article *ngFor="let day of visibleDays; let dayIndex = index; trackBy: trackById"
       class="day-card overflow-hidden rounded-[26px] border border-outline-variant/25 bg-surface-container-lowest shadow-sm">
       <div class="day-cover relative overflow-hidden bg-slate-200">
@@ -695,12 +698,11 @@
         </span>
       </header>
 
-      <!-- Attractive Weather Widget -->
+      <!-- Weather Widget: optional chaining (?.) الأكثر أماناً من الملف 2 + trackBy من الملف 1 -->
       <div *ngIf="tripId && tripsWeather().data as weatherData" class="px-5 pt-5 md:px-7">
         <div *ngIf="weatherData[dayIndex] as dayWeather" class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-100/50 p-4 shadow-sm">
-          
-          <!-- Weather Alerts -->
-          <div *ngIf="dayWeather.weather.alerts.length" class="mb-4 flex gap-3 rounded-xl bg-red-50 border border-red-100 p-3 text-red-900">
+
+          <div *ngIf="dayWeather.weather.alerts?.length" class="mb-4 flex gap-3 rounded-xl bg-red-50 border border-red-100 p-3 text-red-900">
             <span class="material-symbols-outlined text-red-600">warning</span>
             <div>
               <strong class="block text-sm font-bold">Severe Weather Warning</strong>
@@ -708,8 +710,7 @@
             </div>
           </div>
 
-          <!-- Forecast Details -->
-          <div class="flex items-center gap-4" *ngIf="dayWeather.weather.forecastDays.length">
+          <div class="flex items-center gap-4" *ngIf="dayWeather.weather.forecastDays?.length">
             <div class="flex items-center gap-3">
               <img [src]="'https:' + dayWeather.weather.forecastDays[0].conditionIcon" [alt]="dayWeather.weather.forecastDays[0].conditionText" class="h-12 w-12 drop-shadow-sm">
               <div>
@@ -717,7 +718,7 @@
                 <span class="text-sm font-medium text-slate-700">{{ dayWeather.weather.forecastDays[0].conditionText }}</span>
               </div>
             </div>
-            
+
             <div class="ml-auto flex gap-6">
               <div class="text-center">
                 <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">High</span>
@@ -734,10 +735,7 @@
 
       <div class="space-y-4 p-5 md:p-7">
         <ng-container *ngFor="let item of day.items; let itemIndex = index; trackBy: trackById">
-          <div *ngIf="
-              item.routeDistanceMeters !== null &&
-              item.routeDurationMinutes !== null
-            "
+          <div *ngIf="item.routeDistanceMeters !== null && item.routeDurationMinutes !== null"
             class="mx-3 flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/25 bg-primary/5 px-4 py-3 text-label-sm text-on-surface-variant">
             <span class="material-symbols-outlined text-[19px] text-primary">
               {{ routeModeIcon(item.routeTravelMode) }}
@@ -787,9 +785,7 @@
                 </div>
 
                 <span class="rounded-full px-3 py-1.5 text-xs font-bold" [ngClass]="
-                  item.estimatedCost !== null
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'bg-amber-50 text-amber-700'
+                  item.estimatedCost !== null ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
                 ">
                   {{ item.estimatedCost !== null ? 'Verified fare' : 'Fare unavailable' }}
                 </span>
@@ -936,21 +932,11 @@
                   </span>
                   <span *ngIf="item.costSource === 'live_hotel_rate'"
                     class="mt-0.5 block text-[11px] font-medium text-on-surface-variant">
-                    {{
-                    planText(
-                    'live total stay',
-                    'إجمالي الإقامة المباشر'
-                    )
-                    }}
+                    {{ planText('live total stay', 'إجمالي الإقامة المباشر') }}
                   </span>
                   <span *ngIf="item.costSource === 'live_flight_price'"
                     class="mt-0.5 block text-[11px] font-medium text-on-surface-variant">
-                    {{
-                    planText(
-                    'live Google Flights fare',
-                    'سعر مباشر من Google Flights'
-                    )
-                    }}
+                    {{ planText('live Google Flights fare', 'سعر مباشر من Google Flights') }}
                   </span>
                 </strong>
                 <span *ngIf="item.estimatedCost === null"
@@ -963,73 +949,38 @@
                 {{ item.description }}
               </p>
 
-              <div *ngIf="
-                item.priceLevel ||
-                item.ratePerNight !== null ||
-                item.priceSource
-              " class="mt-3 flex flex-wrap items-center gap-2 text-label-sm">
+              <div *ngIf="item.priceLevel || item.ratePerNight !== null || item.priceSource"
+                class="mt-3 flex flex-wrap items-center gap-2 text-label-sm">
                 <span *ngIf="item.priceLevel"
                   class="rounded-full bg-emerald-500/10 px-3 py-1.5 font-semibold text-emerald-700">
-                  {{
-                  planText(
-                  'Local price level',
-                  'مستوى السعر المحلي'
-                  )
-                  }}:
+                  {{ planText('Local price level', 'مستوى السعر المحلي') }}:
                   {{ item.priceLevel }}
                 </span>
                 <span *ngIf="item.ratePerNight !== null"
                   class="rounded-full bg-primary/10 px-3 py-1.5 font-semibold text-primary">
-                  {{
-                  planText(
-                  'Approx. nightly range',
-                  'نطاق السعر التقريبي لليلة'
-                  )
-                  }}:
-                  {{
-                  hotelRangeLow(item.ratePerNight)
-                  | currency:displayCurrency
-                  }}
+                  {{ planText('Approx. nightly range', 'نطاق السعر التقريبي لليلة') }}:
+                  {{ hotelRangeLow(item.ratePerNight) | currency:displayCurrency }}
                   –
-                  {{
-                  hotelRangeHigh(item.ratePerNight)
-                  | currency:displayCurrency
-                  }}
+                  {{ hotelRangeHigh(item.ratePerNight) | currency:displayCurrency }}
                 </span>
-                <span *ngIf="
-                  item.ratePerNight !== null &&
-                  item.stayNights !== null
-                " class="rounded-full bg-primary/5 px-3 py-1.5 font-semibold text-primary">
+                <span *ngIf="item.ratePerNight !== null && item.stayNights !== null"
+                  class="rounded-full bg-primary/5 px-3 py-1.5 font-semibold text-primary">
                   × {{ item.stayNights }}
-                  {{
-                  planText(
-                  item.stayNights === 1 ? 'night' : 'nights',
-                  item.stayNights === 1 ? 'ليلة' : 'ليالٍ'
-                  )
-                  }}
+                  {{ planText(item.stayNights === 1 ? 'night' : 'nights', item.stayNights === 1 ? 'ليلة' : 'ليالٍ') }}
                 </span>
                 <span *ngIf="item.priceSource" class="text-on-surface-variant">
-                  {{
-                  planText(
-                  'Rate source',
-                  'مصدر السعر'
-                  )
-                  }}:
+                  {{ planText('Rate source', 'مصدر السعر') }}:
                   {{ item.priceSource }}
                 </span>
               </div>
 
               <div class="mt-3 space-y-1 text-body-sm text-on-surface-variant">
                 <p *ngIf="item.location" class="flex items-start gap-2">
-                  <span class="material-symbols-outlined text-[18px] text-primary">
-                    location_on
-                  </span>
+                  <span class="material-symbols-outlined text-[18px] text-primary">location_on</span>
                   <span>{{ item.location }}</span>
                 </p>
                 <p *ngIf="item.address" class="flex items-start gap-2">
-                  <span class="material-symbols-outlined text-[18px] text-primary">
-                    map
-                  </span>
+                  <span class="material-symbols-outlined text-[18px] text-primary">map</span>
                   <span>{{ item.address }}</span>
                 </p>
               </div>
@@ -1037,41 +988,27 @@
               <div class="mt-4 flex flex-wrap items-center gap-2">
                 <a *ngIf="item.googleMapsUrl" [href]="item.googleMapsUrl" target="_blank" rel="noopener noreferrer"
                   class="flex items-center gap-1.5 rounded-full bg-primary px-3 py-2 text-label-sm text-on-primary transition hover:opacity-90">
-                  <span class="material-symbols-outlined text-[18px]">
-                    directions
-                  </span>
+                  <span class="material-symbols-outlined text-[18px]">directions</span>
                   Open map
                 </a>
 
                 <a *ngIf="item.externalUrl" [href]="item.externalUrl" target="_blank" rel="noopener noreferrer"
                   class="flex items-center gap-1.5 rounded-full border border-primary/30 px-3 py-2 text-label-sm font-semibold text-primary transition hover:bg-primary/5">
-                  <span class="material-symbols-outlined text-[18px]">
-                    open_in_new
-                  </span>
+                  <span class="material-symbols-outlined text-[18px]">open_in_new</span>
                   {{
                   planText(
-                  item.category === 'accommodation'
-                  ? 'View hotel / booking'
-                  : item.costSource === 'live_flight_price'
-                  ? 'View flight options'
-                  : 'View source',
+                  item.category === 'accommodation' ? 'View hotel / booking' : item.costSource === 'live_flight_price' ? 'View flight options' : 'View source',
                   'عرض المصدر'
                   )
                   }}
                 </a>
 
-                <button *ngIf="canRecommendItem(item)" type="button" (click)="toggleVenueSuggestions(item)" [disabled]="
-                  loadingVenueItemId === item.id ||
-                  isSaving
-                "
+                <button *ngIf="canRecommendItem(item)" type="button" (click)="toggleVenueSuggestions(item)"
+                  [disabled]="loadingVenueItemId === item.id || isSaving"
                   class="flex items-center gap-1.5 rounded-full border border-secondary/40 bg-secondary/5 px-3 py-2 text-label-sm font-semibold text-secondary transition hover:bg-secondary/10 disabled:opacity-50">
                   <span class="material-symbols-outlined text-[18px]"
                     [class.animate-spin]="loadingVenueItemId === item.id">
-                    {{
-                    loadingVenueItemId === item.id
-                    ? 'progress_activity'
-                    : categoryIcon(item.category)
-                    }}
+                    {{ loadingVenueItemId === item.id ? 'progress_activity' : categoryIcon(item.category) }}
                   </span>
                   <span>{{ changeRecommendationLabel(item) }}</span>
                 </button>
@@ -1085,17 +1022,13 @@
                     [disabled]="isSaving || itemIndex === 0"
                     class="rounded-full border border-outline-variant p-2 text-on-surface-variant hover:text-primary disabled:opacity-35"
                     aria-label="Move item earlier">
-                    <span class="material-symbols-outlined text-[18px]">
-                      arrow_upward
-                    </span>
+                    <span class="material-symbols-outlined text-[18px]">arrow_upward</span>
                   </button>
                   <button type="button" (click)="moveItem(item, day, itemIndex + 1)"
                     [disabled]="isSaving || itemIndex === day.items.length - 1"
                     class="rounded-full border border-outline-variant p-2 text-on-surface-variant hover:text-primary disabled:opacity-35"
                     aria-label="Move item later">
-                    <span class="material-symbols-outlined text-[18px]">
-                      arrow_downward
-                    </span>
+                    <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
                   </button>
                   <button *ngIf="previousDay(day) as previous" type="button"
                     (click)="moveItem(item, previous, previous.items.length)" [disabled]="isSaving"
@@ -1159,35 +1092,16 @@
                   </p>
                   <p *ngIf="venue.totalRate !== null" class="mt-2 font-semibold text-primary">
                     {{ venue.totalRate | currency:displayCurrency }}
-                    {{
-                    planText(
-                    'total stay',
-                    'إجمالي الإقامة'
-                    )
-                    }}
+                    {{ planText('total stay', 'إجمالي الإقامة') }}
                   </p>
                   <p *ngIf="venue.ratePerNight !== null" class="mt-1 text-xs font-semibold text-primary">
-                    {{
-                    hotelRangeLow(venue.ratePerNight)
-                    | currency:displayCurrency
-                    }}
+                    {{ hotelRangeLow(venue.ratePerNight) | currency:displayCurrency }}
                     –
-                    {{
-                    hotelRangeHigh(venue.ratePerNight)
-                    | currency:displayCurrency
-                    }}
+                    {{ hotelRangeHigh(venue.ratePerNight) | currency:displayCurrency }}
                     {{ planText('per night', 'لليلة') }}
                   </p>
-                  <p *ngIf="
-                      venue.totalRate === null &&
-                      venue.priceLevel
-                    " class="mt-2 text-xs font-semibold text-emerald-700">
-                    {{
-                    planText(
-                    'Price level',
-                    'مستوى السعر'
-                    )
-                    }}:
+                  <p *ngIf="venue.totalRate === null && venue.priceLevel" class="mt-2 text-xs font-semibold text-emerald-700">
+                    {{ planText('Price level', 'مستوى السعر') }}:
                     {{ venue.priceLevel }}
                   </p>
                   <div class="mt-3 flex gap-2">
@@ -1199,22 +1113,17 @@
                       rel="noopener noreferrer"
                       class="rounded-lg border border-outline-variant px-2.5 py-2 text-primary"
                       aria-label="Open venue map">
-                      <span class="material-symbols-outlined text-[18px]">
-                        map
-                      </span>
+                      <span class="material-symbols-outlined text-[18px]">map</span>
                     </a>
                     <a *ngIf="venue.externalUrl" [href]="venue.externalUrl" target="_blank" rel="noopener noreferrer"
                       class="rounded-lg border border-primary/30 px-2.5 py-2 text-primary"
                       aria-label="Open booking link">
-                      <span class="material-symbols-outlined text-[18px]">
-                        open_in_new
-                      </span>
+                      <span class="material-symbols-outlined text-[18px]">open_in_new</span>
                     </a>
                   </div>
                 </div>
               </article>
             </div>
-
           </section>
 
           <ng-container *ngIf="editingItemId === item.id" [ngTemplateOutlet]="itemEditor"></ng-container>
@@ -1461,10 +1370,8 @@
       <p>
         {{
         planText(
-        'Route distance and duration: Google Maps. Hotel rates are date-specific search results; local venue costs
-        remain planning estimates unless an exact numeric price is shown.',
-        'المسافة والمدة من خرائط Google. أسعار الفنادق نتائج بحث مرتبطة بالتواريخ، وتكاليف الأماكن المحلية تظل تقديرية
-        ما لم يظهر سعر رقمي واضح.'
+        'Route distance and duration: Google Maps. Hotel rates are date-specific search results; local venue costs remain planning estimates unless an exact numeric price is shown.',
+        'المسافة والمدة من خرائط Google. أسعار الفنادق نتائج بحث مرتبطة بالتواريخ، وتكاليف الأماكن المحلية تظل تقديرية ما لم يظهر سعر رقمي واضح.'
         )
         }}
       </p>
@@ -1478,4 +1385,126 @@
       </p>
     </div>
   </section>
+
+  <!-- ============================================================ -->
+  <!-- [من الملف 2 فقط] Publish Modal -->
+  <!-- ============================================================ -->
+  <div *ngIf="isPublishModalOpen"
+    class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
+    <div class="w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/10 bg-slate-900 text-white shadow-[0_30px_90px_rgba(2,6,23,.45)]">
+      <div class="flex items-center justify-between border-b border-white/10 px-6 py-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-teal-300">Publish trip</p>
+          <h3 class="mt-1 text-xl font-bold">{{ trip?.isPublished ? 'Republish this trip' : 'Make this trip public' }}</h3>
+        </div>
+        <button type="button" (click)="closePublishModal()" class="rounded-full p-2 text-slate-300 transition hover:bg-white/10 hover:text-white">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="grid gap-5 px-6 py-5 lg:grid-cols-[1.2fr_0.8fr]">
+        <div class="space-y-5">
+          <div class="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+            Before publishing, confirm that companion names, private notes, and other personal details are not exposed.
+          </div>
+
+          <label class="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <input type="checkbox" [(ngModel)]="publishConfirmedNoPersonalInfo" class="mt-1 h-4 w-4 rounded border-white/30 bg-transparent text-teal-400 focus:ring-teal-400">
+            <span>
+              <strong class="block text-sm">I confirm this trip does not reveal personal details</strong>
+              <span class="mt-1 block text-xs text-slate-300">This is the confirmation required before anything becomes public.</span>
+            </span>
+          </label>
+
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h4 class="text-sm font-bold">Visibility</h4>
+                <p class="text-xs text-slate-400">Choose who can discover this trip.</p>
+              </div>
+            </div>
+            <div class="grid gap-2 sm:grid-cols-3">
+              <label *ngFor="let option of publishVisibilityOptions; trackBy: trackByVisibilityOption"
+                class="cursor-pointer rounded-2xl border px-3 py-3 transition"
+                [ngClass]="publishVisibility === option.value ? 'border-teal-300 bg-teal-400/10' : 'border-white/10 bg-slate-950/40 hover:border-white/20'">
+                <input type="radio" name="publishVisibility" class="sr-only" [value]="option.value" [(ngModel)]="publishVisibility">
+                <strong class="block text-sm">{{ option.label }}</strong>
+                <span class="mt-1 block text-xs text-slate-400">{{ option.description }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h4 class="text-sm font-bold">Cost visibility</h4>
+                <p class="text-xs text-slate-400">Show the actual trip cost in the public version.</p>
+              </div>
+              <label class="inline-flex items-center gap-2 text-sm font-semibold">
+                <input type="checkbox" [(ngModel)]="publishCostShown" class="h-4 w-4 rounded border-white/30 bg-transparent text-teal-400 focus:ring-teal-400">
+                Show cost
+              </label>
+            </div>
+            <label *ngIf="publishCostShown" class="mt-4 block">
+              <span class="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Cost amount</span>
+              <input type="number" min="0" step="0.01" [(ngModel)]="publishCostAmount"
+                class="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-teal-300" />
+            </label>
+          </div>
+        </div>
+
+        <div class="space-y-5">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <h4 class="text-sm font-bold">Photos to include</h4>
+            <p class="mt-1 text-xs text-slate-400">Pick the images that should be visible on the public snapshot.</p>
+
+            <div *ngIf="publishPhotoOptions.length > 0" class="mt-4 grid gap-3">
+              <label *ngFor="let photo of publishPhotoOptions; trackBy: trackByPhoto"
+                class="cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40">
+                <div class="relative h-28 bg-slate-800">
+                  <img [src]="photo.url" [alt]="photo.label" class="h-full w-full object-cover">
+                  <input type="checkbox" [checked]="photo.selected" (change)="togglePublishPhoto(photo.url)"
+                    class="absolute right-3 top-3 h-4 w-4 rounded border-white/30 text-teal-400 focus:ring-teal-400">
+                </div>
+                <div class="px-3 py-2">
+                  <span class="block text-sm font-semibold">{{ photo.label }}</span>
+                </div>
+              </label>
+            </div>
+
+            <div *ngIf="publishPhotoOptions.length === 0" class="mt-4 rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center text-xs text-slate-400">
+              No photo URLs were found on the itinerary yet.
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4 text-xs text-slate-300">
+            <p><strong class="text-white">Snapshot preview</strong></p>
+            <p class="mt-1">Photos selected: {{ publishPhotoCount }} of {{ publishPhotoPreviewCount }}</p>
+            <p>Cost: {{ publishCostShown ? 'visible' : 'hidden' }}</p>
+            <p>Visibility: {{ publishVisibility }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="publishErrorMessage" class="border-t border-rose-500/20 bg-rose-500/10 px-6 py-3 text-sm text-rose-200">
+        {{ publishErrorMessage }}
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-6 py-4">
+        <p class="text-xs text-slate-400">
+          Publishing creates a frozen public snapshot. You can republish later after editing.
+        </p>
+        <div class="flex items-center gap-3">
+          <button type="button" (click)="closePublishModal()"
+            class="rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10">
+            Cancel
+          </button>
+          <button type="button" (click)="publishTrip()" [disabled]="isPublishing"
+            class="rounded-full bg-teal-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60">
+            {{ isPublishing ? 'Publishing...' : (trip?.isPublished ? 'Republish' : 'Make Public') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </main>

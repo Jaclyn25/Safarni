@@ -33,9 +33,28 @@ internal sealed class TripRepository : ITripRepository
             .AsNoTracking()
             .AsSplitQuery()
             .Include(trip => trip.Cities)
-            .Include(trip => trip.Itineraries.Where(itinerary => itinerary.IsActive))
+            .Include(trip => trip.Itineraries
+                .Where(itinerary => itinerary.IsActive))
                 .ThenInclude(itinerary => itinerary.Days)
                     .ThenInclude(day => day.Items)
+            .FirstOrDefaultAsync(
+                trip => trip.Id == id,
+                cancellationToken);
+    }
+
+    public Task<Trip?> GetByIdWithSnapshotAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Trips
+            .AsSplitQuery()
+            .Include(trip => trip.Cities)
+            .Include(trip => trip.Itineraries
+                .Where(itinerary => itinerary.IsActive))
+                .ThenInclude(itinerary => itinerary.Days)
+                    .ThenInclude(day => day.Items)
+            .Include(trip => trip.PublicSnapshot)
+                .ThenInclude(snapshot => snapshot.Versions)
             .FirstOrDefaultAsync(
                 trip => trip.Id == id,
                 cancellationToken);
@@ -50,10 +69,28 @@ internal sealed class TripRepository : ITripRepository
             .AsSplitQuery()
             .Where(trip => trip.UserId == userId)
             .Include(trip => trip.Cities)
-            .Include(trip => trip.Itineraries.Where(itinerary => itinerary.IsActive))
+            .Include(trip => trip.Itineraries
+                .Where(itinerary => itinerary.IsActive))
                 .ThenInclude(itinerary => itinerary.Days)
                     .ThenInclude(day => day.Items)
-            .OrderByDescending(trip => trip.UpdatedAt ?? trip.CreatedAt)
+            .OrderByDescending(
+                trip => trip.UpdatedAt ?? trip.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Trip>> GetPublishedTripsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Trips
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Where(trip =>
+                trip.UserId == userId &&
+                trip.IsPublished)
+            .Include(trip => trip.PublicSnapshot)
+                .ThenInclude(snapshot => snapshot.Versions)
+            .OrderByDescending(trip => trip.PublishedAt)
             .ToListAsync(cancellationToken);
     }
 
@@ -61,7 +98,18 @@ internal sealed class TripRepository : ITripRepository
         Trip trip,
         CancellationToken cancellationToken = default)
     {
-        await _dbContext.Trips.AddAsync(trip, cancellationToken);
+        await _dbContext.Trips.AddAsync(
+            trip,
+            cancellationToken);
+    }
+
+    public async Task AddPublicSnapshotAsync(
+        PublicTripSnapshot snapshot,
+        CancellationToken cancellationToken = default)
+    {
+        await _dbContext.PublicTripSnapshots.AddAsync(
+            snapshot,
+            cancellationToken);
     }
 
     public void Remove(Trip trip)
@@ -72,6 +120,7 @@ internal sealed class TripRepository : ITripRepository
     public Task SaveAsync(
         CancellationToken cancellationToken = default)
     {
-        return _dbContext.SaveChangesAsync(cancellationToken);
+        return _dbContext.SaveChangesAsync(
+            cancellationToken);
     }
 }

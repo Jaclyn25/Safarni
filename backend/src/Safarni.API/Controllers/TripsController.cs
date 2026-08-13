@@ -17,6 +17,8 @@ using Safarni.Application.Features.Trips.Itineraries.ManageItems;
 using Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
 using Safarni.Application.Features.Trips.UpdateTrip;
 using Safarni.Application.Features.Trips.GetTripWeather;
+using Safarni.Domain.Enums;
+using Safarni.Application.Features.Trips.PublishTrip;
 
 namespace Safarni.API.Controllers;
 
@@ -58,6 +60,89 @@ public sealed class TripsController : ControllerBase
                 StatusCodes.Status201Created));
     }
 
+    [HttpPost("{id:guid}/publish")]
+    [ProducesResponseType(
+        typeof(ApiResponse<PublishTripResult>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> PublishTrip(
+        Guid id,
+        [FromBody] PublishTripRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new PublishTripCommand(
+            id,
+            request.ConfirmedNoPersonalInfo,
+            request.CostShown,
+            request.CostAmount,
+            request.IncludedPhotoUrls,
+            request.Visibility);
+
+        var result = await _sender.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<PublishTripResult>(
+                result.Error,
+                "Failed to publish trip.");
+        }
+
+        return Ok(ApiResponse<PublishTripResult>.SuccessResponse(
+            result.Value!,
+            "Trip published successfully.",
+            StatusCodes.Status200OK));
+    }
+
+    [HttpPost("{id:guid}/unpublish")]
+    [ProducesResponseType(
+        typeof(ApiResponse<UnpublishTripResult>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> UnpublishTrip(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var command = new UnpublishTripCommand(id);
+
+        var result = await _sender.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<UnpublishTripResult>(
+                result.Error,
+                "Failed to unpublish trip.");
+        }
+
+        return Ok(ApiResponse<UnpublishTripResult>.SuccessResponse(
+            result.Value!,
+            "Trip unpublished successfully.",
+            StatusCodes.Status200OK));
+    }
+
+    [HttpPatch("{id:guid}/visibility")]
+    [ProducesResponseType(
+        typeof(ApiResponse<SetTripVisibilityResult>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> SetTripVisibility(
+        Guid id,
+        [FromBody] SetTripVisibilityRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new SetTripVisibilityCommand(id, request.Visibility);
+
+        var result = await _sender.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<SetTripVisibilityResult>(
+                result.Error,
+                "Failed to update trip visibility.");
+        }
+
+        return Ok(ApiResponse<SetTripVisibilityResult>.SuccessResponse(
+            result.Value!,
+            "Trip visibility updated successfully.",
+            StatusCodes.Status200OK));
+    }
+
     [HttpGet]
     [ProducesResponseType(
         typeof(ApiResponse<IReadOnlyCollection<TripResponse>>),
@@ -80,6 +165,31 @@ public sealed class TripsController : ControllerBase
             .SuccessResponse(
                 result.Value!,
                 "Trips loaded successfully.",
+                StatusCodes.Status200OK));
+    }
+
+    [HttpGet("published")]
+    [ProducesResponseType(
+        typeof(ApiResponse<IReadOnlyCollection<PublishedTripResponse>>),
+        StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPublishedTrips(
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new GetPublishedTripsQuery(),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<IReadOnlyCollection<PublishedTripResponse>>(
+                result.Error,
+                "Failed to load published trips.");
+        }
+
+        return Ok(ApiResponse<IReadOnlyCollection<PublishedTripResponse>>
+            .SuccessResponse(
+                result.Value!,
+                "Published trips loaded successfully.",
                 StatusCodes.Status200OK));
     }
 
@@ -247,10 +357,6 @@ public sealed class TripsController : ControllerBase
             StatusCodes.Status200OK));
     }
 
-    /// <summary>
-    /// Queues durable itinerary generation and returns immediately. The client
-    /// polls the job endpoint until status is completed, failed, or cancelled.
-    /// </summary>
     [HttpPost("{id:guid}/itinerary/generate")]
     [ProducesResponseType(
         typeof(ApiResponse<ItineraryGenerationJobResponse>),
@@ -658,3 +764,12 @@ public sealed record MoveItineraryItemRequest(
     int TargetOrderIndex);
 
 public sealed record SelectVenueRequest(string PlaceId);
+
+public sealed record PublishTripRequest(
+    bool ConfirmedNoPersonalInfo,
+    bool CostShown,
+    decimal? CostAmount,
+    List<string> IncludedPhotoUrls,
+    TripVisibility Visibility);
+
+public sealed record SetTripVisibilityRequest(TripVisibility Visibility);

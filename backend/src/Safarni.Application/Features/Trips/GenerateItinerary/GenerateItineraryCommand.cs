@@ -13,6 +13,7 @@ using Safarni.Application.Common.Errors;
 using Safarni.Application.Common.Results;
 using Safarni.Application.Features.Trips.GenerateItinerary.Agent;
 using Safarni.Domain.Entities;
+using Safarni.Domain.Enums;
 
 namespace Safarni.Application.Features.Trips.GenerateItinerary;
 
@@ -365,6 +366,10 @@ public sealed class ItineraryGenerationProcessor
             await _itineraryRepository.ReplaceActiveAsync(
                 itinerary,
                 cancellationToken);
+
+            trip.Status = TripStatus.Completed;
+            trip.UpdatedAt = DateTime.UtcNow;
+            await _tripRepository.SaveAsync(cancellationToken);
 
             await LinkSavedItineraryToJobAsync(
                 generationJobId,

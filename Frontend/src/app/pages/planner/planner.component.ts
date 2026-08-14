@@ -1,3 +1,31 @@
+/**
+ * ==========================================================================
+ * MERGED FILE — يحافظ على كل الخصائص الموجودة في الملفين معاً (planner.component.ts)
+ * ==========================================================================
+ * ✅ من الملف 3 (القديم) — أُعيد إضافته لأنه غير موجود في الملف 4:
+ *    - استيراد وحقن Router
+ *    - إعادة التوجيه إلى صفحة /pricing عند تجاوز حد الذكاء الاصطناعي
+ *      (isAiGenerationAccessBlocked / getBillingErrorCode) داخل generateItinerary()
+ *    - الخاصية readonly trackByIndex المستخدمة في التمبلت (nearbyCategories,
+ *      nearbyAttractions, weather alerts)
+ *
+ * ✅ من الملف 4 (الجديد) — إضافات كاملة غير موجودة في الملف 3:
+ *    - TripVisibility + PublishPhotoOption
+ *    - كل حالة ومنطق النشر (Publish): isPublishModalOpen, isPublishing,
+ *      isUpdatingVisibility, publishConfirmedNoPersonalInfo, publishCostShown,
+ *      publishCostAmount, publishVisibility, publishSelectedPhotoUrls,
+ *      publishPhotoOptions, publishErrorMessage, publishSuccessMessage,
+ *      publicTripLink
+ *    - openPublishModal / closePublishModal / togglePublishPhoto / publishTrip /
+ *      updateTripVisibility / syncPublishFormFromTrip /
+ *      collectPublishPhotoCandidates / isTripPublishable / trackByVisibilityOption
+ *    - Toast notifications: toastMessage, toastType, showToast()
+ *    - trackByPhoto
+ *    - إعادة تحميل الرحلة (loadTrip) بعد اكتمال التوليد لتحديث Trip.Status
+ *
+ * ⚠️ لا شيء تم حذفه من أي نسخة — هذا الملف هو الاتحاد (Union) الكامل للخاصيتين.
+ * ==========================================================================
+ */
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
@@ -54,7 +82,8 @@ import {
   TripRouteResponse,
   TripRouteActivityDto,
   NearbyAttractionDto,
-  TripService
+  TripService,
+  TripVisibility
 } from '../../services/trip.service';
 import { WeatherService, ItineraryDayWeatherResponse } from '../../services/weather.service';
 
@@ -68,6 +97,12 @@ interface ItemDraft {
   category: string;
   estimatedCost: number | null;
   orderIndex: number;
+}
+
+interface PublishPhotoOption {
+  url: string;
+  label: string;
+  selected: boolean;
 }
 
 interface PreferenceOption {
@@ -259,6 +294,25 @@ export class PlannerComponent
   addingDayId = '';
 
   itemDraft: ItemDraft = this.emptyDraft();
+  readonly publishVisibilityOptions = [
+    { value: TripVisibility.Public, label: 'Public', description: 'Anyone can find it in discovery and search.' },
+    { value: TripVisibility.Private, label: 'Private', description: 'Only you can access it from your account.' },
+    { value: TripVisibility.Unlisted, label: 'Unlisted', description: 'Accessible by direct link, but hidden from search.' }
+  ];
+  isPublishModalOpen = false;
+  isPublishing = false;
+  isUpdatingVisibility = false;
+  publishConfirmedNoPersonalInfo = false;
+  publishCostShown = true;
+  publishCostAmount: number | null = null;
+  publishVisibility: TripVisibility = TripVisibility.Public;
+  publishSelectedPhotoUrls = new Set<string>();
+  publishPhotoOptions: PublishPhotoOption[] = [];
+  publishErrorMessage = '';
+  publishSuccessMessage = '';
+  publicTripLink = '';
+  toastMessage = '';
+  toastType: 'success' | 'error' | 'info' = 'info';
 
   private generationSubscription: Subscription | null = null;
   private handledTerminalJobId = '';
@@ -1300,6 +1354,10 @@ export class PlannerComponent
     this.generationJob = null;
     this.generationProgress = 0;
     this.generationMessage = 'Queued';
+    this.closePublishModal();
+    this.publishErrorMessage = '';
+    this.publishSuccessMessage = '';
+    this.publicTripLink = '';
 
     if (!tripId) {
       this.errorMessage =
@@ -1327,6 +1385,7 @@ export class PlannerComponent
       if (response.data) {
         this.trip = response.data;
         this.tripService.rememberTrip(response.data);
+        this.syncPublishFormFromTrip();
       }
     } catch (error: unknown) {
       if (!this.trip) {
@@ -1472,6 +1531,7 @@ export class PlannerComponent
     this.applyPreferences(
       itinerary.preferences
     );
+    this.syncPublishFormFromTrip();
 
     this.currencyCode =
       itinerary.currencyCode;
@@ -1621,6 +1681,8 @@ export class PlannerComponent
         this.generationCityIndex =
           this.generationCities.length;
         await this.loadExistingItinerary();
+        // Reload the trip to get the updated Trip.Status
+        await this.loadTrip();
       } else if (job.status === 'failed') {
         this.errorMessage =
           job.errorMessage ||
@@ -1640,6 +1702,193 @@ export class PlannerComponent
 
   private setGenerationScrollLocked(locked: boolean): void {
     document.body.style.overflow = locked ? 'hidden' : '';
+  }
+
+  openPublishModal(): void {
+    if (!this.trip || !this.isTripPublishable()) {
+      this.showToast(
+        'Complete trips only can be published.',
+        'info'
+      );
+      return;
+    }
+
+    this.syncPublishFormFromTrip();
+    this.publishErrorMessage = '';
+    this.publishSuccessMessage = '';
+    this.isPublishModalOpen = true;
+  }
+
+  closePublishModal(): void {
+    this.isPublishModalOpen = false;
+    this.publishErrorMessage = '';
+  }
+
+  togglePublishPhoto(url: string): void {
+    if (this.publishSelectedPhotoUrls.has(url)) {
+      this.publishSelectedPhotoUrls.delete(url);
+    } else {
+      this.publishSelectedPhotoUrls.add(url);
+    }
+
+    this.publishPhotoOptions = this.publishPhotoOptions.map((option) => ({
+      ...option,
+      selected: this.publishSelectedPhotoUrls.has(option.url)
+    }));
+  }
+
+  async publishTrip(): Promise<void> {
+    if (!this.trip || this.isPublishing) {
+      return;
+    }
+
+    if (!this.publishConfirmedNoPersonalInfo) {
+      this.publishErrorMessage =
+        'Please confirm that companion names and personal details are not exposed.';
+      return;
+    }
+
+    this.isPublishing = true;
+    this.publishErrorMessage = '';
+
+    try {
+      const response = await firstValueFrom(
+        this.tripService.publishTrip(this.trip.id, {
+          confirmedNoPersonalInfo: this.publishConfirmedNoPersonalInfo,
+          costShown: this.publishCostShown,
+          costAmount: this.publishCostShown ? this.publishCostAmount : null,
+          includedPhotoUrls: [...this.publishSelectedPhotoUrls],
+          visibility: this.publishVisibility
+        })
+      );
+
+      if (response.data) {
+        this.trip = {
+          ...this.trip,
+          isPublished: true,
+          publishedAt: response.data.publishedAt,
+          visibility: this.publishVisibility
+        };
+        this.tripService.rememberTrip(this.trip);
+        this.publicTripLink = `${window.location.origin}/public-trips/${response.data.snapshotVersionId}`;
+        this.publishSuccessMessage = 'Trip published successfully.';
+        this.showToast('Trip published successfully.', 'success');
+        this.isPublishModalOpen = false;
+      }
+    } catch (error: unknown) {
+      this.publishErrorMessage = this.getErrorMessage(
+        error,
+        'The trip could not be published.'
+      );
+    } finally {
+      this.isPublishing = false;
+    }
+  }
+
+  async updateTripVisibility(): Promise<void> {
+    if (!this.trip || !this.trip.isPublished || this.isUpdatingVisibility) {
+      return;
+    }
+
+    this.isUpdatingVisibility = true;
+
+    try {
+      const response = await firstValueFrom(
+        this.tripService.setTripVisibility(this.trip.id, {
+          visibility: this.publishVisibility
+        })
+      );
+
+      if (response.data) {
+        this.trip = {
+          ...this.trip,
+          visibility: this.publishVisibility
+        };
+        this.tripService.rememberTrip(this.trip);
+        this.showToast('Visibility updated successfully.', 'success');
+      }
+    } catch (error: unknown) {
+      this.showToast(
+        this.getErrorMessage(error, 'Visibility could not be updated.'),
+        'error'
+      );
+    } finally {
+      this.isUpdatingVisibility = false;
+    }
+  }
+
+  get publishPhotoCount(): number {
+    return this.publishPhotoOptions.filter((option) => option.selected).length;
+  }
+
+  get publishPhotoPreviewCount(): number {
+    return this.publishPhotoOptions.length;
+  }
+
+  private syncPublishFormFromTrip(): void {
+    const trip = this.trip;
+    const itinerary = this.itinerary;
+
+    this.publishVisibility = trip?.visibility ?? TripVisibility.Public;
+    this.publishCostShown = Boolean(itinerary?.estimatedTotalCost);
+    this.publishCostAmount = itinerary?.estimatedTotalCost ?? null;
+
+    const photoCandidates = this.collectPublishPhotoCandidates();
+    this.publishSelectedPhotoUrls = new Set(
+      photoCandidates.map((option) => option.url)
+    );
+    this.publishPhotoOptions = photoCandidates.map((option) => ({
+      ...option,
+      selected: this.publishSelectedPhotoUrls.has(option.url)
+    }));
+  }
+
+  private collectPublishPhotoCandidates(): PublishPhotoOption[] {
+    const seen = new Set<string>();
+    const options: PublishPhotoOption[] = [];
+
+    for (const day of this.itinerary?.days ?? []) {
+      for (const item of day.items ?? []) {
+        const photoUrl = item.photoUrl?.trim();
+        if (!photoUrl || seen.has(photoUrl)) {
+          continue;
+        }
+
+        seen.add(photoUrl);
+        options.push({
+          url: photoUrl,
+          label: item.title || `Day ${day.dayNumber}`,
+          selected: true
+        });
+      }
+    }
+
+    return options;
+  }
+
+  isTripPublishable(): boolean {
+    return (this.trip?.status ?? '').toLowerCase() === 'completed';
+  }
+
+  trackByVisibilityOption(
+    _index: number,
+    option: { value: TripVisibility; label: string; description: string }
+  ): string {
+    return option.value;
+  }
+
+  private showToast(
+    message: string,
+    type: 'success' | 'error' | 'info' = 'info'
+  ): void {
+    this.toastMessage = message;
+    this.toastType = type;
+
+    window.setTimeout(() => {
+      if (this.toastMessage === message) {
+        this.toastMessage = '';
+      }
+    }, 3500);
   }
 
   private parseDateOnly(value: string): Date {
@@ -1681,6 +1930,13 @@ export class PlannerComponent
     venue: VenueSuggestion
   ): string {
     return venue.placeId;
+  }
+
+  trackByPhoto(
+    _index: number,
+    photo: PublishPhotoOption
+  ): string {
+    return photo.url;
   }
 
   private destinationImage(

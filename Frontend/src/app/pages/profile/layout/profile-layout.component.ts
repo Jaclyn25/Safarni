@@ -1,9 +1,25 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { ProfileService, getProfileErrorMessage } from '../../../services/profile.service';
+import {
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet
+} from '@angular/router';
+
+import {
+  ProfileService,
+  getProfileErrorMessage
+} from '../../../services/profile.service';
+
 import { MyProfile } from '../../../shared/models/update-my-profile.model';
-import { applyLanguage, applyThemeClass, readStoredLanguage, readStoredTheme } from '../profile-utils';
+
+import {
+  applyLanguage,
+  applyThemeClass,
+  readStoredLanguage,
+  readStoredTheme
+} from '../profile-utils';
+
 import { AuthService } from '../../../services/auth.service';
 
 interface NavItem {
@@ -15,15 +31,22 @@ interface NavItem {
 @Component({
   selector: 'app-profile-layout',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [
+    CommonModule,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet
+  ],
   templateUrl: './profile-layout.component.html',
   styleUrls: ['../profile-shared.scss'],
 })
 export class ProfileLayoutComponent implements OnInit {
+
   private readonly standardNavItems: NavItem[] = [
     { path: 'account', label: 'Account', icon: 'person' },
     { path: 'password', label: 'Password', icon: 'lock' },
     { path: 'trips', label: 'My Trips', icon: 'luggage' },
+    { path: 'published-trips', label: 'Published Trips', icon: 'public' },
     { path: 'agency-trips', label: 'Agency Trips', icon: 'travel_explore' },
     { path: 'notifications', label: 'Notifications', icon: 'notifications' },
     { path: 'privacy', label: 'Privacy', icon: 'shield_lock' },
@@ -33,6 +56,7 @@ export class ProfileLayoutComponent implements OnInit {
   ];
 
   profile: MyProfile | null = null;
+
   readonly isLoading = signal(true);
   readonly loadError = signal<string | null>(null);
 
@@ -48,7 +72,11 @@ export class ProfileLayoutComponent implements OnInit {
 
     return [
       ...this.standardNavItems.slice(0, 4),
-      { path: '/agency', label: 'Agency Dashboard', icon: 'storefront' },
+      {
+        path: '/agency',
+        label: 'Agency Dashboard',
+        icon: 'storefront'
+      },
       ...this.standardNavItems.slice(4),
     ];
   }
@@ -62,19 +90,32 @@ export class ProfileLayoutComponent implements OnInit {
         this.profile = profile;
         this.isLoading.set(false);
       },
+
       error: (error: unknown) => {
         this.isLoading.set(false);
+
         this.loadError.set(
-          getProfileErrorMessage(error, 'Could not load your profile. Please refresh the page.')
+          getProfileErrorMessage(
+            error,
+            'Could not load your profile. Please refresh the page.'
+          )
         );
       },
     });
   }
 
   get initials(): string {
-    const name = this.displayProfile?.fullName || 'Traveler';
-    const parts = name.split(' ').filter(Boolean);
-    return ((parts[0]?.charAt(0) ?? 'T') + (parts[1]?.charAt(0) ?? '')).toUpperCase();
+    const name =
+      this.displayProfile?.fullName || 'Traveler';
+
+    const parts = name
+      .split(' ')
+      .filter(Boolean);
+
+    return (
+      (parts[0]?.charAt(0) ?? 'T') +
+      (parts[1]?.charAt(0) ?? '')
+    ).toUpperCase();
   }
 
   get displayProfile(): MyProfile | null {

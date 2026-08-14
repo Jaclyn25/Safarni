@@ -1,4 +1,5 @@
 using Safarni.Domain.Entities;
+using Safarni.Domain.Enums;
 
 namespace Safarni.Application.Features.Trips;
 
@@ -13,6 +14,10 @@ public sealed record TripResponse(
     string? OriginAirportCode,
     string? OriginAirportName,
     IReadOnlyList<TripCitySelection> Cities,
+    string Status,
+    bool IsPublished,
+    DateTime? PublishedAt,
+    TripVisibility Visibility,
     DateTime StartDate,
     DateTime EndDate,
     DateTime CreatedAt,

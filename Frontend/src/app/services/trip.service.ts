@@ -11,6 +11,12 @@ import type {
   ApiResponse
 } from '../models/api-response.model';
 
+export enum TripVisibility {
+  Public = 'Public',
+  Private = 'Private',
+  Unlisted = 'Unlisted'
+}
+
 export interface TravelCountry {
   name: string;
   iso2: string;
@@ -56,6 +62,12 @@ export interface TripResponse {
   originAirportCode: string | null;
   originAirportName: string | null;
   cities: TripCitySelection[];
+
+  status: string;
+  isPublished: boolean;
+  publishedAt: string | null;
+  visibility: TripVisibility;
+
   startDate: string;
   endDate: string;
   createdAt: string;
@@ -92,6 +104,52 @@ export interface NearbyAttractionDto {
   website: string | null;
   phone: string | null;
   openingHours: string | null;
+}
+
+export interface PublishTripRequest {
+  confirmedNoPersonalInfo: boolean;
+  costShown: boolean;
+  costAmount: number | null;
+  includedPhotoUrls: string[];
+  visibility: TripVisibility;
+}
+
+export interface PublishTripResult {
+  tripId: string;
+  snapshotId: string;
+  snapshotVersionId: string;
+  versionNumber: number;
+  publishedAt: string;
+}
+
+export interface SetTripVisibilityRequest {
+  visibility: TripVisibility;
+}
+
+export interface SetTripVisibilityResult {
+  tripId: string;
+  visibility: TripVisibility;
+}
+
+export interface PublishedTripResponse {
+  id: string;
+  name: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  isPublished: boolean;
+  publishedAt: string | null;
+  visibility: string;
+  snapshotVersionId: string | null;
+  viewsCount: number;
+  likesCount: number;
+  savesCount: number;
+  copiesCount: number;
+}
+
+export interface UnpublishTripResult {
+  tripId: string;
 }
 
 @Injectable({
@@ -200,7 +258,9 @@ export class TripService {
     );
   }
 
-  deleteTrip(tripId: string): Observable<void> {
+  deleteTrip(
+    tripId: string
+  ): Observable<void> {
     return this.http.delete<void>(
       `${this.apiUrl}/${tripId}`,
       {
@@ -225,7 +285,9 @@ export class TripService {
     radius: number,
     category?: string
   ): Observable<ApiResponse<NearbyAttractionDto[]>> {
-    let params = new HttpParams().set('radius', radius.toString());
+    let params = new HttpParams()
+      .set('radius', radius.toString());
+
     if (category) {
       params = params.set('category', category);
     }
@@ -235,6 +297,53 @@ export class TripService {
       {
         headers: this.getHeaders(),
         params
+      }
+    );
+  }
+
+  publishTrip(
+    tripId: string,
+    request: PublishTripRequest
+  ): Observable<ApiResponse<PublishTripResult>> {
+    return this.http.post<ApiResponse<PublishTripResult>>(
+      `${this.apiUrl}/${tripId}/publish`,
+      request,
+      {
+        headers: this.getHeaders()
+      }
+    );
+  }
+
+  setTripVisibility(
+    tripId: string,
+    request: SetTripVisibilityRequest
+  ): Observable<ApiResponse<SetTripVisibilityResult>> {
+    return this.http.patch<ApiResponse<SetTripVisibilityResult>>(
+      `${this.apiUrl}/${tripId}/visibility`,
+      request,
+      {
+        headers: this.getHeaders()
+      }
+    );
+  }
+
+  getPublishedTrips(): Observable<ApiResponse<PublishedTripResponse[]>> {
+    return this.http.get<ApiResponse<PublishedTripResponse[]>>(
+      `${this.apiUrl}/published`,
+      {
+        headers: this.getHeaders()
+      }
+    );
+  }
+
+  unpublishTrip(
+    tripId: string
+  ): Observable<ApiResponse<UnpublishTripResult>> {
+    return this.http.post<ApiResponse<UnpublishTripResult>>(
+      `${this.apiUrl}/${tripId}/unpublish`,
+      {},
+      {
+        headers: this.getHeaders()
       }
     );
   }

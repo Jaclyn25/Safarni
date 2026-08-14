@@ -980,6 +980,26 @@ namespace Safarni.Infrastructure.Migrations
                     b.ToTable("PricingPlans", (string)null);
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.PublicTripSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("TripId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TripId")
+                        .IsUnique();
+
+                    b.ToTable("PublicTripSnapshots");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1013,6 +1033,65 @@ namespace Safarni.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("RefreshTokens", (string)null);
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.SnapshotVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<double>("AverageRating")
+                        .HasColumnType("float");
+
+                    b.Property<int>("CopiesCount")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("CostAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("CostShown")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IncludedPhotoIdsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ItineraryJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("LikesCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RatingsCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SavesCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SnapshotId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ViewsCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SnapshotId", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("SnapshotVersions");
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.Subscription", b =>
@@ -1556,6 +1635,9 @@ namespace Safarni.Infrastructure.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("date");
 
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1584,6 +1666,9 @@ namespace Safarni.Infrastructure.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(2)");
 
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -1598,11 +1683,17 @@ namespace Safarni.Infrastructure.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("date");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -1646,6 +1737,71 @@ namespace Safarni.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("TripCities");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.TripInteraction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SnapshotVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SnapshotVersionId");
+
+                    b.HasIndex("UserId", "SnapshotVersionId", "Type")
+                        .IsUnique();
+
+                    b.ToTable("TripInteractions", (string)null);
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.TripRating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SnapshotVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SnapshotVersionId");
+
+                    b.HasIndex("UserId", "SnapshotVersionId")
+                        .IsUnique();
+
+                    b.ToTable("TripRatings", (string)null);
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.User", b =>
@@ -1979,6 +2135,17 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("Subscription");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.PublicTripSnapshot", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.Trip", "Trip")
+                        .WithOne("PublicSnapshot")
+                        .HasForeignKey("Safarni.Domain.Entities.PublicTripSnapshot", "TripId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Trip");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.RefreshToken", b =>
                 {
                     b.HasOne("Safarni.Domain.Entities.User", "User")
@@ -1988,6 +2155,17 @@ namespace Safarni.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.SnapshotVersion", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.PublicTripSnapshot", "Snapshot")
+                        .WithMany("Versions")
+                        .HasForeignKey("SnapshotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Snapshot");
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.Subscription", b =>
@@ -2135,6 +2313,44 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("Trip");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.TripInteraction", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.SnapshotVersion", "SnapshotVersion")
+                        .WithMany("Interactions")
+                        .HasForeignKey("SnapshotVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Safarni.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SnapshotVersion");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.TripRating", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.SnapshotVersion", "SnapshotVersion")
+                        .WithMany("Ratings")
+                        .HasForeignKey("SnapshotVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Safarni.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SnapshotVersion");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.UserNotification", b =>
                 {
                     b.HasOne("Safarni.Domain.Entities.User", "RecipientUser")
@@ -2185,6 +2401,18 @@ namespace Safarni.Infrastructure.Migrations
             modelBuilder.Entity("Safarni.Domain.Entities.PricingPlan", b =>
                 {
                     b.Navigation("Subscriptions");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.PublicTripSnapshot", b =>
+                {
+                    b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("Safarni.Domain.Entities.SnapshotVersion", b =>
+                {
+                    b.Navigation("Interactions");
+
+                    b.Navigation("Ratings");
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.Subscription", b =>
@@ -2238,6 +2466,8 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("GenerationJobs");
 
                     b.Navigation("Itineraries");
+
+                    b.Navigation("PublicSnapshot");
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.User", b =>

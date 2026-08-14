@@ -1,0 +1,125 @@
+<section class="card" id="published-trips">
+  <div class="card__header">
+    <div>
+      <h2><span class="material-symbols-outlined">public</span> Published Trips</h2>
+      <p class="card__hint">Track how your public trips perform and unpublish them when needed.</p>
+    </div>
+    <a routerLink="/" [queryParams]="{ createTrip: 1 }" class="btn btn--primary btn--sm">
+      <span class="material-symbols-outlined">add</span>
+      New Trip
+    </a>
+  </div>
+
+  <div class="trip-metrics" *ngIf="!isLoading() && !loadError()">
+    <div class="trip-metrics__item">
+      <span class="trip-metrics__value">{{ formatCount(totalPublishedTrips()) }}</span>
+      <span class="trip-metrics__label">Published trips</span>
+    </div>
+    <div class="trip-metrics__item">
+      <span class="trip-metrics__value">{{ formatCount(totalViews()) }}</span>
+      <span class="trip-metrics__label">Views</span>
+    </div>
+    <div class="trip-metrics__item">
+      <span class="trip-metrics__value">{{ formatCount(totalLikes()) }}</span>
+      <span class="trip-metrics__label">Likes</span>
+    </div>
+    <div class="trip-metrics__item">
+      <span class="trip-metrics__value">{{ formatCount(totalSaves()) }}</span>
+      <span class="trip-metrics__label">Saves</span>
+    </div>
+    <div class="trip-metrics__item">
+      <span class="trip-metrics__value">{{ formatCount(totalCopies()) }}</span>
+      <span class="trip-metrics__label">Copies</span>
+    </div>
+  </div>
+
+  <div *ngIf="actionMessage()" class="banner banner--success">
+    <span class="material-symbols-outlined">check_circle</span>
+    <div class="banner__content">
+      <strong>Success</strong>
+      <p>{{ actionMessage() }}</p>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading()" class="loading-state">Loading your published trips...</div>
+
+  <p class="field__error" *ngIf="loadError()">{{ loadError() }}</p>
+
+  <div *ngIf="!isLoading() && !loadError() && publishedTrips().length === 0" class="trips-empty">
+    <span class="material-symbols-outlined">public_off</span>
+    <p>You haven't published any trips yet.</p>
+    <p class="card__hint">
+      Finish a trip, wait until it is completed, then use <strong>Make Public</strong> from the Planner screen.
+    </p>
+    <button type="button" (click)="loadPublishedTrips()" class="btn btn--outline btn--sm">
+      <span class="material-symbols-outlined">refresh</span>
+      Refresh dashboard
+    </button>
+  </div>
+
+  <div class="trips-list" *ngIf="!isLoading() && publishedTrips().length > 0">
+    <article class="trip trip--published" *ngFor="let trip of publishedTrips(); trackBy: trackByTrip">
+      <div class="trip__icon">
+        <span class="material-symbols-outlined">flight_takeoff</span>
+      </div>
+
+      <div class="trip__body">
+        <div class="trip__top">
+          <h3>{{ trip.name }}</h3>
+          <span class="badge" [class]="statusBadge(trip).classes">{{ statusBadge(trip).label }}</span>
+          <span class="badge" [class]="visibilityBadge(trip).classes">{{ visibilityBadge(trip).label }}</span>
+        </div>
+
+        <p class="trip__destination">
+          <span class="material-symbols-outlined">location_on</span>
+          {{ trip.destination }}
+        </p>
+        <p class="trip__meta">
+          <span class="material-symbols-outlined">calendar_month</span>
+          {{ tripDateRange(trip) }}
+        </p>
+        <p class="trip__meta" *ngIf="trip.publishedAt">
+          <span class="material-symbols-outlined">schedule</span>
+          Published {{ trip.publishedAt | date:'mediumDate' }}
+        </p>
+
+        <div class="trip-stats">
+          <div class="trip-stats__item">
+            <span class="trip-stats__value">{{ formatCount(trip.viewsCount) }}</span>
+            <span class="trip-stats__label">Views</span>
+          </div>
+          <div class="trip-stats__item">
+            <span class="trip-stats__value">{{ formatCount(trip.likesCount) }}</span>
+            <span class="trip-stats__label">Likes</span>
+          </div>
+          <div class="trip-stats__item">
+            <span class="trip-stats__value">{{ formatCount(trip.savesCount) }}</span>
+            <span class="trip-stats__label">Saves</span>
+          </div>
+          <div class="trip-stats__item">
+            <span class="trip-stats__value">{{ formatCount(trip.copiesCount) }}</span>
+            <span class="trip-stats__label">Copies</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="trip__actions trip__actions--stacked">
+        <a [routerLink]="['/planner', trip.id]" class="btn btn--primary btn--sm">
+          <span class="material-symbols-outlined">edit_calendar</span>
+          Open Planner
+        </a>
+        <a *ngIf="trip.snapshotVersionId" [routerLink]="['/public-trips', trip.snapshotVersionId]" class="btn btn--outline btn--sm">
+          <span class="material-symbols-outlined">open_in_new</span>
+          Open Public Page
+        </a>
+        <button type="button"
+          class="btn btn--ghost btn--sm btn--danger-outline"
+          (click)="unpublishTrip(trip)"
+          [disabled]="unpublishingTripId() === trip.id">
+          <span class="material-symbols-outlined">unpublished</span>
+          {{ unpublishingTripId() === trip.id ? 'Unpublishing...' : 'Unpublish' }}
+        </button>
+      </div>
+    </article>
+  </div>
+</section>

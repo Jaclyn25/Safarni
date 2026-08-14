@@ -60,5 +60,6 @@ public sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
             .WithMany(u => u.Trips)
             .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+      
     }
 }

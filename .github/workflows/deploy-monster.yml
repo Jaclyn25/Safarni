@@ -69,34 +69,27 @@ jobs:
       - name: Add ASP.NET app-offline marker
         shell: pwsh
         run: |
-          Set-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'publish\app_offline.htm') `
+          $offlineRoot = Join-Path $env:GITHUB_WORKSPACE 'publish-offline'
+          New-Item -ItemType Directory -Force -Path $offlineRoot | Out-Null
+          Set-Content -LiteralPath (Join-Path $offlineRoot 'app_offline.htm') `
             -Value '<html><body>Safarni is updating. Please try again shortly.</body></html>' `
             -Encoding utf8
 
       - name: Upload app-offline marker and wait for IIS
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./publish-offline/
+          server-dir: ./wwwroot/
+          log-level: minimal
+        
+      - name: Wait for IIS to stop the ASP.NET process
         shell: pwsh
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
-          $markerPath = Join-Path $env:GITHUB_WORKSPACE 'publish\app_offline.htm'
-          $request = [System.Net.FtpWebRequest]::Create(
-            "ftp://$env:FTP_SERVER/wwwroot/app_offline.htm")
-          $request.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
-          $request.EnableSsl = $true
-          $request.UseBinary = $true
-          $request.KeepAlive = $false
-          $request.Credentials = [System.Net.NetworkCredential]::new(
-            $env:FTP_USERNAME,
-            $env:FTP_PASSWORD)
-          $bytes = [System.IO.File]::ReadAllBytes($markerPath)
-          $request.ContentLength = $bytes.Length
-          $stream = $request.GetRequestStream()
-          $stream.Write($bytes, 0, $bytes.Length)
-          $stream.Close()
-          $response = $request.GetResponse()
-          $response.Close()
           Start-Sleep -Seconds 10
 
       - name: Deploy to MonsterASP via FTP

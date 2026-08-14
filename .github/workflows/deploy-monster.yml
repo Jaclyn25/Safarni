@@ -67,9 +67,10 @@ jobs:
           Copy-Item -Path (Join-Path $frontendRoot '*') -Destination $publishRoot -Recurse -Force
 
       - name: Deploy to MonsterASP via WebDeploy
-        uses: rasmusbuchholdt/simply-web-deploy@2.1.0
+        uses: rasmusbuchholdt/simply-web-deploy@2.2.0
         with:
           website-name: ${{ secrets.WEBSITE_NAME }}
           server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }}
           server-username: ${{ secrets.SERVER_USERNAME }}
           server-password: ${{ secrets.SERVER_PASSWORD }}
+          source-path: .\publish

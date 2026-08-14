@@ -41,6 +41,11 @@ public class EmbeddingService : IEmbeddingService
     
     private string BaseUrl => _configuration["OpenRouter:BaseUrl"] ?? "https://openrouter.ai/api/v1";
     private string EmbeddingModel => _configuration["OpenRouter:EmbeddingModel"] ?? "nvidia/nemotron-3-embed-1b:free";
+    private int? EmbeddingDimensions => int.TryParse(
+        _configuration["OpenRouter:EmbeddingDimensions"],
+        out var dimensions)
+            ? dimensions
+            : null;
 
     public async Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
     {
@@ -58,7 +63,10 @@ public class EmbeddingService : IEmbeddingService
                 processedText = await TranslateToEnglishAsync(text);
             }
 
-            var embeddings = await GetEmbeddingsFromOpenRouterAsync(new List<string> { processedText }, cancellationToken);
+            var embeddings = await GetEmbeddingsFromOpenRouterAsync(
+                new List<string> { processedText },
+                _configuration["OpenRouter:QueryInputType"] ?? "query",
+                cancellationToken);
             return embeddings.FirstOrDefault() ?? Array.Empty<float>();
         }
         catch (Exception ex)
@@ -77,7 +85,10 @@ public class EmbeddingService : IEmbeddingService
 
         try
         {
-            return await GetEmbeddingsFromOpenRouterAsync(texts, cancellationToken);
+            return await GetEmbeddingsFromOpenRouterAsync(
+                texts,
+                _configuration["OpenRouter:DocumentInputType"] ?? "passage",
+                cancellationToken);
         }
         catch (Exception ex)
         {
@@ -86,7 +97,10 @@ public class EmbeddingService : IEmbeddingService
         }
     }
 
-    private async Task<List<float[]>> GetEmbeddingsFromOpenRouterAsync(List<string> texts, CancellationToken cancellationToken)
+    private async Task<List<float[]>> GetEmbeddingsFromOpenRouterAsync(
+        List<string> texts,
+        string inputType,
+        CancellationToken cancellationToken)
     {
         _logger.LogInformation("Generating OpenRouter embeddings for batch of {Count} texts using model {Model}", texts.Count, EmbeddingModel);
 
@@ -100,11 +114,18 @@ public class EmbeddingService : IEmbeddingService
             var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl.TrimEnd('/')}/embeddings");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ApiKey);
             
-            var requestBody = new
+            var requestBody = new Dictionary<string, object>
             {
-                model = EmbeddingModel,
-                input = texts
+                ["model"] = EmbeddingModel,
+                ["input"] = texts,
+                ["input_type"] = inputType,
+                ["encoding_format"] = "float"
             };
+
+            if (EmbeddingDimensions.HasValue)
+            {
+                requestBody["dimensions"] = EmbeddingDimensions.Value;
+            }
 
             request.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
@@ -129,6 +150,19 @@ public class EmbeddingService : IEmbeddingService
                     }
 
                     var results = responseData.Data.OrderBy(d => d.Index).Select(d => d.Embedding).ToList();
+
+                    if (results.Count != texts.Count)
+                    {
+                        throw new InvalidOperationException(
+                            $"OpenRouter returned {results.Count} embeddings for {texts.Count} inputs.");
+                    }
+
+                    if (EmbeddingDimensions.HasValue &&
+                        results.Any(embedding => embedding.Length != EmbeddingDimensions.Value))
+                    {
+                        throw new InvalidOperationException(
+                            $"Embedding model returned a vector dimension different from the configured {EmbeddingDimensions.Value} values.");
+                    }
                     
                     if (results.Count > 0 && results[0] != null)
                     {

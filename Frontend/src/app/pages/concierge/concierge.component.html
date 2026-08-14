@@ -418,9 +418,7 @@
         <div class="space-y-1 min-w-0 flex-1">
           <div class="bg-error/10 text-error rounded-2xl rounded-tl-none p-4 text-body-md border border-error/20">
             <div class="font-bold mb-1">Unable to complete request</div>
-            @for (paragraph of m.formatted.paragraphs; track $index) {
-            <p>{{ paragraph }}</p>
-            }
+            <div class="assistant-markdown" [innerHTML]="m.formatted.html"></div>
             @if (m.action === 'new-chat') {
             <button type="button" (click)="startNewConversation()"
               class="mt-3 inline-flex items-center gap-2 rounded-xl bg-error px-4 py-2 text-label-md font-bold text-on-error transition-colors hover:bg-error/90">
@@ -465,85 +463,71 @@
 
           <!-- Main AI Response Card -->
           <div
-            class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl rounded-tl-none p-5 shadow-sm text-body-md text-on-surface space-y-4 relative"
+            class="assistant-response-card bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-5 shadow-sm text-body-md text-on-surface relative"
+            [class.assistant-response-card--rtl]="m.formatted.direction === 'rtl'"
+            [class.assistant-response-card--compact]="m.formatted.presentation === 'compact'"
             [dir]="m.formatted.direction">
-            <!-- Response Summary Header -->
-            @if (m.formatted.summary) {
-            <div class="bg-primary/5 p-4 rounded-xl border border-primary/15 text-on-surface font-medium text-body-md">
-              {{ m.formatted.summary }}
+            <div class="assistant-markdown" [innerHTML]="m.formatted.html"></div>
+          </div>
+
+          @if (m.places?.length) {
+          <section class="place-results" [dir]="m.formatted.direction">
+            <div class="resource-section-title">
+              <span class="material-symbols-outlined">location_on</span>
+              <span>{{ m.formatted.direction === 'rtl' ? 'أماكن تستحق نظرة' : 'Places worth a look' }}</span>
             </div>
-            }
-
-            <!-- Paragraph Sections -->
-            @if (m.formatted.paragraphs.length) {
-            <div class="space-y-2 text-on-surface-variant">
-              @for (paragraph of m.formatted.paragraphs; track $index) {
-              <p class="whitespace-pre-wrap leading-relaxed">{{ paragraph }}</p>
-              }
-            </div>
-            }
-
-            <!-- Day-by-Day Itinerary Cards -->
-            @if (m.formatted.itineraryDays.length) {
-            <div class="space-y-3 pt-2">
-              <h3 class="text-label-lg font-bold text-primary flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-[18px]">calendar_today</span>
-                <span>Day-by-Day Plan</span>
-              </h3>
-
-              <div class="grid grid-cols-1 gap-3">
-                @for (day of m.formatted.itineraryDays; track day.dayNumber) {
-                <div class="itinerary-day-card">
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-label-sm">
-                      Day {{ day.dayNumber }}
-                    </span>
-                    @if (day.budget) {
-                    <span class="text-label-sm text-on-surface-variant font-semibold">
-                      Est. {{ day.budget }}
-                    </span>
-                    }
-                  </div>
-                  <h4 class="text-body-md font-bold text-on-surface mb-2">{{ day.title }}</h4>
-
-                  <div class="space-y-1 text-body-sm text-on-surface-variant">
-                    @if (day.morning) {
-                    <div class="flex items-start gap-1.5">
-                      <span class="text-primary font-bold text-label-sm">Morning:</span>
-                      <span>{{ day.morning }}</span>
-                    </div>
-                    }
-                    @if (day.afternoon) {
-                    <div class="flex items-start gap-1.5">
-                      <span class="text-primary font-bold text-label-sm">Afternoon:</span>
-                      <span>{{ day.afternoon }}</span>
-                    </div>
-                    }
-                    @if (day.evening) {
-                    <div class="flex items-start gap-1.5">
-                      <span class="text-primary font-bold text-label-sm">Evening:</span>
-                      <span>{{ day.evening }}</span>
-                    </div>
-                    }
-                  </div>
+            <div class="place-card-rail">
+              @for (place of m.places; track place.url) {
+              <a class="place-result-card" [href]="place.url" target="_blank" rel="noopener noreferrer">
+                <div class="place-result-icon">
+                  <span class="material-symbols-outlined">travel_explore</span>
                 </div>
-                }
-              </div>
-            </div>
-            }
-
-            <!-- Extracted Web Links -->
-            @if (m.formatted.links.length) {
-            <div class="flex flex-wrap gap-2 pt-2">
-              @for (link of m.formatted.links; track link.url) {
-              <a [href]="link.url" target="_blank" rel="noopener noreferrer" class="action-chip">
-                <span class="material-symbols-outlined text-[16px]">{{ link.icon }}</span>
-                <span>{{ link.label }}</span>
+                <div class="place-result-copy">
+                  <strong>{{ place.name }}</strong>
+                  @if (place.rating) {
+                  <span class="place-rating">★ {{ place.rating | number:'1.1-1' }} @if (place.reviewCount) { · {{ place.reviewCount }} }</span>
+                  }
+                  <small>{{ place.address }}</small>
+                </div>
+                <span class="material-symbols-outlined place-open-icon">arrow_outward</span>
               </a>
               }
             </div>
-            }
-          </div>
+          </section>
+          }
+
+          @if (m.sources?.length) {
+          <details class="sources-panel" [open]="m.isStreaming">
+            <summary>
+              <span class="source-stack-icon">
+                @for (source of (m.sources ?? []).slice(0, 3); track source.url) {
+                <span class="source-favicon">
+                  <span>{{ sourceInitial(source) }}</span>
+                  <img [src]="sourceFavicon(source)" alt="" (error)="hideBrokenImage($event)" />
+                </span>
+                }
+              </span>
+              <span>{{ m.formatted.direction === 'rtl' ? 'المصادر' : 'Sources' }}</span>
+              <span class="source-count">{{ (m.sources ?? []).length }}</span>
+              <span class="material-symbols-outlined source-chevron">expand_more</span>
+            </summary>
+            <div class="source-grid" [dir]="m.formatted.direction">
+              @for (source of (m.sources ?? []); track source.url) {
+              <a class="source-card" [href]="source.url" target="_blank" rel="noopener noreferrer">
+                <span class="source-favicon source-favicon--large">
+                  <span>{{ sourceInitial(source) }}</span>
+                  <img [src]="sourceFavicon(source)" alt="" (error)="hideBrokenImage($event)" />
+                </span>
+                <span class="source-copy">
+                  <strong>{{ source.title }}</strong>
+                  <small>{{ source.domain }}</small>
+                </span>
+                <span class="material-symbols-outlined">north_east</span>
+              </a>
+              }
+            </div>
+          </details>
+          }
 
           <!-- Post-Response Interactive Action Chips (for trip plans) -->
           @if (m.formatted.actionChips.length) {
@@ -607,6 +591,36 @@
         </div>
       </div>
       }
+      }
+
+      @if (isWaitingForFirstToken) {
+      <div class="assistant-thinking message-entrance" dir="auto">
+        <div class="thinking-orb">
+          <span class="material-symbols-outlined">travel_explore</span>
+        </div>
+        <div class="thinking-content">
+          <strong>{{ activitySteps.length ? activitySteps[activitySteps.length - 1] : 'Thinking about your trip' }}</strong>
+          <div class="thinking-steps">
+            @for (step of activitySteps; track step; let last = $last) {
+            <span [class.active]="last">
+              <span class="material-symbols-outlined">{{ last ? 'progress_activity' : 'check_circle' }}</span>
+              {{ step }}
+            </span>
+            }
+          </div>
+          @if (liveSources.length) {
+          <div class="thinking-source-row">
+            @for (source of liveSources.slice(0, 5); track source.url) {
+            <span class="source-favicon" [title]="source.domain">
+              <span>{{ sourceInitial(source) }}</span>
+              <img [src]="sourceFavicon(source)" alt="" (error)="hideBrokenImage($event)" />
+            </span>
+            }
+            <small>{{ liveSources.length }} {{ liveSources.length === 1 ? 'source' : 'sources' }}</small>
+          </div>
+          }
+        </div>
+      </div>
       }
 
     </div>

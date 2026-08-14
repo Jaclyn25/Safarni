@@ -56,7 +56,10 @@ public class ChatRepository : IChatRepository
 
     public async Task<List<TravelKnowledge>> GetTravelKnowledgesAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.TravelKnowledges.AsNoTracking().ToListAsync(cancellationToken);
+        return await _context.TravelKnowledges
+            .AsNoTracking()
+            .Where(knowledge => !knowledge.IsArchived)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<List<ChatFolder>> GetFoldersByUserIdAsync(string userId, CancellationToken cancellationToken = default)

@@ -39,6 +39,17 @@ public class IntentDetectionService : IIntentDetectionService
         "طقس", "عملة", "تكلفة", "ميزانية"
     };
 
+    private static readonly string[] PlanningKeywords =
+    {
+        "itinerary", "plan a trip", "plan my trip", "trip plan", "travel plan",
+        "day trip", "days in", "build a trip", "create a trip", "suggest a trip",
+        "recommend a trip", "what to do", "things to do", "i want to travel", "i want to go",
+        "help me travel", "plan a vacation", "plan a holiday",
+        "جدول رحلة", "خطة رحلة", "خطط لي", "برنامج سياحي", "اقترح رحلة", "اعمل لي رحلة",
+        "عاوز اسافر", "عايز اسافر", "عاوز أروح", "عايز أروح", "عاوز اروح", "عايز اروح",
+        "أريد السفر", "اريد السفر", "أريد الذهاب", "اريد الذهاب", "نفسي اسافر", "نفسي أروح", "نفسي اروح"
+    };
+
     private static readonly string[] ContextDependentTravelKeywords =
     {
         "guide", "culture", "history", "capital", "country", "city", "safety", "climate",
@@ -99,6 +110,7 @@ public class IntentDetectionService : IIntentDetectionService
 
         var hasPlacesIntent = ContainsAny(text, PlacesKeywords);
         var hasTravelIntent = ContainsAny(text, StrongTravelKeywords);
+        var hasPlanningIntent = ContainsAny(text, PlanningKeywords);
         var hasContextDependentIntent = ContainsAny(text, ContextDependentTravelKeywords);
         var hasDestination = ContainsAny(text, DestinationKeywords);
         var hasSocialIntent = ContainsAny(text, SocialKeywords);
@@ -114,6 +126,17 @@ public class IntentDetectionService : IIntentDetectionService
         if (isClearlyOutOfScope)
         {
             return ChatIntent.OutOfScope;
+        }
+
+        if (hasSocialIntent &&
+            (hasPlacesIntent || hasTravelIntent || hasContextDependentIntent || hasDestination))
+        {
+            return ChatIntent.Ambiguous;
+        }
+
+        if (hasPlanningIntent && (hasTravelIntent || hasDestination))
+        {
+            return ChatIntent.Hybrid;
         }
 
         if (hasPlacesIntent && (hasTravelIntent || hasDestination))
@@ -136,6 +159,11 @@ public class IntentDetectionService : IIntentDetectionService
             return ChatIntent.Social;
         }
 
+        if (hasContextDependentIntent && hasDestination)
+        {
+            return ChatIntent.RagOnly;
+        }
+
         if (hasContextDependentIntent || hasDestination)
         {
             return ChatIntent.Ambiguous;
@@ -153,6 +181,16 @@ public class IntentDetectionService : IIntentDetectionService
         CancellationToken cancellationToken)
     {
         var intent = DetectIntent(userMessage);
+        var requiresSemanticClassification = intent is ChatIntent.Ambiguous or ChatIntent.Social;
+        var isTripPlanningRequest = IsTripPlanningMessage(userMessage) ||
+            history?.Any(message =>
+                string.Equals(message.Role, "user", System.StringComparison.OrdinalIgnoreCase) &&
+                IsTripPlanningMessage(message.Content)) == true;
+
+        if (isTripPlanningRequest && intent == ChatIntent.Ambiguous)
+        {
+            intent = ChatIntent.Hybrid;
+        }
         var standaloneQuery = userMessage;
 
         // Only rewrite if intent requires contextual searching
@@ -187,8 +225,16 @@ Latest message: {userMessage}
         return new IntentDetectionResult
         {
             Intent = intent,
-            StandaloneQuery = standaloneQuery.Trim()
+            StandaloneQuery = standaloneQuery.Trim(),
+            RequiresSemanticClassification = requiresSemanticClassification,
+            IsTripPlanningRequest = isTripPlanningRequest
         };
+    }
+
+    private static bool IsTripPlanningMessage(string message)
+    {
+        return !string.IsNullOrWhiteSpace(message) &&
+               ContainsAny(Normalize(message), PlanningKeywords);
     }
 
     private static bool ContainsAny(string text, string[] keywords)

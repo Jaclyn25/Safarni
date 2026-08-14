@@ -36,6 +36,45 @@ public class IntentDetectionServiceTests
     }
 
     [Theory]
+    [InlineData("ما عاصمة تركيا؟")]
+    [InlineData("What is Turkey's capital?")]
+    public void DetectIntent_ShouldRouteDestinationFactsDirectlyToTravel(string message)
+    {
+        _service.DetectIntent(message).Should().Be(ChatIntent.RagOnly);
+    }
+
+    [Fact]
+    public async Task DetectIntentAsync_ShouldNotSemanticallyReclassifyClearArabicDestinationFact()
+    {
+        var result = await _service.DetectIntentAsync(
+            "ما عاصمة تركيا؟",
+            [],
+            CancellationToken.None);
+
+        result.Intent.Should().Be(ChatIntent.RagOnly);
+        result.RequiresSemanticClassification.Should().BeFalse();
+    }
+
+    [Fact]
+    public void DetectIntent_ShouldSemanticallyClassifyMixedSocialAndTravelSignals()
+    {
+        _service.DetectIntent("hello, tell me about a singer who loves travel")
+            .Should().Be(ChatIntent.Ambiguous);
+    }
+
+    [Fact]
+    public async Task DetectIntentAsync_ShouldMarkBroadArabicTripRequestForDiscovery()
+    {
+        var result = await _service.DetectIntentAsync(
+            "أنا عاوز أروح تركيا",
+            [],
+            CancellationToken.None);
+
+        result.Intent.Should().Be(ChatIntent.Hybrid);
+        result.IsTripPlanningRequest.Should().BeTrue();
+    }
+
+    [Theory]
     [InlineData("عامل اي")]
     [InlineData("عامل إيه؟")]
     [InlineData("أخبارك")]

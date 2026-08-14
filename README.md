@@ -1,13 +1,13 @@
 # Safarni
 
-Safarni is a travel planning platform with an ASP.NET Core backend and an Angular frontend. It includes account/profile features, travel preferences, and an AI concierge chatbot for travel questions, destination guidance, Google Places recommendations, and optional RAG indexing through Qdrant.
+Safarni is a travel planning platform with an ASP.NET Core backend and an Angular frontend. It includes account/profile features, travel preferences, and an AI concierge chatbot with hybrid retrieval through SQL Server, OpenRouter embeddings, Qdrant, and Google Places.
 
 ## Tech Stack
 
 - Backend: ASP.NET Core / .NET 10, MediatR, FluentValidation, Entity Framework Core
 - Database: SQL Server
 - Frontend: Angular 21, standalone components, Angular Router
-- AI services: Gemini itinerary planning, Groq chat completions, local embeddings, optional Qdrant vector search
+- AI services: Gemini itinerary planning, Groq chat completions, OpenRouter embeddings, Qdrant vector search
 - External APIs: SerpAPI discovery/commerce, Google Places (chat), Google Routes, Google OAuth, Geoapify
 
 ## Project Structure
@@ -176,12 +176,41 @@ The AI Concierge supports:
 
 - English and Arabic responses based on the latest user message
 - Travel-only guardrails for non-travel questions
-- Conversation follow-up context
-- SQL Server knowledge fallback
-- Google Places recommendations
-- Optional Qdrant vector search when Qdrant is running on `http://localhost:6333`
+- Follow-up query rewriting using recent conversation context
+- Semantic retrieval from Qdrant, with active SQL Server knowledge as the source of truth
+- Configurable retrieval-score filtering so weak matches are not presented as facts
+- Hybrid answers that combine internal knowledge with Google Places results for recommendations and trip planning
+- Stable general travel knowledge when internal data is incomplete, with stricter handling for visas, borders, safety, prices, hours, availability, and weather
+- Source URLs and retrieval confidence supplied to the answer prompt when available
 
-If Qdrant is not running, the backend logs a warning and falls back to SQL/database knowledge. This does not stop the chatbot from working.
+The chat pipeline does **not** call SerpAPI. SerpAPI remains isolated to the separate itinerary-generation pipeline. If Qdrant is temporarily unavailable, chat falls back to active SQL knowledge; recommendations can still use Google Places.
+
+### Run the RAG stack locally
+
+1. Start Qdrant from the repository root:
+
+   ```powershell
+   docker compose -f compose.rag.yml up -d
+   ```
+
+2. Provide the embedding key without committing it:
+
+   ```powershell
+   $env:OPENROUTER_API_KEY='your-key'
+   ```
+
+3. Restart the backend. On startup it creates the configured Qdrant collection and indexes active knowledge automatically when the collection is empty. Later knowledge create, update, archive, and restore operations synchronize only the affected vectors.
+
+4. Content managers can use the protected `POST /api/indexing/reindex` endpoint for a deliberate full rebuild. Do not expose this endpoint publicly without authentication; it requires the Admin or Content Manager policy.
+
+Verify Qdrant and inspect the application collection:
+
+```powershell
+Invoke-RestMethod http://localhost:6333/
+Invoke-RestMethod http://localhost:6333/collections/safarni_knowledge
+```
+
+`result.points_count` should be greater than zero after indexing. A healthy Qdrant server with zero points means vector search is running but the knowledge has not yet been embedded.
 
 ## Configuration And Secrets
 
@@ -203,8 +232,13 @@ Important configuration keys:
 - `Payments__StripeSecretKey`
 - `Payments__StripeWebhookSecret`
 - `Groq:ApiKey`
+- `OPENROUTER_API_KEY`
 - `GooglePlaces:ApiKey`
 - `RAG:QdrantUrl`
+- `RAG:QdrantCollectionName`
+- `RAG:QdrantVectorSize`
+- `RAG:TopK`
+- `RAG:ScoreThreshold`
 
 ## Troubleshooting
 
@@ -219,7 +253,9 @@ Backend build fails because DLL files are locked:
 
 Qdrant warning appears:
 
-- Start Qdrant on `http://localhost:6333`, or ignore the warning if SQL fallback is enough for local development.
+- Run `docker compose -f compose.rag.yml up -d` and confirm `Invoke-RestMethod http://localhost:6333/` succeeds.
+- If the collection has zero points, set `OPENROUTER_API_KEY` and restart the backend, or run the protected reindex endpoint as an authorized Admin/Content Manager.
+- If the embedding model or vector dimensions change, run a full reindex so stored vectors match `RAG:VectorSize`.
 
 Frontend cannot reach backend:
 

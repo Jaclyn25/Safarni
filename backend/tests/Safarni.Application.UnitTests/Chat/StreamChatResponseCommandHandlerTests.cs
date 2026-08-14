@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Interfaces;
+using ChatBotApi.Application.Common.Models.GooglePlaces;
 using ChatBotApi.Application.Features.Chat.StreamChatResponse;
 using ChatBotApi.Domain.Entities;
 using FluentAssertions;
@@ -114,8 +115,12 @@ public sealed class
                 .GetAsyncEnumerator(
                     cancellation.Token);
 
-        (await enumerator.MoveNextAsync())
-            .Should().BeTrue();
+        do
+        {
+            (await enumerator.MoveNextAsync())
+                .Should().BeTrue();
+        }
+        while (enumerator.Current.Type != "token");
 
         enumerator.Current.Type
             .Should().Be("token");
@@ -157,6 +162,126 @@ public sealed class
                 unitOfWork.SaveChangesAsync(
                     It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_HybridRequest_ShouldCombineRagAndGooglePlaces()
+    {
+        var fixture = CreateFixture();
+        var chunk = new DocumentChunk
+        {
+            Id = Guid.NewGuid().ToString(),
+            EntityId = "1",
+            EntityType = "City",
+            Content = "Curated Istanbul context",
+            SourceUrl = "https://example.com/istanbul-guide",
+            Score = 0.82f
+        };
+        var place = new PlaceDetails
+        {
+            PlaceId = "place-1",
+            Name = "Hagia Sophia",
+            Address = "Istanbul",
+            Rating = 4.8,
+            UserRatingsTotal = 100,
+            GoogleMapsLink = "https://maps.google.com/?q=Hagia+Sophia"
+        };
+
+        fixture.IntentDetectionService
+            .Setup(service => service.DetectIntentAsync(
+                It.IsAny<string>(),
+                It.IsAny<List<ChatMessageDto>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentDetectionResult
+            {
+                Intent = ChatIntent.Hybrid,
+                StandaloneQuery = "10 day Istanbul itinerary"
+            });
+        fixture.QdrantService.Setup(service => service.IsHealthyAsync()).ReturnsAsync(true);
+        fixture.EmbeddingService
+            .Setup(service => service.GenerateEmbeddingAsync("10 day Istanbul itinerary", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new float[2048]);
+        fixture.QdrantService
+            .Setup(service => service.SearchSimilarChunksAsync(It.IsAny<float[]>(), It.IsAny<int>()))
+            .ReturnsAsync([chunk]);
+        fixture.GooglePlacesService
+            .Setup(service => service.TextSearchAsync(
+                "10 day Istanbul itinerary",
+                It.IsAny<CancellationToken>(),
+                It.IsAny<string>()))
+            .ReturnsAsync([place]);
+        fixture.PromptBuilder
+            .Setup(builder => builder.BuildSystemPromptWithPlaces(
+                It.Is<List<DocumentChunk>>(chunks => chunks.Contains(chunk)),
+                It.Is<List<PlaceDetails>>(places => places.Contains(place)),
+                ChatIntent.Hybrid,
+                It.IsAny<string>()))
+            .Returns("Hybrid grounded prompt");
+        fixture.AiProvider
+            .Setup(provider => provider.StreamChatCompletionAsync(
+                "Hybrid grounded prompt",
+                It.IsAny<List<ChatMessageDto>>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(StreamTokensAsync("Grounded answer"));
+
+        var events = new List<ChatStreamEvent>();
+        await foreach (var streamEvent in fixture.Handler.Handle(fixture.Command, CancellationToken.None))
+        {
+            events.Add(streamEvent);
+        }
+
+        events.Should().Contain(streamEvent =>
+            streamEvent.Type == "status" &&
+            streamEvent.Status == "Finding places that fit");
+        events.Should().Contain(streamEvent =>
+            streamEvent.Type == "resources" &&
+            streamEvent.Sources!.Any(source => source.Domain == "example.com") &&
+            streamEvent.Places!.Any(card => card.Name == "Hagia Sophia" && card.Rating == 4.8));
+
+        fixture.PromptBuilder.Verify(builder => builder.BuildSystemPromptWithPlaces(
+            It.Is<List<DocumentChunk>>(chunks => chunks.Contains(chunk)),
+            It.Is<List<PlaceDetails>>(places => places.Contains(place)),
+            ChatIntent.Hybrid,
+            It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_BroadTripRequest_ShouldAskPreferencesBeforeRetrievalOrGeneration()
+    {
+        var fixture = CreateFixture();
+        fixture.IntentDetectionService
+            .Setup(service => service.DetectIntentAsync(
+                It.IsAny<string>(),
+                It.IsAny<List<ChatMessageDto>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentDetectionResult
+            {
+                Intent = ChatIntent.Hybrid,
+                StandaloneQuery = "plan a trip",
+                IsTripPlanningRequest = true,
+                RequiresSemanticClassification = false
+            });
+
+        var events = new List<ChatStreamEvent>();
+        await foreach (var streamEvent in fixture.Handler.Handle(fixture.Command, CancellationToken.None))
+        {
+            events.Add(streamEvent);
+        }
+
+        events.Should().Contain(streamEvent =>
+            streamEvent.Type == "token" &&
+            streamEvent.Token!.Contains("where would you like to go?"));
+        fixture.AiProvider.Verify(provider => provider.StreamChatCompletionAsync(
+            It.IsAny<string>(),
+            It.IsAny<List<ChatMessageDto>>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        fixture.QdrantService.Verify(service => service.IsHealthyAsync(), Times.Never);
+        fixture.GooglePlacesService.Verify(service => service.TextSearchAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>(),
+            It.IsAny<string>()), Times.Never);
     }
 
     private static TestFixture CreateFixture()
@@ -292,7 +417,12 @@ public sealed class
             conversation,
             chatRepository,
             unitOfWork,
-            aiProvider);
+            aiProvider,
+            embeddingService,
+            qdrantService,
+            promptBuilder,
+            intentDetectionService,
+            googlePlacesService);
     }
 
     private static async IAsyncEnumerable<string>
@@ -323,5 +453,10 @@ public sealed class
         Conversation Conversation,
         Mock<IChatRepository> ChatRepository,
         Mock<IUnitOfWork> UnitOfWork,
-        Mock<IAIProvider> AiProvider);
+        Mock<IAIProvider> AiProvider,
+        Mock<IEmbeddingService> EmbeddingService,
+        Mock<IQdrantService> QdrantService,
+        Mock<IPromptBuilder> PromptBuilder,
+        Mock<IIntentDetectionService> IntentDetectionService,
+        Mock<IGooglePlacesService> GooglePlacesService);
 }

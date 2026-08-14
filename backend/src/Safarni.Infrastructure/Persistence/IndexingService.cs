@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using ChatBotApi.Application.Common.Interfaces;
 using ChatBotApi.Domain.Entities;
@@ -43,12 +45,17 @@ public class IndexingService : IIndexingService
 
         var rawDocuments = new List<RawDocument>();
 
-        var items = await _context.TravelKnowledges.AsNoTracking().ToListAsync();
+        var items = await _context.TravelKnowledges
+            .AsNoTracking()
+            .Where(item => !item.IsArchived)
+            .ToListAsync();
         foreach (var item in items)
         {
             var text = $"Category: {item.Category}. Title: {item.Title}. Location: {item.City}, {item.Country}. Content: {item.Content}";
-            rawDocuments.Add(new RawDocument(item.Id.ToString(), item.Category, text, item.City ?? "", item.Country ?? ""));
+            rawDocuments.Add(new RawDocument(item.Id.ToString(), item.Category, text, item.City ?? "", item.Country ?? "", item.SourceUrl));
         }
+
+        await _qdrantService.CreateCollectionAsync();
 
         if (rawDocuments.Count == 0)
         {
@@ -66,34 +73,7 @@ public class IndexingService : IIndexingService
 
         _logger.LogInformation("Created {ChunkCount} chunks from {DocCount} records. Ensuring vector collection exists...", chunks.Count, rawDocuments.Count);
         
-        await _qdrantService.CreateCollectionAsync();
-
-        const int batchSize = 20;
-        for (int i = 0; i < chunks.Count; i += batchSize)
-        {
-            int currentBatchSize = Math.Min(batchSize, chunks.Count - i);
-            var batch = chunks.GetRange(i, currentBatchSize);
-            
-            var textsToEmbed = new List<string>();
-            foreach (var chunk in batch)
-            {
-                textsToEmbed.Add(chunk.Content);
-            }
-
-            try
-            {
-                var embeddings = await _embeddingService.GenerateEmbeddingsAsync(textsToEmbed);
-                for (int j = 0; j < batch.Count; j++)
-                {
-                    batch[j].Embedding = embeddings[j];
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to generate embeddings for batch starting at {Index}.", i);
-                throw;
-            }
-        }
+        await EmbedChunksAsync(chunks);
 
         _logger.LogInformation("Upserting vectors into Qdrant...");
         await _qdrantService.SaveChunksAsync(chunks);
@@ -112,6 +92,66 @@ public class IndexingService : IIndexingService
         return await IndexAllAsync();
     }
 
+    public async Task<int> SyncKnowledgeAsync(int knowledgeId)
+    {
+        var item = await _context.TravelKnowledges
+            .AsNoTracking()
+            .SingleOrDefaultAsync(knowledge => knowledge.Id == knowledgeId);
+
+        await _qdrantService.CreateCollectionAsync();
+        await _qdrantService.DeleteChunksByEntityIdAsync(knowledgeId.ToString());
+
+        if (item is null || item.IsArchived)
+        {
+            _logger.LogInformation(
+                "Removed vector chunks for missing or archived knowledge item {KnowledgeId}.",
+                knowledgeId);
+            return 0;
+        }
+
+        var text = $"Category: {item.Category}. Title: {item.Title}. Location: {item.City}, {item.Country}. Content: {item.Content}";
+        var chunks = ChunkText(new RawDocument(
+            item.Id.ToString(),
+            item.Category,
+            text,
+            item.City ?? string.Empty,
+            item.Country ?? string.Empty,
+            item.SourceUrl));
+
+        await EmbedChunksAsync(chunks);
+        await _qdrantService.SaveChunksAsync(chunks);
+
+        _logger.LogInformation(
+            "Synchronized knowledge item {KnowledgeId} to {ChunkCount} Qdrant chunks.",
+            knowledgeId,
+            chunks.Count);
+
+        return chunks.Count;
+    }
+
+    private async Task EmbedChunksAsync(List<DocumentChunk> chunks)
+    {
+        const int batchSize = 20;
+        for (var i = 0; i < chunks.Count; i += batchSize)
+        {
+            var currentBatchSize = Math.Min(batchSize, chunks.Count - i);
+            var batch = chunks.GetRange(i, currentBatchSize);
+            var embeddings = await _embeddingService.GenerateEmbeddingsAsync(
+                batch.Select(chunk => chunk.Content).ToList());
+
+            if (embeddings.Count != batch.Count)
+            {
+                throw new InvalidOperationException(
+                    $"Embedding provider returned {embeddings.Count} vectors for a batch of {batch.Count} chunks.");
+            }
+
+            for (var j = 0; j < batch.Count; j++)
+            {
+                batch[j].Embedding = embeddings[j];
+            }
+        }
+    }
+
     private List<DocumentChunk> ChunkText(RawDocument doc)
     {
         var chunks = new List<DocumentChunk>();
@@ -122,15 +162,18 @@ public class IndexingService : IIndexingService
         if (string.IsNullOrWhiteSpace(text))
             return chunks;
 
+        var chunkIndex = 0;
+
         if (text.Length <= limit)
         {
             chunks.Add(new DocumentChunk
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = CreateStableChunkId(doc.EntityId, chunkIndex),
                 EntityId = doc.EntityId,
                 EntityType = doc.EntityType,
                 Content = text,
                 Source = "SQL Server",
+                SourceUrl = doc.SourceUrl,
                 City = doc.City,
                 Country = doc.Country,
                 CreatedDate = DateTime.UtcNow
@@ -157,11 +200,12 @@ public class IndexingService : IIndexingService
             {
                 chunks.Add(new DocumentChunk
                 {
-                    Id = Guid.NewGuid().ToString(),
+                    Id = CreateStableChunkId(doc.EntityId, chunkIndex++),
                     EntityId = doc.EntityId,
                     EntityType = doc.EntityType,
                     Content = chunkText,
                     Source = "SQL Server",
+                    SourceUrl = doc.SourceUrl,
                     City = doc.City,
                     Country = doc.Country,
                     CreatedDate = DateTime.UtcNow
@@ -184,5 +228,11 @@ public class IndexingService : IIndexingService
         return chunks;
     }
 
-    private record RawDocument(string EntityId, string EntityType, string Content, string City, string Country);
+    private static string CreateStableChunkId(string entityId, int chunkIndex)
+    {
+        var hash = MD5.HashData(Encoding.UTF8.GetBytes($"TravelKnowledge:{entityId}:{chunkIndex}"));
+        return new Guid(hash).ToString();
+    }
+
+    private record RawDocument(string EntityId, string EntityType, string Content, string City, string Country, string? SourceUrl);
 }

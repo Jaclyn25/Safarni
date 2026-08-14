@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Interfaces;
 using ChatBotApi.Application.Common.Models.GooglePlaces;
+using ChatBotApi.Application.Features.Chat.Services;
 using ChatBotApi.Domain.Entities;
 using MediatR;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +19,7 @@ public record RegenerateResponseCommand(Guid ConversationId, string UserId) : IR
 public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateResponseCommand, ConversationDto>
 {
     private const int MaxHistoryMessages = 20;
-    private const int MaxContextChunks = 3;
+    private const int MaxContextChunks = 6;
 
     private readonly IChatRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
@@ -147,6 +148,28 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
             return ToConversationDto(conversation);
         }
 
+        var clarification = TripPlanningClarifier.BuildClarification(
+            intentResult.IsTripPlanningRequest,
+            lastUserMsg.Content,
+            history);
+
+        if (!string.IsNullOrWhiteSpace(clarification))
+        {
+            var clarificationMessage = new ConversationMessage
+            {
+                Id = Guid.NewGuid(),
+                ConversationId = conversation.Id,
+                Role = "assistant",
+                Content = clarification,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            conversation.Messages.Add(clarificationMessage);
+            await _repository.AddMessageAsync(clarificationMessage, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return ToConversationDto(conversation);
+        }
+
         // STEP 1: Search Database FIRST (RAG)
         _logger.LogInformation("Step 1: Searching RAG Database for message regeneration: {Message}", queryToSearch);
         List<DocumentChunk>? contextChunks = null;
@@ -181,7 +204,7 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
         string systemPrompt;
         bool foundInDb = contextChunks != null && contextChunks.Count > 0;
 
-        if (foundInDb)
+        if (foundInDb && intent == ChatIntent.RagOnly)
         {
             systemPrompt = _promptBuilder.BuildSystemPrompt(contextChunks!, lastUserMsg.Content);
         }
@@ -200,7 +223,10 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                 List<PlaceDetails>? places = null;
                 try
                 {
-                    places = await _googlePlacesService.TextSearchAsync(lastUserMsg.Content, cancellationToken);
+                    places = await _googlePlacesService.TextSearchAsync(
+                        queryToSearch,
+                        cancellationToken,
+                        _promptBuilder.GetGooglePlacesLanguageCode(lastUserMsg.Content));
                 }
                 catch (Exception ex)
                 {
@@ -209,9 +235,9 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
 
                 bool foundInPlaces = places != null && places.Count > 0;
 
-                if (foundInPlaces)
+                if (places != null)
                 {
-                    systemPrompt = _promptBuilder.BuildSystemPromptWithPlaces(null, places, intent, lastUserMsg.Content);
+                    systemPrompt = _promptBuilder.BuildSystemPromptWithPlaces(contextChunks, places, intent, lastUserMsg.Content);
                 }
                 else
                 {
@@ -293,7 +319,8 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
     {
         var result = await _intentDetectionService.DetectIntentAsync(message, history, cancellationToken);
         
-        if (result.Intent == ChatIntent.OutOfScope)
+        if (result.Intent == ChatIntent.OutOfScope ||
+            !result.RequiresSemanticClassification)
         {
             return result;
         }
@@ -373,7 +400,8 @@ public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateRespon
                     Content = $"Category: {k.Category}. Title: {k.Title}. Location: {k.City}, {k.Country}. Content: {k.Content}",
                     City = k.City ?? "",
                     Country = k.Country ?? "",
-                    Source = "SQL Server Database"
+                    Source = "SQL Server Database",
+                    SourceUrl = k.SourceUrl
                 });
             }
         }

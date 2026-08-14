@@ -112,6 +112,15 @@ internal sealed class TripRepository : ITripRepository
             cancellationToken);
     }
 
+    public async Task AddSnapshotVersionAsync(
+        SnapshotVersion version,
+        CancellationToken cancellationToken = default)
+    {
+        await _dbContext.SnapshotVersions.AddAsync(
+            version,
+            cancellationToken);
+    }
+
     public void Remove(Trip trip)
     {
         _dbContext.Trips.Remove(trip);

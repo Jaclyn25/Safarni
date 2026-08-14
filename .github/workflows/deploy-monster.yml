@@ -75,5 +75,5 @@ jobs:
           protocol: ftps
           port: 21
           local-dir: ./publish/
-          server-dir: ./
+          server-dir: ./wwwroot/
           log-level: minimal

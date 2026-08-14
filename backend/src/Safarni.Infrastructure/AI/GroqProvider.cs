@@ -161,97 +161,141 @@ public class GroqProvider : IAIProvider
             CancellationToken cancellationToken = default)
     {
         var settings = GetSettings();
+        var currentHistory = history;
+        var currentUserMessage = userMessage;
+        var emittedResponse = new StringBuilder();
 
-        var requestBody = CreateRequestBody(
-            settings,
-            systemPrompt,
-            history,
-            userMessage,
-            stream: true,
-            options: null);
-
-        using var client = CreateClient(
-            settings.TimeoutSeconds);
-
-        using var request = CreateRequest(
-            settings.ApiKey,
-            requestBody);
-
-        using var response = await SendAsync(
-            client,
-            request,
-            HttpCompletionOption.ResponseHeadersRead,
-            settings.TimeoutSeconds,
-            cancellationToken);
-
-        await EnsureSuccessAsync(
-            response,
-            cancellationToken);
-
-        await using var responseStream =
-            await response.Content.ReadAsStreamAsync(
-                cancellationToken);
-
-        using var reader =
-            new StreamReader(responseStream);
-
-        while (true)
+        // One automatic continuation prevents a good answer from being saved in
+        // a visibly truncated state when the provider reaches its token ceiling.
+        for (var attempt = 0; attempt < 2; attempt++)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            var requestBody = CreateRequestBody(
+                settings,
+                systemPrompt,
+                currentHistory,
+                currentUserMessage,
+                stream: true,
+                options: null);
 
-            var line = await reader.ReadLineAsync(
+            using var client = CreateClient(
+                settings.TimeoutSeconds);
+
+            using var request = CreateRequest(
+                settings.ApiKey,
+                requestBody);
+
+            using var response = await SendAsync(
+                client,
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                settings.TimeoutSeconds,
                 cancellationToken);
 
-            if (line is null)
+            await EnsureSuccessAsync(
+                response,
+                cancellationToken);
+
+            await using var responseStream =
+                await response.Content.ReadAsStreamAsync(
+                    cancellationToken);
+
+            using var reader =
+                new StreamReader(responseStream);
+
+            string? finishReason = null;
+
+            while (true)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var line = await reader.ReadLineAsync(
+                    cancellationToken);
+
+                if (line is null)
+                {
+                    break;
+                }
+
+                if (string.IsNullOrWhiteSpace(line) ||
+                    !line.StartsWith(
+                        "data:",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var data = line[5..].Trim();
+
+                if (data == "[DONE]")
+                {
+                    break;
+                }
+
+                GroqStreamResponseJson? streamResponse;
+
+                try
+                {
+                    streamResponse =
+                        JsonSerializer.Deserialize
+                            <GroqStreamResponseJson>(
+                                data,
+                                JsonOptions);
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Could not parse one Groq streaming event: {EventData}",
+                        data);
+
+                    continue;
+                }
+
+                var choice = streamResponse?.Choices?[0];
+                if (!string.IsNullOrWhiteSpace(choice?.FinishReason))
+                {
+                    finishReason = choice.FinishReason;
+                }
+
+                var content = choice?.Delta?.Content;
+
+                if (!string.IsNullOrEmpty(content))
+                {
+                    emittedResponse.Append(content);
+                    yield return content;
+                }
+            }
+
+            var reachedLimit = string.Equals(
+                    finishReason,
+                    "length",
+                    StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(
+                    finishReason,
+                    "max_tokens",
+                    StringComparison.OrdinalIgnoreCase);
+
+            if (!reachedLimit || attempt == 1)
+            {
+                if (reachedLimit)
+                {
+                    _logger.LogWarning(
+                        "Groq response still reached the token limit after automatic continuation.");
+                }
+
                 yield break;
             }
 
-            if (string.IsNullOrWhiteSpace(line) ||
-                !line.StartsWith(
-                    "data:",
-                    StringComparison.OrdinalIgnoreCase))
+            _logger.LogInformation(
+                "Groq response reached the token limit; continuing it once automatically.");
+
+            currentHistory = new List<ChatMessageDto>(history)
             {
-                continue;
-            }
-
-            var data = line[5..].Trim();
-
-            if (data == "[DONE]")
-            {
-                yield break;
-            }
-
-            GroqStreamResponseJson? streamResponse;
-
-            try
-            {
-                streamResponse =
-                    JsonSerializer.Deserialize
-                        <GroqStreamResponseJson>(
-                            data,
-                            JsonOptions);
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogWarning(
-                    ex,
-                    "Could not parse one Groq streaming event: {EventData}",
-                    data);
-
-                continue;
-            }
-
-            var content =
-                streamResponse?
-                    .Choices?[0]?
-                    .Delta?
-                    .Content;
-
-            if (!string.IsNullOrEmpty(content))
-            {
-                yield return content;
-            }
+                new() { Role = "user", Content = userMessage },
+                new() { Role = "assistant", Content = emittedResponse.ToString() }
+            };
+            currentUserMessage =
+                "Continue exactly where the previous answer stopped. Do not repeat earlier content. Finish all remaining sections concisely and end with a complete sentence.";
         }
     }
 
@@ -604,6 +648,13 @@ public class GroqProvider : IAIProvider
     private sealed class GroqStreamChoiceJson
     {
         public GroqDeltaJson? Delta
+        {
+            get;
+            set;
+        }
+
+        [JsonPropertyName("finish_reason")]
+        public string? FinishReason
         {
             get;
             set;

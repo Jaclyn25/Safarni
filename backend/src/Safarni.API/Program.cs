@@ -286,16 +286,21 @@ using (var scope = app.Services.CreateScope())
         if (await qdrantService.IsHealthyAsync())
         {
             bool wasCreatedOrRecreated = await qdrantService.CreateCollectionAsync();
-            
-            if (wasCreatedOrRecreated)
+            var indexedPointCount = await qdrantService.GetPointCountAsync();
+            var autoIndexOnStartup = !bool.TryParse(
+                    builder.Configuration["RAG:AutoIndexOnStartup"],
+                    out var configuredAutoIndex) ||
+                configuredAutoIndex;
+
+            if (autoIndexOnStartup && (wasCreatedOrRecreated || indexedPointCount == 0))
             {
-                Console.WriteLine("Qdrant collection was created or re-created. Starting full RAG indexing...");
+                Console.WriteLine("Qdrant collection is new or empty. Starting full RAG indexing...");
                 await indexingService.IndexAllAsync();
                 Console.WriteLine("RAG indexing completed successfully.");
             }
             else
             {
-                Console.WriteLine("Qdrant collection already exists with correct dimensions. Skipping full re-index.");
+                Console.WriteLine($"Qdrant collection is ready with {indexedPointCount} indexed points.");
             }
         }
         else

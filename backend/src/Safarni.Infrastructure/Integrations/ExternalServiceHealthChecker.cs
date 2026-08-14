@@ -44,6 +44,7 @@ public sealed class ExternalServiceHealthChecker : IExternalServiceHealthChecker
         var checks = new List<IntegrationHealthCheck>
         {
             await CheckGroqAsync("groq-chat", "Groq Chat", "GroqChat", "AI chat assistant", cancellationToken),
+            CheckOpenRouterPresence(),
             await CheckGroqAsync("groq-itinerary", "Groq Itinerary", "GroqItinerary", "Itinerary generation", cancellationToken),
             await CheckGeminiAsync(cancellationToken),
             CheckPresence("google-places", "Google Places", "GooglePlaces:ApiKey", "Chat place search"),
@@ -160,6 +161,25 @@ public sealed class ExternalServiceHealthChecker : IExternalServiceHealthChecker
                 displayName,
                 affectedFeature,
                 "API key is not configured.");
+    }
+
+    private IntegrationHealthCheck CheckOpenRouterPresence()
+    {
+        var value = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY") ??
+                    _configuration["OpenRouter:ApiKey"];
+
+        return IsRealValue(value)
+            ? Healthy(
+                "openrouter-embeddings",
+                "OpenRouter Embeddings",
+                "RAG semantic retrieval",
+                "Embedding API key is configured.",
+                0)
+            : NotConfigured(
+                "openrouter-embeddings",
+                "OpenRouter Embeddings",
+                "RAG semantic retrieval",
+                "OPENROUTER_API_KEY is not configured.");
     }
 
     private async Task<IntegrationHealthCheck> CheckGroqAsync(

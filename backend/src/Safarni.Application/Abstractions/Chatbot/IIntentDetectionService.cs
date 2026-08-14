@@ -20,6 +20,8 @@ public class IntentDetectionResult
 {
     public ChatIntent Intent { get; set; }
     public string StandaloneQuery { get; set; } = string.Empty;
+    public bool RequiresSemanticClassification { get; set; } = true;
+    public bool IsTripPlanningRequest { get; set; }
 }
 
 public interface IIntentDetectionService

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Interfaces;
 using ChatBotApi.Application.Common.Models.GooglePlaces;
+using ChatBotApi.Application.Features.Chat.Services;
 using ChatBotApi.Domain.Entities;
 using FluentValidation;
 using MediatR;
@@ -24,8 +25,8 @@ public sealed class StreamChatResponseCommandHandler
         StreamChatResponseCommand,
         ChatStreamEvent>
 {
-    private const int MaxHistoryMessages = 8;
-    private const int MaxContextChunks = 3;
+    private const int MaxHistoryMessages = 12;
+    private const int MaxContextChunks = 6;
 
     private readonly IChatRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
@@ -112,11 +113,93 @@ public sealed class StreamChatResponseCommandHandler
             request.Message,
             cancellationToken);
 
-        var responseContext =
-            await BuildResponseContextAsync(
+        var isArabic = IsArabic(request.Message);
+        yield return ChatStreamEvent.StatusEvent(
+            isArabic
+                ? "أفهم طلبك وسياق الرحلة"
+                : "Understanding your trip context");
+
+        var intentResult = await ResolveIntentAsync(
+            request.Message,
+            history,
+            cancellationToken);
+        var intent = intentResult.Intent;
+        ChatResponseContext responseContext;
+
+        if (intent is ChatIntent.Social or ChatIntent.OutOfScope)
+        {
+            responseContext = new ChatResponseContext(
+                _promptBuilder.BuildDirectSystemPrompt(intent, request.Message),
+                _promptBuilder.BuildUserPrompt(request.Message),
+                ImmediateResponse: null);
+        }
+        else
+        {
+            var clarification = TripPlanningClarifier.BuildClarification(
+                intentResult.IsTripPlanningRequest,
                 request.Message,
-                history,
-                cancellationToken);
+                history);
+
+            if (!string.IsNullOrWhiteSpace(clarification))
+            {
+                responseContext = new ChatResponseContext(
+                    SystemPrompt: null,
+                    UserPrompt: request.Message,
+                    ImmediateResponse: clarification);
+            }
+            else
+            {
+                yield return ChatStreamEvent.StatusEvent(
+                    isArabic
+                        ? "أراجع معرفة سفر موثوقة"
+                        : "Reviewing trusted travel knowledge");
+
+                var contextChunks = await FindContextChunksAsync(
+                    intentResult.StandaloneQuery,
+                    cancellationToken);
+                var places = new List<PlaceDetails>();
+
+                if (intent is ChatIntent.GooglePlacesOnly or ChatIntent.Hybrid)
+                {
+                    yield return ChatStreamEvent.StatusEvent(
+                        isArabic
+                            ? "أبحث عن أماكن مناسبة"
+                            : "Finding places that fit");
+
+                    places = await FindPlacesAsync(
+                        intentResult.StandaloneQuery,
+                        cancellationToken);
+                }
+
+                var resources = BuildResources(contextChunks, places);
+                if (resources.Sources.Count > 0 || resources.Places.Count > 0)
+                {
+                    yield return ChatStreamEvent.ResourcesEvent(
+                        resources.Sources,
+                        resources.Places);
+                }
+
+                var systemPrompt = intent is ChatIntent.GooglePlacesOnly or ChatIntent.Hybrid
+                    ? _promptBuilder.BuildSystemPromptWithPlaces(
+                        contextChunks,
+                        places,
+                        intent,
+                        request.Message)
+                    : _promptBuilder.BuildSystemPrompt(
+                        contextChunks,
+                        request.Message);
+
+                responseContext = new ChatResponseContext(
+                    systemPrompt,
+                    _promptBuilder.BuildUserPrompt(request.Message),
+                    ImmediateResponse: null);
+            }
+        }
+
+        yield return ChatStreamEvent.StatusEvent(
+            isArabic
+                ? "أجهّز لك ردًا مناسبًا"
+                : "Putting together a useful answer");
 
         var completeResponse = new StringBuilder();
         var stopwatch = Stopwatch.StartNew();
@@ -262,96 +345,24 @@ public sealed class StreamChatResponseCommandHandler
             cancellationToken);
     }
 
-    private async Task<ChatResponseContext>
-        BuildResponseContextAsync(
-            string message,
-            List<ChatMessageDto> history,
-            CancellationToken cancellationToken)
-    {
-        var intent =
-            await ResolveIntentAsync(
-                message,
-                history,
-                cancellationToken);
-
-        _logger.LogInformation(
-            "Detected streaming chat intent: {Intent}",
-            intent);
-
-        if (intent is ChatIntent.Social or
-            ChatIntent.OutOfScope)
-        {
-            return new ChatResponseContext(
-                _promptBuilder.BuildDirectSystemPrompt(
-                    intent,
-                    message),
-                _promptBuilder.BuildUserPrompt(message),
-                ImmediateResponse: null);
-        }
-
-        var contextChunks =
-            await FindContextChunksAsync(
-                message,
-                cancellationToken);
-
-        string? systemPrompt = null;
-        string? immediateResponse = null;
-
-        if (contextChunks.Count > 0)
-        {
-            systemPrompt =
-                _promptBuilder.BuildSystemPrompt(
-                    contextChunks,
-                    message);
-        }
-        else if (intent == ChatIntent.RagOnly)
-        {
-            systemPrompt =
-                _promptBuilder.BuildSystemPrompt(
-                    [],
-                    message);
-        }
-        else
-        {
-            var places = await FindPlacesAsync(
-                message,
-                cancellationToken);
-
-            if (places.Count > 0)
-            {
-                systemPrompt =
-                    _promptBuilder.BuildSystemPromptWithPlaces(
-                        null,
-                        places,
-                        intent,
-                        message);
-            }
-            else
-            {
-                systemPrompt =
-                    _promptBuilder.BuildSystemPrompt(
-                        new List<DocumentChunk>(),
-                        message);
-            }
-        }
-
-        return new ChatResponseContext(
-            systemPrompt,
-            _promptBuilder.BuildUserPrompt(message),
-            immediateResponse);
-    }
-
-    private async Task<ChatIntent> ResolveIntentAsync(
+    private async Task<IntentDetectionResult> ResolveIntentAsync(
         string message,
         List<ChatMessageDto> history,
         CancellationToken cancellationToken)
     {
-        var keywordIntent =
-            _intentDetectionService.DetectIntent(message);
+        var result = await _intentDetectionService.DetectIntentAsync(
+            message,
+            history,
+            cancellationToken) ?? new IntentDetectionResult
+            {
+                Intent = _intentDetectionService.DetectIntent(message),
+                StandaloneQuery = message
+            };
 
-        if (keywordIntent == ChatIntent.OutOfScope)
+        if (result.Intent == ChatIntent.OutOfScope ||
+            !result.RequiresSemanticClassification)
         {
-            return ChatIntent.OutOfScope;
+            return result;
         }
 
         var semanticIntent =
@@ -363,10 +374,11 @@ public sealed class StreamChatResponseCommandHandler
         if (semanticIntent is ChatIntent.OutOfScope or
             ChatIntent.Social)
         {
-            return semanticIntent;
+            result.Intent = semanticIntent;
+            return result;
         }
 
-        return keywordIntent switch
+        result.Intent = result.Intent switch
         {
             ChatIntent.GooglePlacesOnly =>
                 ChatIntent.GooglePlacesOnly,
@@ -375,6 +387,8 @@ public sealed class StreamChatResponseCommandHandler
             _ =>
                 ChatIntent.RagOnly
         };
+
+        return result;
     }
 
     private async Task<List<DocumentChunk>>
@@ -499,7 +513,8 @@ public sealed class StreamChatResponseCommandHandler
                     $"Content: {knowledge.Content}",
                 City = knowledge.City ?? string.Empty,
                 Country = knowledge.Country ?? string.Empty,
-                Source = "SQL Server Database"
+                Source = "SQL Server Database",
+                SourceUrl = knowledge.SourceUrl
             });
         }
 
@@ -555,6 +570,93 @@ public sealed class StreamChatResponseCommandHandler
             : $"{cleanMessage[..22]}...";
     }
 
+    private static ChatResources BuildResources(
+        IEnumerable<DocumentChunk> contextChunks,
+        IEnumerable<PlaceDetails> places)
+    {
+        var sources = new List<ChatSource>();
+        var seenUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var chunk in contextChunks)
+        {
+            if (!TryGetHttpDomain(chunk.SourceUrl, out var sourceUrl, out var domain) ||
+                !seenUrls.Add(sourceUrl))
+            {
+                continue;
+            }
+
+            var location = !string.IsNullOrWhiteSpace(chunk.City)
+                ? chunk.City
+                : chunk.Country;
+            var title = string.IsNullOrWhiteSpace(location)
+                ? $"Safarni {chunk.EntityType} source"
+                : $"{location} · {chunk.EntityType}";
+
+            sources.Add(new ChatSource(
+                title,
+                sourceUrl,
+                domain,
+                "knowledge"));
+        }
+
+        var placeCards = new List<ChatPlaceCard>();
+        foreach (var place in places.Take(5))
+        {
+            if (string.IsNullOrWhiteSpace(place.GoogleMapsLink))
+            {
+                continue;
+            }
+
+            placeCards.Add(new ChatPlaceCard(
+                place.Name,
+                place.Address,
+                place.Rating,
+                place.UserRatingsTotal,
+                place.GoogleMapsLink,
+                place.Description));
+
+            if (TryGetHttpDomain(place.GoogleMapsLink, out var mapUrl, out var mapDomain) &&
+                seenUrls.Add(mapUrl))
+            {
+                sources.Add(new ChatSource(
+                    place.Name,
+                    mapUrl,
+                    mapDomain,
+                    "place"));
+            }
+        }
+
+        return new ChatResources(
+            sources.Take(8).ToList(),
+            placeCards);
+    }
+
+    private static bool TryGetHttpDomain(
+        string? value,
+        out string url,
+        out string domain)
+    {
+        url = string.Empty;
+        domain = string.Empty;
+
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
+            uri.Scheme is not ("http" or "https"))
+        {
+            return false;
+        }
+
+        url = uri.AbsoluteUri;
+        domain = uri.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+            ? uri.Host[4..]
+            : uri.Host;
+        return true;
+    }
+
+    private static bool IsArabic(string text)
+    {
+        return text.Any(character => character is >= '\u0600' and <= '\u06FF');
+    }
+
     private static ConversationDto MapConversation(
         Conversation conversation)
     {
@@ -578,4 +680,8 @@ public sealed class StreamChatResponseCommandHandler
         string? SystemPrompt,
         string UserPrompt,
         string? ImmediateResponse);
+
+    private sealed record ChatResources(
+        IReadOnlyList<ChatSource> Sources,
+        IReadOnlyList<ChatPlaceCard> Places);
 }

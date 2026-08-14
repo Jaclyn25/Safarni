@@ -1,4 +1,6 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ChatBotApi.Application.Common.Interfaces;
 using Safarni.Application.Abstractions.Auditing;
 using Safarni.Application.Abstractions.Authentication;
 using ChatBotApi.Domain.Entities;
@@ -18,15 +20,21 @@ public sealed class CreateKnowledgeCommandHandler
     private readonly IAdminRepository _adminRepository;
     private readonly IAuditLogWriter _auditLogWriter;
     private readonly ICurrentUserService _currentUser;
+    private readonly IIndexingService? _indexingService;
+    private readonly ILogger<CreateKnowledgeCommandHandler>? _logger;
 
     public CreateKnowledgeCommandHandler(
         IAdminRepository adminRepository,
         IAuditLogWriter auditLogWriter,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IIndexingService? indexingService = null,
+        ILogger<CreateKnowledgeCommandHandler>? logger = null)
     {
         _adminRepository = adminRepository;
         _auditLogWriter = auditLogWriter;
         _currentUser = currentUser;
+        _indexingService = indexingService;
+        _logger = logger;
     }
 
     public async Task<Result<AdminKnowledgeResponse>> Handle(
@@ -69,8 +77,23 @@ public sealed class CreateKnowledgeCommandHandler
             new { title = item.Title, category = item.Category },
             cancellationToken: cancellationToken);
 
+        await TrySyncIndexAsync(item.Id, cancellationToken);
+
         return Result<AdminKnowledgeResponse>.Success(
             AdminKnowledgeResponseMapper.ToResponse(item));
+    }
+
+    private async Task TrySyncIndexAsync(int id, CancellationToken cancellationToken)
+    {
+        if (_indexingService is null) return;
+        try
+        {
+            await _indexingService.SyncKnowledgeAsync(id);
+        }
+        catch (Exception exception)
+        {
+            _logger?.LogWarning(exception, "Knowledge {KnowledgeId} was saved but could not be synchronized to Qdrant.", id);
+        }
     }
 }
 
@@ -83,15 +106,21 @@ public sealed class UpdateKnowledgeCommandHandler
     private readonly IAdminRepository _adminRepository;
     private readonly IAuditLogWriter _auditLogWriter;
     private readonly ICurrentUserService _currentUser;
+    private readonly IIndexingService? _indexingService;
+    private readonly ILogger<UpdateKnowledgeCommandHandler>? _logger;
 
     public UpdateKnowledgeCommandHandler(
         IAdminRepository adminRepository,
         IAuditLogWriter auditLogWriter,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IIndexingService? indexingService = null,
+        ILogger<UpdateKnowledgeCommandHandler>? logger = null)
     {
         _adminRepository = adminRepository;
         _auditLogWriter = auditLogWriter;
         _currentUser = currentUser;
+        _indexingService = indexingService;
+        _logger = logger;
     }
 
     public async Task<Result<AdminKnowledgeResponse>> Handle(
@@ -139,8 +168,23 @@ public sealed class UpdateKnowledgeCommandHandler
             new { title = item.Title, category = item.Category },
             cancellationToken: cancellationToken);
 
+        await TrySyncIndexAsync(item.Id);
+
         return Result<AdminKnowledgeResponse>.Success(
             AdminKnowledgeResponseMapper.ToResponse(item));
+    }
+
+    private async Task TrySyncIndexAsync(int id)
+    {
+        if (_indexingService is null) return;
+        try
+        {
+            await _indexingService.SyncKnowledgeAsync(id);
+        }
+        catch (Exception exception)
+        {
+            _logger?.LogWarning(exception, "Knowledge {KnowledgeId} was saved but could not be synchronized to Qdrant.", id);
+        }
     }
 }
 
@@ -153,15 +197,21 @@ public sealed class ArchiveKnowledgeCommandHandler
     private readonly IAdminRepository _adminRepository;
     private readonly IAuditLogWriter _auditLogWriter;
     private readonly ICurrentUserService _currentUser;
+    private readonly IIndexingService? _indexingService;
+    private readonly ILogger<ArchiveKnowledgeCommandHandler>? _logger;
 
     public ArchiveKnowledgeCommandHandler(
         IAdminRepository adminRepository,
         IAuditLogWriter auditLogWriter,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IIndexingService? indexingService = null,
+        ILogger<ArchiveKnowledgeCommandHandler>? logger = null)
     {
         _adminRepository = adminRepository;
         _auditLogWriter = auditLogWriter;
         _currentUser = currentUser;
+        _indexingService = indexingService;
+        _logger = logger;
     }
 
     public async Task<Result<AdminKnowledgeResponse>> Handle(
@@ -194,7 +244,22 @@ public sealed class ArchiveKnowledgeCommandHandler
             new { title = item.Title },
             cancellationToken: cancellationToken);
 
+        await TrySyncIndexAsync(item.Id);
+
         return Result<AdminKnowledgeResponse>.Success(
             AdminKnowledgeResponseMapper.ToResponse(item));
+    }
+
+    private async Task TrySyncIndexAsync(int id)
+    {
+        if (_indexingService is null) return;
+        try
+        {
+            await _indexingService.SyncKnowledgeAsync(id);
+        }
+        catch (Exception exception)
+        {
+            _logger?.LogWarning(exception, "Knowledge {KnowledgeId} was saved but could not be synchronized to Qdrant.", id);
+        }
     }
 }

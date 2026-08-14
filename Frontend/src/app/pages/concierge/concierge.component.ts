@@ -14,9 +14,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { ChatService, Conversation, ChatFolder } from '../../services/chat.service';
+import {
+  ChatService,
+  Conversation,
+  ChatFolder,
+  ChatSource,
+  ChatPlaceCard
+} from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
 import { BrowserNotificationService } from '../../services/browser-notification.service';
+import { marked } from 'marked';
 
 export interface ItineraryDay {
   dayNumber: number;
@@ -34,18 +41,10 @@ export interface ActionChip {
   actionType?: 'planner' | 'prompt';
 }
 
-export interface MessageLink {
-  label: string;
-  url: string;
-  icon: string;
-}
-
 export interface FormattedMessage {
   direction: 'rtl' | 'ltr';
-  summary?: string;
-  paragraphs: string[];
-  links: MessageLink[];
-  itineraryDays: ItineraryDay[];
+  html: string;
+  presentation: 'compact' | 'standard';
   actionChips: ActionChip[];
 }
 
@@ -67,6 +66,9 @@ export interface ChatMessage {
   isStreaming?: boolean;
   streamedText?: string;
   isBookmarked?: boolean;
+  sources?: ChatSource[];
+  places?: ChatPlaceCard[];
+  activitySteps?: string[];
 }
 
 export interface GroupedConversations {
@@ -103,6 +105,9 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   conversationsList: Conversation[] = [];
   folders: ChatFolder[] = [];
   readonly maxMessageLength = 4000;
+  activitySteps: string[] = [];
+  liveSources: ChatSource[] = [];
+  livePlaces: ChatPlaceCard[] = [];
   private pushNotificationsEnabled = false;
 
   // Empty State Prompt Cards
@@ -138,7 +143,6 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   private streamingMessageIndex: number | null = null;
   private activeRequestId = 0;
   private shouldScroll = false;
-  private readonly urlPattern = /https?:\/\/[^\s)\]]+/gi;
   private typewriterInterval: any;
   
   // Bookmarks State
@@ -147,6 +151,10 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   
   get isGenerating(): boolean {
     return this.isTyping || this.messages.some(m => m.isStreaming);
+  }
+
+  get isWaitingForFirstToken(): boolean {
+    return this.isTyping && this.streamingMessageIndex === null;
   }
 
   constructor() {}
@@ -221,6 +229,9 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.isLoadingConversation = false;
     this.conversationId = null;
     this.messages = [];
+    this.activitySteps = [];
+    this.liveSources = [];
+    this.livePlaces = [];
     this.shouldScroll = true;
     localStorage.removeItem('active_conversation_id');
   }
@@ -698,6 +709,9 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
 
     this.messages.push(this.toChatMessage(text, true));
+    this.activitySteps = [];
+    this.liveSources = [];
+    this.livePlaces = [];
     this.inputValue = '';
     this.resetTextareaHeight();
     this.shouldScroll = true;
@@ -987,14 +1001,63 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
 
             this.appendStreamingToken(token);
           },
+          onStatus: (status) => {
+            if (requestId !== this.activeRequestId) return;
+
+            this.zone.run(() => {
+              if (!this.activitySteps.includes(status)) {
+                this.activitySteps = [...this.activitySteps, status];
+              }
+              this.renderNow();
+            });
+          },
+          onResources: (sources, places) => {
+            if (requestId !== this.activeRequestId) return;
+
+            this.zone.run(() => {
+              this.liveSources = sources;
+              this.livePlaces = places;
+              this.renderNow();
+            });
+          },
           onCompleted: (conversation) => {
             if (requestId !== this.activeRequestId) {
               return;
             }
 
-            this.messages = conversation.messages.map(message =>
-              this.toChatMessage(message.content, message.role === 'user')
+            const priorAssistantUi = new Map(
+              this.messages
+                .filter(message => !message.isUser && !!message.id)
+                .map(message => [message.id!, message] as const)
             );
+            const mappedMessages = conversation.messages.map(message => {
+              const mapped = this.toChatMessage(
+                message.content,
+                message.role === 'user',
+                'normal',
+                message.id
+              );
+              const prior = priorAssistantUi.get(message.id || '');
+
+              if (prior) {
+                mapped.sources = prior.sources;
+                mapped.places = prior.places;
+                mapped.activitySteps = prior.activitySteps;
+              }
+
+              return mapped;
+            });
+            const latestAssistant = [...mappedMessages]
+              .reverse()
+              .find(message => !message.isUser);
+
+            if (latestAssistant) {
+              latestAssistant.sources = [...this.liveSources];
+              latestAssistant.places = [...this.livePlaces];
+              latestAssistant.activitySteps = [...this.activitySteps];
+            }
+
+            this.messages = mappedMessages;
 
             this.streamingMessageIndex = null;
             this.refreshConversations();
@@ -1054,6 +1117,10 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
   private appendStreamingToken(token: string): void {
     if (this.streamingMessageIndex === null) {
       const message = this.toChatMessage(token, false);
+      message.isStreaming = true;
+      message.sources = [...this.liveSources];
+      message.places = [...this.livePlaces];
+      message.activitySteps = [...this.activitySteps];
 
       this.messages.push(message);
       this.streamingMessageIndex = this.messages.length - 1;
@@ -1061,6 +1128,9 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
       const message = this.messages[this.streamingMessageIndex];
       message.text += token;
       message.formatted = this.formatMessage(message.text, false);
+      message.sources = [...this.liveSources];
+      message.places = [...this.livePlaces];
+      message.activitySteps = [...this.activitySteps];
     }
 
     this.shouldScroll = true;
@@ -1194,45 +1264,63 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
       }
     }
 
-    const normalized = this.normalizeAssistantText(textToProcess);
-    const links = this.extractLinks(normalized);
-    const withoutUrls = normalized.replace(this.urlPattern, '').trim();
-    let cleaned = this.cleanMarkdown(withoutUrls);
-
-    // AI Response specific parsing
-    let summary: string | undefined = undefined;
-    let itineraryDays: ItineraryDay[] = [];
-    let actionChips: ActionChip[] = [];
-
-    if (!isUser && !isStreaming) {
-      itineraryDays = this.parseItineraryDays(cleaned);
-      actionChips = this.generateActionChips(cleaned, itineraryDays, suggestionsBlock);
-      
-      // Remove itinerary text from paragraphs so it doesn't double render
-      if (itineraryDays.length > 0) {
-        const dayRegex = /(?:Day|اليوم)\s*(\d+)[:\s–-]*(.*?)(?=(?:Day|اليوم)\s*\d+|$)/gsi;
-        cleaned = cleaned.replace(dayRegex, '').trim();
-      }
-    }
-
-    const direction = this.detectDirection(cleaned);
-    const paragraphs = this.extractParagraphs(cleaned);
-
-    if (!isUser && !isStreaming) {
-      const hasSubstantialTravelResponse = paragraphs.length >= 3 && cleaned.length >= 280;
-      if (hasSubstantialTravelResponse) {
-        summary = paragraphs[0];
-      }
-    }
+    const normalized = this.convertMarkdownTablesToBullets(
+      this.normalizeAssistantText(textToProcess)
+    );
+    const direction = this.detectDirection(normalized);
+    const cleaned = this.cleanMarkdown(normalized);
+    const parsedDays = !isUser && !isStreaming
+      ? this.parseItineraryDays(cleaned)
+      : [];
+    const actionChips = !isUser && !isStreaming
+      ? this.generateActionChips(cleaned, parsedDays, suggestionsBlock)
+      : [];
 
     return {
       direction,
-      summary,
-      paragraphs: summary ? paragraphs.slice(1) : paragraphs,
-      links,
-      itineraryDays,
+      html: isUser ? '' : this.renderMarkdown(normalized),
+      presentation: this.getPresentation(normalized),
       actionChips
     };
+  }
+
+  private getPresentation(text: string): 'compact' | 'standard' {
+    const hasRichStructure = /(^|\n)\s*(?:#{1,4}\s|[-*+]\s|\d+[.)]\s|\|.+\|)/m.test(text);
+    return text.length <= 320 && !hasRichStructure ? 'compact' : 'standard';
+  }
+
+  sourceFavicon(source: ChatSource): string {
+    return `https://${source.domain}/favicon.ico`;
+  }
+
+  sourceInitial(source: ChatSource): string {
+    return (source.domain || source.title).charAt(0).toUpperCase();
+  }
+
+  hideBrokenImage(event: Event): void {
+    (event.target as HTMLImageElement).style.display = 'none';
+  }
+
+  private renderMarkdown(text: string): string {
+    if (!text.trim()) return '';
+
+    // Raw model HTML is not needed. Escape it before Markdown conversion, then
+    // Angular sanitizes the generated HTML again when binding it to the view.
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    const html = marked.parse(escaped, {
+      async: false,
+      gfm: true,
+      breaks: true
+    }) as string;
+
+    return html.replace(
+      /<a href="(https?:\/\/[^\"]+)"/g,
+      '<a href="$1" target="_blank" rel="noopener noreferrer"'
+    );
   }
 
   private detectDirection(text: string): 'rtl' | 'ltr' {
@@ -1253,6 +1341,66 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
       .replace(/&gt;/gi, '>')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
+  }
+
+  /**
+   * The chat is deliberately conversational, not spreadsheet-like. This is a
+   * final UI guard for older saved answers and the rare model response that
+   * ignores the no-table instruction.
+   */
+  private convertMarkdownTablesToBullets(text: string): string {
+    const lines = text.split('\n');
+    const output: string[] = [];
+
+    const cells = (line: string): string[] =>
+      line
+        .trim()
+        .replace(/^\|/, '')
+        .replace(/\|$/, '')
+        .split('|')
+        .map(value => value.trim());
+
+    const isDivider = (line: string): boolean => {
+      const values = cells(line);
+      return values.length > 0 && values.every(value => /^:?-{3,}:?$/.test(value));
+    };
+
+    for (let index = 0; index < lines.length; index++) {
+      const headerLine = lines[index];
+      const dividerLine = lines[index + 1];
+
+      if (!headerLine.includes('|') || !dividerLine || !isDivider(dividerLine)) {
+        output.push(headerLine);
+        continue;
+      }
+
+      const headers = cells(headerLine);
+      const convertedRows: string[] = [];
+      let rowIndex = index + 2;
+
+      while (rowIndex < lines.length && lines[rowIndex].includes('|')) {
+        const values = cells(lines[rowIndex]);
+        const details = headers
+          .map((header, cellIndex) => ({ header, value: values[cellIndex] ?? '' }))
+          .filter(item => item.header && item.value)
+          .map(item => `**${item.header}:** ${item.value}`);
+
+        if (details.length) {
+          convertedRows.push(`- ${details.join(' · ')}`);
+        }
+        rowIndex++;
+      }
+
+      if (convertedRows.length) {
+        output.push(...convertedRows);
+        index = rowIndex - 1;
+      } else {
+        output.push(headerLine, dividerLine);
+        index++;
+      }
+    }
+
+    return output.join('\n');
   }
 
   private cleanMarkdown(text: string): string {
@@ -1357,44 +1505,4 @@ export class ConciergeComponent implements OnInit, OnDestroy, AfterViewChecked {
     return chips;
   }
 
-  private extractLinks(text: string): MessageLink[] {
-    const matches = text.match(this.urlPattern) || [];
-    const isArabic = this.detectDirection(text) === 'rtl';
-    const seen = new Set<string>();
-
-    return matches
-      .map(rawUrl => rawUrl.replace(/[.,،؛]+$/, ''))
-      .filter(url => {
-        if (seen.has(url)) return false;
-        seen.add(url);
-        return true;
-      })
-      .map((url, index) => {
-        const host = this.getHostname(url);
-        const isMap = /maps\.google|google\.com\/maps|place_id/i.test(url);
-
-        return {
-          url,
-          icon: isMap ? 'map' : 'open_in_new',
-          label: isMap
-            ? (isArabic ? 'افتح على الخريطة' : 'View on map')
-            : (host || (isArabic ? `رابط ${index + 1}` : `Open Link ${index + 1}`))
-        };
-      });
-  }
-
-  private getHostname(url: string): string {
-    try {
-      return new URL(url).hostname.replace(/^www\./, '');
-    } catch {
-      return '';
-    }
-  }
-
-  private extractParagraphs(text: string): string[] {
-    return text
-      .split(/\n{2,}|(?=\n\s*(?:[•*-]|\d+[.)])\s+)|(?<=[.!؟])\s+(?=[\u0600-\u06FFA-Z0-9])/)
-      .map(p => p.replace(/\s+/g, ' ').trim())
-      .filter(Boolean);
-  }
 }

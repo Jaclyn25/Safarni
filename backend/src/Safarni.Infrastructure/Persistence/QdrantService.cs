@@ -32,12 +32,22 @@ public class QdrantService : IQdrantService
     private string QdrantUrl => (_configuration["RAG:QdrantUrl"] ?? "http://localhost:6333").TrimEnd('/');
     private string CollectionName => _configuration["RAG:QdrantCollectionName"] ?? "safarni_knowledge";
     private int VectorSize => int.TryParse(_configuration["RAG:QdrantVectorSize"], out var size) ? size : 384;
+    private float ScoreThreshold => float.TryParse(
+        _configuration["RAG:ScoreThreshold"],
+        System.Globalization.NumberStyles.Float,
+        System.Globalization.CultureInfo.InvariantCulture,
+        out var threshold)
+            ? Math.Clamp(threshold, 0f, 1f)
+            : 0.30f;
+    private int HealthTimeoutMs => int.TryParse(_configuration["RAG:HealthTimeoutMs"], out var timeout)
+        ? Math.Clamp(timeout, 250, 10000)
+        : 2000;
 
     public async Task<bool> IsHealthyAsync()
     {
         try
         {
-            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromMilliseconds(300));
+            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromMilliseconds(HealthTimeoutMs));
             var url = $"{QdrantUrl}/";
             var response = await _httpClient.GetAsync(url, cts.Token);
             return response.IsSuccessStatusCode;
@@ -158,6 +168,53 @@ public class QdrantService : IQdrantService
         }
     }
 
+    public async Task<long> GetPointCountAsync()
+    {
+        var url = $"{QdrantUrl}/collections/{CollectionName}";
+        var response = await _httpClient.GetAsync(url);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return 0;
+        }
+
+        response.EnsureSuccessStatusCode();
+        var details = await response.Content.ReadFromJsonAsync<QdrantCollectionDetailsResponse>();
+        return details?.Result?.PointsCount ?? 0;
+    }
+
+    public async Task DeleteChunksByEntityIdAsync(string entityId)
+    {
+        if (string.IsNullOrWhiteSpace(entityId))
+        {
+            throw new ArgumentException("Entity id is required.", nameof(entityId));
+        }
+
+        var url = $"{QdrantUrl}/collections/{CollectionName}/points/delete?wait=true";
+        var selector = new
+        {
+            filter = new
+            {
+                must = new[]
+                {
+                    new
+                    {
+                        key = "entityId",
+                        match = new { value = entityId }
+                    }
+                }
+            }
+        };
+
+        var response = await _httpClient.PostAsJsonAsync(url, selector);
+        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NotFound)
+        {
+            var errorText = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException(
+                $"Failed to remove stale Qdrant chunks for entity {entityId}: {response.StatusCode} - {errorText}");
+        }
+    }
+
     public async Task SaveChunksAsync(List<DocumentChunk> chunks)
     {
         if (chunks == null || chunks.Count == 0)
@@ -173,6 +230,12 @@ public class QdrantService : IQdrantService
         var pointsList = new List<object>();
         foreach (var chunk in chunks)
         {
+            if (chunk.Embedding.Length != VectorSize)
+            {
+                throw new InvalidOperationException(
+                    $"Embedding dimension mismatch for chunk {chunk.Id}. Expected {VectorSize}, received {chunk.Embedding.Length}.");
+            }
+
             pointsList.Add(new
             {
                 id = chunk.Id,
@@ -183,6 +246,7 @@ public class QdrantService : IQdrantService
                     entityType = chunk.EntityType,
                     content = chunk.Content,
                     source = chunk.Source,
+                    sourceUrl = chunk.SourceUrl,
                     city = chunk.City,
                     country = chunk.Country,
                     createdDate = chunk.CreatedDate.ToString("o")
@@ -214,6 +278,14 @@ public class QdrantService : IQdrantService
 
     public async Task<List<DocumentChunk>> SearchSimilarChunksAsync(float[] queryEmbedding, int topK)
     {
+        if (queryEmbedding is null || queryEmbedding.Length != VectorSize)
+        {
+            throw new ArgumentException(
+                $"Query embedding must contain exactly {VectorSize} values.",
+                nameof(queryEmbedding));
+        }
+
+        topK = Math.Clamp(topK, 1, 20);
         _logger.LogInformation("Performing similarity search in Qdrant collection {Collection} with topK={TopK}", CollectionName, topK);
 
         var url = $"{QdrantUrl}/collections/{CollectionName}/points/search";
@@ -222,7 +294,8 @@ public class QdrantService : IQdrantService
         {
             vector = queryEmbedding,
             limit = topK,
-            with_payload = true
+            with_payload = true,
+            score_threshold = ScoreThreshold
         };
 
         try
@@ -260,6 +333,7 @@ public class QdrantService : IQdrantService
                 result.Payload.TryGetValue("entityType", out var entityTypeObj);
                 result.Payload.TryGetValue("content", out var contentObj);
                 result.Payload.TryGetValue("source", out var sourceObj);
+                result.Payload.TryGetValue("sourceUrl", out var sourceUrlObj);
                 result.Payload.TryGetValue("city", out var cityObj);
                 result.Payload.TryGetValue("country", out var countryObj);
                 result.Payload.TryGetValue("createdDate", out var dateObj);
@@ -268,6 +342,7 @@ public class QdrantService : IQdrantService
                 string entityType = entityTypeObj?.ToString() ?? string.Empty;
                 string content = contentObj?.ToString() ?? string.Empty;
                 string source = sourceObj?.ToString() ?? string.Empty;
+                string? sourceUrl = sourceUrlObj?.ToString();
                 string city = cityObj?.ToString() ?? string.Empty;
                 string country = countryObj?.ToString() ?? string.Empty;
                 
@@ -284,9 +359,11 @@ public class QdrantService : IQdrantService
                     EntityType = entityType,
                     Content = content,
                     Source = source,
+                    SourceUrl = string.IsNullOrWhiteSpace(sourceUrl) ? null : sourceUrl,
                     City = city,
                     Country = country,
                     CreatedDate = createdDate,
+                    Score = result.Score,
                     Embedding = Array.Empty<float>() // Embedding not required for prompt context building
                 });
             }
@@ -319,6 +396,9 @@ public class QdrantService : IQdrantService
     {
         [JsonPropertyName("config")]
         public QdrantCollectionConfig? Config { get; set; }
+
+        [JsonPropertyName("points_count")]
+        public long PointsCount { get; set; }
     }
 
     private class QdrantCollectionConfig

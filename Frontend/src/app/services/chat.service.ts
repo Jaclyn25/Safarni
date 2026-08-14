@@ -20,14 +20,35 @@ export interface Conversation {
 
 export interface ChatStreamHandlers {
   onToken: (token: string) => void;
+  onStatus?: (status: string) => void;
+  onResources?: (sources: ChatSource[], places: ChatPlaceCard[]) => void;
   onCompleted: (conversation: Conversation) => void;
 }
 
+export interface ChatSource {
+  title: string;
+  url: string;
+  domain: string;
+  kind: 'knowledge' | 'place';
+}
+
+export interface ChatPlaceCard {
+  name: string;
+  address: string;
+  rating: number | null;
+  reviewCount: number | null;
+  url: string;
+  description: string | null;
+}
+
 interface ChatStreamEvent {
-  type: 'token' | 'completed' | 'error';
+  type: 'token' | 'status' | 'resources' | 'completed' | 'error';
   token: string | null;
   conversation: Conversation | null;
   code: string | null;
+  status: string | null;
+  sources: ChatSource[] | null;
+  places: ChatPlaceCard[] | null;
 }
 
 class ChatStreamRequestError extends Error {
@@ -211,6 +232,16 @@ export class ChatService {
 
     if (event.name === 'token' && data?.token) {
       handlers.onToken(data.token);
+      return false;
+    }
+
+    if (event.name === 'status' && data?.status) {
+      handlers.onStatus?.(data.status);
+      return false;
+    }
+
+    if (event.name === 'resources') {
+      handlers.onResources?.(data?.sources ?? [], data?.places ?? []);
       return false;
     }
 

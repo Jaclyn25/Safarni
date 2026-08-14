@@ -3,11 +3,14 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using ChatBotApi.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
+using Safarni.API.Extensions;
 
 namespace ChatBotApi.Controllers;
 
 [ApiController]
+[Authorize(Policy = AdminPolicies.AdminOrContentManager)]
 [Route("api/indexing")]
 public class IndexingController : ControllerBase
 {

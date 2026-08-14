@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Interfaces;
 using ChatBotApi.Application.Common.Models.GooglePlaces;
+using ChatBotApi.Application.Features.Chat.Services;
 using ChatBotApi.Domain.Entities;
 using MediatR;
 using Microsoft.Extensions.Configuration;
@@ -20,7 +21,7 @@ public record SendMessageCommand(Guid ConversationId, string UserId, string Mess
 public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, ConversationDto>
 {
     private const int MaxHistoryMessages = 20;
-    private const int MaxContextChunks = 3;
+    private const int MaxContextChunks = 6;
 
     private readonly IChatRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
@@ -158,6 +159,28 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             return ToConversationDto(conversation);
         }
 
+        var clarification = TripPlanningClarifier.BuildClarification(
+            intentResult.IsTripPlanningRequest,
+            request.Message,
+            history);
+
+        if (!string.IsNullOrWhiteSpace(clarification))
+        {
+            var clarificationMessage = new ConversationMessage
+            {
+                Id = Guid.NewGuid(),
+                ConversationId = conversation.Id,
+                Role = "assistant",
+                Content = clarification,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            conversation.Messages.Add(clarificationMessage);
+            await _repository.AddMessageAsync(clarificationMessage, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return ToConversationDto(conversation);
+        }
+
         // STEP 1: Search Database FIRST (RAG)
         _logger.LogInformation("Step 1: Searching RAG Database for message context: {Message}", queryToSearch);
         List<DocumentChunk>? contextChunks = null;
@@ -192,7 +215,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
         string systemPrompt;
         bool foundInDb = contextChunks != null && contextChunks.Count > 0;
 
-        if (foundInDb)
+        if (foundInDb && intent == ChatIntent.RagOnly)
         {
             _logger.LogInformation("Answer found in RAG Database ({Count} chunks). Responding from Database.", contextChunks!.Count);
             systemPrompt = _promptBuilder.BuildSystemPrompt(contextChunks!, request.Message);
@@ -212,7 +235,10 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                 List<PlaceDetails>? places = null;
                 try
                 {
-                    places = await _googlePlacesService.TextSearchAsync(request.Message, cancellationToken);
+                    places = await _googlePlacesService.TextSearchAsync(
+                        queryToSearch,
+                        cancellationToken,
+                        _promptBuilder.GetGooglePlacesLanguageCode(request.Message));
                 }
                 catch (Exception ex)
                 {
@@ -221,10 +247,10 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
 
                 bool foundInPlaces = places != null && places.Count > 0;
 
-                if (foundInPlaces)
+                if (places != null)
                 {
                     _logger.LogInformation("Answer found in Google Places API ({Count} places). Responding from Google Places.", places!.Count);
-                    systemPrompt = _promptBuilder.BuildSystemPromptWithPlaces(null, places, intent, request.Message);
+                    systemPrompt = _promptBuilder.BuildSystemPromptWithPlaces(contextChunks, places, intent, request.Message);
                 }
                 else
                 {
@@ -377,7 +403,8 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
     {
         var result = await _intentDetectionService.DetectIntentAsync(message, history, cancellationToken);
         
-        if (result.Intent == ChatIntent.OutOfScope)
+        if (result.Intent == ChatIntent.OutOfScope ||
+            !result.RequiresSemanticClassification)
         {
             return result;
         }
@@ -457,7 +484,8 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
                     Content = $"Category: {k.Category}. Title: {k.Title}. Location: {k.City}, {k.Country}. Content: {k.Content}",
                     City = k.City ?? "",
                     Country = k.Country ?? "",
-                    Source = "SQL Server Database"
+                    Source = "SQL Server Database",
+                    SourceUrl = k.SourceUrl
                 });
             }
         }

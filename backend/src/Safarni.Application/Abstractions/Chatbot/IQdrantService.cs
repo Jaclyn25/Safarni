@@ -8,7 +8,9 @@ public interface IQdrantService
 {
     Task<bool> CreateCollectionAsync();
     Task DeleteCollectionAsync();
+    Task DeleteChunksByEntityIdAsync(string entityId);
     Task SaveChunksAsync(List<DocumentChunk> chunks);
     Task<List<DocumentChunk>> SearchSimilarChunksAsync(float[] queryEmbedding, int topK);
     Task<bool> IsHealthyAsync();
+    Task<long> GetPointCountAsync();
 }

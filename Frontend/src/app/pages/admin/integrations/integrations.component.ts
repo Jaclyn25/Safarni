@@ -207,8 +207,8 @@ export class AdminIntegrationsComponent implements OnInit, OnDestroy {
         featureName: 'AI Concierge & RAG Chat',
         description: 'Context-aware AI travel assistant powered by vector retrieval.',
         icon: 'chat',
-        backends: ['Qdrant Vector DB', 'Gemini Itinerary'],
-        status: this.isSubsystemHealthy(['Qdrant', 'Gemini']) ? 'Healthy' : 'Degraded',
+        backends: ['Groq Chat', 'OpenRouter Embeddings', 'Qdrant Vector DB', 'Google Places'],
+        status: this.isSubsystemHealthy(['Groq Chat', 'OpenRouter', 'Qdrant', 'Google Places']) ? 'Healthy' : 'Degraded',
       },
       {
         featureName: 'Destination & Places Search',

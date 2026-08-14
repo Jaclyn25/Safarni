@@ -30,6 +30,7 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   DestroyRef,
   OnDestroy,
@@ -513,7 +514,8 @@ export class PlannerComponent
     private readonly tripService: TripService,
     private readonly weatherService: WeatherService,
     private readonly destroyRef: DestroyRef,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
@@ -971,6 +973,7 @@ export class PlannerComponent
       );
     } finally {
       this.loadingVenueItemId = '';
+      this.cdr.markForCheck();
     }
   }
 
@@ -1021,6 +1024,7 @@ export class PlannerComponent
       );
     } finally {
       this.isSaving = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -1130,6 +1134,7 @@ export class PlannerComponent
       );
     } finally {
       this.isCancellingGeneration = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -1177,6 +1182,7 @@ export class PlannerComponent
       );
     } finally {
       this.loadingNewItemSuggestions = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -1394,6 +1400,8 @@ export class PlannerComponent
           'The trip details could not be loaded.'
         );
       }
+    } finally {
+      this.cdr.markForCheck();
     }
   }
 
@@ -1454,6 +1462,7 @@ export class PlannerComponent
         );
     } finally {
       this.isSaving = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -1697,6 +1706,7 @@ export class PlannerComponent
       this.isCancellingGeneration = false;
       this.generationService
         .clearRememberedGeneration(this.tripId);
+      this.cdr.markForCheck();
     }
   }
 
@@ -1782,6 +1792,7 @@ export class PlannerComponent
       );
     } finally {
       this.isPublishing = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -1814,6 +1825,7 @@ export class PlannerComponent
       );
     } finally {
       this.isUpdatingVisibility = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -2283,6 +2295,7 @@ export class PlannerComponent
       setTimeout(() => this.errorMessage = '', 5000);
     } finally {
       this.isSearchingNearby = false;
+      this.cdr.markForCheck();
     }
   }
 

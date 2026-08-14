@@ -173,6 +173,13 @@ namespace Safarni.Application.Features.Trips.PublishTrip
 
             snapshot.Versions.Add(version);
 
+            // Explicitly register the snapshot version as a new entity.
+            // Without this, EF treats it as Modified and tries to UPDATE
+            // a row that does not exist, throwing a DbUpdateConcurrencyException.
+            await _tripRepository.AddSnapshotVersionAsync(
+                version,
+                cancellationToken);
+
             trip.IsPublished = true;
 
             trip.PublishedAt =

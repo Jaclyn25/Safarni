@@ -1,0 +1,75 @@
+name: Build, test, publish and deploy to MonsterASP
+
+on:
+  push:
+    branches:
+      - main
+      - jacqueline
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-publish-deploy:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Restore backend dependencies
+        run: dotnet restore backend\Safarni.slnx --runtime win-x86
+
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: Frontend
+        run: npm run build -- --configuration production
+
+      - name: Test backend
+        run: dotnet test backend\Safarni.slnx --configuration Release --no-restore
+
+      - name: Publish backend
+        run: >-
+          dotnet publish backend\src\Safarni.API\Safarni.API.csproj
+          --configuration Release
+          --no-restore
+          --runtime win-x86
+          --self-contained false
+          --output .\publish
+
+      - name: Include Angular app in ASP.NET publish
+        shell: pwsh
+        run: |
+          $frontendRoot = Join-Path $env:GITHUB_WORKSPACE 'Frontend\dist\safarni-angular\browser'
+          $publishRoot = Join-Path $env:GITHUB_WORKSPACE 'publish\wwwroot'
+
+          if (-not (Test-Path -LiteralPath $frontendRoot)) {
+            throw "Angular production output was not found at $frontendRoot"
+          }
+
+          New-Item -ItemType Directory -Force -Path $publishRoot | Out-Null
+          Copy-Item -Path (Join-Path $frontendRoot '*') -Destination $publishRoot -Recurse -Force
+
+      - name: Deploy to MonsterASP via WebDeploy
+        uses: rasmusbuchholdt/simply-web-deploy@2.1.0
+        with:
+          website-name: ${{ secrets.WEBSITE_NAME }}
+          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }}
+          server-username: ${{ secrets.SERVER_USERNAME }}
+          server-password: ${{ secrets.SERVER_PASSWORD }}

@@ -66,11 +66,14 @@ jobs:
           New-Item -ItemType Directory -Force -Path $publishRoot | Out-Null
           Copy-Item -Path (Join-Path $frontendRoot '*') -Destination $publishRoot -Recurse -Force
 
-      - name: Deploy to MonsterASP via WebDeploy
-        uses: rasmusbuchholdt/simply-web-deploy@2.2.0
+      - name: Deploy to MonsterASP via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
-          website-name: ${{ secrets.WEBSITE_NAME }}
-          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }}
-          server-username: ${{ secrets.SERVER_USERNAME }}
-          server-password: ${{ secrets.SERVER_PASSWORD }}
-          source-path: .\publish
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: .\publish\
+          server-dir: ./
+          log-level: minimal

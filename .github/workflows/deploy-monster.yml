@@ -73,6 +73,32 @@ jobs:
             -Value '<html><body>Safarni is updating. Please try again shortly.</body></html>' `
             -Encoding utf8
 
+      - name: Upload app-offline marker and wait for IIS
+        shell: pwsh
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          $markerPath = Join-Path $env:GITHUB_WORKSPACE 'publish\app_offline.htm'
+          $request = [System.Net.FtpWebRequest]::Create(
+            "ftp://$env:FTP_SERVER/wwwroot/app_offline.htm")
+          $request.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
+          $request.EnableSsl = $true
+          $request.UseBinary = $true
+          $request.KeepAlive = $false
+          $request.Credentials = [System.Net.NetworkCredential]::new(
+            $env:FTP_USERNAME,
+            $env:FTP_PASSWORD)
+          $bytes = [System.IO.File]::ReadAllBytes($markerPath)
+          $request.ContentLength = $bytes.Length
+          $stream = $request.GetRequestStream()
+          $stream.Write($bytes, 0, $bytes.Length)
+          $stream.Close()
+          $response = $request.GetResponse()
+          $response.Close()
+          Start-Sleep -Seconds 10
+
       - name: Deploy to MonsterASP via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
@@ -83,6 +109,8 @@ jobs:
           port: 21
           local-dir: ./publish/
           server-dir: ./wwwroot/
+          exclude: |
+            **/app_offline.htm
           log-level: minimal
 
       - name: Remove ASP.NET app-offline marker
@@ -94,9 +122,10 @@ jobs:
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
           $request = [System.Net.FtpWebRequest]::Create(
-            "ftps://$env:FTP_SERVER/wwwroot/app_offline.htm")
-          $request.Method = [System.Net.WebRequestMethods+Ftp]::DeleteFile
+            "ftp://$env:FTP_SERVER/wwwroot/app_offline.htm")
           $request.EnableSsl = $true
+          $request.Method = [System.Net.WebRequestMethods+Ftp]::DeleteFile
+          $request.KeepAlive = $false
           $request.Credentials = [System.Net.NetworkCredential]::new(
             $env:FTP_USERNAME,
             $env:FTP_PASSWORD)

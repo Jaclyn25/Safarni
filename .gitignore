@@ -75,3 +75,6 @@ temp/
 *.db-wal
 *.mdf
 *.ldf
+
+# Local documentation / generated analysis
+docs/

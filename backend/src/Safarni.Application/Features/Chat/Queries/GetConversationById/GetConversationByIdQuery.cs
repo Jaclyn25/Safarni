@@ -9,7 +9,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Queries.GetConversationById;
 
-public record GetConversationByIdQuery(Guid Id, string UserId) : IRequest<ConversationDto>;
+public record GetConversationByIdQuery(Guid Id, Guid UserId) : IRequest<ConversationDto>;
 
 public class GetConversationByIdQueryHandler : IRequestHandler<GetConversationByIdQuery, ConversationDto>
 {

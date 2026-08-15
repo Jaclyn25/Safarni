@@ -7,7 +7,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.Folders;
 
-public record DeleteFolderCommand(Guid Id, string UserId) : IRequest<bool>;
+public record DeleteFolderCommand(Guid Id, Guid UserId) : IRequest<bool>;
 
 public class DeleteFolderCommandHandler : IRequestHandler<DeleteFolderCommand, bool>
 {

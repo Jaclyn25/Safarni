@@ -8,7 +8,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.CreateFolder;
 
-public record CreateFolderCommand(string UserId, string Name) : IRequest<ChatFolderDto>;
+public record CreateFolderCommand(Guid UserId, string Name) : IRequest<ChatFolderDto>;
 
 public class CreateFolderCommandHandler : IRequestHandler<CreateFolderCommand, ChatFolderDto>
 {

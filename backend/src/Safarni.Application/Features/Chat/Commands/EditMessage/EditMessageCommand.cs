@@ -10,7 +10,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.EditMessage;
 
-public record EditMessageCommand(Guid ConversationId, string UserId, Guid MessageId, string NewContent) : IRequest<ConversationDto>;
+public record EditMessageCommand(Guid ConversationId, Guid UserId, Guid MessageId, string NewContent) : IRequest<ConversationDto>;
 
 public class EditMessageCommandHandler : IRequestHandler<EditMessageCommand, ConversationDto>
 {

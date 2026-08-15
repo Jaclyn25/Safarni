@@ -13,6 +13,8 @@ namespace Safarni.Application.UnitTests.Chat;
 
 public class SendMessageCommandHandlerTests
 {
+    private static readonly Guid TestUserId = Guid.NewGuid();
+
     private readonly Mock<IChatRepository> _repository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IAIProvider> _aiProvider = new();
@@ -296,12 +298,12 @@ public class SendMessageCommandHandlerTests
         _repository
             .Setup(x => x.GetByIdAsync(
                 conversationId,
-                "user-1",
+                TestUserId,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((Conversation?)null);
 
         var action = () => CreateHandler().Handle(
-            new SendMessageCommand(conversationId, "user-1", "hello"),
+            new SendMessageCommand(conversationId, TestUserId, "hello"),
             CancellationToken.None);
 
         await action.Should().ThrowAsync<KeyNotFoundException>();
@@ -377,7 +379,7 @@ public class SendMessageCommandHandlerTests
         return new Conversation
         {
             Id = Guid.NewGuid(),
-            UserId = "user-1",
+            UserId = TestUserId,
             Title = "محادثة جديدة",
             CreatedAt = DateTime.UtcNow
         };

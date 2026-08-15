@@ -7,7 +7,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.DeleteConversation;
 
-public record DeleteConversationCommand(Guid ConversationId, string UserId) : IRequest<bool>;
+public record DeleteConversationCommand(Guid ConversationId, Guid UserId) : IRequest<bool>;
 
 public class DeleteConversationCommandHandler : IRequestHandler<DeleteConversationCommand, bool>
 {

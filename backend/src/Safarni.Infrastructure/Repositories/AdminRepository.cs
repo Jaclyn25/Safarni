@@ -149,9 +149,7 @@ public sealed class AdminRepository : IAdminRepository
                 "Chat.Created",
                 row.Title,
                 string.Empty,
-                Guid.TryParse(row.UserId, out var conversationUserId)
-                    ? conversationUserId
-                    : null,
+                row.UserId,
                 null,
                 row.CreatedAt)));
 
@@ -251,12 +249,12 @@ public sealed class AdminRepository : IAdminRepository
         var trips = await _dbContext.Trips
             .CountAsync(t => t.UserId == userId, cancellationToken);
         var conversations = await _dbContext.Conversations
-            .CountAsync(c => c.UserId == userId.ToString(), cancellationToken);
+            .CountAsync(c => c.UserId == userId, cancellationToken);
         var messages = await _dbContext.ConversationMessages
             .CountAsync(
                 m => _dbContext.Conversations.Any(c =>
                     c.Id == m.ConversationId &&
-                    c.UserId == userId.ToString()),
+                    c.UserId == userId),
                 cancellationToken);
 
         return new AdminUserCounts(trips, conversations, messages);
@@ -382,11 +380,11 @@ public sealed class AdminRepository : IAdminRepository
             return null;
         }
 
-        var user = Guid.TryParse(conversation.UserId, out var userId)
-            ? await _dbContext.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
-            : null;
+        var user = await _dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                u => u.Id == conversation.UserId,
+                cancellationToken);
 
         return new AdminConversationData(
             conversation.Id,

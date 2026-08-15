@@ -7,7 +7,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.TogglePin;
 
-public record TogglePinCommand(Guid ConversationId, string UserId) : IRequest<ConversationSummaryDto>;
+public record TogglePinCommand(Guid ConversationId, Guid UserId) : IRequest<ConversationSummaryDto>;
 
 public class TogglePinCommandHandler : IRequestHandler<TogglePinCommand, ConversationSummaryDto>
 {

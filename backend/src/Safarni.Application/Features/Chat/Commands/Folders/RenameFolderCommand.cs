@@ -8,7 +8,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.Folders;
 
-public record RenameFolderCommand(Guid Id, string UserId, string NewName) : IRequest<ChatFolderDto>;
+public record RenameFolderCommand(Guid Id, Guid UserId, string NewName) : IRequest<ChatFolderDto>;
 
 public class RenameFolderCommandHandler : IRequestHandler<RenameFolderCommand, ChatFolderDto>
 {

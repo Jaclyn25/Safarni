@@ -8,7 +8,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.CreateConversation;
 
-public record CreateConversationCommand(string UserId, string? Title) : IRequest<ConversationDto>;
+public record CreateConversationCommand(Guid UserId, string? Title) : IRequest<ConversationDto>;
 
 public class CreateConversationCommandHandler : IRequestHandler<CreateConversationCommand, ConversationDto>
 {

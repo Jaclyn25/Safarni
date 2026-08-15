@@ -8,8 +8,8 @@ namespace ChatBotApi.Application.Common.Interfaces;
 
 public interface IChatRepository
 {
-    Task<Conversation?> GetByIdAsync(Guid id, string userId, CancellationToken cancellationToken = default);
-    Task<List<Conversation>> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default);
+    Task<Conversation?> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
+    Task<List<Conversation>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
     Task AddAsync(Conversation conversation, CancellationToken cancellationToken = default);
     Task AddMessageAsync(ConversationMessage message, CancellationToken cancellationToken = default);
     void DeleteMessages(IEnumerable<ConversationMessage> messages);
@@ -17,8 +17,8 @@ public interface IChatRepository
     Task<List<TravelKnowledge>> GetTravelKnowledgesAsync(CancellationToken cancellationToken = default);
 
     // Folder methods
-    Task<List<ChatFolder>> GetFoldersByUserIdAsync(string userId, CancellationToken cancellationToken = default);
-    Task<ChatFolder?> GetFolderByIdAsync(Guid id, string userId, CancellationToken cancellationToken = default);
+    Task<List<ChatFolder>> GetFoldersByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<ChatFolder?> GetFolderByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
     Task AddFolderAsync(ChatFolder folder, CancellationToken cancellationToken = default);
     void DeleteFolder(ChatFolder folder);
 }

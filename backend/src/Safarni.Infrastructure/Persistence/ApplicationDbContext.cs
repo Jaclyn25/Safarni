@@ -110,8 +110,7 @@ public sealed class ApplicationDbContext : DbContext
             entity.HasKey(e => e.Id);
 
             entity.Property(e => e.UserId)
-                .IsRequired()
-                .HasMaxLength(100);
+                .IsRequired();
 
             entity.Property(e => e.Title)
                 .IsRequired()
@@ -120,6 +119,13 @@ public sealed class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .IsRequired();
 
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt });
+
+            entity.HasOne(e => e.User)
+                .WithMany(user => user.Conversations)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             entity.HasMany(e => e.Messages)
                 .WithOne(m => m.Conversation)
                 .HasForeignKey(m => m.ConversationId)
@@ -127,8 +133,9 @@ public sealed class ApplicationDbContext : DbContext
 
             entity.HasOne(e => e.Folder)
                 .WithMany(f => f.Conversations)
-                .HasForeignKey(e => e.FolderId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .HasForeignKey(e => new { e.FolderId, e.UserId })
+                .HasPrincipalKey(f => new { f.Id, f.UserId })
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<ChatFolder>(entity =>
@@ -136,8 +143,7 @@ public sealed class ApplicationDbContext : DbContext
             entity.HasKey(e => e.Id);
 
             entity.Property(e => e.UserId)
-                .IsRequired()
-                .HasMaxLength(100);
+                .IsRequired();
 
             entity.Property(e => e.Name)
                 .IsRequired()
@@ -145,6 +151,15 @@ public sealed class ApplicationDbContext : DbContext
 
             entity.Property(e => e.CreatedAt)
                 .IsRequired();
+
+            entity.HasAlternateKey(e => new { e.Id, e.UserId });
+
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt });
+
+            entity.HasOne(e => e.User)
+                .WithMany(user => user.ChatFolders)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ConversationMessage>(entity =>
@@ -160,6 +175,8 @@ public sealed class ApplicationDbContext : DbContext
 
             entity.Property(e => e.CreatedAt)
                 .IsRequired();
+
+            entity.HasIndex(e => new { e.ConversationId, e.CreatedAt });
         });
 
         modelBuilder.Entity<TravelKnowledge>(entity =>

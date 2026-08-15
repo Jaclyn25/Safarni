@@ -1,23 +1,89 @@
 <main class="agency-public-page">
-  @if (loading()) { <div class="agency-state"><span></span><p>Opening agency profile…</p></div> }
-  @else if (error()) { <div class="agency-state"><span class="material-symbols-outlined">storefront</span><h1>Agency unavailable</h1><p>{{ error() }}</p><a routerLink="/marketplace">Back to marketplace</a></div> }
-  @else if (profile(); as agency) {
+  @if (loading()) {
+    <div class="agency-state"><span></span><p>Opening agency profile...</p></div>
+  } @else if (error()) {
+    <div class="agency-state"><span class="material-symbols-outlined">storefront</span><h1>Agency unavailable</h1><p>{{ error() }}</p><a routerLink="/marketplace">Back to marketplace</a></div>
+  } @else if (profile(); as agency) {
     <a routerLink="/marketplace" class="agency-back"><span class="material-symbols-outlined">arrow_back</span>Marketplace</a>
+
     <header class="agency-hero">
-      <div class="agency-hero__identity">@if (agency.logoUrl) { <img [src]="agency.logoUrl" [alt]="agency.companyName + ' logo'"> } @else { <span>{{ agency.companyName.charAt(0) }}</span> }<div><div class="agency-verified"><span class="material-symbols-outlined">verified</span>Verified Safarni agency</div><h1>{{ agency.companyName }}</h1><p><span class="material-symbols-outlined">location_on</span>{{ agency.city }}, {{ agency.country }} <span>·</span> Member since {{ agency.memberSince | date:'yyyy' }}</p></div></div>
-      <div class="agency-hero__stats"><div><strong>{{ agency.averageRating || 'New' }}</strong><span>@for (star of stars(agency.averageRating); track $index) { <span [class.muted]="!star">★</span> }<small>{{ agency.reviewCount }} reviews</small></span></div><div><strong>{{ agency.travelersServed }}</strong><span>Travelers served<small>{{ agency.verifiedBookings }} verified bookings</small></span></div><div><strong>{{ agency.packages.length }}</strong><span>Live packages<small>Ready to explore</small></span></div></div>
+      <div class="agency-hero__main">
+        <div class="agency-hero__logo" [class.is-broken]="!agency.logoUrl">
+          @if (agency.logoUrl) { <img [src]="agency.logoUrl" [alt]="agency.companyName + ' logo'" (error)="$any($event.target).parentElement.classList.add('is-broken')"> }
+          <span class="agency-hero__logo-fallback" aria-hidden="true">{{ agency.companyName.charAt(0) }}</span>
+        </div>
+        <div class="agency-hero__identity-copy">
+          <div class="agency-verified"><span class="material-symbols-outlined">verified</span>Verified Safarni agency</div>
+          <h1>{{ agency.companyName }}</h1>
+          <p><span class="material-symbols-outlined">location_on</span>{{ agency.city }}, {{ agency.country }} <span class="agency-meta-dot">-</span> Member since {{ agency.memberSince | date:'yyyy' }}</p>
+        </div>
+        <a href="#published-journeys" class="agency-hero__cta">Explore packages <span class="material-symbols-outlined">arrow_downward</span></a>
+      </div>
+
+      <div class="agency-hero__stats" role="group" aria-label="Agency statistics">
+        <div class="agency-stat">
+          <span class="agency-stat__icon material-symbols-outlined">star</span>
+          <div><strong>{{ agency.averageRating || 'New' }}</strong><span class="agency-stat__label">Average rating</span><small>{{ agency.reviewCount }} reviews</small><span class="agency-stat__stars" aria-hidden="true">@for (star of stars(agency.averageRating); track $index) { <span [class.muted]="!star">&#9733;</span> }</span></div>
+        </div>
+        <div class="agency-stat">
+          <span class="agency-stat__icon material-symbols-outlined">groups</span>
+          <div><strong>{{ agency.travelersServed }}</strong><span class="agency-stat__label">Travelers served</span><small>{{ agency.verifiedBookings }} verified bookings</small></div>
+        </div>
+        <div class="agency-stat">
+          <span class="agency-stat__icon material-symbols-outlined">luggage</span>
+          <div><strong>{{ agency.packages.length }}</strong><span class="agency-stat__label">Live packages</span><small>Ready to explore</small></div>
+        </div>
+      </div>
     </header>
 
     <div class="agency-layout">
       <div class="agency-main">
-        <section class="agency-card agency-about"><span class="agency-eyebrow">About the company</span><h2>Local expertise, professionally delivered.</h2><p>{{ agency.description }}</p><div class="agency-contact"><a [href]="'tel:' + agency.companyPhone"><span class="material-symbols-outlined">call</span>{{ agency.companyPhone }}</a>@if (agency.websiteUrl) { <a [href]="agency.websiteUrl" target="_blank" rel="noopener noreferrer"><span class="material-symbols-outlined">language</span>Visit website</a> }</div></section>
+        <section class="agency-card agency-about">
+          <div class="agency-section-heading agency-section-heading--about"><div><span class="agency-eyebrow">About the company</span><h2>Local expertise, professionally delivered.</h2></div><span class="agency-about__badge"><span class="material-symbols-outlined">verified_user</span>Safarni verified</span></div>
+          <p>{{ agency.description }}</p>
+          <div class="agency-contact"><a [href]="'tel:' + agency.companyPhone"><span class="material-symbols-outlined">call</span>{{ agency.companyPhone }}</a>@if (agency.websiteUrl) { <a [href]="agency.websiteUrl" target="_blank" rel="noopener noreferrer"><span class="material-symbols-outlined">language</span>Visit website</a> }</div>
+        </section>
 
-        <section><div class="agency-section-heading"><div><span class="agency-eyebrow">Published journeys</span><h2>Packages by {{ agency.companyName }}</h2></div><span>{{ agency.packages.length }} available</span></div><div class="agency-packages">@for (packageItem of agency.packages; track packageItem.id) { <article><div class="agency-package__image" [style.background-image]="'url(' + packageCover(packageItem) + ')'">@if (packageItem.cities.length) { <span>{{ packageItem.cities[0].name }}@if (packageItem.cities.length > 1) { +{{ packageItem.cities.length - 1 }} stops }</span> }</div><div class="agency-package__body"><small>{{ date(packageItem.startDate) }} · {{ packageItem.durationDays }} days</small><h3>{{ packageItem.title }}</h3><p>{{ packageItem.description }}</p><div><strong>{{ price(packageItem.price, packageItem.currencyCode) }}</strong><a [routerLink]="['/marketplace/packages', packageItem.id]">View program <span class="material-symbols-outlined">arrow_forward</span></a></div></div></article> } @empty { <div class="agency-empty">This agency has no live packages right now.</div> }</div></section>
+        <section id="published-journeys" class="agency-journeys">
+          <div class="agency-section-heading"><div><span class="agency-eyebrow">Published journeys</span><h2>Packages by {{ agency.companyName }}</h2></div><span class="agency-section-count">{{ agency.packages.length }} available</span></div>
+          <div class="agency-packages">
+            @for (packageItem of agency.packages; track packageItem.id) {
+              <article class="agency-package-card">
+                <div class="agency-package__image" [style.background-image]="'url(' + packageCover(packageItem) + ')'">
+                  <div class="agency-package__image-overlay" aria-hidden="true"></div>
+                  @if (packageItem.cities.length) { <span><span class="material-symbols-outlined">location_on</span>{{ packageItem.cities[0].name }}@if (packageItem.cities.length > 1) { +{{ packageItem.cities.length - 1 }} stops }</span> }
+                  @if (packageItem.discountPercentage) { <strong>Save {{ packageItem.discountPercentage }}%</strong> }
+                </div>
+                <div class="agency-package__body"><small><span class="material-symbols-outlined">calendar_month</span>{{ date(packageItem.startDate) }} <span>-</span> {{ packageItem.durationDays }} days</small><h3>{{ packageItem.title }}</h3><p>{{ packageItem.description }}</p><div class="agency-package__footer"><strong>{{ price(packageItem.price, packageItem.currencyCode) }}<small>/ traveler</small></strong><a [routerLink]="['/marketplace/packages', packageItem.id]">View program <span class="material-symbols-outlined">arrow_forward</span></a></div></div>
+              </article>
+            } @empty { <div class="agency-empty"><span class="material-symbols-outlined">travel_explore</span><strong>No live packages yet</strong><p>This agency has no published journeys right now.</p></div> }
+          </div>
+        </section>
 
-        <section><div class="agency-section-heading"><div><span class="agency-eyebrow">Verified traveler feedback</span><h2>What travelers say</h2></div><span>{{ agency.reviewCount }} reviews</span></div><div class="agency-reviews">@for (review of agency.recentReviews; track review.id) { <article><div class="review-top"><span class="review-avatar">{{ review.travelerName.charAt(0) }}</span><div><strong>{{ review.travelerName }}</strong><small>{{ review.packageTitle }} · {{ date(review.createdAt) }}</small></div><span class="review-stars" [attr.aria-label]="review.rating + ' out of 5 stars'" [title]="review.rating + ' out of 5 stars'">@for (star of stars(review.rating); track $index) { <span [style.color]="star ? '#f59e0b' : '#cbd5e1'">★</span> }</span></div><p>{{ review.comment }}</p>@if (review.agencyResponse) { <div class="agency-response"><span class="material-symbols-outlined">reply</span><div><strong>Response from {{ agency.companyName }}</strong><p>{{ review.agencyResponse }}</p></div></div> }</article> } @empty { <div class="agency-empty">Be the first verified traveler to review this agency.</div> }</div></section>
+        <section class="agency-reviews-section">
+          <div class="agency-section-heading"><div><span class="agency-eyebrow">Verified traveler feedback</span><h2>What travelers say</h2></div><span class="agency-section-count">{{ agency.reviewCount }} reviews</span></div>
+          <div class="agency-reviews">
+            @for (review of agency.recentReviews; track review.id) {
+              <article class="agency-review-card"><div class="review-top"><span class="review-avatar">{{ review.travelerName.charAt(0) }}</span><div><strong>{{ review.travelerName }}</strong><small>{{ review.packageTitle }} <span>-</span> {{ date(review.createdAt) }}</small></div><span class="review-stars" [attr.aria-label]="review.rating + ' out of 5 stars'" [title]="review.rating + ' out of 5 stars'">@for (star of stars(review.rating); track $index) { <span [class.muted]="!star">&#9733;</span> }</span></div><p>{{ review.comment }}</p>@if (review.agencyResponse) { <div class="agency-response"><span class="material-symbols-outlined">reply</span><div><strong>Response from {{ agency.companyName }}</strong><p>{{ review.agencyResponse }}</p></div></div> }</article>
+            } @empty { <div class="agency-empty"><span class="material-symbols-outlined">rate_review</span><strong>No reviews yet</strong><p>Be the first verified traveler to review this agency.</p></div> }
+          </div>
+        </section>
       </div>
 
-      <aside class="agency-review-panel"><span class="material-symbols-outlined">rate_review</span><h2>Share your experience</h2><p>Only travelers with an accepted, completed Safarni booking can publish a review.</p>@if (reviewSuccess()) { <div class="review-success">{{ reviewSuccess() }}</div> }@if (reviewError()) { <div class="review-error">{{ reviewError() }}</div> }@if (isTraveler() && eligibleBookings.length) { <label>Completed booking<select [(ngModel)]="bookingRequestId"><option value="">Choose booking</option>@for (booking of eligibleBookings; track booking.id) { <option [value]="booking.id">{{ booking.packageTitle }}</option> }</select></label><label>Your rating<div class="rating-input">@for (value of [1,2,3,4,5]; track value) { <button type="button" (click)="rating = value" [class.active]="value <= rating" [attr.aria-label]="value + ' stars'" [attr.aria-pressed]="value === rating">★</button> }</div><small>{{ rating }} out of 5 stars selected</small></label><label>Your review<textarea [(ngModel)]="comment" maxlength="3000" rows="5" placeholder="What went well? What should future travelers know?"></textarea></label><button type="button" (click)="submitReview()" [disabled]="savingReview()">{{ savingReview() ? 'Publishing…' : 'Publish verified review' }}</button> } @else if (!isTraveler()) { <a routerLink="/login">Sign in to review</a> } @else { <div class="review-notice">Your accepted trips with this agency will appear here after completion.</div> }</aside>
+      <aside class="agency-review-panel">
+        <div class="agency-review-panel__icon"><span class="material-symbols-outlined">rate_review</span></div>
+        <span class="agency-eyebrow">Your experience matters</span>
+        <h2>Share your experience</h2>
+        <p>Only travelers with an accepted, completed Safarni booking can publish a review.</p>
+        @if (reviewSuccess()) { <div class="review-success"><span class="material-symbols-outlined">check_circle</span>{{ reviewSuccess() }}</div> }
+        @if (reviewError()) { <div class="review-error"><span class="material-symbols-outlined">error_outline</span>{{ reviewError() }}</div> }
+        @if (isTraveler() && eligibleBookings.length) {
+          <label>Completed booking<select [(ngModel)]="bookingRequestId"><option value="">Choose booking</option>@for (booking of eligibleBookings; track booking.id) { <option [value]="booking.id">{{ booking.packageTitle }}</option> }</select></label>
+          <label>Your rating<div class="rating-input">@for (value of [1,2,3,4,5]; track value) { <button type="button" (click)="rating = value" [class.active]="value <= rating" [attr.aria-label]="value + ' stars'" [attr.aria-pressed]="value === rating">&#9733;</button> }</div><small class="rating-caption">{{ rating }} out of 5 stars selected</small></label>
+          <label>Your review<textarea [(ngModel)]="comment" maxlength="3000" rows="5" placeholder="What went well? What should future travelers know?"></textarea></label>
+          <button type="button" (click)="submitReview()" [disabled]="savingReview()">{{ savingReview() ? 'Publishing...' : 'Publish verified review' }}<span class="material-symbols-outlined">arrow_forward</span></button>
+        } @else if (!isTraveler()) { <a routerLink="/login">Sign in to review <span class="material-symbols-outlined">arrow_forward</span></a> } @else { <div class="review-notice"><span class="material-symbols-outlined">lock</span>Your accepted trips with this agency will appear here after completion.</div> }
+      </aside>
     </div>
   }
 </main>

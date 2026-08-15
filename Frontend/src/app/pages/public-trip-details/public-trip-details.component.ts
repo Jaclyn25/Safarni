@@ -71,6 +71,7 @@ export class PublicTripDetailsComponent implements OnInit {
   ratingErrorMessage: string = '';
   averageRating: number = 0;
   ratingsCount: number = 0;
+  allRatings: any[] = [];
 
   // Report State
   isReportModalOpen: boolean = false;
@@ -115,6 +116,7 @@ export class PublicTripDetailsComponent implements OnInit {
         this.ratingsCount = this.trip.ratingsCount;
         this.isLiked = this.trip.isLikedByCurrentUser;
         this.isSaved = this.trip.isSavedByCurrentUser;
+        this.allRatings = this.trip.allRatings || [];
 
         if (this.trip.userRating) {
           this.userScore = this.trip.userRating.score;
@@ -293,6 +295,7 @@ export class PublicTripDetailsComponent implements OnInit {
         this.ratingsCount = response.data.newRatingsCount;
         this.ratingSuccessMessage = 'Thank you! Your rating has been submitted.';
         this.showToast('Rating saved successfully!', 'success');
+        this.loadTripDetails(); // Refresh the list of ratings
       } else {
         this.ratingErrorMessage = response?.errors?.[0]?.message || response?.message || 'Failed to submit rating.';
       }
@@ -301,6 +304,55 @@ export class PublicTripDetailsComponent implements OnInit {
       this.ratingErrorMessage = err?.error?.errors?.[0]?.message || err?.error?.message || err?.message || 'Failed to submit rating.';
     } finally {
       console.log('[submitRating] Finally block executing');
+      this.isSubmittingRating = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  // Delete Modal State
+  isDeleteModalOpen: boolean = false;
+
+  openDeleteModal(): void {
+    if (!this.checkAuth()) return;
+    this.isDeleteModalOpen = true;
+  }
+
+  closeDeleteModal(): void {
+    this.isDeleteModalOpen = false;
+  }
+
+  async deleteRating(): Promise<void> {
+    if (!this.checkAuth()) return;
+
+    this.isSubmittingRating = true;
+    this.ratingErrorMessage = '';
+    this.ratingSuccessMessage = '';
+
+    try {
+      const response = await firstValueFrom(
+        this.publicTripService.deleteRating(this.versionId)
+      );
+
+      if (response && response.data) {
+        this.userScore = 0;
+        this.userComment = '';
+        if (this.trip) {
+          this.trip.userRating = null;
+        }
+        this.averageRating = response.data.newAverageRating;
+        this.ratingsCount = response.data.newRatingsCount;
+        this.ratingSuccessMessage = 'Your rating has been deleted.';
+        this.showToast('Rating deleted successfully!', 'success');
+        this.closeDeleteModal();
+        this.loadTripDetails(); // Refresh the list of ratings
+      } else {
+        this.ratingErrorMessage = response?.errors?.[0]?.message || response?.message || 'Failed to delete rating.';
+        this.closeDeleteModal();
+      }
+    } catch (err: any) {
+      this.ratingErrorMessage = err?.error?.errors?.[0]?.message || err?.error?.message || err?.message || 'Failed to delete rating.';
+      this.closeDeleteModal();
+    } finally {
       this.isSubmittingRating = false;
       this.cdr.detectChanges();
     }

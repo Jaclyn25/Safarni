@@ -16,6 +16,15 @@ export interface UserRatingDto {
   createdAt: string;
 }
 
+export interface TripRatingInfoDto {
+  userId: string;
+  displayName: string;
+  profilePhotoUrl: string;
+  score: number;
+  comment?: string;
+  createdAt: string;
+}
+
 export interface SearchPublicTripsRequest {
   destination?: string;
   minDuration?: number;
@@ -66,6 +75,7 @@ export interface PublicTripDetailsResponse {
   isLikedByCurrentUser: boolean;
   isSavedByCurrentUser: boolean;
   userRating?: UserRatingDto | null;
+  allRatings?: TripRatingInfoDto[];
 }
 
 export interface ToggleTripInteractionResult {
@@ -152,6 +162,12 @@ export class PublicTripService {
 
   rateTrip(versionId: string, request: RateTripRequest): Observable<ApiResponse<RatePublicTripResult>> {
     return this.http.post<ApiResponse<RatePublicTripResult>>(`${this.apiUrl}/${versionId}/rate`, request, {
+      headers: this.getHeaders()
+    });
+  }
+
+  deleteRating(versionId: string): Observable<ApiResponse<RatePublicTripResult>> {
+    return this.http.delete<ApiResponse<RatePublicTripResult>>(`${this.apiUrl}/${versionId}/rate`, {
       headers: this.getHeaders()
     });
   }

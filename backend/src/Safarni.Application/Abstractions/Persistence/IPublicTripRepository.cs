@@ -34,6 +34,9 @@ public interface IPublicTripRepository
         TripRating rating,
         CancellationToken cancellationToken = default);
 
+    void RemoveTripRating(
+        TripRating rating);
+
     Task<IReadOnlyCollection<SnapshotVersion>> SearchPublicTripsAsync(
         string? destination,
         int? minDuration,

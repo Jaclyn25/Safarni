@@ -16,9 +16,9 @@
 
   <!-- Sub-Header Navigation -->
   <div class="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-outline/20 px-4 sm:px-8 py-3.5 flex items-center justify-between">
-    <a routerLink="/" class="inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
+    <a routerLink="/public-trips" class="inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
       <span class="material-symbols-outlined text-lg">arrow_back</span>
-      Back to Explore
+      Back to Community Trips
     </a>
     <div class="flex items-center gap-3" *ngIf="trip">
       <button (click)="shareTrip()" class="p-2 rounded-xl bg-surface border border-outline-variant text-on-surface hover:bg-surface-container-high hover:text-on-surface transition-all">
@@ -313,11 +313,19 @@
                  class="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary transition-all">
         </div>
 
-        <button (click)="submitRating()" 
-                [disabled]="isSubmittingRating || userScore === 0"
-                class="px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-on-primary font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 sm:self-end">
-          {{ isSubmittingRating ? 'Saving...' : (trip.userRating ? 'Update Rating' : 'Submit Rating') }}
-        </button>
+        <div class="flex flex-col sm:flex-row gap-2 sm:self-end">
+          <button *ngIf="trip.userRating"
+                  (click)="openDeleteModal()"
+                  [disabled]="isSubmittingRating"
+                  class="px-6 py-3 rounded-xl bg-error/10 hover:bg-error/20 text-error font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+            Delete Rating
+          </button>
+          <button (click)="submitRating()" 
+                  [disabled]="isSubmittingRating || userScore === 0"
+                  class="px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-on-primary font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20">
+            {{ isSubmittingRating ? 'Saving...' : (trip.userRating ? 'Update Rating' : 'Submit Rating') }}
+          </button>
+        </div>
       </div>
 
       <!-- Messages -->
@@ -329,6 +337,39 @@
         <span class="material-symbols-outlined text-base">error</span>
         {{ ratingErrorMessage }}
       </p>
+
+      <!-- All Ratings List -->
+      <div class="pt-8 border-t border-outline-variant" *ngIf="allRatings.length > 0">
+        <h3 class="text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
+          Community Ratings ({{ allRatings.length }})
+        </h3>
+        <div class="space-y-4">
+          <div *ngFor="let rating of allRatings" class="bg-surface-container/40 border border-outline-variant/60 rounded-2xl p-5 flex gap-4 transition-all hover:border-outline-variant">
+            <div class="flex-shrink-0">
+              <img *ngIf="rating.profilePhotoUrl" [src]="rating.profilePhotoUrl" [alt]="rating.displayName" class="w-12 h-12 rounded-full object-cover border-2 border-primary/20">
+              <div *ngIf="!rating.profilePhotoUrl" class="w-12 h-12 rounded-full bg-surface-container border-2 border-outline-variant flex items-center justify-center text-on-surface-variant">
+                <span class="material-symbols-outlined text-2xl">person</span>
+              </div>
+            </div>
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-on-surface text-base">{{ rating.displayName }}</span>
+                <span class="text-xs font-medium text-on-surface-variant">{{ rating.createdAt | date:'mediumDate' }}</span>
+              </div>
+              <div class="flex items-center gap-1 text-secondary">
+                <span *ngFor="let star of [1,2,3,4,5]" 
+                      class="material-symbols-outlined text-lg" 
+                      [ngClass]="{'fill-current': rating.score >= star, 'text-outline-variant': rating.score < star}">
+                  star
+                </span>
+              </div>
+              <p *ngIf="rating.comment" class="text-sm text-on-surface mt-2 text-pretty">
+                "{{ rating.comment }}"
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -370,6 +411,41 @@
                 [disabled]="isSubmittingReport"
                 class="px-5 py-2.5 rounded-xl bg-error hover:opacity-90 text-on-error font-bold text-sm transition-all shadow-lg shadow-error/20 disabled:opacity-50">
           {{ isSubmittingReport ? 'Submitting...' : 'Submit Report' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Rating Modal -->
+  <div *ngIf="isDeleteModalOpen" 
+       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+    <div class="bg-surface border border-outline-variant rounded-3xl max-w-sm w-full p-6 space-y-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+      
+      <div class="text-center space-y-4">
+        <div class="w-16 h-16 bg-error/10 text-error rounded-full flex items-center justify-center mx-auto border border-error/20">
+          <span class="material-symbols-outlined text-3xl">delete_forever</span>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-on-surface">Delete Rating?</h3>
+          <p class="text-sm text-on-surface-variant mt-2">
+            Are you sure you want to delete your rating? This action cannot be undone.
+          </p>
+        </div>
+      </div>
+
+      <p *ngIf="ratingErrorMessage" class="text-sm text-error font-medium text-center">{{ ratingErrorMessage }}</p>
+
+      <div class="flex flex-col gap-3 pt-2">
+        <button (click)="deleteRating()" 
+                [disabled]="isSubmittingRating"
+                class="w-full px-5 py-3 rounded-xl bg-error hover:bg-error/90 text-on-error font-bold text-sm transition-all shadow-lg shadow-error/20 disabled:opacity-50 flex items-center justify-center gap-2">
+          <span *ngIf="isSubmittingRating" class="w-4 h-4 border-2 border-on-error/30 border-t-on-error rounded-full animate-spin"></span>
+          {{ isSubmittingRating ? 'Deleting...' : 'Yes, Delete' }}
+        </button>
+        <button (click)="closeDeleteModal()" 
+                [disabled]="isSubmittingRating"
+                class="w-full px-5 py-3 rounded-xl bg-surface-container text-on-surface font-medium text-sm hover:bg-surface-container-high transition-all">
+          Cancel
         </button>
       </div>
     </div>

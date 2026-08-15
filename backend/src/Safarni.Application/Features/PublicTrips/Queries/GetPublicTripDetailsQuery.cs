@@ -23,7 +23,8 @@ namespace Safarni.Application.Features.PublicTrips.Queries
         AuthorProfileDto Author,
         bool IsLikedByCurrentUser = false,
         bool IsSavedByCurrentUser = false,
-        UserRatingDto? UserRating = null
+        UserRatingDto? UserRating = null,
+        IReadOnlyCollection<TripRatingInfoDto>? AllRatings = null
     );
 
     public sealed record AuthorProfileDto(
@@ -34,6 +35,15 @@ namespace Safarni.Application.Features.PublicTrips.Queries
     );
 
     public sealed record UserRatingDto(
+        int Score,
+        string? Comment,
+        DateTime CreatedAt
+    );
+
+    public sealed record TripRatingInfoDto(
+        Guid UserId,
+        string DisplayName,
+        string ProfilePhotoUrl,
         int Score,
         string? Comment,
         DateTime CreatedAt

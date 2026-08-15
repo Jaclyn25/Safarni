@@ -1,0 +1,126 @@
+name: Build, test, publish and deploy to MonsterASP
+
+on:
+  push:
+    branches:
+      # - main
+      - jacqueline
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-publish-deploy:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Restore backend dependencies
+        run: dotnet restore backend\Safarni.slnx --runtime win-x86
+
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: Frontend
+        run: npm run build -- --configuration production
+
+      - name: Test backend
+        run: dotnet test backend\Safarni.slnx --configuration Release --no-restore
+
+      - name: Publish backend
+        run: >-
+          dotnet publish backend\src\Safarni.API\Safarni.API.csproj
+          --configuration Release
+          --no-restore
+          --runtime win-x86
+          --self-contained false
+          --output .\publish
+
+      - name: Include Angular app in ASP.NET publish
+        shell: pwsh
+        run: |
+          $frontendRoot = Join-Path $env:GITHUB_WORKSPACE 'Frontend\dist\safarni-angular\browser'
+          $publishRoot = Join-Path $env:GITHUB_WORKSPACE 'publish\wwwroot'
+
+          if (-not (Test-Path -LiteralPath $frontendRoot)) {
+            throw "Angular production output was not found at $frontendRoot"
+          }
+
+          New-Item -ItemType Directory -Force -Path $publishRoot | Out-Null
+          Copy-Item -Path (Join-Path $frontendRoot '*') -Destination $publishRoot -Recurse -Force
+
+      - name: Add ASP.NET app-offline marker
+        shell: pwsh
+        run: |
+          $offlineRoot = Join-Path $env:GITHUB_WORKSPACE 'publish-offline'
+          New-Item -ItemType Directory -Force -Path $offlineRoot | Out-Null
+          Set-Content -LiteralPath (Join-Path $offlineRoot 'app_offline.htm') `
+            -Value '<html><body>Safarni is updating. Please try again shortly.</body></html>' `
+            -Encoding utf8
+
+      - name: Upload app-offline marker and wait for IIS
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./publish-offline/
+          server-dir: ./wwwroot/
+          log-level: minimal
+        
+      - name: Wait for IIS to stop the ASP.NET process
+        shell: pwsh
+        run: |
+          Start-Sleep -Seconds 10
+
+      - name: Deploy to MonsterASP via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./publish/
+          server-dir: ./wwwroot/
+          exclude: |
+            **/app_offline.htm
+          log-level: minimal
+
+      - name: Remove ASP.NET app-offline marker
+        if: always()
+        shell: pwsh
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          $request = [System.Net.FtpWebRequest]::Create(
+            "ftp://$env:FTP_SERVER/wwwroot/app_offline.htm")
+          $request.EnableSsl = $true
+          $request.Method = [System.Net.WebRequestMethods+Ftp]::DeleteFile
+          $request.KeepAlive = $false
+          $request.Credentials = [System.Net.NetworkCredential]::new(
+            $env:FTP_USERNAME,
+            $env:FTP_PASSWORD)
+          $response = $request.GetResponse()
+          $response.Close()

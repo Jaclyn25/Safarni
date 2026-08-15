@@ -1,5 +1,6 @@
 ﻿using Google.Apis.Auth;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Abstractions.Security;
 using Safarni.Application.Common.Errors;
@@ -17,19 +18,22 @@ public sealed class GoogleLoginCommandHandler
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenService _tokenService;
     private readonly GoogleAuthOptions _googleAuthOptions;
+    private readonly ILogger<GoogleLoginCommandHandler> _logger;
 
     public GoogleLoginCommandHandler(
         IUserRepository userRepository,
         IRefreshTokenRepository refreshTokenRepository,
         IPasswordHasher passwordHasher,
         ITokenService tokenService,
-        GoogleAuthOptions googleAuthOptions)
+        GoogleAuthOptions googleAuthOptions,
+        ILogger<GoogleLoginCommandHandler> logger)
     {
         _userRepository = userRepository;
         _refreshTokenRepository = refreshTokenRepository;
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
         _googleAuthOptions = googleAuthOptions;
+        _logger = logger;
     }
 
     public async Task<Result<LoginResponse>> Handle(
@@ -55,28 +59,35 @@ public sealed class GoogleLoginCommandHandler
 
         try
         {
-            var validationSettings =
-                new GoogleJsonWebSignature.ValidationSettings
-                {
-                    /*
-                     * The token must have been issued specifically
-                     * for Safarni's Google OAuth client.
-                     */
-                    Audience =
-                    [
-                        _googleAuthOptions.ClientId
-                    ]
-                };
-
-            payload =
-                await GoogleJsonWebSignature.ValidateAsync(
-                    request.IdToken,
-                    validationSettings);
+            payload = await ValidateGoogleTokenAsync(
+                request.IdToken,
+                forceCertificateRefresh: false);
         }
-        catch (InvalidJwtException)
+        catch (InvalidJwtException exception)
         {
-            return InvalidGoogleToken(
-                "The Google authentication token is invalid or expired.");
+            /*
+             * Google rotates signing certificates. If the cached certificate
+             * is stale, refresh it once and retry the same token.
+             */
+            _logger.LogWarning(
+                exception,
+                "Google ID token validation failed on the first attempt.");
+
+            try
+            {
+                payload = await ValidateGoogleTokenAsync(
+                    request.IdToken,
+                    forceCertificateRefresh: true);
+            }
+            catch (InvalidJwtException retryException)
+            {
+                _logger.LogWarning(
+                    retryException,
+                    "Google ID token validation failed after refreshing certificates.");
+
+                return InvalidGoogleToken(
+                    "The Google authentication token is invalid or expired. Please close the Google window and try again.");
+            }
         }
 
         /*
@@ -269,5 +280,36 @@ public sealed class GoogleLoginCommandHandler
                 "Auth.InvalidGoogleToken",
                 message,
                 ErrorType.Unauthorized));
+    }
+
+    private Task<GoogleJsonWebSignature.Payload> ValidateGoogleTokenAsync(
+        string idToken,
+        bool forceCertificateRefresh)
+    {
+        var validationSettings =
+            new GoogleJsonWebSignature.ValidationSettings
+            {
+                /*
+                 * The token must have been issued specifically
+                 * for one of Safarni's Google OAuth clients. The
+                 * legacy client is accepted during the transition so
+                 * an already-open cached frontend can still complete
+                 * login after deployment.
+                 */
+                Audience =
+                    _googleAuthOptions.AllowedClientIds,
+
+                /*
+                 * A small tolerance handles normal local clock drift while
+                 * still rejecting genuinely stale tokens quickly.
+                 */
+                IssuedAtClockTolerance = TimeSpan.FromMinutes(2),
+                ExpirationTimeClockTolerance = TimeSpan.FromMinutes(2),
+                ForceGoogleCertRefresh = forceCertificateRefresh
+            };
+
+        return GoogleJsonWebSignature.ValidateAsync(
+            idToken,
+            validationSettings);
     }
 }

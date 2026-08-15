@@ -50,7 +50,20 @@ public static class DependencyInjection
                 "GoogleSettings:ClientId is missing.");
         }
 
-        services.AddSingleton(new GoogleAuthOptions(googleClientId));
+        var allowedGoogleClientIds = configuration
+            .GetSection("GoogleSettings:AllowedClientIds")
+            .GetChildren()
+            .Select(section => section.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Append(googleClientId)
+            .Select(value => value!.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        services.AddSingleton(
+            new GoogleAuthOptions(
+                googleClientId.Trim(),
+                allowedGoogleClientIds));
         services.AddDbContext<ApplicationDbContext>(
             options => options.UseSqlServer(connectionString));
         services.AddMemoryCache();

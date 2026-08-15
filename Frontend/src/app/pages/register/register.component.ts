@@ -428,7 +428,7 @@ export class RegisterComponent
             this.setError(
               response.errors?.[0]?.message ||
                 response.message ||
-                'Google authentication could not be completed.'
+                'Google sign-in could not be completed. Please close the Google window and try again.'
             );
             return;
           }
@@ -452,7 +452,7 @@ export class RegisterComponent
           this.setError(
             getApiErrorMessage(
               error,
-              'Google authentication could not be completed. Please try again.'
+              'Google sign-in could not be completed. Please close the Google window and try again.'
             )
           );
         }

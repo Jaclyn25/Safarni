@@ -1,15 +1,15 @@
 <!-- Main Concierge AI Travel Workspace Component -->
 <main
-  class="max-w-container-max mx-auto h-[calc(100vh-160px)] md:h-[calc(100vh-80px)] flex w-full overflow-hidden concierge-workspace">
+  class="max-w-container-max mx-auto h-[calc(100vh-160px)] md:h-[calc(100vh-80px)] flex w-full overflow-hidden concierge-workspace concierge-shell">
 
 
 
   <!-- Sidebar History -->
   <aside
-    [class]="'relative flex-col bg-surface-container-low border-r border-outline-variant/30 px-4 pt-6 pb-4 h-full flex-shrink-0 transition-all duration-300 ' + (isSidebarOpen ? 'w-72 flex' : 'w-0 px-0 overflow-hidden hidden')">
+    [class]="'concierge-sidebar relative flex-col bg-surface-container-low border-r border-outline-variant/30 px-4 pt-6 pb-4 h-full flex-shrink-0 transition-all duration-300 ' + (isSidebarOpen ? 'w-72 flex' : 'w-0 px-0 overflow-hidden hidden')">
 
     <!-- Header Row: New Chat + Close Sidebar -->
-    <div class="flex items-center gap-2 mb-4 w-full">
+    <div class="concierge-sidebar__header flex items-center gap-2 mb-4 w-full">
       <button (click)="toggleSidebar()"
         class="hidden md:flex p-2 rounded-xl hover:bg-surface-container-high text-on-surface-variant transition-colors flex-shrink-0"
         title="Close Sidebar">
@@ -25,7 +25,7 @@
     </div>
 
     <!-- Search Conversations -->
-    <div class="relative mb-4 flex-shrink-0">
+    <div class="concierge-sidebar__search relative mb-4 flex-shrink-0">
       <span
         class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant/50 text-[18px]">search</span>
       <input [(ngModel)]="searchConvQuery" placeholder="Search trip chats..."
@@ -249,10 +249,10 @@
   </aside>
 
   <!-- Chat Main Area -->
-  <div class="flex-grow flex flex-col h-full overflow-hidden px-4 md:px-margin-desktop py-4 md:py-6 relative">
+  <div class="concierge-main flex-grow flex flex-col h-full overflow-hidden px-4 md:px-margin-desktop py-4 md:py-6 relative">
 
     <!-- Workspace Header -->
-    <div class="flex items-center justify-between mb-4 flex-shrink-0">
+    <div class="concierge-header flex items-center justify-between mb-4 flex-shrink-0">
       <div class="flex items-start gap-4">
         @if (!isSidebarOpen) {
         <button (click)="toggleSidebar()"
@@ -291,7 +291,7 @@
 
     <!-- Mobile Conversation Switcher -->
     @if (conversationsList.length) {
-    <div class="md:hidden mb-3 flex-shrink-0">
+    <div class="concierge-mobile-switcher md:hidden mb-3 flex-shrink-0">
       <select [ngModel]="conversationId || ''" (ngModelChange)="openConversation($event)"
         class="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-3 py-2 text-label-sm text-on-surface">
         <option value="">+ Start new trip chat</option>
@@ -304,7 +304,7 @@
 
     <!-- Messages Canvas -->
     <div
-      class="flex-grow overflow-y-auto custom-scrollbar space-y-6 pb-32"
+      class="concierge-messages flex-grow overflow-y-auto custom-scrollbar space-y-6 pb-32"
       #chatMessages
       role="log"
       aria-live="polite"
@@ -314,7 +314,7 @@
 
       <!-- Empty State Workspace -->
       @if (!messages.length && !isTyping && !isLoadingConversation) {
-      <section class="max-w-2xl mx-auto py-8 text-center" aria-labelledby="workspace-title">
+      <section class="concierge-empty-state max-w-2xl mx-auto py-8 text-center" aria-labelledby="workspace-title">
         <div
           class="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4 shadow-inner">
           <span class="material-symbols-outlined text-[36px]"
@@ -329,7 +329,7 @@
         </p>
 
         <!-- 4 Interactive Prompt Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+        <div class="concierge-suggestions-grid grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
           @for (card of emptyStateCards; track card.title) {
           <button (click)="useSuggestion(card.prompt)"
             class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-primary/40 hover:shadow-md transition-all group flex items-start gap-4 text-left cursor-pointer active:scale-95">
@@ -353,7 +353,7 @@
 
       <!-- User Message Bubble (Compact + Inline Edit + Toolbar) -->
       @if (m.isUser) {
-      <div class="flex items-start gap-3 max-w-2xl ml-auto flex-row-reverse message-entrance group">
+      <div class="concierge-user-message flex items-start gap-3 max-w-2xl ml-auto flex-row-reverse message-entrance group">
         <div
           class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center flex-shrink-0 text-label-sm font-bold shadow-sm">
           <span class="material-symbols-outlined text-[16px]">person</span>
@@ -433,7 +433,7 @@
 
       <!-- AI Assistant Travel Card Response + Version Switcher + Toolbar -->
       } @else {
-      <div class="flex items-start gap-3.5 max-w-3xl message-entrance group">
+      <div class="concierge-assistant-message flex items-start gap-3.5 max-w-3xl message-entrance group">
         <div
           class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center shadow-md flex-shrink-0 mt-0.5">
           <span class="material-symbols-outlined text-[18px]"
@@ -628,9 +628,9 @@
 
 
     <!-- Smart Input Bar -->
-    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%_-_32px)] max-w-3xl z-50">
+    <div class="concierge-composer absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%_-_32px)] max-w-3xl z-50">
       <div
-        class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-[0_8px_32px_rgba(15,23,42,0.08)] p-2.5 flex items-end gap-3 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+        class="concierge-composer__inner bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-[0_8px_32px_rgba(15,23,42,0.08)] p-2.5 flex items-end gap-3 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
         <div
           class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mb-0.5">
           <span class="material-symbols-outlined text-[20px]"

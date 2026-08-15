@@ -50,19 +50,22 @@ namespace Safarni.Application.Features.PublicTrips.Queries
             var trip = version.Snapshot.Trip;
             var user = trip.User;
 
-            // Deduplicate Views
-            var window = TimeSpan.FromMinutes(_options.DeduplicationWindowMinutes);
-            var isNewView = await _repository.TryRecordViewIfNotExistsAsync(
-                version.Id,
-                _currentUserService.UserId,
-                _currentUserService.UserId == null ? _currentUserService.SessionId : null,
-                window,
-                cancellationToken);
-
-            if (isNewView)
+            // Deduplicate Views (Do not count views from the trip author)
+            if (_currentUserService.UserId != user.Id)
             {
-                await _repository.IncrementViewsCountAsync(version.Id, cancellationToken);
-                version.ViewsCount++; // Reflect the update in memory for the response
+                var window = TimeSpan.FromMinutes(_options.DeduplicationWindowMinutes);
+                var isNewView = await _repository.TryRecordViewIfNotExistsAsync(
+                    version.Id,
+                    _currentUserService.UserId,
+                    _currentUserService.UserId == null ? _currentUserService.SessionId : null,
+                    window,
+                    cancellationToken);
+
+                if (isNewView)
+                {
+                    await _repository.IncrementViewsCountAsync(version.Id, cancellationToken);
+                    version.ViewsCount++; // Reflect the update in memory for the response
+                }
             }
 
             var isUserDeleted = !user.IsActive;
@@ -91,6 +94,15 @@ namespace Safarni.Application.Features.PublicTrips.Queries
                 }
             }
 
+            var allRatings = version.Ratings.Select(r => new TripRatingInfoDto(
+                r.UserId,
+                r.User == null ? "Unknown User" : (!r.User.IsActive ? "Deleted User" : r.User.FullName),
+                r.User == null || !r.User.IsActive ? string.Empty : (r.User.ProfilePhotoUrl ?? string.Empty),
+                r.Score,
+                r.Comment,
+                r.CreatedAt
+            )).ToList();
+
             return Result<PublicTripDetailsResponse>.Success(new PublicTripDetailsResponse(
                 version.Id,
                 trip.Id,
@@ -108,7 +120,8 @@ namespace Safarni.Application.Features.PublicTrips.Queries
                 authorProfile,
                 isLikedByCurrentUser,
                 isSavedByCurrentUser,
-                userRatingDto
+                userRatingDto,
+                allRatings
             ));
         }
     }

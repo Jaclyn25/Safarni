@@ -132,6 +132,23 @@ public sealed class PublicTripsController : ControllerBase
             result.Value!, "Trip rated successfully.", StatusCodes.Status200OK));
     }
 
+    [HttpDelete("{versionId:guid}/rate")]
+    [ProducesResponseType(typeof(ApiResponse<DeletePublicTripRatingResult>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DeleteRateTrip(
+        Guid versionId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new DeletePublicTripRatingCommand(versionId), cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<DeletePublicTripRatingResult>(result.Error, "Failed to delete trip rating.");
+        }
+
+        return Ok(ApiResponse<DeletePublicTripRatingResult>.SuccessResponse(
+            result.Value!, "Trip rating deleted successfully.", StatusCodes.Status200OK));
+    }
+
     [HttpPost("{versionId:guid}/report")]
     [ProducesResponseType(typeof(ApiResponse<ReportPublicTripResult>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ReportTrip(

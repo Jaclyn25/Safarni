@@ -22,6 +22,7 @@ internal sealed class PublicTripRepository : IPublicTripRepository
                     .ThenInclude(t => t.User)
             .Include(sv => sv.Interactions)
             .Include(sv => sv.Ratings)
+                .ThenInclude(r => r.User)
             .FirstOrDefaultAsync(sv => sv.Id == versionId, cancellationToken);
     }
 
@@ -61,6 +62,11 @@ internal sealed class PublicTripRepository : IPublicTripRepository
     public async Task AddTripRatingAsync(TripRating rating, CancellationToken cancellationToken = default)
     {
         await _dbContext.TripRatings.AddAsync(rating, cancellationToken);
+    }
+
+    public void RemoveTripRating(TripRating rating)
+    {
+        _dbContext.TripRatings.Remove(rating);
     }
 
     public async Task<IReadOnlyCollection<SnapshotVersion>> SearchPublicTripsAsync(

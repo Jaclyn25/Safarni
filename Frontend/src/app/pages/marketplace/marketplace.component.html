@@ -1,34 +1,60 @@
 <main class="marketplace-page">
   <header class="marketplace-hero">
-    <div>
-      <span class="marketplace-eyebrow">Safarni marketplace</span>
-      <h1>Trips with a real local point of view.</h1>
-      <p>Compare verified agency packages, then request the one that fits your dates and pace.</p>
+    <div class="marketplace-hero__copy">
+      <span class="marketplace-eyebrow"><span class="marketplace-eyebrow__dot" aria-hidden="true"></span>Verified travel marketplace</span>
+      <h1>Find a trip that feels like yours.</h1>
+      <p>Compare thoughtfully planned itineraries from local experts, then request the one that fits your dates, pace, and budget.</p>
+      <div class="marketplace-hero__signals" aria-label="Marketplace benefits">
+        <span><span class="material-symbols-outlined">verified</span>Verified agencies</span>
+        <span><span class="material-symbols-outlined">support_agent</span>Human support</span>
+      </div>
     </div>
-    <div class="marketplace-hero__mark" aria-hidden="true"><span class="material-symbols-outlined">travel_explore</span></div>
+    <div class="marketplace-hero__visual" aria-hidden="true">
+      <div class="marketplace-hero__compass"><span class="material-symbols-outlined">explore</span></div>
+      <div class="marketplace-hero__route marketplace-hero__route--one"><span>CAI</span><i></i><span>BAL</span></div>
+      <div class="marketplace-hero__route marketplace-hero__route--two"><span>IST</span><i></i><span>NRT</span></div>
+      <span class="marketplace-hero__stamp">Go somewhere<br />worth remembering</span>
+    </div>
   </header>
 
+  <section class="marketplace-trust" aria-label="Why book through Safarni">
+    <div class="marketplace-trust__item"><span class="material-symbols-outlined">verified_user</span><span><strong>Trusted partners</strong><small>Agencies reviewed by Safarni</small></span></div>
+    <div class="marketplace-trust__item"><span class="material-symbols-outlined">payments</span><span><strong>Clear pricing</strong><small>No surprise platform fees</small></span></div>
+    <div class="marketplace-trust__item"><span class="material-symbols-outlined">forum</span><span><strong>Request, then decide</strong><small>Talk to the agency before you pay</small></span></div>
+  </section>
+
   <form class="marketplace-filters" (ngSubmit)="page = 1; load()">
-    <label>Destination<input [ngModel]="destination()" (ngModelChange)="destination.set($event)" name="destination" placeholder="Cairo, Bali, Istanbul" /></label>
-    <label>Starting after<input type="date" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" name="startDate" /></label>
-    <label>Days<select [ngModel]="durationDays()" (ngModelChange)="durationDays.set($event ? +$event : null)" name="durationDays"><option [ngValue]="null">Any length</option><option [ngValue]="3">3 days</option><option [ngValue]="5">5 days</option><option [ngValue]="7">7 days</option><option [ngValue]="10">10 days</option></select></label>
-    <label>Budget from<input type="number" min="0" [ngModel]="minPrice()" (ngModelChange)="minPrice.set($event === '' ? null : +$event)" name="minPrice" placeholder="0" /></label>
-    <label>Budget to<input type="number" min="0" [ngModel]="maxPrice()" (ngModelChange)="maxPrice.set($event === '' ? null : +$event)" name="maxPrice" placeholder="Any" /></label>
-    <div class="marketplace-filters__actions"><button class="marketplace-button" type="submit"><span class="material-symbols-outlined">search</span>Find packages</button><button class="marketplace-button marketplace-button--quiet" type="button" (click)="reset()">Clear</button></div>
+    <div class="marketplace-filters__intro">
+      <span class="marketplace-eyebrow">Start with the basics</span>
+      <h2>Shape your search</h2>
+      <p>Tell us what kind of escape you have in mind.</p>
+    </div>
+    <div class="marketplace-filters__fields">
+      <label><span>Destination</span><span class="marketplace-control"><span class="material-symbols-outlined">location_on</span><input [ngModel]="destination()" (ngModelChange)="destination.set($event)" name="destination" placeholder="Cairo, Bali, Istanbul" /></span></label>
+      <label><span>Starting after</span><span class="marketplace-control"><span class="material-symbols-outlined">calendar_month</span><input type="date" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" name="startDate" /></span></label>
+      <label><span>Trip length</span><span class="marketplace-control"><span class="material-symbols-outlined">schedule</span><select [ngModel]="durationDays()" (ngModelChange)="durationDays.set($event ? +$event : null)" name="durationDays"><option [ngValue]="null">Any length</option><option [ngValue]="3">3 days</option><option [ngValue]="5">5 days</option><option [ngValue]="7">7 days</option><option [ngValue]="10">10 days</option></select></span></label>
+      <label><span>Budget from</span><span class="marketplace-control"><span class="material-symbols-outlined">attach_money</span><input type="number" min="0" [ngModel]="minPrice()" (ngModelChange)="minPrice.set($event === '' ? null : +$event)" name="minPrice" placeholder="0" /></span></label>
+      <label><span>Budget to</span><span class="marketplace-control"><span class="material-symbols-outlined">account_balance_wallet</span><input type="number" min="0" [ngModel]="maxPrice()" (ngModelChange)="maxPrice.set($event === '' ? null : +$event)" name="maxPrice" placeholder="Any" /></span></label>
+    </div>
+    <div class="marketplace-filters__footer">
+      <div class="marketplace-popular"><span>Popular now</span><button type="button" (click)="chooseDestination('Cairo')">Cairo</button><button type="button" (click)="chooseDestination('Istanbul')">Istanbul</button><button type="button" (click)="chooseDestination('Bali')">Bali</button></div>
+      <div class="marketplace-filters__actions"><button class="marketplace-button" type="submit"><span class="material-symbols-outlined">search</span>Find packages</button><button class="marketplace-button marketplace-button--quiet" type="button" (click)="reset()">Clear</button></div>
+    </div>
   </form>
 
-  @if (error()) { <div class="marketplace-message marketplace-message--error"><span class="material-symbols-outlined">error_outline</span><p>{{ error() }}</p><button type="button" (click)="load()">Retry</button></div> }
-  @if (loading()) { <div class="marketplace-loading"><span></span><p>Finding packages that match your trip...</p></div> }
+  @if (error()) { <div class="marketplace-message marketplace-message--error" role="alert"><span class="material-symbols-outlined">error_outline</span><p>{{ error() }}</p><button type="button" (click)="load()">Retry</button></div> }
+  @if (loading()) { <div class="marketplace-loading" aria-live="polite"><div class="marketplace-loading__bar"><span></span><span></span><span></span></div><p>Finding packages that match your trip...</p></div> }
   @else if (!error() && packages().length === 0) { <div class="marketplace-empty"><span class="material-symbols-outlined">map_search</span><h2>No packages matched those filters</h2><p>Try a wider budget or remove the date filter to see more verified agencies.</p><button class="marketplace-button marketplace-button--quiet" type="button" (click)="reset()">Show all packages</button></div> }
   @else {
-    <div class="marketplace-results-heading"><div><span class="marketplace-eyebrow">Curated for you</span><h2>{{ totalCount }} available packages</h2></div><span>Page {{ page }} of {{ totalPages }}</span></div>
+    <div class="marketplace-results-heading" aria-live="polite"><div><span class="marketplace-eyebrow">Your shortlist</span><h2>{{ totalCount }} available packages</h2></div><span class="marketplace-results-heading__page">Page {{ page }} of {{ totalPages }}</span></div>
     <section class="marketplace-grid" aria-label="Travel packages">
       @for (packageItem of packages(); track packageItem.id) {
         <article class="package-card">
-          <div class="package-card__image" [style.background-image]="'url(' + coverUrl(packageItem) + ')'" role="img" [attr.aria-label]="packageItem.title + ' in ' + packageItem.destination"></div>
-          <div class="package-card__shade" aria-hidden="true"></div>
-          <div class="package-card__top"><span class="package-card__destination">{{ packageItem.destination }}</span>@if (packageItem.discountPercentage) { <span class="package-card__offer">Save {{ packageItem.discountPercentage }}%</span> } @else { <span class="package-card__offer package-card__offer--plain"><span class="material-symbols-outlined">verified</span>Verified</span> }</div>
-          <div class="package-card__body"><a [routerLink]="['/marketplace/agencies', packageItem.agency.agencyId]" class="package-card__agency"><span class="material-symbols-outlined">verified</span><span>{{ packageItem.agency.companyName }}</span></a><h3>{{ packageItem.title }}</h3><p>{{ packageItem.description }}</p>@if (packageItem.cities.length) { <div class="package-card__route">@for (city of packageItem.cities.slice(0, 3); track city.id; let last = $last) { <span>{{ city.name }}</span>@if (!last) { <span class="material-symbols-outlined">arrow_forward</span> } }@if (packageItem.cities.length > 3) { <span>+{{ packageItem.cities.length - 3 }}</span> }</div> }<div class="package-card__meta"><span><span class="material-symbols-outlined">calendar_month</span>{{ date(packageItem.startDate) }}</span><span><span class="material-symbols-outlined">schedule</span>{{ packageItem.durationDays }} days</span><span><span class="material-symbols-outlined">group</span>{{ packageItem.remainingSeats }} left</span></div><div class="package-card__footer"><span><small>From</small><strong>{{ price(packageItem) }}</strong><small>/ traveler</small></span><a [routerLink]="['/marketplace/packages', packageItem.id]" class="marketplace-link" [attr.aria-label]="'View details for ' + packageItem.title">Explore <span class="material-symbols-outlined">arrow_forward</span></a></div></div>
+          <div class="package-card__image" [style.background-image]="'url(' + coverUrl(packageItem) + ')'" role="img" [attr.aria-label]="packageItem.title + ' in ' + packageItem.destination">
+            <div class="package-card__image-top"><span class="package-card__destination"><span class="material-symbols-outlined">location_on</span>{{ packageItem.destination }}</span>@if (packageItem.discountPercentage) { <span class="package-card__offer">Save {{ packageItem.discountPercentage }}%</span> } @else { <span class="package-card__offer package-card__offer--plain"><span class="material-symbols-outlined">verified</span>Verified</span> }</div>
+            <span class="package-card__image-label">{{ packageItem.durationDays }} days · curated itinerary</span>
+          </div>
+          <div class="package-card__body"><a [routerLink]="['/marketplace/agencies', packageItem.agency.agencyId]" class="package-card__agency"><span class="material-symbols-outlined">verified</span><span>{{ packageItem.agency.companyName }}</span><span class="material-symbols-outlined package-card__agency-arrow">arrow_outward</span></a><h3>{{ packageItem.title }}</h3><p>{{ packageItem.description }}</p>@if (packageItem.cities.length) { <div class="package-card__route" aria-label="Places included">@for (city of packageItem.cities.slice(0, 3); track city.id; let last = $last) { <span>{{ city.name }}</span>@if (!last) { <span class="material-symbols-outlined">arrow_forward</span> } }@if (packageItem.cities.length > 3) { <span>+{{ packageItem.cities.length - 3 }}</span> }</div> }<div class="package-card__meta"><span><span class="material-symbols-outlined">calendar_month</span>{{ date(packageItem.startDate) }}</span><span><span class="material-symbols-outlined">group</span>{{ packageItem.remainingSeats }} spots left</span></div><div class="package-card__footer"><span><small>From</small><strong>{{ price(packageItem) }}</strong><small>/ traveler</small></span><a [routerLink]="['/marketplace/packages', packageItem.id]" class="marketplace-link" [attr.aria-label]="'View details for ' + packageItem.title">Explore trip <span class="material-symbols-outlined">arrow_forward</span></a></div></div>
         </article>
       }
     </section>

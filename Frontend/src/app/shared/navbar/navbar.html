@@ -19,6 +19,12 @@
           Explore
         </a>
 
+        <a routerLink="/public-trips" routerLinkActive="active-link"
+          class="nav-link">
+          <span class="material-symbols-outlined text-[18px]">travel_explore</span>
+          Community Trips
+        </a>
+
         <a routerLink="/" [queryParams]="{ createTrip: '1' }"
           class="nav-link">
           <span class="material-symbols-outlined text-[18px]">add_circle</span>
@@ -182,6 +188,11 @@
         class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
         <span class="material-symbols-outlined text-[20px]">explore</span>
         Explore
+      </a>
+      <a routerLink="/public-trips" routerLinkActive="active-link" (click)="isMobileMenuOpen = false"
+        class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
+        <span class="material-symbols-outlined text-[20px]">travel_explore</span>
+        Community Trips
       </a>
       <a routerLink="/" [queryParams]="{ createTrip: '1' }" (click)="isMobileMenuOpen = false"
         class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">

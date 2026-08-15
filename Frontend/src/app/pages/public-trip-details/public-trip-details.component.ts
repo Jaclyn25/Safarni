@@ -8,6 +8,7 @@ import {
 } from '../../services/public-trip.service';
 import { AuthService } from '../../services/auth.service';
 import { firstValueFrom } from 'rxjs';
+import { ChangeDetectorRef } from '@angular/core';
 
 interface ItineraryPlace {
   id?: string;
@@ -41,6 +42,7 @@ export class PublicTripDetailsComponent implements OnInit {
   private router = inject(Router);
   private publicTripService = inject(PublicTripService);
   public authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
 
   versionId: string = '';
   isLoading: boolean = true;
@@ -128,6 +130,7 @@ export class PublicTripDetailsComponent implements OnInit {
       this.errorMessage = err?.error?.message || err?.message || 'An error occurred while loading trip details.';
     } finally {
       this.isLoading = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -264,6 +267,7 @@ export class PublicTripDetailsComponent implements OnInit {
   }
 
   async submitRating(): Promise<void> {
+    console.log('[submitRating] Started', { score: this.userScore, comment: this.userComment });
     if (!this.checkAuth()) return;
     if (this.userScore < 1 || this.userScore > 5) {
       this.ratingErrorMessage = 'Please select a score between 1 and 5 stars.';
@@ -275,12 +279,14 @@ export class PublicTripDetailsComponent implements OnInit {
     this.ratingSuccessMessage = '';
 
     try {
+      console.log('[submitRating] Sending request...');
       const response = await firstValueFrom(
         this.publicTripService.rateTrip(this.versionId, {
           score: this.userScore,
-          comment: this.userComment.trim() || undefined
+          comment: this.userComment?.trim() || undefined
         })
       );
+      console.log('[submitRating] Response received:', response);
 
       if (response && response.data) {
         this.averageRating = response.data.newAverageRating;
@@ -288,12 +294,15 @@ export class PublicTripDetailsComponent implements OnInit {
         this.ratingSuccessMessage = 'Thank you! Your rating has been submitted.';
         this.showToast('Rating saved successfully!', 'success');
       } else {
-        this.ratingErrorMessage = response?.message || 'Failed to submit rating.';
+        this.ratingErrorMessage = response?.errors?.[0]?.message || response?.message || 'Failed to submit rating.';
       }
     } catch (err: any) {
-      this.ratingErrorMessage = err?.error?.message || 'Failed to submit rating.';
+      console.error('[submitRating] Error caught:', err);
+      this.ratingErrorMessage = err?.error?.errors?.[0]?.message || err?.error?.message || err?.message || 'Failed to submit rating.';
     } finally {
+      console.log('[submitRating] Finally block executing');
       this.isSubmittingRating = false;
+      this.cdr.detectChanges();
     }
   }
 

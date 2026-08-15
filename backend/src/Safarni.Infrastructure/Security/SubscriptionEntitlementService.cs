@@ -7,7 +7,7 @@ namespace Safarni.Infrastructure.Security;
 
 public sealed class SubscriptionEntitlementService : IEntitlementService
 {
-    private const int FreeTravelerAiGenerationsPerDay = 3;
+    private const int FreeTravelerAiGenerationsPerDay = 100;
     private const int FreeAgencyPackageCreationsPerDay = 20;
     private const int FreeAgencyPackagePublicationsPerDay = 20;
     private const string FreeTravelerPlanCode = "traveler-basic";

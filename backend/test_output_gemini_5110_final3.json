@@ -1,0 +1,29 @@
+{
+  "success": true,
+  "message": "AI Trip Plan and related public trips loaded successfully.",
+  "data": {
+    "generatedItinerary": null,
+    "relatedPublicTrips": [
+      {
+        "versionId": "f190746b-a71a-440f-8d1b-3f71b84bafff",
+        "tripId": "2cd34ae8-90ba-4744-aa53-96abe5fb7f91",
+        "tripName": "france",
+        "destination": "France",
+        "startDate": "2026-08-17T00:00:00",
+        "endDate": "2026-08-20T00:00:00",
+        "durationDays": 3,
+        "costAmount": 2000.0,
+        "authorName": "Youstina Yossef",
+        "authorPhotoUrl": "",
+        "viewsCount": 24,
+        "likesCount": 0,
+        "averageRating": 5,
+        "publishedAt": "2026-08-14T11:11:08.0165187",
+        "isNewTrip": true
+      }
+    ]
+  },
+  "errors": [],
+  "statusCode": 200,
+  "timestamp": "2026-08-15T01:48:14.6709488Z"
+}

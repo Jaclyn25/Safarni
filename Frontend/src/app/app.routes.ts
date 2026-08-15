@@ -25,6 +25,14 @@ export const routes: Routes = [
   // =========================
 
   {
+    path: 'public-trips',
+    loadComponent: () =>
+      import('./pages/public-trips/public-trips.component')
+        .then((m) => m.PublicTripsComponent),
+    title: 'Safarni | Search Public Trips'
+  },
+
+  {
     path: 'public-trips/:versionId',
     loadComponent: () =>
       import('./pages/public-trip-details/public-trip-details.component')

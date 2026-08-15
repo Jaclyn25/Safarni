@@ -84,7 +84,12 @@ export const authInterceptor: HttpInterceptorFn = (
   let authReq = req;
   if (!isAuthFlow && accessToken) {
     authReq = req.clone({
+      withCredentials: true,
       setHeaders: { Authorization: `Bearer ${accessToken}` }
+    });
+  } else {
+    authReq = req.clone({
+      withCredentials: true
     });
   }
 
@@ -97,6 +102,7 @@ export const authInterceptor: HttpInterceptorFn = (
               const newToken = localStorage.getItem('access_token');
               return next(
                 req.clone({
+                  withCredentials: true,
                   setHeaders: { Authorization: `Bearer ${newToken}` }
                 })
               );

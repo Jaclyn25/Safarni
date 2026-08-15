@@ -29,7 +29,7 @@ public class CreateConversationCommandHandlerTests
             unitOfWork.Object);
 
         var result = await handler.Handle(
-            new CreateConversationCommand("user-1", null),
+            new CreateConversationCommand(Guid.NewGuid(), null),
             CancellationToken.None);
 
         result.Title.Should().Be("محادثة جديدة");

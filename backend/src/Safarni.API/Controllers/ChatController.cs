@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Safarni.API.Contracts.Chat;
+using Safarni.API.Extensions;
 
 namespace ChatBotApi.Controllers;
 
@@ -39,7 +40,7 @@ public class ChatController : ControllerBase
         _mediator = mediator;
     }
 
-    private string CurrentUserId
+    private Guid CurrentUserId
     {
         get
         {
@@ -48,7 +49,7 @@ public class ChatController : ControllerBase
             {
                 throw new UnauthorizedAccessException("لا توجد هوية مستخدم صالحة لهذه الجلسة.");
             }
-            return userId;
+            return User.GetRequiredUserId();
         }
     }
 

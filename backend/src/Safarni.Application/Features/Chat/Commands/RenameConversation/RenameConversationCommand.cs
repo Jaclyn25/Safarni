@@ -8,7 +8,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.RenameConversation;
 
-public record RenameConversationCommand(Guid Id, string UserId, string NewTitle) : IRequest<ConversationDto>;
+public record RenameConversationCommand(Guid Id, Guid UserId, string NewTitle) : IRequest<ConversationDto>;
 
 public class RenameConversationCommandHandler : IRequestHandler<RenameConversationCommand, ConversationDto>
 {

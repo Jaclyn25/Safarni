@@ -16,7 +16,7 @@ namespace ChatBotApi.Application.Features.Chat.StreamChatResponse;
 
 public sealed record StreamChatResponseCommand(
     Guid ConversationId,
-    string UserId,
+    Guid UserId,
     string Message)
     : IStreamRequest<ChatStreamEvent>;
 
@@ -258,11 +258,7 @@ public sealed class StreamChatResponseCommandHandler
             await AIRequestTelemetry.RecordAsync(
                 _telemetryWriter,
                 new AIRequestLogEntry(
-                    Guid.TryParse(
-                        request.UserId,
-                        out var parsedUserId)
-                        ? parsedUserId
-                        : null,
+                    request.UserId,
                     request.ConversationId,
                     ItineraryJobId: null,
                     _aiProvider.ProviderName,

@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.RegenerateResponse;
 
-public record RegenerateResponseCommand(Guid ConversationId, string UserId) : IRequest<ConversationDto>;
+public record RegenerateResponseCommand(Guid ConversationId, Guid UserId) : IRequest<ConversationDto>;
 
 public class RegenerateResponseCommandHandler : IRequestHandler<RegenerateResponseCommand, ConversationDto>
 {

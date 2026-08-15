@@ -286,7 +286,7 @@ public sealed class
 
     private static TestFixture CreateFixture()
     {
-        const string userId = "traveler-123";
+        var userId = Guid.NewGuid();
         const string userMessage =
             "Help me plan a balanced trip.";
 

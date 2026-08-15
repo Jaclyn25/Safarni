@@ -19,14 +19,14 @@ public class ChatRepository : IChatRepository
         _context = context;
     }
 
-    public async Task<Conversation?> GetByIdAsync(Guid id, string userId, CancellationToken cancellationToken = default)
+    public async Task<Conversation?> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.Conversations
             .Include(c => c.Messages)
             .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId, cancellationToken);
     }
 
-    public async Task<List<Conversation>> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task<List<Conversation>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.Conversations
             .Include(c => c.Messages)
@@ -62,7 +62,7 @@ public class ChatRepository : IChatRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<List<ChatFolder>> GetFoldersByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task<List<ChatFolder>> GetFoldersByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.ChatFolders
             .Include(f => f.Conversations)
@@ -70,7 +70,7 @@ public class ChatRepository : IChatRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<ChatFolder?> GetFolderByIdAsync(Guid id, string userId, CancellationToken cancellationToken = default)
+    public async Task<ChatFolder?> GetFolderByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.ChatFolders
             .Include(f => f.Conversations)

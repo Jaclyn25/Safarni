@@ -9,7 +9,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Queries.GetFolders;
 
-public record GetFoldersQuery(string UserId) : IRequest<List<ChatFolderWithConversationsDto>>;
+public record GetFoldersQuery(Guid UserId) : IRequest<List<ChatFolderWithConversationsDto>>;
 
 public class GetFoldersQueryHandler : IRequestHandler<GetFoldersQuery, List<ChatFolderWithConversationsDto>>
 {

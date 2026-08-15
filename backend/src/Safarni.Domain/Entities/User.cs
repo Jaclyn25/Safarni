@@ -1,3 +1,4 @@
+using ChatBotApi.Domain.Entities;
 using Safarni.Domain.Enums;
 
 namespace Safarni.Domain.Entities;
@@ -51,6 +52,12 @@ public class User
     public TravelAgency? TravelAgency { get; set; }
 
     public ICollection<Trip> Trips { get; set; } = new List<Trip>();
+
+    public ICollection<Conversation> Conversations { get; set; } =
+        new List<Conversation>();
+
+    public ICollection<ChatFolder> ChatFolders { get; set; } =
+        new List<ChatFolder>();
 
     public ICollection<UserNotification> Notifications { get; set; } =
         new List<UserNotification>();

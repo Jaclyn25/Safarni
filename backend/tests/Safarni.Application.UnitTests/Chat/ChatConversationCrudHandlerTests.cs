@@ -10,6 +10,8 @@ namespace Safarni.Application.UnitTests.Chat;
 
 public class ChatConversationCrudHandlerTests
 {
+    private static readonly Guid TestUserId = Guid.NewGuid();
+
     [Fact]
     public async Task GetConversationById_ShouldReturnMessagesInChronologicalOrder()
     {
@@ -36,15 +38,16 @@ public class ChatConversationCrudHandlerTests
     {
         var repository = new Mock<IChatRepository>();
         var conversationId = Guid.NewGuid();
+        var intruderId = Guid.NewGuid();
         repository
             .Setup(x => x.GetByIdAsync(
                 conversationId,
-                "intruder",
+                intruderId,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((Conversation?)null);
 
         var action = () => new GetConversationByIdQueryHandler(repository.Object).Handle(
-            new GetConversationByIdQuery(conversationId, "intruder"),
+            new GetConversationByIdQuery(conversationId, intruderId),
             CancellationToken.None);
 
         await action.Should().ThrowAsync<KeyNotFoundException>();
@@ -59,11 +62,11 @@ public class ChatConversationCrudHandlerTests
         var incomplete = ConversationWithMessages(DateTime.UtcNow);
         incomplete.Messages.RemoveAt(1);
         repository
-            .Setup(x => x.GetByUserIdAsync("user-1", It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByUserIdAsync(TestUserId, It.IsAny<CancellationToken>()))
             .ReturnsAsync([older, incomplete, newer]);
 
         var result = await new GetConversationsQueryHandler(repository.Object).Handle(
-            new GetConversationsQuery("user-1"),
+            new GetConversationsQuery(TestUserId),
             CancellationToken.None);
 
         result.Select(conversation => conversation.Id)
@@ -105,7 +108,7 @@ public class ChatConversationCrudHandlerTests
         return new Conversation
         {
             Id = Guid.NewGuid(),
-            UserId = "user-1",
+            UserId = TestUserId,
             Title = "Trip",
             CreatedAt = start,
             Messages =

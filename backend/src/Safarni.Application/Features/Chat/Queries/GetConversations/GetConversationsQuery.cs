@@ -8,7 +8,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Queries.GetConversations;
 
-public record GetConversationsQuery(string UserId) : IRequest<List<ConversationSummaryDto>>;
+public record GetConversationsQuery(Guid UserId) : IRequest<List<ConversationSummaryDto>>;
 
 public class GetConversationsQueryHandler : IRequestHandler<GetConversationsQuery, List<ConversationSummaryDto>>
 {

@@ -15,7 +15,7 @@ public class ChatCommandValidatorTests
     public async Task SendMessage_ShouldRejectMissingIdentifiersAndBlankMessage()
     {
         var result = await _sendValidator.ValidateAsync(
-            new SendMessageCommand(Guid.Empty, string.Empty, "   "));
+            new SendMessageCommand(Guid.Empty, Guid.Empty, "   "));
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(error => error.PropertyName == "ConversationId");
@@ -27,7 +27,7 @@ public class ChatCommandValidatorTests
     public async Task SendMessage_ShouldAcceptExactlyFourThousandCharacters()
     {
         var result = await _sendValidator.ValidateAsync(
-            new SendMessageCommand(Guid.NewGuid(), "user-1", new string('س', 4000)));
+            new SendMessageCommand(Guid.NewGuid(), Guid.NewGuid(), new string('س', 4000)));
 
         result.IsValid.Should().BeTrue();
     }
@@ -36,7 +36,7 @@ public class ChatCommandValidatorTests
     public async Task SendMessage_ShouldRejectMoreThanFourThousandCharacters()
     {
         var result = await _sendValidator.ValidateAsync(
-            new SendMessageCommand(Guid.NewGuid(), "user-1", new string('س', 4001)));
+            new SendMessageCommand(Guid.NewGuid(), Guid.NewGuid(), new string('س', 4001)));
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().ContainSingle(error => error.PropertyName == "Message");
@@ -46,7 +46,7 @@ public class ChatCommandValidatorTests
     public async Task CreateConversation_ShouldRejectMissingUserIdAndOversizedTitle()
     {
         var result = await _createValidator.ValidateAsync(
-            new CreateConversationCommand(string.Empty, new string('x', 201)));
+            new CreateConversationCommand(Guid.Empty, new string('x', 201)));
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(error => error.PropertyName == "UserId");
@@ -57,7 +57,7 @@ public class ChatCommandValidatorTests
     public async Task RegenerateResponse_ShouldRejectMissingConversationAndUserIdentifiers()
     {
         var result = await _regenerateValidator.ValidateAsync(
-            new RegenerateResponseCommand(Guid.Empty, string.Empty));
+            new RegenerateResponseCommand(Guid.Empty, Guid.Empty));
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(error => error.PropertyName == "ConversationId");

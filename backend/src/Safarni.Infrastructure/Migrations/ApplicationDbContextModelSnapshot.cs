@@ -36,12 +36,12 @@ namespace Safarni.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
 
                     b.ToTable("ChatFolders");
                 });
@@ -66,14 +66,14 @@ namespace Safarni.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FolderId");
+                    b.HasIndex("FolderId", "UserId");
+
+                    b.HasIndex("UserId", "CreatedAt");
 
                     b.ToTable("Conversations");
                 });
@@ -101,7 +101,7 @@ namespace Safarni.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ConversationId");
+                    b.HasIndex("ConversationId", "CreatedAt");
 
                     b.ToTable("ConversationMessages");
                 });
@@ -2018,14 +2018,33 @@ namespace Safarni.Infrastructure.Migrations
                     b.ToTable("UserSettings", (string)null);
                 });
 
+            modelBuilder.Entity("ChatBotApi.Domain.Entities.ChatFolder", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.User", "User")
+                        .WithMany("ChatFolders")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ChatBotApi.Domain.Entities.Conversation", b =>
                 {
+                    b.HasOne("Safarni.Domain.Entities.User", "User")
+                        .WithMany("Conversations")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("ChatBotApi.Domain.Entities.ChatFolder", "Folder")
                         .WithMany("Conversations")
-                        .HasForeignKey("FolderId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("FolderId", "UserId")
+                        .HasPrincipalKey("Id", "UserId");
 
                     b.Navigation("Folder");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ChatBotApi.Domain.Entities.ConversationMessage", b =>
@@ -2519,6 +2538,10 @@ namespace Safarni.Infrastructure.Migrations
 
             modelBuilder.Entity("Safarni.Domain.Entities.User", b =>
                 {
+                    b.Navigation("ChatFolders");
+
+                    b.Navigation("Conversations");
+
                     b.Navigation("Notifications");
 
                     b.Navigation("PassportInfo");

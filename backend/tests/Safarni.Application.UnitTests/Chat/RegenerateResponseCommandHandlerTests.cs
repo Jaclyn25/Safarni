@@ -13,6 +13,8 @@ namespace Safarni.Application.UnitTests.Chat;
 
 public class RegenerateResponseCommandHandlerTests
 {
+    private static readonly Guid TestUserId = Guid.NewGuid();
+
     private readonly Mock<IChatRepository> _repository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IAIProvider> _aiProvider = new();
@@ -123,7 +125,7 @@ public class RegenerateResponseCommandHandlerTests
         var conversation = new Conversation
         {
             Id = Guid.NewGuid(),
-            UserId = "user-1",
+            UserId = TestUserId,
             Title = "empty",
             Messages =
             [
@@ -195,7 +197,7 @@ public class RegenerateResponseCommandHandlerTests
         return new Conversation
         {
             Id = Guid.NewGuid(),
-            UserId = "user-1",
+            UserId = TestUserId,
             Title = "Rome",
             CreatedAt = start,
             Messages =

@@ -16,7 +16,7 @@ using Safarni.Application.Abstractions.AI;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.SendMessage;
 
-public record SendMessageCommand(Guid ConversationId, string UserId, string Message) : IRequest<ConversationDto>;
+public record SendMessageCommand(Guid ConversationId, Guid UserId, string Message) : IRequest<ConversationDto>;
 
 public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, ConversationDto>
 {
@@ -316,7 +316,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
     }
 
     private async Task<string> GetCompletionWithTelemetryAsync(
-        string userId,
+        Guid userId,
         Guid conversationId,
         string systemPrompt,
         List<ChatMessageDto> history,
@@ -325,10 +325,6 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
         CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
-        Guid? parsedUserId = Guid.TryParse(userId, out var userIdGuid)
-            ? userIdGuid
-            : null;
-
         try
         {
             var reply = await _aiProvider.GetChatCompletionAsync(
@@ -342,7 +338,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             await AIRequestTelemetry.RecordAsync(
                 _telemetryWriter,
                 new AIRequestLogEntry(
-                    parsedUserId,
+                    userId,
                     conversationId,
                     ItineraryJobId: null,
                     _aiProvider.ProviderName,
@@ -361,7 +357,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Con
             await AIRequestTelemetry.RecordAsync(
                 _telemetryWriter,
                 new AIRequestLogEntry(
-                    parsedUserId,
+                    userId,
                     conversationId,
                     ItineraryJobId: null,
                     _aiProvider.ProviderName,

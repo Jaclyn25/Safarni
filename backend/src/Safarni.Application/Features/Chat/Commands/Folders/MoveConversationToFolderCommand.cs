@@ -7,7 +7,7 @@ using MediatR;
 
 namespace ChatBotApi.Application.Features.Chat.Commands.Folders;
 
-public record MoveConversationToFolderCommand(Guid ConversationId, Guid? FolderId, string UserId) : IRequest<bool>;
+public record MoveConversationToFolderCommand(Guid ConversationId, Guid? FolderId, Guid UserId) : IRequest<bool>;
 
 public class MoveConversationToFolderCommandHandler : IRequestHandler<MoveConversationToFolderCommand, bool>
 {

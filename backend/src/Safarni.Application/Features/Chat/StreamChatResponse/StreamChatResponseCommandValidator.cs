@@ -11,8 +11,7 @@ public sealed class StreamChatResponseCommandValidator
             .NotEmpty();
 
         RuleFor(command => command.UserId)
-            .NotEmpty()
-            .MaximumLength(200);
+            .NotEmpty();
 
         RuleFor(command => command.Message)
             .NotEmpty()

@@ -1,4 +1,4 @@
-﻿
+
 <main class="planner-shell min-h-screen px-margin-mobile py-8 md:px-margin-desktop md:py-12">
 
   <div *ngIf="toastMessage"
@@ -1390,95 +1390,96 @@
   <!-- [من الملف 2 فقط] Publish Modal -->
   <!-- ============================================================ -->
   <div *ngIf="isPublishModalOpen"
-    class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
-    <div class="w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/10 bg-slate-900 text-white shadow-[0_30px_90px_rgba(2,6,23,.45)]">
-      <div class="flex items-center justify-between border-b border-white/10 px-6 py-4">
+    class="fixed inset-0 z-[120] flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm">
+    <div class="w-full max-w-3xl overflow-hidden rounded-[28px] border border-outline-variant/30 bg-surface-container-high text-on-surface shadow-xl flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between border-b border-outline-variant/30 px-6 py-4 flex-shrink-0">
         <div>
-          <p class="text-xs font-bold uppercase tracking-[0.2em] text-teal-300">Publish trip</p>
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary">Publish trip</p>
           <h3 class="mt-1 text-xl font-bold">{{ trip?.isPublished ? 'Republish this trip' : 'Make this trip public' }}</h3>
         </div>
-        <button type="button" (click)="closePublishModal()" class="rounded-full p-2 text-slate-300 transition hover:bg-white/10 hover:text-white">
+        <button type="button" (click)="closePublishModal()" class="rounded-full p-2 text-on-surface-variant transition hover:bg-surface-variant hover:text-on-surface">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
-      <div class="grid gap-5 px-6 py-5 lg:grid-cols-[1.2fr_0.8fr]">
+      <div class="grid gap-5 px-6 py-5 lg:grid-cols-[1.2fr_0.8fr] overflow-y-auto">
         <div class="space-y-5">
-          <div class="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+          <div class="rounded-2xl border border-outline-variant bg-surface-variant p-4 text-sm text-on-surface-variant">
             Before publishing, confirm that companion names, private notes, and other personal details are not exposed.
           </div>
 
-          <label class="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-            <input type="checkbox" [(ngModel)]="publishConfirmedNoPersonalInfo" class="mt-1 h-4 w-4 rounded border-white/30 bg-transparent text-teal-400 focus:ring-teal-400">
+          <label class="flex items-start gap-3 rounded-2xl border border-outline-variant/50 bg-surface-container p-4 cursor-pointer hover:bg-surface-variant/50 transition">
+            <input type="checkbox" [(ngModel)]="publishConfirmedNoPersonalInfo" class="mt-1 h-4 w-4 rounded border-outline-variant bg-transparent text-primary focus:ring-primary">
             <span>
-              <strong class="block text-sm">I confirm this trip does not reveal personal details</strong>
-              <span class="mt-1 block text-xs text-slate-300">This is the confirmation required before anything becomes public.</span>
+              <strong class="block text-sm text-on-surface">I confirm this trip does not reveal personal details</strong>
+              <span class="mt-1 block text-xs text-on-surface-variant">This is the confirmation required before anything becomes public.</span>
             </span>
           </label>
 
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div class="rounded-2xl border border-outline-variant/50 bg-surface-container p-4">
             <div class="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h4 class="text-sm font-bold">Visibility</h4>
-                <p class="text-xs text-slate-400">Choose who can discover this trip.</p>
+                <h4 class="text-sm font-bold text-on-surface">Visibility</h4>
+                <p class="text-xs text-on-surface-variant">Choose who can discover this trip.</p>
               </div>
             </div>
             <div class="grid gap-2 sm:grid-cols-3">
               <label *ngFor="let option of publishVisibilityOptions; trackBy: trackByVisibilityOption"
                 class="cursor-pointer rounded-2xl border px-3 py-3 transition"
-                [ngClass]="publishVisibility === option.value ? 'border-teal-300 bg-teal-400/10' : 'border-white/10 bg-slate-950/40 hover:border-white/20'">
+                [ngClass]="publishVisibility === option.value ? 'border-primary bg-primary-container text-on-primary-container' : 'border-outline-variant bg-surface hover:bg-surface-variant'">
                 <input type="radio" name="publishVisibility" class="sr-only" [value]="option.value" [(ngModel)]="publishVisibility">
-                <strong class="block text-sm">{{ option.label }}</strong>
-                <span class="mt-1 block text-xs text-slate-400">{{ option.description }}</span>
+                <strong class="block text-sm" [ngClass]="publishVisibility === option.value ? 'text-on-primary-container' : 'text-on-surface'">{{ option.label }}</strong>
+                <span class="mt-1 block text-xs" [ngClass]="publishVisibility === option.value ? 'text-on-primary-container/80' : 'text-on-surface-variant'">{{ option.description }}</span>
               </label>
             </div>
           </div>
 
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div class="rounded-2xl border border-outline-variant/50 bg-surface-container p-4">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <h4 class="text-sm font-bold">Cost visibility</h4>
-                <p class="text-xs text-slate-400">Show the actual trip cost in the public version.</p>
+                <h4 class="text-sm font-bold text-on-surface">Cost visibility</h4>
+                <p class="text-xs text-on-surface-variant">Show the actual trip cost in the public version.</p>
               </div>
-              <label class="inline-flex items-center gap-2 text-sm font-semibold">
-                <input type="checkbox" [(ngModel)]="publishCostShown" class="h-4 w-4 rounded border-white/30 bg-transparent text-teal-400 focus:ring-teal-400">
+              <label class="inline-flex items-center gap-2 text-sm font-semibold text-on-surface cursor-pointer">
+                <input type="checkbox" [(ngModel)]="publishCostShown" class="h-4 w-4 rounded border-outline-variant bg-transparent text-primary focus:ring-primary">
                 Show cost
               </label>
             </div>
             <label *ngIf="publishCostShown" class="mt-4 block">
-              <span class="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Cost amount</span>
+              <span class="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-on-surface-variant">Cost amount</span>
               <input type="number" min="0" step="0.01" [(ngModel)]="publishCostAmount"
-                class="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none focus:border-teal-300" />
+                class="w-full rounded-2xl border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
             </label>
           </div>
         </div>
 
         <div class="space-y-5">
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <h4 class="text-sm font-bold">Photos to include</h4>
-            <p class="mt-1 text-xs text-slate-400">Pick the images that should be visible on the public snapshot.</p>
+          <div class="rounded-2xl border border-outline-variant/50 bg-surface-container p-4">
+            <h4 class="text-sm font-bold text-on-surface">Photos to include</h4>
+            <p class="mt-1 text-xs text-on-surface-variant">Pick the images that should be visible on the public snapshot.</p>
 
             <div *ngIf="publishPhotoOptions.length > 0" class="mt-4 grid gap-3">
               <label *ngFor="let photo of publishPhotoOptions; trackBy: trackByPhoto"
-                class="cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40">
-                <div class="relative h-28 bg-slate-800">
+                class="cursor-pointer overflow-hidden rounded-2xl border transition"
+                [ngClass]="photo.selected ? 'border-primary ring-1 ring-primary' : 'border-outline-variant bg-surface hover:bg-surface-variant'">
+                <div class="relative h-28 bg-surface-variant">
                   <img [src]="photo.url" [alt]="photo.label" class="h-full w-full object-cover">
                   <input type="checkbox" [checked]="photo.selected" (change)="togglePublishPhoto(photo.url)"
-                    class="absolute right-3 top-3 h-4 w-4 rounded border-white/30 text-teal-400 focus:ring-teal-400">
+                    class="absolute right-3 top-3 h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary bg-surface/50 backdrop-blur-sm">
                 </div>
-                <div class="px-3 py-2">
-                  <span class="block text-sm font-semibold">{{ photo.label }}</span>
+                <div class="px-3 py-2" [ngClass]="photo.selected ? 'bg-primary-container text-on-primary-container' : 'text-on-surface'">
+                  <span class="block text-sm font-semibold truncate">{{ photo.label }}</span>
                 </div>
               </label>
             </div>
 
-            <div *ngIf="publishPhotoOptions.length === 0" class="mt-4 rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center text-xs text-slate-400">
+            <div *ngIf="publishPhotoOptions.length === 0" class="mt-4 rounded-2xl border border-dashed border-outline-variant px-4 py-8 text-center text-xs text-on-surface-variant">
               No photo URLs were found on the itinerary yet.
             </div>
           </div>
 
-          <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4 text-xs text-slate-300">
-            <p><strong class="text-white">Snapshot preview</strong></p>
+          <div class="rounded-2xl border border-outline-variant/50 bg-surface-container-low p-4 text-xs text-on-surface-variant">
+            <p><strong class="text-on-surface">Snapshot preview</strong></p>
             <p class="mt-1">Photos selected: {{ publishPhotoCount }} of {{ publishPhotoPreviewCount }}</p>
             <p>Cost: {{ publishCostShown ? 'visible' : 'hidden' }}</p>
             <p>Visibility: {{ publishVisibility }}</p>
@@ -1486,21 +1487,21 @@
         </div>
       </div>
 
-      <div *ngIf="publishErrorMessage" class="border-t border-rose-500/20 bg-rose-500/10 px-6 py-3 text-sm text-rose-200">
+      <div *ngIf="publishErrorMessage" class="border-t border-error-container bg-error-container px-6 py-3 text-sm text-on-error-container flex-shrink-0">
         {{ publishErrorMessage }}
       </div>
 
-      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-6 py-4">
-        <p class="text-xs text-slate-400">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/30 px-6 py-4 bg-surface-container-highest flex-shrink-0">
+        <p class="text-xs text-on-surface-variant">
           Publishing creates a frozen public snapshot. You can republish later after editing.
         </p>
         <div class="flex items-center gap-3">
           <button type="button" (click)="closePublishModal()"
-            class="rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10">
+            class="rounded-full border border-outline-variant px-5 py-2.5 text-sm font-semibold text-on-surface transition hover:bg-surface-variant">
             Cancel
           </button>
           <button type="button" (click)="publishTrip()" [disabled]="isPublishing"
-            class="rounded-full bg-teal-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60">
+            class="rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
             {{ isPublishing ? 'Publishing...' : (trip?.isPublished ? 'Republish' : 'Make Public') }}
           </button>
         </div>

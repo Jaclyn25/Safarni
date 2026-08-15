@@ -32,6 +32,10 @@ public interface ITripRepository
         PublicTripSnapshot snapshot,
         CancellationToken cancellationToken = default);
 
+    Task AddSnapshotVersionAsync(
+        SnapshotVersion version,
+        CancellationToken cancellationToken = default);
+
     void Remove(Trip trip);
 
     Task SaveAsync(

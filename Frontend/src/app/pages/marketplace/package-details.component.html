@@ -1,13 +1,13 @@
 <main class="package-details-page">
   @if (loading()) {
-    <div class="package-details-state"><span></span><p>Loading the complete travel program…</p></div>
+    <div class="package-details-state"><span></span><p>Loading the complete travel program...</p></div>
   } @else if (error()) {
     <div class="package-details-state package-details-state--error"><span class="material-symbols-outlined">error_outline</span><h1>Package unavailable</h1><p>{{ error() }}</p><a routerLink="/marketplace" class="marketplace-button">Back to marketplace</a></div>
   } @else if (package(); as item) {
     <a routerLink="/marketplace" class="package-back"><span class="material-symbols-outlined">arrow_back</span>Back to marketplace</a>
 
     <section class="package-cinematic">
-      <div class="package-cinematic__media" [style.background-image]="'url(' + activeImageUrl(item) + ')'">
+      <div class="package-cinematic__media" [style.background-image]="'url(' + activeImageUrl(item) + ')'" role="img" [attr.aria-label]="item.title + ' in ' + item.destination">
         <div class="package-cinematic__shade" aria-hidden="true"></div>
         <div class="package-cinematic__top">
           <div class="package-cinematic__badges">
@@ -21,32 +21,36 @@
             <span class="material-symbols-outlined package-cinematic__arrow">arrow_forward</span>
           </a>
         </div>
+        <span class="package-cinematic__media-caption"><span class="material-symbols-outlined">photo_camera</span> A closer look at your next story</span>
+      </div>
 
-        <div class="package-cinematic__content">
-          <div class="package-cinematic__story">
-            <span class="package-cinematic__destination">{{ item.destination }}</span>
-            <h1>{{ item.title }}</h1>
-            <p>{{ item.description }}</p>
-            <div class="package-cinematic__facts">
-              <span><span class="material-symbols-outlined">calendar_month</span>{{ date(item.startDate) }} – {{ date(item.endDate) }}</span>
-              <span><span class="material-symbols-outlined">schedule</span>{{ item.durationDays }} days</span>
-              <span><span class="material-symbols-outlined">groups</span>{{ item.remainingSeats }} seats left</span>
-            </div>
-            @if (item.cities.length) {
-              <div class="package-cinematic__route" aria-label="Package route">
-                @for (city of item.cities; track city.id) {
-                  <span><span class="material-symbols-outlined">location_on</span>{{ city.name }}<small>{{ city.nights }} night{{ city.nights === 1 ? '' : 's' }}</small></span>
-                }
-              </div>
+      <div class="package-cinematic__summary">
+        <span class="package-cinematic__kicker"><span class="package-cinematic__kicker-dot" aria-hidden="true"></span>{{ item.destination }} · {{ item.durationDays }}-day journey</span>
+        <h1>{{ item.title }}</h1>
+        <p>{{ item.description }}</p>
+        <div class="package-cinematic__facts">
+          <span><span class="material-symbols-outlined">calendar_month</span><small>Dates</small>{{ date(item.startDate) }} - {{ date(item.endDate) }}</span>
+          <span><span class="material-symbols-outlined">schedule</span><small>Duration</small>{{ item.durationDays }} days</span>
+          <span><span class="material-symbols-outlined">groups</span><small>Availability</small>{{ item.remainingSeats }} seats left</span>
+        </div>
+        @if (item.cities.length) {
+          <div class="package-cinematic__route" aria-label="Package route">
+            <span class="package-cinematic__route-label">Your route</span>
+            @for (city of item.cities; track city.id; let last = $last) {
+              <span class="package-cinematic__route-city"><span class="material-symbols-outlined">location_on</span>{{ city.name }}<small>{{ city.nights }} night{{ city.nights === 1 ? '' : 's' }}</small></span>
+              @if (!last) { <span class="material-symbols-outlined package-cinematic__route-arrow">arrow_forward</span> }
             }
           </div>
+        }
+        <div class="package-cinematic__summary-footer">
           <div class="package-cinematic__price"><small>From</small><strong>{{ price() }}</strong><span>per traveler</span></div>
+          <a href="#booking-panel" class="marketplace-button">Request your place <span class="material-symbols-outlined">arrow_downward</span></a>
         </div>
       </div>
 
       @if (galleryImages(item).length > 1) {
         <div class="package-cinematic__rail" aria-label="Package gallery">
-          <span class="package-cinematic__rail-label"><span class="material-symbols-outlined">photo_library</span>Journey gallery</span>
+          <span class="package-cinematic__rail-label"><span class="material-symbols-outlined">photo_library</span><span><strong>Journey gallery</strong><small>See the places before you go</small></span></span>
           <div>
             @for (image of galleryImages(item); track image.id; let index = $index) {
               <button type="button" (click)="galleryIndex = index" [class.active]="galleryIndex === index" [attr.aria-label]="'Show image ' + (index + 1)"><img [src]="image.url" [alt]="image.altText || item.title"><span>{{ index + 1 }}</span></button>
@@ -100,7 +104,7 @@
 
         @if (item.inclusions || item.exclusions || item.importantNotes || item.cancellationPolicy) {
           <section class="program-practical"><div class="package-section-heading"><span class="marketplace-eyebrow">Travel with clarity</span><h2>Package details</h2></div><div class="program-practical__grid">
-            @if (item.inclusions) { <article class="included"><span class="material-symbols-outlined">check_circle</span><div><h3>What’s included</h3><p>{{ item.inclusions }}</p></div></article> }
+            @if (item.inclusions) { <article class="included"><span class="material-symbols-outlined">check_circle</span><div><h3>What's included</h3><p>{{ item.inclusions }}</p></div></article> }
             @if (item.exclusions) { <article class="excluded"><span class="material-symbols-outlined">remove_circle</span><div><h3>Not included</h3><p>{{ item.exclusions }}</p></div></article> }
             @if (item.importantNotes) { <article><span class="material-symbols-outlined">lightbulb</span><div><h3>Important notes</h3><p>{{ item.importantNotes }}</p></div></article> }
             @if (item.cancellationPolicy) { <article><span class="material-symbols-outlined">policy</span><div><h3>Cancellation policy</h3><p>{{ item.cancellationPolicy }}</p></div></article> }
@@ -108,16 +112,17 @@
         }
       </div>
 
-      <aside class="package-booking-panel">
-        <span class="marketplace-eyebrow">Request your place</span><h2>Tell the agency about your group</h2><p>No payment is taken now. The agency confirms availability and contacts you directly.</p>
+      <aside class="package-booking-panel" id="booking-panel">
+        <div class="package-booking-panel__head"><div><span class="marketplace-eyebrow">Request your place</span><h2>Make this journey yours</h2></div><span class="package-booking-panel__availability"><span class="material-symbols-outlined">event_seat</span>{{ item.remainingSeats }} left</span></div>
+        <p>No payment is taken now. The agency confirms availability and contacts you directly.</p>
         @if (bookingSuccess()) { <div class="package-alert package-alert--success"><span class="material-symbols-outlined">check_circle</span>{{ bookingSuccess() }}</div> }
         @if (bookingError()) { <div class="package-alert package-alert--error"><span class="material-symbols-outlined">error_outline</span>{{ bookingError() }}</div> }
         @if (isTraveler()) {
-          <div class="booking-section"><strong>Group</strong><div class="booking-grid"><label>Adults<input type="number" min="1" [max]="item.remainingSeats" [(ngModel)]="adultCount"></label><label>Children<input type="number" min="0" max="20" [(ngModel)]="childCount" (ngModelChange)="updateChildren()"></label></div>@if (childrenAges.length) { <div class="child-ages"><span>Children’s ages</span><div>@for (age of childrenAges; track $index) { <label><small>Child {{ $index + 1 }}</small><input type="number" min="0" max="17" [(ngModel)]="childrenAges[$index]"></label> }</div></div> }<div class="booking-total"><span>Total travelers</span><strong>{{ totalTravelers() }}</strong></div></div>
+          <div class="booking-section"><strong>Group</strong><div class="booking-grid"><label>Adults<input type="number" min="1" [max]="item.remainingSeats" [(ngModel)]="adultCount"></label><label>Children<input type="number" min="0" max="20" [(ngModel)]="childCount" (ngModelChange)="updateChildren()"></label></div>@if (childrenAges.length) { <div class="child-ages"><span>Children's ages</span><div>@for (age of childrenAges; track $index) { <label><small>Child {{ $index + 1 }}</small><input type="number" min="0" max="17" [(ngModel)]="childrenAges[$index]"></label> }</div></div> }<div class="booking-total"><span>Total travelers</span><strong>{{ totalTravelers() }}</strong></div></div>
           <div class="booking-section"><strong>Contact</strong><label>Phone number *<input type="tel" [(ngModel)]="contactPhone" placeholder="+20 100 000 0000" autocomplete="tel"></label><label>Alternative phone <small>Optional</small><input type="tel" [(ngModel)]="alternatePhone" placeholder="Another number or WhatsApp"></label></div>
-          <div class="booking-section"><strong>Where you’re traveling from</strong><label>Country *<select [(ngModel)]="country" (ngModelChange)="loadHomeCities()"><option value="">Choose country</option>@for (countryOption of countries; track countryOption.iso2) { <option [value]="countryOption.name">{{ countryOption.name }}</option> }</select></label><label>City *<input [(ngModel)]="city" [attr.list]="cities.length ? 'traveler-home-cities' : null" placeholder="Choose or enter your city"><datalist id="traveler-home-cities">@for (cityOption of cities; track cityOption) { <option [value]="cityOption"></option> }</datalist></label></div>
-          <label>Note to the agency <small>Optional</small><textarea [(ngModel)]="message" rows="4" maxlength="2000" placeholder="Accessibility needs, room preferences, celebrations, or questions…"></textarea></label>
-          <button class="marketplace-button booking-submit" type="button" (click)="book()" [disabled]="saving() || item.remainingSeats === 0">@if (saving()) { Sending request… } @else if (item.remainingSeats === 0) { Package is full } @else { Send booking request <span class="material-symbols-outlined">send</span> }</button>
+          <div class="booking-section"><strong>Where you're traveling from</strong><label>Country *<select [(ngModel)]="country" (ngModelChange)="loadHomeCities()"><option value="">Choose country</option>@for (countryOption of countries; track countryOption.iso2) { <option [value]="countryOption.name">{{ countryOption.name }}</option> }</select></label><label>City *<input [(ngModel)]="city" [attr.list]="cities.length ? 'traveler-home-cities' : null" placeholder="Choose or enter your city"><datalist id="traveler-home-cities">@for (cityOption of cities; track cityOption) { <option [value]="cityOption"></option> }</datalist></label></div>
+          <label>Note to the agency <small>Optional</small><textarea [(ngModel)]="message" rows="4" maxlength="2000" placeholder="Accessibility needs, room preferences, celebrations, or questions..."></textarea></label>
+          <button class="marketplace-button booking-submit" type="button" (click)="book()" [disabled]="saving() || item.remainingSeats === 0">@if (saving()) { Sending request... } @else if (item.remainingSeats === 0) { Package is full } @else { Send booking request <span class="material-symbols-outlined">send</span> }</button>
           <p class="booking-privacy"><span class="material-symbols-outlined">lock</span>Your contact details are shared only with this verified agency for this request.</p>
         } @else { <a routerLink="/login" [queryParams]="{ returnUrl: '/marketplace/packages/' + item.id }" class="marketplace-button">Sign in as a traveler</a> }
       </aside>

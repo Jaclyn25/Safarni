@@ -1000,6 +1000,33 @@ namespace Safarni.Infrastructure.Migrations
                     b.ToTable("PublicTripSnapshots");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.PublicTripView", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SessionId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("SnapshotVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ViewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("SnapshotVersionId", "UserId", "SessionId", "ViewedAt");
+
+                    b.ToTable("PublicTripViews");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2146,6 +2173,24 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("Trip");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.PublicTripView", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.SnapshotVersion", "SnapshotVersion")
+                        .WithMany("Views")
+                        .HasForeignKey("SnapshotVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Safarni.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("SnapshotVersion");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.RefreshToken", b =>
                 {
                     b.HasOne("Safarni.Domain.Entities.User", "User")
@@ -2413,6 +2458,8 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("Interactions");
 
                     b.Navigation("Ratings");
+
+                    b.Navigation("Views");
                 });
 
             modelBuilder.Entity("Safarni.Domain.Entities.Subscription", b =>

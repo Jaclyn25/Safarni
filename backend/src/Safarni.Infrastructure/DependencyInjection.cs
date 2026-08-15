@@ -106,6 +106,10 @@ public static class DependencyInjection
 
         services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
         services.Configure<FrontendSettings>(configuration.GetSection("Frontend"));
+        services.Configure<Safarni.Application.Common.Configuration.AiTripPlanOptions>(
+            configuration.GetSection("AiTripPlan"));
+        services.Configure<Safarni.Application.Common.Configuration.PublicTripViewsOptions>(
+            configuration.GetSection(Safarni.Application.Common.Configuration.PublicTripViewsOptions.SectionName));
         services.AddScoped<IEmailService, EmailService>();
         services.AddSingleton<IPasswordResetLinkFactory, PasswordResetLinkFactory>();
         services.AddSingleton<IEmailVerificationLinkFactory, EmailVerificationLinkFactory>();

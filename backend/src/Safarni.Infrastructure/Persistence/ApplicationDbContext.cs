@@ -67,6 +67,9 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<TripRating> TripRatings =>
         Set<TripRating>();
 
+    public DbSet<PublicTripView> PublicTripViews =>
+        Set<PublicTripView>();
+
     // Chatbot tables
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ConversationMessage> ConversationMessages =>
@@ -83,6 +86,24 @@ public sealed class ApplicationDbContext : DbContext
 
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(ApplicationDbContext).Assembly);
+
+        modelBuilder.Entity<PublicTripView>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.HasIndex(e => new { e.SnapshotVersionId, e.UserId, e.SessionId, e.ViewedAt });
+            
+            entity.HasOne(e => e.SnapshotVersion)
+                  .WithMany(s => s.Views)
+                  .HasForeignKey(e => e.SnapshotVersionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
 
         modelBuilder.Entity<Conversation>(entity =>
         {

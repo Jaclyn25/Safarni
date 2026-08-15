@@ -7,6 +7,9 @@ using Safarni.Domain.Enums;
 using System.Linq;
 using System.Text.Json;
 
+using Microsoft.Extensions.Options;
+using Safarni.Application.Common.Configuration;
+
 namespace Safarni.Application.Features.PublicTrips.Queries
 {
     public sealed class GetPublicTripDetailsQueryHandler
@@ -14,13 +17,16 @@ namespace Safarni.Application.Features.PublicTrips.Queries
     {
         private readonly IPublicTripRepository _repository;
         private readonly ICurrentUserService _currentUserService;
+        private readonly PublicTripViewsOptions _options;
 
         public GetPublicTripDetailsQueryHandler(
             IPublicTripRepository repository,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IOptions<PublicTripViewsOptions> options)
         {
             _repository = repository;
             _currentUserService = currentUserService;
+            _options = options.Value;
         }
 
         public async Task<Result<PublicTripDetailsResponse>> Handle(
@@ -44,9 +50,20 @@ namespace Safarni.Application.Features.PublicTrips.Queries
             var trip = version.Snapshot.Trip;
             var user = trip.User;
 
-            // Increment ViewsCount
-            version.ViewsCount++;
-            await _repository.SaveChangesAsync(cancellationToken);
+            // Deduplicate Views
+            var window = TimeSpan.FromMinutes(_options.DeduplicationWindowMinutes);
+            var isNewView = await _repository.TryRecordViewIfNotExistsAsync(
+                version.Id,
+                _currentUserService.UserId,
+                _currentUserService.UserId == null ? _currentUserService.SessionId : null,
+                window,
+                cancellationToken);
+
+            if (isNewView)
+            {
+                await _repository.IncrementViewsCountAsync(version.Id, cancellationToken);
+                version.ViewsCount++; // Reflect the update in memory for the response
+            }
 
             var isUserDeleted = !user.IsActive;
             var authorProfile = new AuthorProfileDto(

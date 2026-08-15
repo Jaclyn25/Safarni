@@ -1,0 +1,179 @@
+<main class="page-container">
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Discover Public Trips</h1>
+      <p class="page-subtitle">Find your next adventure from our community of travelers.</p>
+    </div>
+  </header>
+
+  <section class="search-section">
+    <div class="filters-container">
+      <div class="filter-group">
+        <label for="destination">Destination</label>
+        <input 
+          id="destination" 
+          type="text" 
+          placeholder="Where to?" 
+          [(ngModel)]="destination" 
+          (ngModelChange)="onFilterChange()"
+          class="form-control"
+        />
+      </div>
+
+      <div class="filter-group">
+        <label for="minDuration">Min Days</label>
+        <input 
+          id="minDuration" 
+          type="number" 
+          placeholder="e.g. 3" 
+          min="1"
+          [(ngModel)]="minDuration" 
+          (ngModelChange)="onFilterChange()"
+          class="form-control"
+        />
+      </div>
+
+      <div class="filter-group">
+        <label for="maxDuration">Max Days</label>
+        <input 
+          id="maxDuration" 
+          type="number" 
+          placeholder="e.g. 10" 
+          min="1"
+          [(ngModel)]="maxDuration" 
+          (ngModelChange)="onFilterChange()"
+          class="form-control"
+        />
+      </div>
+
+      <div class="filter-group">
+        <label for="maxBudget">Max Budget</label>
+        <input 
+          id="maxBudget" 
+          type="number" 
+          placeholder="e.g. 1500" 
+          min="0"
+          [(ngModel)]="maxBudget" 
+          (ngModelChange)="onFilterChange()"
+          class="form-control"
+        />
+      </div>
+
+      <div class="filter-group">
+        <label for="sortOrder">Sort By</label>
+        <select 
+          id="sortOrder" 
+          [(ngModel)]="sortOrder" 
+          (ngModelChange)="onFilterChange()"
+          class="form-control"
+        >
+          <option value="relevance">Best Match</option>
+          <option value="newest">Newest First</option>
+          <option value="popular">Most Popular</option>
+          <option value="top_rated">Top Rated</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="results-section">
+    <div *ngIf="isLoading()" class="loading-state">
+      <div class="spinner"></div>
+      <p>Searching trips...</p>
+    </div>
+
+    <div *ngIf="!isLoading() && error()" class="error-state">
+      <p>{{ error() }}</p>
+      <button class="btn btn-primary" (click)="search()">Try Again</button>
+    </div>
+
+    <div *ngIf="!isLoading() && !error() && trips().length === 0 && !generatedItineraryHtml()" class="empty-state">
+      <div class="empty-icon">
+        <i class="fa-solid fa-plane-slash"></i>
+      </div>
+      <h3>No trips found</h3>
+      <p>لم نجد رحلات منشورة تطابق معايير البحث. جرّب تغيير الوجهة أو المدة أو الميزانية.</p>
+      <button class="btn btn-outline" (click)="destination=''; minDuration=null; maxDuration=null; maxBudget=null; search()">Clear Filters</button>
+    </div>
+
+    <!-- Generated Itinerary -->
+    <div *ngIf="!isLoading() && !error() && generatedItineraryHtml()" class="ai-itinerary-container mb-8">
+      <div class="bg-surface-variant/30 border border-outline-variant rounded-2xl p-6 md:p-8">
+        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-outline-variant/50">
+          <span class="material-symbols-outlined text-primary text-3xl">auto_awesome</span>
+          <h2 class="text-2xl font-bold text-on-surface m-0">AI Trip Plan</h2>
+        </div>
+        <div class="prose prose-slate dark:prose-invert max-w-none text-on-surface-variant itinerary-content" [innerHTML]="generatedItineraryHtml()"></div>
+      </div>
+    </div>
+
+    <div *ngIf="!isLoading() && !error() && trips().length > 0" class="results-container">
+      <div class="flex items-center gap-3 mb-6 pb-2">
+        <span class="material-symbols-outlined text-primary text-3xl">public</span>
+        <h2 class="text-2xl font-bold text-on-surface m-0">Related Public Trips</h2>
+      </div>
+      <!-- Main Results -->
+      <div *ngIf="mainTrips().length > 0">
+        <h2 *ngIf="sortOrder === 'relevance'" class="text-xl font-semibold mb-4 text-on-surface">Top Results</h2>
+        <div class="trips-grid">
+          <ng-container *ngFor="let trip of mainTrips()">
+            <ng-container *ngTemplateOutlet="tripCard; context: { trip: trip }"></ng-container>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- New Trips -->
+      <div *ngIf="newTrips().length > 0" class="mt-10">
+        <h2 class="text-xl font-semibold mb-4 text-on-surface">New Trips</h2>
+        <div class="trips-grid">
+          <ng-container *ngFor="let trip of newTrips()">
+            <ng-container *ngTemplateOutlet="tripCard; context: { trip: trip }"></ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trip Card Template -->
+    <ng-template #tripCard let-trip="trip">
+      <a 
+        [routerLink]="['/public-trips', trip.versionId]"
+        class="trip-card"
+      >
+        <div class="trip-card-header">
+          <div class="trip-destination">
+            <i class="fa-solid fa-location-dot"></i> {{ trip.destination }}
+          </div>
+          <div class="trip-stats">
+            <span class="stat" title="Views"><i class="fa-solid fa-eye"></i> {{ trip.viewsCount }}</span>
+            <span class="stat" title="Likes"><i class="fa-solid fa-heart"></i> {{ trip.likesCount }}</span>
+            <span class="stat" title="Rating" *ngIf="trip.averageRating > 0"><i class="fa-solid fa-star"></i> {{ trip.averageRating | number:'1.1-1' }}</span>
+          </div>
+        </div>
+        
+        <div class="trip-card-body">
+          <h3 class="trip-title">{{ trip.tripName || trip.destination + ' Trip' }}</h3>
+          
+          <div class="trip-details">
+            <div class="detail-item">
+              <i class="fa-regular fa-clock"></i> {{ trip.durationDays }} Days
+            </div>
+            <div class="detail-item" *ngIf="trip.costAmount != null">
+              <i class="fa-solid fa-wallet"></i> {{ formatCost(trip.costAmount) }}
+            </div>
+            <div class="detail-item">
+              <i class="fa-regular fa-calendar"></i> {{ formatDate(trip.publishedAt) }}
+            </div>
+          </div>
+        </div>
+        
+        <div class="trip-card-footer">
+          <div class="author-info">
+            <!-- eslint-disable-next-line @angular-eslint/template/elements-content -->
+            <img [src]="trip.authorPhotoUrl || 'assets/logo-icon.svg'" alt="Author" class="author-avatar" (error)="$any($event.target).style.display='none'" />
+            <span class="author-name">{{ trip.authorName }}</span>
+          </div>
+        </div>
+      </a>
+    </ng-template>
+  </section>
+</main>

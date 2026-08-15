@@ -32,5 +32,6 @@ namespace Safarni.Domain.Entities
         public PublicTripSnapshot Snapshot { get; set; } = null!;
         public ICollection<TripInteraction> Interactions { get; set; } = new List<TripInteraction>();
         public ICollection<TripRating> Ratings { get; set; } = new List<TripRating>();
+        public ICollection<PublicTripView> Views { get; set; } = new List<PublicTripView>();
     }
 }

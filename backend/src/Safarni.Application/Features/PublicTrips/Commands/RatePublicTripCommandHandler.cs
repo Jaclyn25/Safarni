@@ -51,6 +51,9 @@ namespace Safarni.Application.Features.PublicTrips.Commands
                     new Error("PublicTrip.NotActive", "This snapshot version is no longer active.", ErrorType.Validation));
             }
 
+            // TODO: Uncomment this in production to restrict rating to completed trips only.
+            // Temporarily disabled for testing purposes.
+            /*
             if (DateTime.UtcNow.Date < version.Snapshot.Trip.EndDate.Date)
             {
                 return Result<RatePublicTripResult>.Failure(
@@ -59,6 +62,7 @@ namespace Safarni.Application.Features.PublicTrips.Commands
                         "You can rate this trip after it ends.",
                         ErrorType.Validation));
             }
+            */
 
             var existingRating = version.Ratings.FirstOrDefault(r => r.UserId == userId);
 

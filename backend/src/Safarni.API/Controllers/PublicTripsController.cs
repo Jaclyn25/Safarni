@@ -7,6 +7,7 @@ using Safarni.Application.Features.PublicTrips.Commands;
 using Safarni.Application.Features.PublicTrips.Queries;
 using Safarni.Domain.Enums;
 using System;
+using System.Collections.Generic;
 
 namespace Safarni.API.Controllers;
 
@@ -20,6 +21,28 @@ public sealed class PublicTripsController : ControllerBase
     public PublicTripsController(ISender sender)
     {
         _sender = sender;
+    }
+
+    [HttpGet("search")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyCollection<PublicTripSearchResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SearchPublicTrips(
+        [FromQuery] string? destination,
+        [FromQuery] int? minDuration,
+        [FromQuery] int? maxDuration,
+        [FromQuery] decimal? maxBudget,
+        [FromQuery] string? sortOrder,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new SearchPublicTripsQuery(destination, minDuration, maxDuration, maxBudget, sortOrder), cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return Failure<IReadOnlyCollection<PublicTripSearchResponse>>(result.Error, "Failed to search public trips.");
+        }
+
+        return Ok(ApiResponse<IReadOnlyCollection<PublicTripSearchResponse>>.SuccessResponse(
+            result.Value!, "Public trips searched successfully.", StatusCodes.Status200OK));
     }
 
     [HttpGet("{versionId:guid}")]

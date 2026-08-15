@@ -7,6 +7,7 @@ export interface ChatMessage {
   id?: string;
   role: string;
   content: string;
+  publicTrips?: any[]; // Allow public trips in message
 }
 
 export interface Conversation {
@@ -104,6 +105,12 @@ export class ChatService {
   getConversationById(id: string): Observable<Conversation> {
     return this.http
       .get<Conversation>(`${this.apiUrl}/conversations/${id}`, { headers: this.getHeaders() })
+      .pipe(timeout(this.requestTimeoutMs));
+  }
+
+  planTrip(prompt: string): Observable<any> {
+    return this.http
+      .post<any>('/api/ai/plan-trip', { prompt }, { headers: this.getHeaders() })
       .pipe(timeout(this.requestTimeoutMs));
   }
 

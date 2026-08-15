@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import type { ApiResponse } from '../models/api-response.model';
@@ -14,6 +14,38 @@ export interface UserRatingDto {
   score: number;
   comment?: string;
   createdAt: string;
+}
+
+export interface SearchPublicTripsRequest {
+  destination?: string;
+  minDuration?: number;
+  maxDuration?: number;
+  maxBudget?: number;
+  sortOrder?: string;
+}
+
+export interface AiTripPlanResponse {
+  generatedItinerary: string | null;
+  relatedPublicTrips: PublicTripSearchResponse[];
+}
+
+
+export interface PublicTripSearchResponse {
+  versionId: string;
+  tripId: string;
+  tripName: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  durationDays: number;
+  costAmount: number | null;
+  authorName: string;
+  authorPhotoUrl: string;
+  viewsCount: number;
+  likesCount: number;
+  averageRating: number;
+  publishedAt: string;
+  isNewTrip: boolean;
 }
 
 export interface PublicTripDetailsResponse {
@@ -76,6 +108,26 @@ export class PublicTripService {
 
   getPublicTripDetails(versionId: string): Observable<ApiResponse<PublicTripDetailsResponse>> {
     return this.http.get<ApiResponse<PublicTripDetailsResponse>>(`${this.apiUrl}/${versionId}`, {
+      headers: this.getHeaders()
+    });
+  }
+
+  searchPublicTrips(request: SearchPublicTripsRequest): Observable<ApiResponse<PublicTripSearchResponse[]>> {
+    let params = new HttpParams();
+    if (request.destination) params = params.set('destination', request.destination);
+    if (request.minDuration != null) params = params.set('minDuration', request.minDuration.toString());
+    if (request.maxDuration != null) params = params.set('maxDuration', request.maxDuration.toString());
+    if (request.maxBudget != null) params = params.set('maxBudget', request.maxBudget.toString());
+    if (request.sortOrder) params = params.set('sortOrder', request.sortOrder);
+
+    return this.http.get<ApiResponse<PublicTripSearchResponse[]>>(`${this.apiUrl}/search`, {
+      headers: this.getHeaders(),
+      params
+    });
+  }
+
+  aiPlanTrip(prompt: string): Observable<ApiResponse<AiTripPlanResponse>> {
+    return this.http.post<ApiResponse<AiTripPlanResponse>>('/api/ai/plan-trip', { prompt }, {
       headers: this.getHeaders()
     });
   }

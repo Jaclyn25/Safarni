@@ -52,6 +52,12 @@ export class MarketplaceComponent implements OnInit {
     this.destination.set(''); this.startDate.set(''); this.durationDays.set(null); this.minPrice.set(null); this.maxPrice.set(null); this.page = 1; this.load();
   }
 
+  chooseDestination(destination: string): void {
+    this.destination.set(destination);
+    this.page = 1;
+    this.load();
+  }
+
   nextPage(): void { if (this.page < this.totalPages) { this.page++; this.load(); } }
   previousPage(): void { if (this.page > 1) { this.page--; this.load(); } }
 

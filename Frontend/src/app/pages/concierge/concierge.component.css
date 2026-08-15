@@ -552,3 +552,220 @@
 .thinking-pulse {
   animation: pulseGlow 1.8s infinite ease-in-out;
 }
+
+/* Concierge product shell refresh. These rules only change presentation; all
+   existing bindings, actions, and state classes remain untouched. */
+:host {
+  display: block;
+  --concierge-ink: oklch(0.27 0.035 255);
+  --concierge-muted: oklch(0.5 0.035 255);
+  --concierge-blue: var(--primary);
+  --concierge-coral: oklch(0.7 0.14 35);
+}
+
+.concierge-shell {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 75%, transparent);
+  border-radius: 1.4rem;
+  background: var(--surface);
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--concierge-ink) 8%, transparent);
+  isolation: isolate;
+}
+
+.concierge-sidebar {
+  min-width: 0;
+  background: var(--surface-container-low) !important;
+  border-inline-end-color: color-mix(in srgb, var(--outline-variant) 70%, transparent) !important;
+}
+
+.concierge-sidebar.w-72 {
+  width: 18rem !important;
+  padding-inline: 1rem !important;
+}
+
+.concierge-sidebar__header {
+  margin-bottom: 1rem !important;
+  padding-bottom: .9rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 52%, transparent);
+}
+
+.concierge-sidebar__header > button:last-child {
+  min-height: 2.7rem;
+  border-radius: .75rem;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--concierge-blue) 15%, transparent);
+}
+
+.concierge-sidebar__search { margin-bottom: 1rem !important; }
+.concierge-sidebar__search input { min-height: 2.55rem; border-color: color-mix(in srgb, var(--outline-variant) 72%, transparent) !important; background: var(--surface-container-lowest) !important; }
+.concierge-sidebar__search input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--concierge-blue) 12%, transparent); }
+
+.concierge-sidebar > div.flex-grow { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--outline) 35%, transparent) transparent; }
+.concierge-sidebar > div.flex-grow > div > h3 { color: var(--concierge-muted); font-size: .62rem; letter-spacing: .14em; }
+.concierge-sidebar > div.flex-grow details { border-color: color-mix(in srgb, var(--outline-variant) 56%, transparent) !important; background: var(--surface-container-lowest) !important; }
+.concierge-sidebar > div.flex-grow details summary { min-height: 2.65rem; }
+.concierge-sidebar > div.flex-grow [role="button"] { min-height: 2.65rem; }
+.concierge-sidebar > div.flex-grow [role="button"]:focus-visible { outline: 2px solid var(--concierge-blue); outline-offset: 2px; }
+
+.concierge-main {
+  min-width: 0;
+  background: var(--surface);
+  padding-inline: clamp(1rem, 3vw, 3rem) !important;
+  padding-block: 1.25rem 1rem !important;
+}
+
+.concierge-header {
+  min-height: 3.55rem;
+  margin-bottom: 1rem !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 55%, transparent);
+  padding-bottom: .85rem;
+}
+
+.concierge-header h1 { color: var(--concierge-ink); letter-spacing: -.025em; }
+.concierge-header h1 .material-symbols-outlined { color: var(--concierge-blue); }
+.concierge-header p { max-width: 42ch; color: var(--concierge-muted); }
+.concierge-header > div:last-child > button { min-height: 2.45rem; border: 1px solid color-mix(in srgb, var(--outline-variant) 60%, transparent); background: var(--surface-container-low) !important; }
+.concierge-header > div:last-child > button:hover { border-color: color-mix(in srgb, var(--concierge-blue) 34%, transparent); color: var(--concierge-blue); }
+
+.concierge-mobile-switcher select { min-height: 2.7rem; border-color: color-mix(in srgb, var(--outline-variant) 68%, transparent) !important; background: var(--surface-container-lowest) !important; }
+
+.concierge-messages {
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--outline) 35%, transparent) transparent;
+  padding-inline: clamp(0rem, 2vw, 2rem);
+  scroll-behavior: smooth;
+}
+
+.concierge-messages::-webkit-scrollbar { width: 7px; }
+.concierge-messages::-webkit-scrollbar-thumb { border-radius: 999px; background: color-mix(in srgb, var(--outline) 32%, transparent); }
+
+.concierge-empty-state { width: min(100%, 52rem); margin-inline-start: clamp(0rem, 3vw, 2.5rem) !important; margin-inline-end: auto !important; padding-top: clamp(1rem, 4vh, 2.5rem) !important; text-align: start !important; }
+.concierge-empty-state > div:first-child { width: 4rem; height: 4rem; margin-inline: 0 !important; border: 1px solid color-mix(in srgb, var(--concierge-blue) 22%, transparent); border-radius: 1.15rem; background: color-mix(in srgb, var(--concierge-blue) 10%, transparent); box-shadow: 0 12px 24px color-mix(in srgb, var(--concierge-blue) 10%, transparent); }
+.concierge-empty-state > div:first-child .material-symbols-outlined { font-size: 2.15rem; color: var(--concierge-blue); }
+.concierge-empty-state h2 { max-width: 24ch; margin: .85rem 0 .55rem; color: var(--concierge-ink); font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -.035em; }
+.concierge-empty-state > p { max-width: 48ch; margin-inline: 0; color: var(--concierge-muted); line-height: 1.7; }
+
+.concierge-suggestions-grid { width: min(100%, 47rem); gap: .75rem !important; }
+.concierge-suggestions-grid > button { min-height: 5.25rem; border-color: color-mix(in srgb, var(--outline-variant) 62%, transparent) !important; border-radius: 1rem !important; background: var(--surface-container-lowest) !important; padding: 1rem !important; box-shadow: 0 8px 22px color-mix(in srgb, var(--concierge-ink) 5%, transparent) !important; }
+.concierge-suggestions-grid > button:hover { border-color: color-mix(in srgb, var(--concierge-blue) 38%, transparent) !important; background: color-mix(in srgb, var(--concierge-blue) 4%, var(--surface-container-lowest)) !important; box-shadow: 0 14px 28px color-mix(in srgb, var(--concierge-blue) 10%, transparent) !important; transform: translateY(-2px); }
+.concierge-suggestions-grid > button > div:first-child { border-radius: .75rem; background: color-mix(in srgb, var(--concierge-blue) 11%, transparent); color: var(--concierge-blue); }
+.concierge-suggestions-grid > button h3 { color: var(--concierge-ink); }
+.concierge-suggestions-grid > button p { color: var(--concierge-muted); }
+
+.concierge-user-message { max-width: min(100%, 42rem) !important; }
+.concierge-user-message > div:first-child { width: 2.2rem; height: 2.2rem; background: var(--concierge-blue); box-shadow: 0 6px 14px color-mix(in srgb, var(--concierge-blue) 22%, transparent); }
+.concierge-user-message .rounded-tr-none { border-radius: 1.15rem .35rem 1.15rem 1.15rem; padding: .8rem 1rem; box-shadow: 0 8px 18px color-mix(in srgb, var(--concierge-blue) 14%, transparent); }
+
+.concierge-assistant-message { max-width: min(100%, 50rem) !important; }
+.concierge-assistant-message > div:first-child { width: 2.35rem; height: 2.35rem; flex: 0 0 auto; margin-top: .2rem; border-radius: .8rem; background: var(--concierge-blue) !important; color: var(--on-primary) !important; box-shadow: 0 7px 16px color-mix(in srgb, var(--concierge-blue) 18%, transparent); }
+.concierge-assistant-message > div:first-child .material-symbols-outlined { font-size: 1.1rem; }
+.concierge-assistant-message .assistant-response-card { border-radius: 1.15rem; padding: 1.15rem !important; }
+.concierge-assistant-message .assistant-response-card::before { inset-inline: 1.15rem; height: 2px; background: var(--concierge-blue); opacity: .65; }
+
+.concierge-composer { bottom: 1rem !important; width: min(calc(100% - 2rem), 48rem) !important; }
+.concierge-composer__inner { min-height: 3.7rem; border-color: color-mix(in srgb, var(--outline-variant) 75%, transparent) !important; border-radius: 1.05rem !important; background: var(--surface-container-lowest) !important; padding: .65rem !important; box-shadow: 0 16px 36px color-mix(in srgb, var(--concierge-ink) 12%, transparent) !important; }
+.concierge-composer__inner:focus-within { border-color: var(--concierge-blue) !important; box-shadow: 0 0 0 4px color-mix(in srgb, var(--concierge-blue) 12%, transparent), 0 16px 36px color-mix(in srgb, var(--concierge-ink) 12%, transparent) !important; }
+.concierge-composer__inner > div:first-child { width: 2.3rem; height: 2.3rem; border-radius: .75rem; background: color-mix(in srgb, var(--concierge-blue) 11%, transparent); color: var(--concierge-blue); }
+.concierge-composer textarea { min-height: 2.35rem; padding-block: .55rem !important; color: var(--on-surface); }
+.concierge-composer button { width: 2.45rem; height: 2.45rem; border-radius: .75rem; }
+
+.place-result-card, .source-card { border-color: color-mix(in srgb, var(--outline-variant) 58%, transparent); }
+.place-result-card:hover, .source-card:hover { border-color: color-mix(in srgb, var(--concierge-blue) 38%, transparent); }
+.action-chip { min-height: 2.25rem; border-radius: .7rem; background: var(--surface-container-low) !important; }
+.action-chip:hover { background: var(--concierge-blue) !important; }
+
+@media (max-width: 767px) {
+  .concierge-shell { border-inline: 0; border-radius: 0; box-shadow: none; }
+  .concierge-main { padding-inline: .75rem !important; padding-block: .75rem 0 !important; }
+  .concierge-header { min-height: 3.1rem; margin-bottom: .7rem !important; }
+  .concierge-header h1 { font-size: 1.05rem; }
+  .concierge-header p { display: none; }
+  .concierge-header > div:last-child > button { min-width: 2.45rem; }
+  .concierge-messages { padding-inline: 0; padding-bottom: 7rem !important; }
+  .concierge-empty-state { width: 100%; margin-inline-start: 0 !important; padding-top: 1.5rem !important; }
+  .concierge-empty-state h2 { font-size: 1.45rem; }
+  .concierge-suggestions-grid > button { min-height: 4.6rem; padding: .8rem !important; }
+  .concierge-assistant-message, .concierge-user-message { gap: .55rem !important; }
+  .concierge-assistant-message > div:first-child, .concierge-user-message > div:first-child { width: 2rem; height: 2rem; }
+  .concierge-assistant-message .assistant-response-card { padding: .95rem !important; }
+  .concierge-composer { bottom: .65rem !important; width: calc(100% - 1rem) !important; }
+  .concierge-composer__inner { min-height: 3.45rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .concierge-messages { scroll-behavior: auto; }
+  .concierge-suggestions-grid > button, .concierge-hero__cta { transition: none; }
+}
+
+:host-context(.dark) .concierge-shell { box-shadow: 0 24px 70px oklch(0.08 0.02 255 / .28); }
+:host-context(.dark) .concierge-suggestions-grid > button:hover { background: color-mix(in srgb, var(--concierge-blue) 8%, var(--surface-container-lowest)) !important; }
+
+/* Use the available desktop width more confidently. */
+.concierge-shell {
+  width: min(calc(100% - 2rem), 100rem) !important;
+  max-width: 100rem !important;
+}
+
+.concierge-main {
+  padding-inline: clamp(.75rem, 1.4vw, 1.5rem) !important;
+}
+
+.concierge-messages {
+  padding-inline: 0 !important;
+}
+
+.concierge-empty-state {
+  width: min(100%, 64rem);
+  margin-inline-start: 0 !important;
+}
+
+.concierge-suggestions-grid {
+  width: min(100%, 60rem);
+}
+
+.concierge-assistant-message {
+  max-width: min(100%, 64rem) !important;
+}
+
+.concierge-user-message {
+  max-width: min(100%, 56rem) !important;
+}
+
+.concierge-composer {
+  width: calc(100% - 1.5rem) !important;
+  max-width: 64rem !important;
+}
+
+@media (max-width: 767px) {
+  .concierge-shell { width: 100% !important; }
+  .concierge-main { padding-inline: .75rem !important; }
+  .concierge-composer { width: calc(100% - 1rem) !important; }
+}
+
+/* Center the welcome content inside the expanded chat canvas. */
+.concierge-empty-state {
+  margin-inline: auto !important;
+  text-align: center !important;
+}
+
+.concierge-empty-state > div:first-child,
+.concierge-empty-state h2,
+.concierge-empty-state > p,
+.concierge-suggestions-grid {
+  margin-inline: auto !important;
+}
+
+.concierge-suggestions-grid {
+  justify-content: center;
+}
+
+/* The empty welcome state fits in the canvas, so avoid showing an inner scrollbar.
+   Conversation scrolling remains available once messages are present. */
+.concierge-messages:has(.concierge-empty-state) {
+  overflow-y: hidden !important;
+  scrollbar-width: none;
+}
+
+.concierge-messages:has(.concierge-empty-state)::-webkit-scrollbar {
+  display: none;
+}

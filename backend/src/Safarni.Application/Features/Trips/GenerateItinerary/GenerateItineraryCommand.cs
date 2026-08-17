@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Diagnostics;
 using ChatBotApi.Application.Common.DTOs;
 using ChatBotApi.Application.Common.Exceptions;
@@ -719,7 +720,7 @@ public sealed class ItineraryGenerationProcessor
                 : "Regenerating validated fallback itinerary",
             cancellationToken);
 
-        return await GenerateValidatedTripAsync(
+        return await GenerateDeterministicDaysAsync(
             userId,
             trip,
             tripId,
@@ -733,6 +734,229 @@ public sealed class ItineraryGenerationProcessor
             previousItinerary,
             generationJobId,
             cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<AiItineraryDay>>
+        GenerateDeterministicDaysAsync(
+            Guid userId,
+            Trip trip,
+            Guid tripId,
+            GenerateItineraryPreferences preferences,
+            decimal? budgetAmount,
+            string currencyCode,
+            int travelerCount,
+            IReadOnlyList<ItineraryPlaceCandidate> places,
+            IReadOnlyList<ItineraryCityStop> cityPlan,
+            ItineraryFlightPlan flightPlan,
+            Itinerary? previousItinerary,
+            Guid? generationJobId,
+            CancellationToken cancellationToken)
+    {
+        var totalTripDays = Math.Max(
+            1,
+            (trip.EndDate.Date - trip.StartDate.Date).Days + 1);
+        var generatedDays = new List<AiItineraryDay>();
+        var activityIndex = 0;
+        var mealIndex = 0;
+
+        foreach (var cityStop in cityPlan)
+        {
+            var cityPlaces = places
+                .Where(candidate =>
+                    string.Equals(
+                        candidate.City,
+                        cityStop.City,
+                        StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            var activities = cityPlaces
+                .Where(candidate =>
+                    candidate.Purpose == ItineraryPlacePurpose.Activity)
+                .ToList();
+            var meals = cityPlaces
+                .Where(candidate =>
+                    candidate.Purpose == ItineraryPlacePurpose.Meal)
+                .ToList();
+            var accommodation = cityPlaces.FirstOrDefault(candidate =>
+                candidate.Purpose == ItineraryPlacePurpose.Accommodation);
+
+            for (var dayNumber = cityStop.StartDayNumber;
+                 dayNumber <= cityStop.EndDayNumber;
+                 dayNumber++)
+            {
+                await ReportProgressAsync(
+                    generationJobId,
+                    Math.Min(72, 36 + dayNumber * 10),
+                    $"Building verified plan for {cityStop.City}",
+                    cancellationToken);
+
+                var day = new AiItineraryDay
+                {
+                    DayNumber = dayNumber,
+                    Date = trip.StartDate
+                        .Date
+                        .AddDays(dayNumber - 1)
+                        .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    Title = $"{cityStop.City} day {dayNumber}",
+                    Notes = "Built from verified places while the AI provider is rate-limited."
+                };
+
+                if (dayNumber == cityStop.StartDayNumber &&
+                    cityStop.NightCount > 0 &&
+                    !string.Equals(
+                        preferences.AccommodationStyle,
+                        "already_booked",
+                        StringComparison.OrdinalIgnoreCase) &&
+                    accommodation is not null)
+                {
+                    day.Items.Add(new AiItineraryItem
+                    {
+                        StartTime = "15:00",
+                        EndTime = "15:15",
+                        Title = ItineraryTextPolicy.BuildAccommodationTitle(
+                            accommodation.Place,
+                            preferences.PreferredLanguage),
+                        Description =
+                            ItineraryTextPolicy.BuildAccommodationDescription(
+                                preferences.PreferredLanguage),
+                        Location = accommodation.Place.Name,
+                        PlaceReference = accommodation.Reference,
+                        Category = "accommodation",
+                        OrderIndex = day.Items.Count
+                    });
+                }
+
+                if (activities.Count > 0 &&
+                    ItineraryOutputParser.HasUsableActivityWindow(
+                        dayNumber,
+                        flightPlan,
+                        totalTripDays))
+                {
+                    var activity = activities[
+                        activityIndex++ % activities.Count];
+                    day.Items.Add(new AiItineraryItem
+                    {
+                        StartTime = "10:00",
+                        EndTime = "11:30",
+                        Title = ItineraryTextPolicy.BuildActivityTitle(
+                            activity.Place,
+                            preferences.PreferredLanguage),
+                        Description =
+                            ItineraryTextPolicy.BuildActivityDescription(
+                                preferences.PreferredLanguage),
+                        Location = activity.Place.Name,
+                        PlaceReference = activity.Reference,
+                        Category = "activity",
+                        OrderIndex = day.Items.Count
+                    });
+                }
+
+                AddDeterministicMeal(
+                    day,
+                    meals,
+                    ref mealIndex,
+                    "12:00",
+                    "13:00",
+                    "Lunch",
+                    cityStop.City,
+                    dayNumber);
+                AddDeterministicMeal(
+                    day,
+                    meals,
+                    ref mealIndex,
+                    "19:00",
+                    "20:00",
+                    "Dinner",
+                    cityStop.City,
+                    dayNumber);
+
+                generatedDays.Add(day);
+            }
+        }
+
+        ItineraryOutputParser.NormalizeChronologicalOrder(generatedDays);
+        ItineraryFlightWindowRepair.Repair(
+            generatedDays,
+            flightPlan,
+            totalTripDays);
+
+        foreach (var cityStop in cityPlan)
+        {
+            var cityDays = generatedDays
+                .Where(day =>
+                    day.DayNumber >= cityStop.StartDayNumber &&
+                    day.DayNumber <= cityStop.EndDayNumber)
+                .ToList();
+            ItineraryAccommodationResolver.NormalizeCityStay(
+                cityDays,
+                cityStop,
+                preferences,
+                places,
+                flightPlan,
+                totalTripDays);
+            foreach (var day in cityDays)
+            {
+                ItineraryPlaceCatalog.ResolvePlaceReferences(
+                    day,
+                    places,
+                    cityStop.City);
+            }
+        }
+
+        ItineraryOutputParser.ValidateComplete(generatedDays, trip);
+        ItineraryOutputParser.ValidatePlaceReferences(
+            generatedDays,
+            places,
+            cityPlan);
+        ItineraryOutputParser.ValidatePlanRules(
+            generatedDays,
+            preferences,
+            budgetAmount,
+            places,
+            cityPlan,
+            flightPlan,
+            totalTripDays);
+        ItineraryOutputParser.ValidateFlightConstraints(
+            generatedDays,
+            flightPlan,
+            totalTripDays);
+        ValidateRegenerationDifference(
+            previousItinerary,
+            generatedDays,
+            places);
+
+        return generatedDays
+            .OrderBy(day => day.DayNumber)
+            .ToList();
+    }
+
+    private static void AddDeterministicMeal(
+        AiItineraryDay day,
+        IReadOnlyList<ItineraryPlaceCandidate> meals,
+        ref int mealIndex,
+        string startTime,
+        string endTime,
+        string mealName,
+        string city,
+        int dayNumber)
+    {
+        if (meals.Count == 0)
+        {
+            return;
+        }
+
+        var meal = meals[mealIndex++ % meals.Count];
+        day.Items.Add(new AiItineraryItem
+        {
+            StartTime = startTime,
+            EndTime = endTime,
+            Title = $"{mealName}: {meal.Place.Name} day {dayNumber}",
+            Description =
+                $"Enjoy a verified local meal in {city}.",
+            Location = meal.Place.Name,
+            PlaceReference = meal.Reference,
+            Category = "meal",
+            OrderIndex = day.Items.Count
+        });
     }
 
     private static IReadOnlySet<string> GetPreviouslyUsedPlaceIds(

@@ -1,0 +1,57 @@
+<main class="post-page">
+  <a routerLink="/community" class="back-link"><span class="material-symbols-outlined">arrow_back</span> Back to Community</a>
+
+  <div *ngIf="isLoading()" class="post-state"><span class="material-symbols-outlined">progress_activity</span><p>Loading this story...</p></div>
+  <div *ngIf="!isLoading() && errorMessage()" class="post-state error-state"><span class="material-symbols-outlined">cloud_off</span><p>{{ errorMessage() }}</p><button type="button" class="secondary-button" (click)="loadPost()">Try again</button></div>
+
+  <ng-container *ngIf="!isLoading() && !errorMessage() && post() as currentPost">
+    <article class="story-shell">
+      <header class="story-header">
+        <div class="story-type">{{ postTypeLabel(currentPost.type) }}<span *ngIf="currentPost.destination"> · {{ currentPost.destination }}</span></div>
+        <h1>{{ currentPost.title }}</h1>
+        <div class="author-row">
+          <div class="avatar">
+            <img *ngIf="currentPost.author.profilePhotoUrl" [src]="currentPost.author.profilePhotoUrl" [alt]="currentPost.author.displayName" />
+            <span *ngIf="!currentPost.author.profilePhotoUrl">{{ currentPost.author.displayName.charAt(0).toUpperCase() }}</span>
+          </div>
+          <div><strong>{{ currentPost.author.displayName }}</strong><span>{{ timeAgo(currentPost.createdAt) }}</span></div>
+        </div>
+      </header>
+
+      <div *ngIf="currentPost.media.length" class="story-media">
+        <ng-container *ngFor="let media of currentPost.media">
+          <img *ngIf="media.mediaType !== 'video'" [src]="media.url" [alt]="media.altText || currentPost.title" />
+          <video *ngIf="media.mediaType === 'video'" [src]="media.url" [poster]="media.thumbnailUrl || undefined" controls preload="metadata"></video>
+        </ng-container>
+      </div>
+
+      <div class="story-body">{{ currentPost.body }}</div>
+
+      <footer class="story-actions">
+        <button type="button" [class.active]="currentPost.isLikedByCurrentUser" (click)="toggleLike()"><span class="material-symbols-outlined">favorite</span>{{ currentPost.likesCount }} Likes</button>
+        <button type="button" [class.active]="currentPost.isSavedByCurrentUser" (click)="toggleSave()"><span class="material-symbols-outlined">bookmark</span>{{ currentPost.savesCount }} Saves</button>
+        <button type="button" (click)="sharePost()"><span class="material-symbols-outlined">share</span> Share</button>
+      </footer>
+    </article>
+
+    <section class="comments-section" aria-labelledby="comments-title">
+      <div class="section-heading"><div><p class="eyebrow">Join the conversation</p><h2 id="comments-title">{{ currentPost.type === 'Question' ? 'Answers from travelers' : 'Comments' }}</h2></div><span>{{ currentPost.commentsCount }}</span></div>
+
+      <div class="comment-composer">
+        <p *ngIf="replyTo" class="reply-context">Replying to <strong>{{ replyTo.author.displayName }}</strong> <button type="button" (click)="cancelReply()">Cancel</button></p>
+        <textarea [(ngModel)]="commentBody" rows="3" maxlength="3000" [placeholder]="currentPost.type === 'Question' ? 'Share what you know...' : 'Add a helpful thought...'" aria-label="Comment"></textarea>
+        <div class="comment-composer-footer"><span *ngIf="commentMessage()" class="comment-message">{{ commentMessage() }}</span><button type="button" class="primary-button" (click)="submitComment()" [disabled]="isCommenting()">{{ isCommenting() ? 'Posting...' : 'Post comment' }}</button></div>
+      </div>
+
+      <div *ngIf="rootComments().length === 0" class="comments-empty"><span class="material-symbols-outlined">forum</span><p>No comments yet. Start the conversation.</p></div>
+      <article class="comment" *ngFor="let comment of rootComments()">
+        <div class="comment-avatar">{{ comment.author.displayName.charAt(0).toUpperCase() }}</div>
+        <div class="comment-content"><div class="comment-meta"><strong>{{ comment.author.displayName }}</strong><span>{{ timeAgo(comment.createdAt) }}</span></div><p>{{ comment.body }}</p><button type="button" class="reply-button" (click)="startReply(comment)">Reply</button>
+          <div class="reply-list" *ngIf="repliesFor(comment.id).length">
+            <div class="comment reply" *ngFor="let reply of repliesFor(comment.id)"><div class="comment-avatar">{{ reply.author.displayName.charAt(0).toUpperCase() }}</div><div class="comment-content"><div class="comment-meta"><strong>{{ reply.author.displayName }}</strong><span>{{ timeAgo(reply.createdAt) }}</span></div><p>{{ reply.body }}</p></div></div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </ng-container>
+</main>

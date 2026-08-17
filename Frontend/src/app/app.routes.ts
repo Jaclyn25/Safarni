@@ -25,6 +25,22 @@ export const routes: Routes = [
   // =========================
 
   {
+    path: 'community',
+    loadComponent: () =>
+      import('./pages/community/community.component')
+        .then((m) => m.CommunityComponent),
+    title: 'Safarni | Community'
+  },
+
+  {
+    path: 'community/:postId',
+    loadComponent: () =>
+      import('./pages/community-post-details/community-post-details.component')
+        .then((m) => m.CommunityPostDetailsComponent),
+    title: 'Safarni | Community Post'
+  },
+
+  {
     path: 'public-trips',
     loadComponent: () =>
       import('./pages/public-trips/public-trips.component')

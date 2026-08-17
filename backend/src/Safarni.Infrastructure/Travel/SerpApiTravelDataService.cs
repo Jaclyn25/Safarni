@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using ChatBotApi.Application.Common.Interfaces;
 using ChatBotApi.Application.Common.Models.GooglePlaces;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -14,19 +15,23 @@ internal sealed class SerpApiTravelDataService
     private readonly HttpClient _httpClient;
     private readonly IMemoryCache _cache;
     private readonly ILogger<SerpApiTravelDataService> _logger;
+    private readonly IGooglePlacesService _googlePlacesService;
     private readonly string _discoveryApiKey;
     private readonly string _commerceApiKey;
     private readonly string _baseUrl;
+    private readonly bool _googlePlacesFallbackConfigured;
 
     public SerpApiTravelDataService(
         HttpClient httpClient,
         IConfiguration configuration,
         IMemoryCache cache,
-        ILogger<SerpApiTravelDataService> logger)
+        ILogger<SerpApiTravelDataService> logger,
+        IGooglePlacesService googlePlacesService)
     {
         _httpClient = httpClient;
         _cache = cache;
         _logger = logger;
+        _googlePlacesService = googlePlacesService;
         var legacyApiKey = configuration["SerpApi:ApiKey"] ?? string.Empty;
         _discoveryApiKey =
             Environment.GetEnvironmentVariable(
@@ -40,11 +45,14 @@ internal sealed class SerpApiTravelDataService
             legacyApiKey;
         _baseUrl = configuration["SerpApi:BaseUrl"]
             ?? "https://serpapi.com/search.json";
+        _googlePlacesFallbackConfigured =
+            !string.IsNullOrWhiteSpace(configuration["GooglePlaces:ApiKey"]);
     }
 
     public bool IsConfigured =>
         !string.IsNullOrWhiteSpace(_discoveryApiKey) ||
-        !string.IsNullOrWhiteSpace(_commerceApiKey);
+        !string.IsNullOrWhiteSpace(_commerceApiKey) ||
+        _googlePlacesFallbackConfigured;
 
     public async Task<IReadOnlyList<PlaceDetails>> SearchLocalAsync(
         string query,
@@ -54,7 +62,11 @@ internal sealed class SerpApiTravelDataService
     {
         if (string.IsNullOrWhiteSpace(_discoveryApiKey))
         {
-            return [];
+            return await SearchGoogleFallbackAsync(
+                query,
+                destination,
+                languageCode,
+                cancellationToken);
         }
 
         var cacheKey = string.Join(
@@ -93,9 +105,13 @@ internal sealed class SerpApiTravelDataService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "SerpApi local search returned HTTP {StatusCode}.",
+                    "SerpApi local search returned HTTP {StatusCode}; trying Google Places fallback.",
                     response.StatusCode);
-                return [];
+                return await SearchGoogleFallbackAsync(
+                    query,
+                    destination,
+                    languageCode,
+                    cancellationToken);
             }
 
             await using var stream =
@@ -142,7 +158,76 @@ internal sealed class SerpApiTravelDataService
         {
             _logger.LogWarning(
                 exception,
-                "SerpApi local search failed for {Destination}.",
+                "SerpApi local search failed for {Destination}; trying Google Places fallback.",
+                destination);
+            return await SearchGoogleFallbackAsync(
+                query,
+                destination,
+                languageCode,
+                cancellationToken);
+        }
+    }
+
+    private async Task<IReadOnlyList<PlaceDetails>>
+        SearchGoogleFallbackAsync(
+            string query,
+            string destination,
+            string languageCode,
+            CancellationToken cancellationToken)
+    {
+        if (!_googlePlacesFallbackConfigured)
+        {
+            return [];
+        }
+
+        var cacheKey = string.Join(
+            ':',
+            "google-places-fallback",
+            query.Trim().ToLowerInvariant(),
+            destination.Trim().ToLowerInvariant(),
+            NormalizeLanguage(languageCode));
+
+        if (_cache.TryGetValue(
+                cacheKey,
+                out IReadOnlyList<PlaceDetails>? cached) &&
+            cached is not null)
+        {
+            return cached;
+        }
+
+        try
+        {
+            var results = await _googlePlacesService.TextSearchAsync(
+                query,
+                cancellationToken,
+                languageCode);
+            var places = results
+                .Where(place =>
+                    !string.IsNullOrWhiteSpace(place.Name) &&
+                    !string.IsNullOrWhiteSpace(place.PlaceId) &&
+                    !string.IsNullOrWhiteSpace(place.Address))
+                .Take(20)
+                .ToList();
+
+            _cache.Set(
+                cacheKey,
+                places,
+                TimeSpan.FromHours(24));
+            _logger.LogInformation(
+                "Google Places fallback returned {PlaceCount} verified candidates for {Destination}.",
+                places.Count,
+                destination);
+            return places;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Google Places fallback failed for {Destination}.",
                 destination);
             return [];
         }
@@ -160,7 +245,11 @@ internal sealed class SerpApiTravelDataService
     {
         if (string.IsNullOrWhiteSpace(_commerceApiKey))
         {
-            return [];
+            return await SearchGoogleFallbackAsync(
+                $"{accommodationStyle} hotels in {destination}",
+                destination,
+                languageCode,
+                cancellationToken);
         }
 
         var effectiveCheckOut = checkOutDate.Date <= checkInDate.Date
@@ -222,9 +311,13 @@ internal sealed class SerpApiTravelDataService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "SerpApi hotel search returned HTTP {StatusCode}.",
+                    "SerpApi hotel search returned HTTP {StatusCode}; trying Google Places fallback.",
                     response.StatusCode);
-                return [];
+                return await SearchGoogleFallbackAsync(
+                    $"{accommodationStyle} hotels in {destination}",
+                    destination,
+                    languageCode,
+                    cancellationToken);
             }
 
             await using var stream =
@@ -304,9 +397,13 @@ internal sealed class SerpApiTravelDataService
         {
             _logger.LogWarning(
                 exception,
-                "SerpApi hotel search failed for {Destination}.",
+                "SerpApi hotel search failed for {Destination}; trying Google Places fallback.",
                 destination);
-            return [];
+            return await SearchGoogleFallbackAsync(
+                $"{accommodationStyle} hotels in {destination}",
+                destination,
+                languageCode,
+                cancellationToken);
         }
     }
 

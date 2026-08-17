@@ -1,0 +1,213 @@
+<main class="community-page">
+  <section class="community-hero">
+    <div class="hero-copy-block">
+      <p class="eyebrow"><span class="material-symbols-outlined">public</span> Safarni Community</p>
+      <h1>Travel is better when it is shared.</h1>
+      <p class="hero-copy">Stories, honest questions, and practical tips from travelers who have been there.</p>
+      <div class="hero-signals" aria-label="Community activity">
+        <span><strong>{{ publicTrips().length }}</strong> public journeys</span>
+        <span><strong>{{ posts().length }}</strong> fresh stories</span>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <div class="hero-prompt">
+        <span class="material-symbols-outlined">auto_awesome</span>
+        <span>Have a place worth sharing?</span>
+      </div>
+      <button type="button" class="primary-button" (click)="openComposer()">
+        <span class="material-symbols-outlined">add</span>
+        Share a story
+      </button>
+    </div>
+  </section>
+
+  <section *ngIf="selectedType === '' && !isPublicTripsLoading() && publicTrips().length > 0" class="public-trips-section" aria-labelledby="public-trips-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow"><span class="material-symbols-outlined">travel_explore</span> Shared journeys</p>
+        <h2 id="public-trips-title">Trips travelers are sharing</h2>
+      </div>
+      <a routerLink="/public-trips" class="section-link">Explore all <span class="material-symbols-outlined">arrow_forward</span></a>
+    </div>
+
+    <div class="public-trips-grid">
+      <a *ngFor="let trip of publicTrips()" class="public-trip-card" [routerLink]="['/public-trips', trip.versionId]">
+        <div class="public-trip-card__topline">
+          <span class="destination-pill"><span class="material-symbols-outlined">location_on</span>{{ trip.destination }}</span>
+          <span class="public-trip-card__stat"><span class="material-symbols-outlined">favorite</span>{{ trip.likesCount }}</span>
+        </div>
+        <h3>{{ trip.tripName || (trip.destination + ' trip') }}</h3>
+        <div class="public-trip-card__details">
+          <span><span class="material-symbols-outlined">schedule</span>{{ trip.durationDays }} days</span>
+          <span><span class="material-symbols-outlined">calendar_month</span>{{ formatTripDate(trip.publishedAt) }}</span>
+          <span *ngIf="trip.costAmount != null"><span class="material-symbols-outlined">account_balance_wallet</span>{{ formatTripCost(trip.costAmount) }}</span>
+        </div>
+        <div class="public-trip-card__author">
+          <img *ngIf="trip.authorPhotoUrl" [src]="trip.authorPhotoUrl" [alt]="trip.authorName" />
+          <span *ngIf="!trip.authorPhotoUrl" class="public-trip-card__avatar">{{ (trip.authorName || 'T').charAt(0) }}</span>
+          <span>Shared by {{ trip.authorName || 'a traveler' }}</span>
+          <span class="material-symbols-outlined">arrow_forward</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="community-layout">
+    <div class="feed-column">
+      <div class="feed-toolbar" aria-label="Community filters">
+        <div class="filter-area">
+          <span class="filter-label">Browse the feed</span>
+          <div class="filter-tabs" role="tablist" aria-label="Post type">
+            <button type="button" [class.active]="selectedType === ''" (click)="selectedType = ''; loadFeed()">All posts</button>
+            <button type="button" [class.active]="selectedType === 'Question'" (click)="selectedType = 'Question'; loadFeed()">Questions</button>
+            <button type="button" [class.active]="selectedType === 'TravelStory'" (click)="selectedType = 'TravelStory'; loadFeed()">Stories</button>
+            <button type="button" [class.active]="selectedType === 'Vlog'" (click)="selectedType = 'Vlog'; loadFeed()">Vlogs</button>
+            <button type="button" [class.active]="selectedType === 'Recommendation'" (click)="selectedType = 'Recommendation'; loadFeed()">Tips</button>
+          </div>
+        </div>
+        <label class="destination-filter">
+          <span class="material-symbols-outlined">search</span>
+          <input type="search" [(ngModel)]="destinationFilter" (keyup.enter)="loadFeed()" placeholder="Search destination" aria-label="Search by destination" />
+        </label>
+      </div>
+
+      <div *ngIf="isLoading()" class="feed-state" aria-live="polite">
+        <div class="skeleton-line wide"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+        <p>Loading stories from the community...</p>
+      </div>
+
+      <div *ngIf="!isLoading() && errorMessage()" class="feed-state error-state">
+        <span class="material-symbols-outlined">cloud_off</span>
+        <p>{{ errorMessage() }}</p>
+        <button type="button" class="secondary-button" (click)="loadFeed()">Try again</button>
+      </div>
+
+      <div *ngIf="!isLoading() && !errorMessage() && posts().length === 0 && publicTrips().length === 0" class="feed-state empty-state">
+        <span class="material-symbols-outlined">explore</span>
+        <h2>The first story can start here.</h2>
+        <p>Share a place you loved, ask a question, or leave a tip for the next traveler.</p>
+        <button type="button" class="secondary-button" (click)="openComposer()">Create a post</button>
+      </div>
+
+      <article class="post-card" *ngFor="let post of posts()">
+        <div class="post-header">
+          <div class="avatar" aria-hidden="true">
+            <img *ngIf="post.author.profilePhotoUrl" [src]="post.author.profilePhotoUrl" [alt]="post.author.displayName" />
+            <span *ngIf="!post.author.profilePhotoUrl">{{ authorInitial(post) }}</span>
+          </div>
+          <div class="author-block">
+            <strong>{{ post.author.displayName }}</strong>
+            <span>{{ timeAgo(post.createdAt) }}<span *ngIf="post.destination"> · {{ post.destination }}</span></span>
+          </div>
+          <span class="post-type"><span class="material-symbols-outlined">{{ postTypeIcon(post.type) }}</span>{{ postTypeLabel(post.type) }}</span>
+        </div>
+
+        <a class="post-content" [routerLink]="['/community', post.id]">
+          <h2>{{ post.title }}</h2>
+          <p>{{ post.body }}</p>
+          <div *ngIf="post.media.length > 0" class="media-preview">
+            <img *ngIf="post.media[0].mediaType !== 'video'" [src]="post.media[0].url" [alt]="post.media[0].altText || post.title" />
+            <div *ngIf="post.media[0].mediaType === 'video'" class="video-preview">
+              <span class="material-symbols-outlined">play_circle</span>
+              Video story
+            </div>
+          </div>
+        </a>
+
+        <div class="post-actions">
+          <button type="button" [class.active]="post.isLikedByCurrentUser" (click)="toggleLike($event, post)" [attr.aria-label]="post.isLikedByCurrentUser ? 'Unlike post' : 'Like post'">
+            <span class="material-symbols-outlined">favorite</span>{{ post.likesCount }}
+          </button>
+          <a [routerLink]="['/community', post.id]" class="action-link">
+            <span class="material-symbols-outlined">chat_bubble_outline</span>{{ post.commentsCount }}
+          </a>
+          <button type="button" [class.active]="post.isSavedByCurrentUser" (click)="toggleSave($event, post)" [attr.aria-label]="post.isSavedByCurrentUser ? 'Unsave post' : 'Save post'">
+            <span class="material-symbols-outlined">bookmark</span>{{ post.savesCount }}
+          </button>
+          <a [routerLink]="['/community', post.id]" class="read-link">Read post <span class="material-symbols-outlined">arrow_forward</span></a>
+        </div>
+      </article>
+    </div>
+
+    <aside class="community-aside">
+      <div class="aside-block">
+        <span class="material-symbols-outlined aside-icon">flight_takeoff</span>
+        <h2>What belongs here?</h2>
+        <p>Real experiences, useful details, and questions that help someone plan their next trip.</p>
+        <ul>
+          <li><span class="material-symbols-outlined">auto_stories</span> A trip that surprised you</li>
+          <li><span class="material-symbols-outlined">help</span> A question for people who have been</li>
+          <li><span class="material-symbols-outlined">tips_and_updates</span> A tip you wish you knew earlier</li>
+        </ul>
+      </div>
+      <div class="aside-block aside-note">
+        <span class="material-symbols-outlined">favorite</span>
+        <p>Keep it kind and specific. The best travel advice feels like it came from a thoughtful local friend.</p>
+      </div>
+    </aside>
+  </section>
+</main>
+
+<div *ngIf="showComposer" class="composer-backdrop" (click)="closeComposer()">
+  <section class="composer-panel" role="dialog" aria-modal="true" aria-labelledby="composer-title" (click)="$event.stopPropagation()">
+    <div class="composer-heading">
+      <div>
+        <p class="eyebrow">Community post</p>
+        <h2 id="composer-title">What would you like to share?</h2>
+      </div>
+      <button type="button" class="icon-button" (click)="closeComposer()" aria-label="Close composer"><span class="material-symbols-outlined">close</span></button>
+    </div>
+
+    <div class="type-picker" role="radiogroup" aria-label="Post type">
+      <button type="button" *ngFor="let type of postTypes" [class.selected]="postType === type.value" (click)="postType = type.value">
+        <span class="material-symbols-outlined">{{ type.icon }}</span>
+        {{ type.label }}
+      </button>
+    </div>
+
+    <label class="field-label" for="post-title">Title</label>
+    <input id="post-title" class="text-input" type="text" [(ngModel)]="postTitle" maxlength="180" placeholder="Give your post a clear title" />
+
+    <label class="field-label" for="post-body">Your story</label>
+    <textarea id="post-body" class="text-input text-area" [(ngModel)]="postBody" maxlength="12000" rows="7" placeholder="What should another traveler know?"></textarea>
+
+    <label class="field-label" for="post-destination">Destination <span>Optional</span></label>
+    <input id="post-destination" class="text-input" type="text" [(ngModel)]="postDestination" maxlength="160" placeholder="e.g. Kyoto, Japan" />
+
+    <div class="field-label media-field-label">
+      <span>Photos or video</span>
+      <span>Optional · up to {{ maxMediaFiles }} files</span>
+    </div>
+    <label class="media-picker" for="post-media">
+      <span class="media-picker-icon material-symbols-outlined">add_photo_alternate</span>
+      <span class="media-picker-copy">
+        <strong>Add photos or a short video</strong>
+        <small>Images up to 10 MB each, videos up to 60 MB</small>
+      </span>
+      <span class="media-picker-action">Browse</span>
+    </label>
+    <input id="post-media" class="visually-hidden" type="file" accept="image/*,video/*" multiple (change)="onMediaSelected($event)" [disabled]="isSubmitting()" />
+
+    <div *ngIf="pendingMedia.length > 0" class="media-grid" aria-label="Selected media">
+      <div class="media-tile" *ngFor="let media of pendingMedia; let i = index">
+        <img *ngIf="media.mediaType === 'image'" [src]="media.previewUrl" [alt]="media.file.name" />
+        <video *ngIf="media.mediaType === 'video'" [src]="media.previewUrl" muted></video>
+        <span class="media-kind">{{ media.mediaType === 'video' ? 'Video' : 'Photo' }}</span>
+        <button type="button" class="remove-media-button" (click)="removeMedia(i)" [attr.aria-label]="'Remove ' + media.file.name">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </div>
+
+    <p *ngIf="formMessage()" class="form-message" role="alert">{{ formMessage() }}</p>
+    <div class="composer-actions">
+      <button type="button" class="secondary-button" (click)="closeComposer()">Cancel</button>
+      <button type="button" class="primary-button" (click)="submitPost()" [disabled]="isSubmitting()">
+        <span class="material-symbols-outlined">{{ isSubmitting() ? 'progress_activity' : 'publish' }}</span>
+        {{ isSubmitting() ? 'Publishing...' : 'Publish post' }}
+      </button>
+    </div>
+  </section>
+</div>

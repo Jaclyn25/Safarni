@@ -345,13 +345,14 @@ public sealed class GeminiItineraryAgentModel : IItineraryAgentModel
     private GeminiAgentSettings GetSettings()
     {
         var apiKey =
+            Environment.GetEnvironmentVariable("GEMINI_API_KEY") ??
             Environment.GetEnvironmentVariable("GEMINI_ITINERARY_API_KEY") ??
             _configuration[$"{ConfigurationSection}:ApiKey"];
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             throw new InvalidOperationException(
-                "Gemini itinerary API key is not configured. Set GEMINI_ITINERARY_API_KEY in your environment.");
+                "Gemini itinerary API key is not configured. Set GEMINI_ITINERARY_API_KEY (or GEMINI_API_KEY) in your environment.");
         }
 
         return new GeminiAgentSettings(
@@ -390,6 +391,11 @@ public sealed class GeminiItineraryAgentModel : IItineraryAgentModel
                 "API_KEY_INVALID",
                 StringComparison.OrdinalIgnoreCase))
         {
+            _logger.LogWarning(
+                "Gemini itinerary agent authentication failed with HTTP {StatusCode}. Provider message: {ProviderMessage}",
+                (int)response.StatusCode,
+                ExtractProviderMessage(body) ?? "No provider message was returned.");
+
             throw new UnauthorizedAccessException(
                 "The itinerary agent provider API key is invalid or unauthorized.");
         }
@@ -401,6 +407,27 @@ public sealed class GeminiItineraryAgentModel : IItineraryAgentModel
 
         throw new HttpRequestException(
             $"The itinerary agent provider returned HTTP {(int)response.StatusCode}.");
+    }
+
+    private static string? ExtractProviderMessage(string body)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            if (!document.RootElement.TryGetProperty("error", out var error) ||
+                error.ValueKind != JsonValueKind.Object ||
+                !error.TryGetProperty("message", out var message) ||
+                message.ValueKind != JsonValueKind.String)
+            {
+                return null;
+            }
+
+            return message.GetString();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private int ParseInt(string key, int fallback)

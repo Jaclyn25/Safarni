@@ -244,6 +244,7 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
     private GeminiSettings GetSettings()
     {
         var apiKey =
+            Environment.GetEnvironmentVariable("GEMINI_API_KEY") ??
             Environment.GetEnvironmentVariable("GEMINI_ITINERARY_API_KEY") ??
             _configuration[$"{ConfigurationSection}:ApiKey"];
 
@@ -251,7 +252,7 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
         {
             throw new InvalidOperationException(
                 "Gemini itinerary API key is not configured. " +
-                "Set GEMINI_ITINERARY_API_KEY in your .env file.");
+                "Set GEMINI_API_KEY (or GEMINI_ITINERARY_API_KEY) in your .env file.");
         }
 
         var baseUrl =

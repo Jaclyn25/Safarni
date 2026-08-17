@@ -241,7 +241,8 @@ public sealed class ExternalServiceHealthChecker : IExternalServiceHealthChecker
         const string displayName = "Gemini Itinerary";
         const string affectedFeature = "Itinerary generation";
 
-        var apiKey = Environment.GetEnvironmentVariable("GEMINI_ITINERARY_API_KEY") ??
+        var apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") ??
+            Environment.GetEnvironmentVariable("GEMINI_ITINERARY_API_KEY") ??
             _configuration["GeminiItinerary:ApiKey"];
 
         if (!IsRealValue(apiKey))

@@ -70,6 +70,11 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<PublicTripView> PublicTripViews =>
         Set<PublicTripView>();
 
+    public DbSet<CommunityPost> CommunityPosts => Set<CommunityPost>();
+    public DbSet<CommunityPostMedia> CommunityPostMedia => Set<CommunityPostMedia>();
+    public DbSet<CommunityPostComment> CommunityPostComments => Set<CommunityPostComment>();
+    public DbSet<CommunityPostInteraction> CommunityPostInteractions => Set<CommunityPostInteraction>();
+
     // Chatbot tables
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ConversationMessage> ConversationMessages =>

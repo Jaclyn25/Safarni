@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<ITravelProfileRepository, TravelProfileRepository>();
         services.AddScoped<ITripRepository, TripRepository>();
         services.AddScoped<IPublicTripRepository, PublicTripRepository>();
+        services.AddScoped<ICommunityRepository, CommunityRepository>();
         services.AddScoped<IItineraryRepository, ItineraryRepository>();
         services.AddScoped<
             IItineraryGenerationJobRepository,
@@ -88,6 +89,7 @@ public static class DependencyInjection
         services.AddScoped<PricingCatalogSeeder>();
         services.AddScoped<ITravelPackageRepository, TravelPackageRepository>();
         services.AddScoped<ITravelPackageImageStorage, LocalTravelPackageImageStorage>();
+        services.AddScoped<ICommunityMediaStorage, LocalCommunityMediaStorage>();
         services.AddScoped<IPackageBookingRequestRepository, PackageBookingRequestRepository>();
         services.AddScoped<IAgencyReviewRepository, AgencyReviewRepository>();
         services.AddScoped<IUserNotificationRepository, UserNotificationRepository>();

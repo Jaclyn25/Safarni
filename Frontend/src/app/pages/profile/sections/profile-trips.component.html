@@ -21,7 +21,8 @@
 
   <div class="trips-list" *ngIf="!isTripsLoading() && trips().length > 0">
     <article class="trip" *ngFor="let trip of trips(); trackBy: trackByIndex">
-      <div class="trip__icon">
+      <div class="trip__image">
+        <img [src]="tripImage(trip)" [alt]="trip.destination" loading="lazy" />
         <span class="material-symbols-outlined">flight</span>
       </div>
 

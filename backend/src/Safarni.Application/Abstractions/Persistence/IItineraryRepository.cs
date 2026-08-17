@@ -30,6 +30,8 @@ public interface IItineraryRepository
         Itinerary itinerary,
         CancellationToken cancellationToken = default);
 
+    void AddItem(ItineraryItem item);
+
     void RemoveItem(ItineraryItem item);
 
     Task SaveAsync(CancellationToken cancellationToken = default);

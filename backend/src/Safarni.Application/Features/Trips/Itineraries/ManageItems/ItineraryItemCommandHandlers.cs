@@ -69,6 +69,7 @@ public sealed class AddItineraryItemCommandHandler
         };
 
         day.Items.Add(item);
+        _context.AddItem(item);
         ItineraryOrder.PlaceItem(
             day,
             item,
@@ -197,9 +198,12 @@ public sealed class AddRecommendedItineraryItemCommandHandler
         SelectItineraryVenueCommandHandler.ApplyVerifiedVenue(
             item,
             selected,
+            itinerary.CurrencyCode,
+            itinerary.TravelerCount,
             isNewItem: true);
 
         day.Items.Add(item);
+        _context.AddItem(item);
         ItineraryOrder.PlaceItem(
             day,
             item,
@@ -561,7 +565,11 @@ public sealed class SelectItineraryVenueCommandHandler
                 ItineraryErrors.VenueNotFound);
         }
 
-        ApplyVerifiedVenue(item, selected);
+        ApplyVerifiedVenue(
+            item,
+            selected,
+            itinerary.CurrencyCode,
+            itinerary.TravelerCount);
 
         await AddItineraryItemCommandHandler.RebuildRoutesAsync(
             itinerary,
@@ -579,6 +587,8 @@ public sealed class SelectItineraryVenueCommandHandler
     internal static void ApplyVerifiedVenue(
         ItineraryItem item,
         LoadedVenueSuggestion selected,
+        string currencyCode,
+        int travelerCount,
         bool isNewItem = false)
     {
         var place = selected.Place;
@@ -596,6 +606,14 @@ public sealed class SelectItineraryVenueCommandHandler
         item.PriceSource = NullIfWhiteSpace(place.PriceSource);
         item.ExternalUrl = NullIfWhiteSpace(place.ExternalUrl);
         item.Location = place.Name.Trim();
+        var hasLiveLocalMinimum =
+            ItineraryPriceLevelParser.TryGetMinimum(
+                place.PriceLevel,
+                currencyCode,
+                out var liveLocalMinimum);
+        var liveLocalTotal = hasLiveLocalMinimum
+            ? liveLocalMinimum * Math.Max(1, travelerCount)
+            : (decimal?)null;
 
         if (item.Category is not
             (ItineraryItemCategory.Accommodation or
@@ -603,8 +621,10 @@ public sealed class SelectItineraryVenueCommandHandler
         {
             item.Title = place.Name.Trim();
             item.Description = NullIfWhiteSpace(place.Description);
-            item.EstimatedCost = null;
-            item.CostSource = null;
+            item.EstimatedCost = liveLocalTotal;
+            item.CostSource = hasLiveLocalMinimum
+                ? "live_price_level_minimum"
+                : null;
             return;
         }
 
@@ -624,6 +644,10 @@ public sealed class SelectItineraryVenueCommandHandler
                     ? $"Meal — {place.Name.Trim()}"
                     : $"{GetMealSlotTitle(item.Title)} — {place.Name.Trim()}";
             item.Description = NullIfWhiteSpace(place.Description);
+            item.EstimatedCost = liveLocalTotal;
+            item.CostSource = hasLiveLocalMinimum
+                ? "live_price_level_minimum"
+                : null;
         }
     }
 
@@ -697,6 +721,11 @@ internal sealed class ItineraryItemCommandContext
     public void RemoveItem(ItineraryItem item)
     {
         _itineraryRepository.RemoveItem(item);
+    }
+
+    public void AddItem(ItineraryItem item)
+    {
+        _itineraryRepository.AddItem(item);
     }
 
     public Task SaveAsync(CancellationToken cancellationToken)

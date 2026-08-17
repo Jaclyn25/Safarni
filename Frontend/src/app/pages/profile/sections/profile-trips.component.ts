@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TripResponse, TripService } from '../../../services/trip.service';
+import { destinationImageUrl } from '../../../shared/constants/destination-images.constants';
 
 @Component({
   selector: 'app-profile-trips',
@@ -66,6 +67,12 @@ export class ProfileTripsComponent implements OnInit {
     return (trip.cities ?? [])
       .map((city) => city.name)
       .join(', ');
+  }
+
+  tripImage(trip: TripResponse): string {
+    return destinationImageUrl(
+      [trip.destination, ...(trip.cities ?? []).map((city) => city.name)].join(' ')
+    );
   }
 
   tripBadge(trip: TripResponse): { label: string; classes: string } {

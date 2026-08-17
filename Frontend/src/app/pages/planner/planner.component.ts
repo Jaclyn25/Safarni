@@ -40,7 +40,8 @@ import {
 import { FormsModule } from '@angular/forms';
 import {
   ActivatedRoute,
-  Router
+  Router,
+  RouterLink
 } from '@angular/router';
 import {
   Observable,
@@ -87,6 +88,10 @@ import {
   TripVisibility
 } from '../../services/trip.service';
 import { WeatherService, ItineraryDayWeatherResponse } from '../../services/weather.service';
+import { MarketplaceService } from '../../services/marketplace.service';
+import { TravelPackage } from '../../models/marketplace.models';
+import { packageCoverUrl } from '../../shared/constants/marketplace.constants';
+import { destinationImageUrl } from '../../shared/constants/destination-images.constants';
 
 interface ItemDraft {
   targetDayId: string;
@@ -126,7 +131,8 @@ interface AddCategoryOption {
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule
+    FormsModule,
+    RouterLink
   ],
   templateUrl: './planner.component.html',
   styleUrl: './planner.component.css',
@@ -147,6 +153,8 @@ export class PlannerComponent
   isEditingPreferences = false;
 
   readonly tripsWeather = signal<{ loading: boolean, error: string | null, data: ItineraryDayWeatherResponse[] | null }>({ loading: false, error: null, data: null });
+  readonly relatedPackages = signal<TravelPackage[]>([]);
+  readonly relatedPackagesLoading = signal(false);
 
   // Map state
   tripRoute = signal<TripRouteActivityDto[]>([]);
@@ -293,6 +301,7 @@ export class PlannerComponent
 
   editingItemId = '';
   addingDayId = '';
+  savingVenueId = '';
 
   itemDraft: ItemDraft = this.emptyDraft();
   readonly publishVisibilityOptions = [
@@ -513,6 +522,7 @@ export class PlannerComponent
     private readonly generationService: ItineraryGenerationService,
     private readonly tripService: TripService,
     private readonly weatherService: WeatherService,
+    private readonly marketplaceService: MarketplaceService,
     private readonly destroyRef: DestroyRef,
     private readonly router: Router,
     private readonly cdr: ChangeDetectorRef
@@ -560,10 +570,33 @@ export class PlannerComponent
   ngOnDestroy(): void {
     this.generationSubscription?.unsubscribe();
     this.setGenerationScrollLocked(false);
+    this.map?.remove();
+    this.map = null;
   }
 
   get visibleDays(): ItineraryDay[] {
     return this.itinerary?.days ?? [];
+  }
+
+  get itineraryExperienceCount(): number {
+    return this.visibleDays
+      .flatMap((day) => day.items)
+      .filter((item) => !['accommodation', 'transport'].includes(item.category.toLowerCase()))
+      .length;
+  }
+
+  get itineraryHotelCount(): number {
+    return this.visibleDays
+      .flatMap((day) => day.items)
+      .filter((item) => item.category.toLowerCase() === 'accommodation')
+      .length;
+  }
+
+  get itineraryTransportCount(): number {
+    return this.visibleDays
+      .flatMap((day) => day.items)
+      .filter((item) => item.category.toLowerCase() === 'transport' || this.isFlight(item))
+      .length;
   }
 
   get tripCities(): string[] {
@@ -640,20 +673,53 @@ export class PlannerComponent
 
   editPreferences(): void {
     this.isEditingPreferences = true;
-    window.setTimeout(
-      () =>
-        document
-          .getElementById('preferences')
-          ?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          }),
-      0
-    );
+    document.body.style.overflow = 'hidden';
   }
 
   cancelPreferenceEditing(): void {
     this.isEditingPreferences = false;
+    document.body.style.overflow = '';
+  }
+
+  relatedPackageCover(packageItem: TravelPackage): string {
+    return packageCoverUrl(packageItem);
+  }
+
+  relatedPackageTotal(packageItem: TravelPackage): number {
+    return packageItem.price * (this.itinerary?.travelerCount ?? 1);
+  }
+
+  packageComparisonAmount(packageItem: TravelPackage): number | null {
+    if (!this.itinerary || packageItem.currencyCode !== this.itinerary.currencyCode) {
+      return null;
+    }
+
+    return Math.abs(this.itinerary.estimatedTotalCost - this.relatedPackageTotal(packageItem));
+  }
+
+  isPackageSaving(packageItem: TravelPackage): boolean {
+    return packageItem.currencyCode === this.itinerary?.currencyCode &&
+      this.relatedPackageTotal(packageItem) < (this.itinerary?.estimatedTotalCost ?? 0);
+  }
+
+  packageComparisonLabel(packageItem: TravelPackage): string {
+    const difference = this.packageComparisonAmount(packageItem);
+    if (difference === null) {
+      return 'Compare in marketplace';
+    }
+    if (difference === 0) {
+      return 'Same estimated budget';
+    }
+
+    const formatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: packageItem.currencyCode,
+      maximumFractionDigits: 0
+    }).format(difference);
+
+    return this.isPackageSaving(packageItem)
+      ? `Save ${formatted}`
+      : `${formatted} more than your itinerary`;
   }
 
   dayImage(
@@ -1198,21 +1264,26 @@ export class PlannerComponent
   async addRecommendedItem(
     venue: VenueSuggestion
   ): Promise<void> {
-    if (!this.addingDayId) {
+    if (!this.addingDayId || this.isSaving) {
       return;
     }
 
-    await this.runItemRequest(
-      this.itineraryService.addRecommendedItem(
-        this.tripId,
-        {
-          dayId: this.addingDayId,
-          category: this.itemDraft.category,
-          placeId: venue.placeId,
-          orderIndex: this.itemDraft.orderIndex
-        }
-      )
-    );
+    this.savingVenueId = venue.placeId;
+    try {
+      await this.runItemRequest(
+        this.itineraryService.addRecommendedItem(
+          this.tripId,
+          {
+            dayId: this.addingDayId,
+            category: this.itemDraft.category,
+            placeId: venue.placeId,
+            orderIndex: this.itemDraft.orderIndex
+          }
+        )
+      );
+    } finally {
+      this.savingVenueId = '';
+    }
   }
 
   startEdit(
@@ -1379,6 +1450,7 @@ export class PlannerComponent
     ]);
 
     await this.loadTripRoute();
+    await this.loadRelatedPackages();
     await this.resumeGenerationIfNeeded();
   }
 
@@ -1442,6 +1514,10 @@ export class PlannerComponent
       ApiResponse<ItineraryResponse>
     >
   ): Promise<void> {
+    if (this.isSaving) {
+      return;
+    }
+
     this.errorMessage = '';
     this.isSaving = true;
 
@@ -1547,6 +1623,34 @@ export class PlannerComponent
     this.travelerCount =
       itinerary.travelerCount;
     this.isEditingPreferences = false;
+    document.body.style.overflow = '';
+
+    // The map does not exist in the DOM until an itinerary is visible. Refresh
+    // after Angular renders it so newly generated destinations appear at once.
+    window.setTimeout(() => void this.loadTripRoute(), 0);
+    window.setTimeout(() => void this.loadRelatedPackages(), 0);
+  }
+
+  private async loadRelatedPackages(): Promise<void> {
+    if (!this.trip?.destination || !this.itinerary) {
+      this.relatedPackages.set([]);
+      return;
+    }
+
+    this.relatedPackagesLoading.set(true);
+    try {
+      const result = await firstValueFrom(this.marketplaceService.list({
+        destination: this.trip.destination,
+        page: 1,
+        pageSize: 3
+      }));
+      this.relatedPackages.set(result.items);
+    } catch {
+      this.relatedPackages.set([]);
+    } finally {
+      this.relatedPackagesLoading.set(false);
+      this.cdr.markForCheck();
+    }
   }
 
   private async resumeGenerationIfNeeded(): Promise<void> {
@@ -1954,79 +2058,7 @@ export class PlannerComponent
   private destinationImage(
     source: string
   ): string {
-    const normalized = source
-      .toLocaleLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-
-    const images: Array<
-      [string[], string]
-    > = [
-        [
-          [
-            'turkey',
-            'turkiye',
-            'istanbul',
-            'izmir',
-            'antalya',
-            'cappadocia'
-          ],
-          'assets/countries/turkey.png'
-        ],
-        [
-          ['thailand', 'bangkok', 'phuket'],
-          'assets/countries/thailand.png'
-        ],
-        [
-          ['maldives', 'male'],
-          'assets/countries/maldives.png'
-        ],
-        [
-          ['dubai', 'united arab emirates', 'uae'],
-          'assets/countries/dubai.png'
-        ],
-        [
-          ['japan', 'tokyo', 'kyoto', 'osaka'],
-          'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1800&q=88&auto=format'
-        ],
-        [
-          ['france', 'paris', 'lyon', 'nice'],
-          'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1800&q=88&auto=format'
-        ],
-        [
-          ['italy', 'rome', 'florence', 'venice', 'amalfi'],
-          'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=1800&q=88&auto=format'
-        ],
-        [
-          ['egypt', 'cairo', 'luxor', 'aswan', 'hurghada', 'dahab', 'sharm'],
-          'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=1800&q=88&auto=format'
-        ],
-        [
-          ['spain', 'barcelona', 'madrid', 'seville'],
-          'https://images.unsplash.com/photo-1509840841025-9088ba78a826?w=1800&q=88&auto=format'
-        ],
-        [
-          ['morocco', 'marrakech', 'casablanca', 'fes'],
-          'https://images.unsplash.com/photo-1489493585363-d69421e0edd3?w=1800&q=88&auto=format'
-        ],
-        [
-          ['united kingdom', 'england', 'london'],
-          'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1800&q=88&auto=format'
-        ],
-        [
-          ['poland', 'krakow', 'warsaw'],
-          'https://images.unsplash.com/photo-1519197924294-4ba991a11128?w=1800&q=88&auto=format'
-        ]
-      ];
-
-    return (
-      images.find(([keys]) =>
-        keys.some((key) =>
-          normalized.includes(key)
-        )
-      )?.[1] ??
-      'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1800&q=88&auto=format'
-    );
+    return destinationImageUrl(source);
   }
 
   private applyPreferences(
@@ -2240,6 +2272,8 @@ export class PlannerComponent
 
   private drawRouteOnMap(): void {
     if (!this.map) return;
+
+    this.map.invalidateSize();
 
     // Clear existing markers and polyline
     this.mapMarkers.forEach(m => m.remove());

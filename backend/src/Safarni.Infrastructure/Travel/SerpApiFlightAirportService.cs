@@ -243,7 +243,7 @@ internal sealed class SerpApiFlightAirportService
         var normalizedCurrency = currencyCode.Trim().ToUpperInvariant();
         var cacheKey = string.Join(
             ':',
-            "flight-recommendation",
+            "flight-recommendation:v2",
             departureCode,
             arrivalCode,
             outboundDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
@@ -270,7 +270,7 @@ internal sealed class SerpApiFlightAirportService
             "&currency=" + Uri.EscapeDataString(normalizedCurrency) +
             "&adults=" + Math.Clamp(travelerCount, 1, 9)
                 .ToString(CultureInfo.InvariantCulture) +
-            "&travel_class=1&sort_by=1&hl=" +
+            "&travel_class=1&sort_by=1&deep_search=true&hl=" +
             (string.Equals(
                 languageCode,
                 "ar",
@@ -307,7 +307,7 @@ internal sealed class SerpApiFlightAirportService
                 cancellationToken: cancellationToken);
 
             var root = document.RootElement;
-            var flight = GetMatchingFlightResult(
+            var flight = SelectMatchingFlightResult(
                 root,
                 departureCode,
                 arrivalCode);
@@ -497,60 +497,115 @@ internal sealed class SerpApiFlightAirportService
                     StringSplitOptions.TrimEntries));
     }
 
-    private static JsonElement? GetMatchingFlightResult(
+    internal static JsonElement? SelectMatchingFlightResult(
         JsonElement root,
         string departureCode,
         string arrivalCode)
     {
-        foreach (var propertyName in new[] { "best_flights", "other_flights" })
+        var bestFlights = GetExactRouteCandidates(
+            root,
+            "best_flights",
+            departureCode,
+            arrivalCode);
+
+        // Google has already ranked this collection by price and convenience.
+        // Preserve that ranking whenever the API supplies it.
+        if (bestFlights.Count > 0)
         {
-            if (!root.TryGetProperty(propertyName, out var flights) ||
-                flights.ValueKind != JsonValueKind.Array)
+            return bestFlights[0];
+        }
+
+        var otherFlights = GetExactRouteCandidates(
+            root,
+            "other_flights",
+            departureCode,
+            arrivalCode);
+
+        if (otherFlights.Count == 0)
+        {
+            return null;
+        }
+
+        // Some searches do not expose a best_flights collection. In that case,
+        // never choose a result that another result beats on both price and
+        // duration (for example, a 13-hour flight at the same price as a
+        // 4-hour flight). Preserve Google's order among the remaining options.
+        return otherFlights.First(candidate =>
+            !otherFlights.Any(other => Dominates(other, candidate)));
+    }
+
+    private static List<JsonElement> GetExactRouteCandidates(
+        JsonElement root,
+        string propertyName,
+        string departureCode,
+        string arrivalCode)
+    {
+        var matches = new List<JsonElement>();
+
+        if (!root.TryGetProperty(propertyName, out var flights) ||
+            flights.ValueKind != JsonValueKind.Array)
+        {
+            return matches;
+        }
+
+        foreach (var candidate in flights.EnumerateArray())
+        {
+            if (!candidate.TryGetProperty("flights", out var legs) ||
+                legs.ValueKind != JsonValueKind.Array)
             {
                 continue;
             }
 
-            foreach (var candidate in flights.EnumerateArray())
+            var legList = legs.EnumerateArray().ToList();
+            if (legList.Count == 0)
             {
-                if (!candidate.TryGetProperty("flights", out var legs) ||
-                    legs.ValueKind != JsonValueKind.Array)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                var legList = legs.EnumerateArray().ToList();
-                if (legList.Count == 0)
-                {
-                    continue;
-                }
+            var firstAirport = GetObject(
+                legList[0],
+                "departure_airport");
+            var lastAirport = GetObject(
+                legList[^1],
+                "arrival_airport");
 
-                var firstAirport = GetObject(
-                    legList[0],
-                    "departure_airport");
-                var lastAirport = GetObject(
-                    legList[^1],
-                    "arrival_airport");
+            if (firstAirport is null || lastAirport is null)
+            {
+                continue;
+            }
 
-                if (firstAirport is null || lastAirport is null)
-                {
-                    continue;
-                }
-
-                if (string.Equals(
-                        NormalizeIata(GetString(firstAirport.Value, "id")),
-                        departureCode,
-                        StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(
-                        NormalizeIata(GetString(lastAirport.Value, "id")),
-                        arrivalCode,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    return candidate;
-                }
+            if (string.Equals(
+                    NormalizeIata(GetString(firstAirport.Value, "id")),
+                    departureCode,
+                    StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(
+                    NormalizeIata(GetString(lastAirport.Value, "id")),
+                    arrivalCode,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                matches.Add(candidate);
             }
         }
 
-        return null;
+        return matches;
+    }
+
+    private static bool Dominates(JsonElement left, JsonElement right)
+    {
+        var leftPrice = GetDecimal(left, "price");
+        var rightPrice = GetDecimal(right, "price");
+        var leftDuration = GetInt(left, "total_duration");
+        var rightDuration = GetInt(right, "total_duration");
+
+        if (leftPrice is null || rightPrice is null ||
+            leftDuration is null || rightDuration is null)
+        {
+            return false;
+        }
+
+        return leftPrice <= rightPrice &&
+               leftDuration <= rightDuration &&
+               (leftPrice < rightPrice || leftDuration < rightDuration);
     }
 
     private static bool IsIata(string? value) =>

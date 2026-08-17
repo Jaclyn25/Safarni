@@ -33,6 +33,71 @@
   min-height: 190px;
 }
 
+.preference-editor--modal > section {
+  border-radius: 28px;
+}
+
+.preference-editor--modal > section:first-child {
+  padding: 1.5rem;
+  background: var(--surface-container-lowest, #fff);
+  box-shadow: 0 24px 70px rgba(5, 16, 33, 0.22);
+}
+
+.preference-editor--modal #preferences {
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 24px 70px rgba(5, 16, 33, 0.22);
+}
+
+.trip-overview-box {
+  min-width: min(100%, 590px);
+}
+
+.trip-overview-box span {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.trip-overview-box span strong {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.trip-overview-box span small {
+  color: var(--on-surface-variant, #64748b);
+  font-size: 0.75rem;
+}
+
+.hero-trip-overview {
+  width: min(100%, 420px);
+}
+
+.hero-trip-overview span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.hero-trip-overview span strong {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.hero-trip-overview span small {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.7rem;
+}
+
+.related-packages article {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.related-packages article:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1);
+}
+
 .flight-ticket {
   position: relative;
   background:
@@ -56,6 +121,22 @@
 
 .flight-route-line {
   min-width: 6rem;
+}
+
+.flight-route-line::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: 3px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), #60a5fa 50%, var(--primary));
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.06);
+}
+
+.flight-route-line > span {
+  z-index: 1;
 }
 
 .recommendation-tray,
@@ -120,6 +201,14 @@
   .itinerary-hero::after {
     background:
       linear-gradient(0deg, rgba(5, 16, 33, 0.92) 0%, rgba(5, 16, 33, 0.4) 80%, rgba(5, 16, 33, 0.25) 100%);
+  }
+
+  .preference-editor--modal {
+    padding-inline: 0.75rem;
+  }
+
+  .preference-editor--modal > section:first-child {
+    padding: 1rem;
   }
 }
 

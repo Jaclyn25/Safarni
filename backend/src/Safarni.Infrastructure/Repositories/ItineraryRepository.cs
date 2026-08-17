@@ -94,6 +94,11 @@ internal sealed class ItineraryRepository : IItineraryRepository
         _dbContext.ItineraryItems.Remove(item);
     }
 
+    public void AddItem(ItineraryItem item)
+    {
+        _dbContext.ItineraryItems.Add(item);
+    }
+
     public Task SaveAsync(
         CancellationToken cancellationToken = default)
     {

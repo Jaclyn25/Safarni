@@ -44,7 +44,9 @@ internal static class ItineraryEntityFactory
                 CreateDay(
                     itinerary.Id,
                     generatedDay,
-                    places));
+                    places,
+                    currencyCode,
+                    travelerCount));
         }
 
         return itinerary;
@@ -53,7 +55,9 @@ internal static class ItineraryEntityFactory
     public static ItineraryDay CreateDay(
         Guid itineraryId,
         AiItineraryDay generatedDay,
-        IReadOnlyList<ItineraryPlaceCandidate> places)
+        IReadOnlyList<ItineraryPlaceCandidate> places,
+        string currencyCode = "USD",
+        int travelerCount = 1)
     {
         var day = new ItineraryDay
         {
@@ -82,6 +86,16 @@ internal static class ItineraryEntityFactory
             var hasLiveAccommodationRate =
                 category == ItineraryItemCategory.Accommodation &&
                 verifiedPlace?.TotalRate is not null;
+            var liveLocalMinimum = 0m;
+            var hasLiveLocalMinimum =
+                category != ItineraryItemCategory.Accommodation &&
+                ItineraryPriceLevelParser.TryGetMinimum(
+                    verifiedPlace?.PriceLevel,
+                    currencyCode,
+                    out liveLocalMinimum);
+            var liveLocalTotal = hasLiveLocalMinimum
+                ? liveLocalMinimum * Math.Max(1, travelerCount)
+                : (decimal?)null;
 
             day.Items.Add(new ItineraryItem
             {
@@ -114,10 +128,12 @@ internal static class ItineraryEntityFactory
 
                 EstimatedCost = hasLiveAccommodationRate
                     ? verifiedPlace!.TotalRate
-                    : generatedItem.EstimatedCost,
+                    : liveLocalTotal ?? generatedItem.EstimatedCost,
                 CostSource = hasLiveAccommodationRate
                     ? "live_hotel_rate"
-                    : "planning_estimate",
+                    : hasLiveLocalMinimum
+                        ? "live_price_level_minimum"
+                        : "planning_estimate",
                 OrderIndex = day.Items.Count
             });
         }

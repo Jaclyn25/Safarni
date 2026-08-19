@@ -74,6 +74,12 @@ export class CommunityComponent implements OnInit, OnDestroy {
     return !!this.authService.getCurrentUser();
   }
 
+  isOwnPost(post: CommunityPost): boolean {
+    const currentUser = this.authService.getCurrentUser();
+    return !!currentUser
+      && post.author.userId.trim().toLowerCase() === currentUser.userId.trim().toLowerCase();
+  }
+
   loadFeed(): void {
     this.isLoading.set(true);
     this.isPublicTripsLoading.set(true);
@@ -242,6 +248,12 @@ export class CommunityComponent implements OnInit, OnDestroy {
     } catch {
       this.errorMessage.set('Like could not be updated. Please try again.');
     }
+  }
+
+  editPost(event: Event, post: CommunityPost): void {
+    event.stopPropagation();
+    if (!this.isOwnPost(post)) return;
+    void this.router.navigate(['/community', post.id], { queryParams: { edit: 'true' } });
   }
 
   async toggleSave(event: Event, post: CommunityPost): Promise<void> {

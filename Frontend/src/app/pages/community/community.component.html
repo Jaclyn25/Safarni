@@ -111,6 +111,10 @@
             <span>{{ timeAgo(post.createdAt) }}<span *ngIf="post.destination"> · {{ post.destination }}</span></span>
           </div>
           <span class="post-type"><span class="material-symbols-outlined">{{ postTypeIcon(post.type) }}</span>{{ postTypeLabel(post.type) }}</span>
+          <button *ngIf="isOwnPost(post)" type="button" class="post-edit-button" (click)="editPost($event, post)" aria-label="Edit post" title="Edit post">
+            <span class="material-symbols-outlined">edit</span>
+            <span class="post-edit-label">Edit</span>
+          </button>
         </div>
 
         <a class="post-content" [routerLink]="['/community', post.id]">

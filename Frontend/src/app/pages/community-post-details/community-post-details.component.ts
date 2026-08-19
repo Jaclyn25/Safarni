@@ -68,7 +68,9 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
   get canEdit(): boolean {
     const currentPost = this.post();
     const currentUser = this.authService.getCurrentUser();
-    return !!currentPost && !!currentUser && currentPost.author.userId === currentUser.userId;
+    return !!currentPost
+      && !!currentUser
+      && currentPost.author.userId.trim().toLowerCase() === currentUser.userId.trim().toLowerCase();
   }
 
   rootComments(): CommunityComment[] {
@@ -86,6 +88,9 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
       next: response => {
         this.post.set(response.data ?? null);
         this.isLoading.set(false);
+        if (this.route.snapshot.queryParamMap.get('edit') === 'true') {
+          this.openEdit();
+        }
       },
       error: error => {
         this.errorMessage.set(error?.error?.message || 'We could not load this post.');

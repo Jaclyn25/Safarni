@@ -5,19 +5,28 @@
       <h1>Travel is better when it is shared.</h1>
       <p class="hero-copy">Stories, honest questions, and practical tips from travelers who have been there.</p>
       <div class="hero-signals" aria-label="Community activity">
-        <span><strong>{{ publicTrips().length }}</strong> public journeys</span>
-        <span><strong>{{ posts().length }}</strong> fresh stories</span>
+        <span><span class="material-symbols-outlined">auto_stories</span> Real traveler stories</span>
+        <span><span class="material-symbols-outlined">forum</span> Helpful answers</span>
+        <span><span class="material-symbols-outlined">favorite</span> Kind advice</span>
+      </div>
+      <div class="hero-actions">
+        <div class="hero-prompt">
+          <span class="material-symbols-outlined">auto_awesome</span>
+          <span>Have a place worth sharing?</span>
+        </div>
+        <button type="button" class="primary-button" (click)="openComposer()">
+          <span class="material-symbols-outlined">add</span>
+          Share a story
+        </button>
       </div>
     </div>
-    <div class="hero-actions">
-      <div class="hero-prompt">
-        <span class="material-symbols-outlined">auto_awesome</span>
-        <span>Have a place worth sharing?</span>
+    <div class="hero-visual" aria-hidden="true">
+      <img src="assets/public/journal-featured.jpg" alt="" />
+      <div class="hero-visual__wash"></div>
+      <div class="hero-visual__caption">
+        <span class="material-symbols-outlined">explore</span>
+        <span>Good stories travel far</span>
       </div>
-      <button type="button" class="primary-button" (click)="openComposer()">
-        <span class="material-symbols-outlined">add</span>
-        Share a story
-      </button>
     </div>
   </section>
 
@@ -58,11 +67,11 @@
         <div class="filter-area">
           <span class="filter-label">Browse the feed</span>
           <div class="filter-tabs" role="tablist" aria-label="Post type">
-            <button type="button" [class.active]="selectedType === ''" (click)="selectedType = ''; loadFeed()">All posts</button>
-            <button type="button" [class.active]="selectedType === 'Question'" (click)="selectedType = 'Question'; loadFeed()">Questions</button>
-            <button type="button" [class.active]="selectedType === 'TravelStory'" (click)="selectedType = 'TravelStory'; loadFeed()">Stories</button>
-            <button type="button" [class.active]="selectedType === 'Vlog'" (click)="selectedType = 'Vlog'; loadFeed()">Vlogs</button>
-            <button type="button" [class.active]="selectedType === 'Recommendation'" (click)="selectedType = 'Recommendation'; loadFeed()">Tips</button>
+            <button type="button" role="tab" [attr.aria-selected]="selectedType === ''" [class.active]="selectedType === ''" (click)="selectedType = ''; loadFeed()">All posts</button>
+            <button type="button" role="tab" [attr.aria-selected]="selectedType === 'Question'" [class.active]="selectedType === 'Question'" (click)="selectedType = 'Question'; loadFeed()">Questions</button>
+            <button type="button" role="tab" [attr.aria-selected]="selectedType === 'TravelStory'" [class.active]="selectedType === 'TravelStory'" (click)="selectedType = 'TravelStory'; loadFeed()">Stories</button>
+            <button type="button" role="tab" [attr.aria-selected]="selectedType === 'Vlog'" [class.active]="selectedType === 'Vlog'" (click)="selectedType = 'Vlog'; loadFeed()">Vlogs</button>
+            <button type="button" role="tab" [attr.aria-selected]="selectedType === 'Recommendation'" [class.active]="selectedType === 'Recommendation'" (click)="selectedType = 'Recommendation'; loadFeed()">Tips</button>
           </div>
         </div>
         <label class="destination-filter">
@@ -91,7 +100,7 @@
         <button type="button" class="secondary-button" (click)="openComposer()">Create a post</button>
       </div>
 
-      <article class="post-card" *ngFor="let post of posts()">
+      <article class="post-card" *ngFor="let post of posts()" [attr.id]="'post-' + post.id">
         <div class="post-header">
           <div class="avatar" aria-hidden="true">
             <img *ngIf="post.author.profilePhotoUrl" [src]="post.author.profilePhotoUrl" [alt]="post.author.displayName" />

@@ -31,12 +31,6 @@
           Create Trip
         </a>
 
-        <a routerLink="/concierge" routerLinkActive="active-link"
-          class="nav-link">
-          <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
-          Concierge
-        </a>
-
         <a routerLink="/marketplace" routerLinkActive="active-link"
           class="nav-link">
           <span class="material-symbols-outlined text-[18px]">storefront</span>
@@ -68,8 +62,9 @@
         <!-- User Profile Menu -->
         <div class="relative">
           <button type="button" (click)="toggleUserMenu($event)" [attr.aria-expanded]="isUserMenuOpen"
-            aria-haspopup="menu" aria-label="Open account menu"
-            class="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-full hover:bg-surface-container-high transition-all duration-200 group">
+            aria-haspopup="menu" [attr.aria-label]="'Open account menu for ' + displayName"
+            [attr.title]="displayName"
+            class="flex items-center gap-1 pl-1 pr-1.5 py-1 rounded-full hover:bg-surface-container-high transition-all duration-200 group">
 
             <div
               class="relative h-8 w-8 rounded-full overflow-hidden flex items-center justify-center font-semibold text-white text-sm transition-shadow duration-200 group-hover:shadow-md"
@@ -83,15 +78,6 @@
               <span *ngIf="isAdmin" class="material-symbols-outlined" style="font-size: 16px">admin_panel_settings</span>
               <span *ngIf="isAgency" class="material-symbols-outlined" style="font-size: 16px">space_dashboard</span>
               <span *ngIf="!isAdmin && !isAgency && !avatarUrl">{{ userInitial }}</span>
-            </div>
-
-            <div *ngIf="!isAdmin && !isAgency" class="flex flex-col items-start">
-              <span class="text-label-sm font-semibold text-on-surface leading-tight">
-                {{ displayName }}
-              </span>
-              <span class="text-[11px] text-on-surface-variant/70 leading-tight">
-                {{ displayEmail }}
-              </span>
             </div>
 
             <span class="material-symbols-outlined text-[16px] text-on-surface-variant/50 group-hover:text-on-surface-variant transition-transform"
@@ -198,11 +184,6 @@
         class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
         <span class="material-symbols-outlined text-[20px]">add_circle</span>
         Create Trip
-      </a>
-      <a routerLink="/concierge" routerLinkActive="active-link" (click)="isMobileMenuOpen = false"
-        class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">
-        <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
-        Concierge
       </a>
       <a routerLink="/marketplace" routerLinkActive="active-link" (click)="isMobileMenuOpen = false"
         class="min-h-[44px] flex items-center gap-3 rounded-xl px-3 text-label-md font-label-md text-on-surface hover:bg-surface-container-high transition-colors">

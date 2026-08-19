@@ -10,25 +10,23 @@
 
 .community-hero {
   position: relative;
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 2rem;
-  min-height: 250px;
+  display: block;
+  min-height: 330px;
   margin-bottom: 1.75rem;
-  padding: 2.2rem 2.3rem 2.35rem;
+  padding: 2.6rem 2.65rem 2.5rem;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--outline-variant));
   border-radius: 1.6rem;
   background:
-    radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--primary) 25%, transparent) 0, transparent 33%),
-    linear-gradient(135deg, color-mix(in srgb, var(--surface-container-low) 94%, var(--primary)), var(--surface-container-lowest));
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--primary) 16%, transparent) 0, transparent 35%),
+    linear-gradient(105deg, var(--surface-container-low) 0%, color-mix(in srgb, var(--surface-container-low) 92%, var(--primary)) 62%, var(--surface-container-lowest) 100%);
   box-shadow: 0 18px 45px color-mix(in srgb, var(--on-background) 9%, transparent);
+  isolation: isolate;
 }
 
 .community-hero::after {
   position: absolute;
-  right: 8%;
+  inset-inline-end: 38%;
   bottom: -7rem;
   width: 15rem;
   height: 15rem;
@@ -38,6 +36,51 @@
   pointer-events: none;
 }
 
+.hero-visual {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 0;
+  width: 43%;
+  overflow: hidden;
+  background: var(--surface-container);
+}
+
+.hero-visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(.9) contrast(.96);
+}
+
+.hero-visual__wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--surface-container-low) 0%, color-mix(in srgb, var(--surface-container-low) 70%, transparent) 22%, color-mix(in srgb, var(--surface-container-low) 12%, transparent) 78%, transparent 100%);
+}
+
+.hero-visual__caption {
+  position: absolute;
+  inset-inline-end: 1.25rem;
+  bottom: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .45rem .65rem;
+  border: 1px solid color-mix(in srgb, var(--surface-container-lowest) 60%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--on-background) 58%, transparent);
+  color: var(--surface-container-lowest);
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .01em;
+}
+
+.hero-visual__caption .material-symbols-outlined {
+  font-size: 1rem;
+}
+
 .hero-copy-block,
 .hero-actions {
   position: relative;
@@ -45,7 +88,10 @@
 }
 
 .hero-copy-block {
-  max-width: 620px;
+  position: relative;
+  z-index: 1;
+  max-width: 650px;
+  padding-inline-end: 2rem;
 }
 
 .eyebrow {
@@ -89,23 +135,30 @@
 }
 
 .hero-signals span {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
   padding: .45rem .7rem;
   border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--outline-variant));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-container-lowest) 58%, transparent);
+  background: color-mix(in srgb, var(--surface-container-lowest) 68%, transparent);
   color: var(--on-surface-variant);
   font-size: .72rem;
+  font-weight: 700;
 }
 
-.hero-signals strong {
-  margin-inline-end: .2rem;
-  color: var(--on-surface);
+.hero-signals .material-symbols-outlined {
+  color: var(--primary);
+  font-size: 1rem;
 }
 
 .hero-actions {
+  position: relative;
+  z-index: 1;
   display: grid;
-  justify-items: end;
+  justify-items: start;
   gap: .8rem;
+  margin-top: 1.55rem;
 }
 
 .hero-prompt {
@@ -133,9 +186,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding: .75rem .1rem .9rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 55%, transparent);
+  margin-bottom: 1.25rem;
+  padding: .85rem;
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 62%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--surface-container-low) 70%, var(--surface-container-lowest));
 }
 
 .filter-area {
@@ -156,6 +211,11 @@
   display: flex;
   gap: .25rem;
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filter-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .filter-tabs button,
@@ -192,7 +252,8 @@
   display: flex;
   align-items: center;
   gap: .45rem;
-  min-width: 155px;
+  min-width: 180px;
+  min-height: 2.35rem;
   padding: .45rem .7rem;
   border: 1px solid var(--outline-variant);
   border-radius: .8rem;
@@ -482,6 +543,11 @@
   color: var(--on-surface);
   font-size: 1.35rem;
   line-height: 1.25;
+  transition: color .18s ease-out;
+}
+
+.post-content:hover h2 {
+  color: var(--primary);
 }
 
 .post-content p {
@@ -557,6 +623,11 @@
 
 .read-link .material-symbols-outlined {
   font-size: 1rem;
+  transition: transform .18s ease-out;
+}
+
+.read-link:hover .material-symbols-outlined {
+  transform: translateX(2px);
 }
 
 .community-aside {
@@ -700,6 +771,11 @@
   display: grid;
   justify-items: center;
   gap: .75rem;
+  min-height: 12rem;
+  box-sizing: border-box;
+  border: 1px dashed color-mix(in srgb, var(--outline-variant) 72%, transparent);
+  border-radius: 1.15rem;
+  background: color-mix(in srgb, var(--surface-container-low) 55%, transparent);
   padding: 4rem 1.5rem;
   color: var(--on-surface-variant);
   text-align: center;
@@ -720,10 +796,16 @@
   height: .8rem;
   border-radius: 1rem;
   background: var(--surface-container-high);
+  animation: community-skeleton 1.35s ease-in-out infinite alternate;
 }
 
 .skeleton-line.wide { width: 92%; height: 1.4rem; }
 .skeleton-line.short { width: 46%; }
+
+@keyframes community-skeleton {
+  from { opacity: .55; }
+  to { opacity: 1; }
+}
 
 .composer-backdrop {
   position: fixed;
@@ -973,6 +1055,8 @@
 }
 
 @media (max-width: 850px) {
+  .hero-visual { width: 38%; }
+  .hero-copy-block { max-width: 62%; padding-inline-end: 1rem; }
   .community-layout { grid-template-columns: 1fr; }
   .community-aside { position: static; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 }
@@ -980,6 +1064,9 @@
 @media (max-width: 620px) {
   .community-page { padding: 1.25rem .85rem 4rem; }
   .community-hero { display: block; min-height: 0; padding: 1.5rem; }
+  .hero-copy-block { max-width: none; padding-inline-end: 0; }
+  .hero-visual { position: relative; inset: auto; width: auto; height: 8rem; margin: 1.5rem -1.5rem -1.5rem; }
+  .hero-visual__wash { background: linear-gradient(180deg, var(--surface-container-low) 0%, color-mix(in srgb, var(--surface-container-low) 5%, transparent) 62%, transparent 100%); }
   .hero-actions { justify-items: start; margin-top: 1.5rem; }
   .hero-signals { margin-top: 1rem; }
   .feed-toolbar { display: block; }

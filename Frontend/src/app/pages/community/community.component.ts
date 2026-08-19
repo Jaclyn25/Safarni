@@ -76,8 +76,12 @@ export class CommunityComponent implements OnInit, OnDestroy {
 
   isOwnPost(post: CommunityPost): boolean {
     const currentUser = this.authService.getCurrentUser();
-    return !!currentUser
-      && post.author.userId.trim().toLowerCase() === currentUser.userId.trim().toLowerCase();
+    const authorId = post?.author?.userId;
+    const currentUserId = currentUser?.userId;
+    return typeof authorId === 'string'
+      && typeof currentUserId === 'string'
+      && authorId.trim().length > 0
+      && authorId.trim().toLowerCase() === currentUserId.trim().toLowerCase();
   }
 
   loadFeed(): void {

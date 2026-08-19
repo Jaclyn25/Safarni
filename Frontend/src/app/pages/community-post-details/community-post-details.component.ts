@@ -68,9 +68,12 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
   get canEdit(): boolean {
     const currentPost = this.post();
     const currentUser = this.authService.getCurrentUser();
-    return !!currentPost
-      && !!currentUser
-      && currentPost.author.userId.trim().toLowerCase() === currentUser.userId.trim().toLowerCase();
+    const authorId = currentPost?.author?.userId;
+    const currentUserId = currentUser?.userId;
+    return typeof authorId === 'string'
+      && typeof currentUserId === 'string'
+      && authorId.trim().length > 0
+      && authorId.trim().toLowerCase() === currentUserId.trim().toLowerCase();
   }
 
   rootComments(): CommunityComment[] {

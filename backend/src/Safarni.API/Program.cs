@@ -10,6 +10,7 @@ using Safarni.Infrastructure;
 using Safarni.Infrastructure.Persistence;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
 
 
@@ -223,6 +224,13 @@ if (app.Environment.IsDevelopment())
 
 
 app.UseDefaultFiles();
+var persistentUploadsRoot = Path.Combine(app.Environment.ContentRootPath, "App_Data", "uploads");
+Directory.CreateDirectory(persistentUploadsRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(persistentUploadsRoot),
+    RequestPath = "/uploads"
+});
 app.UseStaticFiles();
 
 

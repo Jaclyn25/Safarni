@@ -86,7 +86,7 @@ jobs:
           port: 21
           local-dir: ./publish-offline/
           server-dir: ./wwwroot/
-          # Runtime uploads and private files must survive the offline-marker sync too.
+          # Runtime uploads (including persistent App_Data images) and private files must survive the offline-marker sync too.
           exclude: |
             **/.git*
             **/.git*/**

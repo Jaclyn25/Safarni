@@ -40,7 +40,7 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
 
     public string ModelName =>
         _configuration[$"{ConfigurationSection}:Model"] ??
-        "gemini-3.5-flash";
+        "gemini-3.6-flash";
 
     public Task<string> GetChatCompletionAsync(
         string systemPrompt,
@@ -263,7 +263,7 @@ public sealed class GeminiItineraryAIProvider : IItineraryAIProvider
             apiKey.Trim(),
             baseUrl.TrimEnd('/'),
             _configuration[$"{ConfigurationSection}:Model"] ??
-                "gemini-3.5-flash",
+                "gemini-3.6-flash",
             ParseDouble("Temperature", 0.2),
             ParseInt("MaxOutputTokens", 6000),
             ParseDouble("TopP", 0.9),

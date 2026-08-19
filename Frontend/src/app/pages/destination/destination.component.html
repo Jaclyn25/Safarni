@@ -1,440 +1,509 @@
-<main class="pb-28 md:pb-16 bg-background text-on-background">
+<main class="min-h-screen bg-background pb-24 text-on-background md:pb-16">
+  <!-- Destination hero -->
+  <section class="relative isolate overflow-hidden bg-slate-950 text-white">
+    <img [src]="destination.heroImage" [alt]="destination.country"
+      class="absolute inset-0 -z-20 h-full w-full object-cover" fetchpriority="high" />
+    <div class="absolute inset-0 -z-10 bg-gradient-to-r from-black/80 via-black/50 to-black/20"></div>
+    <div class="absolute inset-0 -z-10 bg-gradient-to-t from-black/65 via-transparent to-black/10"></div>
 
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 1: Destination Hero                    -->
-  <!-- ═══════════════════════════════════════════════ -->
-  <section class="relative min-h-[500px] md:min-h-[560px] flex items-end justify-center overflow-hidden">
-    <!-- Hero Image Background -->
-    <img
-      [src]="destination.heroImage"
-      [alt]="destination.country"
-      class="absolute inset-0 w-full h-full object-cover"
-    />
-    <!-- Gradient Overlay for Contrast -->
-    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/20"></div>
-
-    <!-- Content Container -->
-    <div class="relative z-10 w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-12 text-white">
-
-      <!-- Breadcrumb Back Link -->
-      <div class="mb-6">
-        <a routerLink="/" class="inline-flex items-center gap-2 text-white/90 hover:text-white text-label-md transition-colors bg-black/40 backdrop-blur px-3.5 py-1.5 rounded-full border border-white/20">
+    <div
+      class="mx-auto flex min-h-[540px] max-w-container-max items-end px-margin-mobile pb-12 pt-28 md:px-margin-desktop md:pb-16">
+      <div class="w-full max-w-4xl">
+        <a routerLink="/"
+          class="mb-6 inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/25 px-4 py-2 text-label-md font-semibold text-white backdrop-blur-md transition hover:bg-black/40">
           <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-          <span>Back to Explore</span>
+          Back to Explore
+        </a>
+
+        <div class="mb-4 flex flex-wrap gap-2">
+          @for (tag of destination.tags; track tag) {
+          <span
+            class="rounded-full border border-white/25 bg-white/15 px-3 py-1 text-label-sm font-bold text-white backdrop-blur-sm">
+            {{ tag }}
+          </span>
+          }
+        </div>
+
+        <h1 class="font-heading text-4xl font-bold tracking-tight text-white md:text-6xl">
+          {{ destination.country }}
+        </h1>
+        <p class="mt-4 max-w-3xl text-lg leading-8 text-white/90 md:text-xl">
+          {{ destination.tagline }}
+        </p>
+        <p class="mt-4 max-w-3xl text-body-md leading-7 text-white/75">
+          {{ destination.description }}
+        </p>
+
+        <div class="mt-8 flex flex-wrap gap-3">
+          <button type="button" (click)="onCreateTrip()"
+            class="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-label-lg font-bold text-on-primary shadow-lg transition hover:bg-primary/90 active:scale-[0.98]">
+            <span class="material-symbols-outlined text-[20px]">route</span>
+            Plan {{ destination.country }} with Safarni
+          </button>
+
+          <button type="button" (click)="onAskAi()"
+            class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-label-lg font-bold text-white backdrop-blur-md transition hover:bg-white/20 active:scale-[0.98]">
+            <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+            Ask Concierge
+          </button>
+
+          <a href="#agency-packages"
+            class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-black/20 px-5 py-3 text-label-lg font-bold text-white backdrop-blur-md transition hover:bg-black/35">
+            <span class="material-symbols-outlined text-[20px]">verified</span>
+            See real agency packages
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick destination information -->
+  <section class="mx-auto max-w-container-max px-margin-mobile py-stack-lg md:px-margin-desktop">
+    <div class="mb-6">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">info</span>
+        <h2 class="text-headline-sm font-bold">Destination snapshot</h2>
+      </div>
+      <p class="mt-1 text-body-sm text-on-surface-variant">
+        Planning context only — bookable prices appear only in the verified-agency section.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <article class="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5 shadow-sm">
+        <span class="material-symbols-outlined text-primary">calendar_month</span>
+        <p class="mt-4 text-label-sm font-bold uppercase tracking-wide text-on-surface-variant">Best time to visit</p>
+        <p class="mt-1 font-bold text-on-background">{{ destination.quickInfo.bestTimeToVisit }}</p>
+      </article>
+
+      <article class="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5 shadow-sm">
+        <span class="material-symbols-outlined text-primary">schedule</span>
+        <p class="mt-4 text-label-sm font-bold uppercase tracking-wide text-on-surface-variant">Suggested length</p>
+        <p class="mt-1 font-bold text-on-background">{{ destination.quickInfo.suggestedLength }}</p>
+      </article>
+
+      <article class="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5 shadow-sm">
+        <span class="material-symbols-outlined text-primary">payments</span>
+        <p class="mt-4 text-label-sm font-bold uppercase tracking-wide text-on-surface-variant">Currency</p>
+        <p class="mt-1 font-bold text-on-background">{{ destination.quickInfo.currency }}</p>
+      </article>
+
+      <article class="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5 shadow-sm">
+        <span class="material-symbols-outlined text-primary">translate</span>
+        <p class="mt-4 text-label-sm font-bold uppercase tracking-wide text-on-surface-variant">Language</p>
+        <p class="mt-1 font-bold text-on-background">{{ destination.quickInfo.language }}</p>
+      </article>
+
+      <article class="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5 shadow-sm">
+        <span class="material-symbols-outlined text-primary">partly_cloudy_day</span>
+        <p class="mt-4 text-label-sm font-bold uppercase tracking-wide text-on-surface-variant">Weather</p>
+        <p class="mt-1 font-bold text-on-background">{{ destination.quickInfo.weatherVibe }}</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Places to explore -->
+  @if (destination.topPlaces.length > 0) {
+  <section class="mx-auto max-w-container-max px-margin-mobile py-stack-lg md:px-margin-desktop">
+    <div class="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">map</span>
+          <h2 class="text-headline-sm font-bold">Places to explore</h2>
+        </div>
+        <p class="mt-1 text-body-sm text-on-surface-variant">
+          Inspiration for the route — not pre-sold itinerary items.
+        </p>
+      </div>
+      <button type="button" (click)="onCreateTrip()"
+        class="inline-flex items-center gap-2 self-start text-label-md font-bold text-primary hover:underline md:self-auto">
+        Build my own route
+        <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      @for (place of destination.topPlaces; track place.name) {
+      <article
+        class="group overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface-container-lowest shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+        <div class="h-48 overflow-hidden">
+          <img [src]="place.image" [alt]="place.name"
+            class="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+        </div>
+        <div class="p-5">
+          <div class="mb-3 flex flex-wrap gap-1.5">
+            @for (item of place.suitableFor; track item) {
+            <span class="rounded-md bg-primary/10 px-2 py-1 text-label-sm font-semibold text-primary">
+              {{ item }}
+            </span>
+            }
+          </div>
+          <h3 class="text-body-lg font-bold text-on-background">{{ place.name }}</h3>
+          <p class="mt-2 text-body-sm leading-6 text-on-surface-variant">{{ place.description }}</p>
+          <button type="button"
+            (click)="onAskAi('Tell me how ' + place.name + ' could fit into a trip to ' + destination.country + '. Ask about my dates and travel style before recommending how long to spend there.')"
+            class="mt-4 inline-flex items-center gap-1.5 text-label-md font-bold text-primary hover:underline">
+            Ask about this place
+            <span class="material-symbols-outlined text-[17px]">arrow_forward</span>
+          </button>
+        </div>
+      </article>
+      }
+    </div>
+  </section>
+  }
+
+  <!-- Experience styles: replaces fake ready-made itineraries -->
+  <section class="mx-auto max-w-container-max px-margin-mobile py-stack-lg md:px-margin-desktop">
+    <div class="mb-6">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">travel</span>
+        <h2 class="text-headline-sm font-bold">Ways to experience {{ destination.country }}</h2>
+      </div>
+      <p class="mt-1 max-w-2xl text-body-sm text-on-surface-variant">
+        These are planning directions, not packages. Pick a style and continue into Safarni’s real trip-creation flow.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+      @for (idea of destination.experienceIdeas; track idea.id) {
+      <article
+        class="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-sm transition hover:border-primary/35 hover:shadow-md">
+        <span class="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
+          <span class="material-symbols-outlined">{{ idea.icon }}</span>
+        </span>
+        <h3 class="mt-5 text-headline-sm font-bold text-on-background">{{ idea.title }}</h3>
+        <p class="mt-2 text-body-sm leading-6 text-on-surface-variant">{{ idea.description }}</p>
+        <button type="button" (click)="onCreateTrip(idea.tripName)"
+          class="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-label-md font-bold text-on-primary transition hover:bg-primary/90 active:scale-[0.98]">
+          Start planning this style
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </button>
+      </article>
+      }
+    </div>
+  </section>
+
+  <!-- Real community trips -->
+  <section class="mx-auto max-w-container-max px-margin-mobile py-stack-lg md:px-margin-desktop">
+    <div class="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">groups</span>
+          <h2 class="text-headline-sm font-bold">Trips from the Safarni community</h2>
+        </div>
+        <p class="mt-1 text-body-sm text-on-surface-variant">
+          Real published trips from travelers — view them for inspiration and copy them from the trip details page.
+        </p>
+      </div>
+      <a routerLink="/public-trips"
+        class="inline-flex items-center gap-2 self-start text-label-md font-bold text-primary hover:underline md:self-auto">
+        Browse community
+        <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+      </a>
+    </div>
+
+    @if (isLoadingCommunityTrips) {
+    <div class="grid grid-cols-1 gap-5 md:grid-cols-3" aria-label="Loading community trips">
+      @for (placeholder of [1, 2, 3]; track placeholder) {
+      <div class="h-56 animate-pulse rounded-2xl bg-surface-container"></div>
+      }
+    </div>
+    } @else if (communityError) {
+    <div class="rounded-2xl border border-error/20 bg-error/5 p-6">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-error">error_outline</span>
+        <div>
+          <h3 class="font-bold text-on-background">Community trips are temporarily unavailable</h3>
+          <p class="mt-1 text-body-sm text-on-surface-variant">{{ communityError }}</p>
+          <button type="button" (click)="retryCommunityTrips()"
+            class="mt-3 text-label-md font-bold text-primary hover:underline">
+            Try again
+          </button>
+        </div>
+      </div>
+    </div>
+    } @else if (communityTrips.length === 0) {
+    <div class="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-8 text-center">
+      <span class="material-symbols-outlined text-4xl text-primary">public</span>
+      <h3 class="mt-3 text-headline-sm font-bold">No published {{ destination.country }} trips yet</h3>
+      <p class="mx-auto mt-2 max-w-xl text-body-sm text-on-surface-variant">
+        Be the traveler who plans a great trip and later chooses to share it with the community.
+      </p>
+      <button type="button" (click)="onCreateTrip()"
+        class="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-label-md font-bold text-on-primary">
+        Plan my trip
+        <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+      </button>
+    </div>
+    } @else {
+    <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+      @for (trip of communityTrips; track trip.versionId) {
+      <article
+        class="flex h-full flex-col justify-between rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+        <div>
+          <div class="flex items-center justify-between gap-3">
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full bg-secondary-container px-3 py-1 text-label-sm font-bold text-on-secondary-container">
+              <span class="material-symbols-outlined text-[15px]">person</span>
+              Community trip
+            </span>
+            @if (trip.isNewTrip) {
+            <span class="rounded-full bg-primary/10 px-2.5 py-1 text-label-sm font-bold text-primary">New</span>
+            }
+          </div>
+
+          <h3 class="mt-4 text-headline-sm font-bold text-on-background">{{ trip.tripName }}</h3>
+          <p class="mt-1 text-body-sm text-on-surface-variant">by {{ trip.authorName }}</p>
+
+          <div class="mt-5 grid grid-cols-2 gap-3 text-label-sm text-on-surface-variant">
+            <span class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[17px] text-primary">schedule</span>
+              {{ trip.durationDays }} days
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[17px] text-primary">calendar_month</span>
+              {{ communityTripDateRange(trip) }}
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[17px] text-primary">favorite</span>
+              {{ trip.likesCount }} likes
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[17px] text-primary">star</span>
+              {{ trip.averageRating > 0 ? (trip.averageRating | number:'1.1-1') : 'New' }}
+            </span>
+          </div>
+        </div>
+
+        <a [routerLink]="['/public-trips', trip.versionId]"
+          class="mt-6 inline-flex items-center justify-between rounded-xl bg-surface-container px-4 py-3 text-label-md font-bold text-on-background transition hover:bg-primary hover:text-on-primary">
+          View published trip
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </a>
+      </article>
+      }
+    </div>
+    }
+  </section>
+
+  <!-- Real marketplace packages -->
+  <section id="agency-packages" class="scroll-mt-24 bg-surface-container-low py-stack-lg">
+    <div class="mx-auto max-w-container-max px-margin-mobile md:px-margin-desktop">
+      <div class="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">verified</span>
+            <h2 class="text-headline-sm font-bold">Packages from verified travel agencies</h2>
+          </div>
+          <p class="mt-1 max-w-2xl text-body-sm text-on-surface-variant">
+            This is the commercial part of the page. Every card below comes from Safarni’s real marketplace API — with a
+            real agency, dates, seats and package price.
+          </p>
+        </div>
+        <a routerLink="/marketplace"
+          class="inline-flex items-center gap-2 self-start text-label-md font-bold text-primary hover:underline md:self-auto">
+          Open full marketplace
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
         </a>
       </div>
 
-      <!-- Country Badges -->
-      <div class="flex flex-wrap items-center gap-2 mb-4">
-        @for (tag of destination.tags; track tag) {
-          <span class="px-3 py-1 rounded-full bg-white/20 backdrop-blur text-white text-label-sm font-semibold border border-white/25">
-            {{ tag }}
-          </span>
+      @if (isLoadingPackages) {
+      <div class="grid grid-cols-1 gap-5 md:grid-cols-3" aria-label="Loading agency packages">
+        @for (placeholder of [1, 2, 3]; track placeholder) {
+        <div class="h-[390px] animate-pulse rounded-2xl bg-surface-container-high"></div>
         }
       </div>
-
-      <!-- Title & Tagline -->
-      <h1 class="text-display-lg-mobile md:text-display-lg font-bold text-white mb-3 tracking-tight">
-        {{ destination.country }}
-      </h1>
-      <p class="text-headline-sm text-white/90 max-w-2xl mb-6 font-normal">
-        {{ destination.tagline }}
-      </p>
-
-      <!-- Price & Action Buttons -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-6 border-t border-white/20">
+      } @else if (packageError) {
+      <div class="rounded-2xl border border-error/20 bg-surface-container-lowest p-6">
+        <div class="flex items-start gap-3">
+          <span class="material-symbols-outlined text-error">error_outline</span>
+          <div>
+            <h3 class="font-bold text-on-background">Agency packages are temporarily unavailable</h3>
+            <p class="mt-1 text-body-sm text-on-surface-variant">{{ packageError }}</p>
+            <button type="button" (click)="retryPackages()"
+              class="mt-3 text-label-md font-bold text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+      } @else if (agencyPackages.length === 0) {
+      <div
+        class="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-8 md:flex md:items-center md:justify-between md:gap-8">
         <div>
-          <span class="text-label-md text-white/80 block">Estimated Starting Price</span>
-          <span class="text-headline-md md:text-display-sm font-bold text-white">
-            From ${{ destination.priceFrom }} <span class="text-body-md font-normal text-white/80">/ trip</span>
+          <span
+            class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-label-sm font-bold text-primary">
+            <span class="material-symbols-outlined text-[16px]">verified_user</span>
+            Marketplace truth first
           </span>
+          <h3 class="mt-4 text-headline-sm font-bold">No verified-agency packages for {{ destination.country }} right
+            now</h3>
+          <p class="mt-2 max-w-2xl text-body-sm leading-6 text-on-surface-variant">
+            Safarni will not invent a package just to fill this space. You can still build a personalized trip or browse
+            other destinations in the marketplace.
+          </p>
         </div>
-
-        <div class="flex flex-wrap items-center gap-3">
-          <button
-            (click)="onCreateTrip()"
-            class="bg-primary text-on-primary font-bold py-3.5 px-8 rounded-xl shadow-xl hover:bg-primary/90 transition-all active:scale-95 flex items-center gap-2 text-label-lg"
-          >
-            <span class="material-symbols-outlined text-[20px]">add_location_alt</span>
-            <span>Create Trip</span>
+        <div class="mt-5 flex shrink-0 flex-wrap gap-3 md:mt-0">
+          <button type="button" (click)="onCreateTrip()"
+            class="rounded-xl bg-primary px-5 py-2.5 text-label-md font-bold text-on-primary">
+            Build my trip
           </button>
-
-          <button
-            (click)="onAskAi()"
-            class="bg-white/20 backdrop-blur border border-white/30 text-white font-semibold py-3.5 px-6 rounded-xl hover:bg-white/30 transition-all active:scale-95 flex items-center gap-2 text-label-lg"
-          >
-            <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
-            <span>Ask AI about {{ destination.country }}</span>
-          </button>
+          <a routerLink="/marketplace"
+            class="rounded-xl border border-outline-variant/30 bg-surface-container-lowest px-5 py-2.5 text-label-md font-bold text-on-background">
+            Browse marketplace
+          </a>
         </div>
       </div>
-
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 2: Quick Info Essential Travel Guide   -->
-  <!-- ═══════════════════════════════════════════════ -->
-  <section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg">
-    <div class="mb-stack-md">
-      <h2 class="text-headline-sm font-bold text-on-background flex items-center gap-2">
-        <span class="material-symbols-outlined text-primary">info</span>
-        <span>Essential Travel Info</span>
-      </h2>
-      <p class="text-label-md text-on-surface-variant">Everything you need to know before booking your flight</p>
-    </div>
-
-    <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/15 shadow-sm">
-        <span class="material-symbols-outlined text-primary mb-2 text-[28px]">calendar_month</span>
-        <span class="text-label-sm text-on-surface-variant block uppercase font-medium">Best Time to Visit</span>
-        <p class="text-body-md font-bold text-on-background mt-1">{{ destination.quickInfo.bestTimeToVisit }}</p>
-      </div>
-
-      <div class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/15 shadow-sm">
-        <span class="material-symbols-outlined text-primary mb-2 text-[28px]">payments</span>
-        <span class="text-label-sm text-on-surface-variant block uppercase font-medium">Average Daily Budget</span>
-        <p class="text-body-md font-bold text-on-background mt-1">{{ destination.quickInfo.avgBudget }}</p>
-      </div>
-
-      <div class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/15 shadow-sm">
-        <span class="material-symbols-outlined text-primary mb-2 text-[28px]">schedule</span>
-        <span class="text-label-sm text-on-surface-variant block uppercase font-medium">Suggested Duration</span>
-        <p class="text-body-md font-bold text-on-background mt-1">{{ destination.quickInfo.suggestedLength }}</p>
-      </div>
-
-      <div class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/15 shadow-sm">
-        <span class="material-symbols-outlined text-primary mb-2 text-[28px]">monetization_on</span>
-        <span class="text-label-sm text-on-surface-variant block uppercase font-medium">Currency</span>
-        <p class="text-body-md font-bold text-on-background mt-1">{{ destination.quickInfo.currency }}</p>
-      </div>
-
-      <div class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/15 shadow-sm">
-        <span class="material-symbols-outlined text-primary mb-2 text-[28px]">translate</span>
-        <span class="text-label-sm text-on-surface-variant block uppercase font-medium">Language</span>
-        <p class="text-body-md font-bold text-on-background mt-1">{{ destination.quickInfo.language }}</p>
-      </div>
-
-      <div class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/15 shadow-sm">
-        <span class="material-symbols-outlined text-primary mb-2 text-[28px]">verified_user</span>
-        <span class="text-label-sm text-on-surface-variant block uppercase font-medium">Safety Rating</span>
-        <p class="text-body-md font-bold text-on-background mt-1">{{ destination.quickInfo.safetyLevel }}</p>
-      </div>
-
-      <div class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/15 shadow-sm">
-        <span class="material-symbols-outlined text-primary mb-2 text-[28px]">wb_sunny</span>
-        <span class="text-label-sm text-on-surface-variant block uppercase font-medium">Weather Vibe</span>
-        <p class="text-body-md font-bold text-on-background mt-1">{{ destination.quickInfo.weatherVibe }}</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 3: Top Places & Regions                 -->
-  <!-- ═══════════════════════════════════════════════ -->
-  <section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg">
-    <div class="mb-stack-md flex justify-between items-end">
-      <div>
-        <h2 class="text-headline-sm font-bold text-on-background flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary">map</span>
-          <span>Must-Visit Spots in {{ destination.country }}</span>
-        </h2>
-        <p class="text-label-md text-on-surface-variant">Top islands, cities, and regions to include in your trip</p>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      @for (place of destination.topPlaces; track place.name) {
-        <div class="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm border border-outline-variant/15 flex flex-col justify-between group hover:shadow-md transition-all">
-          <div>
-            <div class="h-48 overflow-hidden relative">
-              <img [src]="place.image" [alt]="place.name" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-            </div>
-            <div class="p-5">
-              <div class="flex flex-wrap gap-1.5 mb-2">
-                @for (s of place.suitableFor; track s) {
-                  <span class="text-label-sm bg-primary/10 text-primary px-2 py-0.5 rounded-md font-semibold">
-                    {{ s }}
-                  </span>
-                }
-              </div>
-              <h3 class="text-headline-sm font-bold text-on-background mb-2">{{ place.name }}</h3>
-              <p class="text-body-sm text-on-surface-variant line-clamp-3">{{ place.description }}</p>
-            </div>
-          </div>
-
-          <div class="p-5 pt-0">
-            <button
-              (click)="onCreateTrip('Trip to ' + place.name)"
-              class="w-full bg-surface-container hover:bg-primary hover:text-on-primary text-on-surface-variant font-semibold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-label-md"
-            >
-              <span class="material-symbols-outlined text-[18px]">add</span>
-              <span>Add to trip</span>
-            </button>
-          </div>
-        </div>
-      }
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 4: Suggested Itineraries               -->
-  <!-- ═══════════════════════════════════════════════ -->
-  <section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg">
-    <div class="mb-stack-md">
-      <h2 class="text-headline-sm font-bold text-on-background flex items-center gap-2">
-        <span class="material-symbols-outlined text-primary">route</span>
-        <span>Suggested Ready-Made Itineraries</span>
-      </h2>
-      <p class="text-label-md text-on-surface-variant">Pick a pre-designed plan or customize it with AI</p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      @for (itin of destination.suggestedItineraries; track itin.id) {
-        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/15 shadow-sm flex flex-col justify-between relative group hover:border-primary/40 transition-all">
-          @if (itin.badge) {
-            <span class="absolute top-4 right-4 bg-primary text-on-primary px-3 py-1 rounded-full text-label-sm font-bold shadow-sm">
-              {{ itin.badge }}
+      } @else {
+      <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+        @for (packageItem of agencyPackages; track packageItem.id) {
+        <article
+          class="overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface-container-lowest shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+          <div class="relative h-52 overflow-hidden bg-surface-container">
+            <img [src]="packageCover(packageItem)" [alt]="packageItem.title" class="h-full w-full object-cover"
+              loading="lazy" />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent"></div>
+            <span
+              class="absolute left-4 top-4 inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1 text-label-sm font-bold text-slate-900 shadow-sm">
+              <span class="material-symbols-outlined text-[15px] text-primary">verified</span>
+              Verified agency
             </span>
-          }
-
-          <div>
-            <div class="text-label-md text-primary font-bold mb-1">{{ itin.days }} Days Plan</div>
-            <h3 class="text-headline-sm font-bold text-on-background mb-3">{{ itin.title }}</h3>
-
-            <div class="space-y-2 mb-6">
-              @for (hl of itin.highlights; track hl) {
-                <div class="flex items-start gap-2 text-body-sm text-on-surface-variant">
-                  <span class="material-symbols-outlined text-primary text-[16px] mt-0.5">check_circle</span>
-                  <span>{{ hl }}</span>
-                </div>
-              }
+            @if (packageItem.offerLabel) {
+            <span
+              class="absolute right-4 top-4 rounded-full bg-primary px-3 py-1 text-label-sm font-bold text-on-primary shadow-sm">
+              {{ packageItem.offerLabel }}
+            </span>
+            }
+            <div class="absolute bottom-4 left-4 right-4 text-white">
+              <p class="text-label-sm font-bold text-white/80">{{ packageItem.durationDays }} days · {{
+                packageItem.destination }}</p>
+              <h3 class="mt-1 text-xl font-bold leading-tight">{{ packageItem.title }}</h3>
             </div>
           </div>
 
-          <div class="pt-4 border-t border-outline-variant/10 flex items-center justify-between">
-            <div>
-              <span class="text-label-sm text-on-surface-variant block">Est. Cost</span>
-              <span class="text-headline-sm font-bold text-primary">${{ itin.estimatedCost }}</span>
+          <div class="p-5">
+            <a [routerLink]="['/marketplace/agencies', packageItem.agency.agencyId]"
+              class="inline-flex items-center gap-1.5 text-label-md font-bold text-primary hover:underline">
+              <span class="material-symbols-outlined text-[17px]">business</span>
+              {{ packageItem.agency.companyName }}
+            </a>
+
+            <p class="mt-3 line-clamp-2 text-body-sm leading-6 text-on-surface-variant">
+              {{ packageItem.description }}
+            </p>
+
+            <div class="mt-4 grid grid-cols-2 gap-3 text-label-sm text-on-surface-variant">
+              <span class="flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[17px] text-primary">calendar_month</span>
+                {{ packageDate(packageItem.startDate) }}
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[17px] text-primary">group</span>
+                {{ packageItem.remainingSeats }} spots left
+              </span>
             </div>
-            <button
-              (click)="onCreateTrip(itin.title, itin.days)"
-              class="bg-primary text-on-primary font-bold py-2.5 px-5 rounded-xl shadow-sm hover:bg-primary/90 transition-all active:scale-95 text-label-md"
-            >
-              Use this trip
-            </button>
+
+            <div class="mt-5 flex items-end justify-between gap-4 border-t border-outline-variant/15 pt-4">
+              <div>
+                <span class="block text-label-sm text-on-surface-variant">Package price</span>
+                <strong class="text-xl font-bold text-on-background">{{ packagePrice(packageItem) }}</strong>
+                <span class="block text-label-sm text-on-surface-variant">per traveler</span>
+              </div>
+              <a [routerLink]="['/marketplace/packages', packageItem.id]"
+                class="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-label-md font-bold text-on-primary">
+                View package
+                <span class="material-symbols-outlined text-[17px]">arrow_forward</span>
+              </a>
+            </div>
           </div>
-        </div>
+        </article>
+        }
+      </div>
       }
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 5 & 6: Activities & AI Trip Builder    -->
-  <!-- ═══════════════════════════════════════════════ -->
-  <section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <!-- Activities -->
+  @if (destination.thingsToDo.length > 0) {
+  <section class="mx-auto max-w-container-max px-margin-mobile py-stack-lg md:px-margin-desktop">
+    <div class="mb-6">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">attractions</span>
+        <h2 class="text-headline-sm font-bold">Popular experience ideas</h2>
+      </div>
+      <p class="mt-1 text-body-sm text-on-surface-variant">
+        Use these as prompts for your own plan. They are not automatically included in any package.
+      </p>
+    </div>
 
-      <!-- Activities Column (2 Spans) -->
-      <div class="lg:col-span-2">
-        <div class="mb-stack-md">
-          <h2 class="text-headline-sm font-bold text-on-background flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">attractions</span>
-            <span>Popular Activities & Experiences</span>
-          </h2>
-          <p class="text-label-md text-on-surface-variant">Unforgettable things to do in {{ destination.country }}</p>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      @for (activity of destination.thingsToDo; track activity.id) {
+      <article
+        class="flex gap-4 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-4 shadow-sm">
+        <img [src]="activity.image" [alt]="activity.title" class="h-28 w-28 shrink-0 rounded-xl object-cover"
+          loading="lazy" />
+        <div class="min-w-0 flex-1">
+          <span class="rounded-md bg-surface-container px-2 py-1 text-label-sm font-semibold text-on-surface-variant">
+            {{ activity.category }}
+          </span>
+          <h3 class="mt-2 text-body-lg font-bold text-on-background">{{ activity.title }}</h3>
+          <p class="mt-1 line-clamp-2 text-body-sm text-on-surface-variant">{{ activity.description }}</p>
+          <button type="button"
+            (click)="onAskAi('Help me plan a trip to ' + destination.country + ' that could include ' + activity.title + '. Ask me for my dates and preferences before building the route.')"
+            class="mt-2 inline-flex items-center gap-1 text-label-sm font-bold text-primary hover:underline">
+            Plan around this idea
+            <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+          </button>
         </div>
+      </article>
+      }
+    </div>
+  </section>
+  }
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          @for (act of destination.thingsToDo; track act.id) {
-            <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/15 shadow-sm flex items-center gap-4 group hover:shadow-md transition-all">
-              <img [src]="act.image" [alt]="act.title" class="w-24 h-24 rounded-xl object-cover flex-shrink-0" />
-              <div class="flex-1">
-                <span class="text-label-sm bg-surface-container px-2 py-0.5 rounded text-on-surface-variant font-medium">
-                  {{ act.category }}
-                </span>
-                <h3 class="text-body-lg font-bold text-on-background mt-1 mb-1 line-clamp-1">{{ act.title }}</h3>
-                <p class="text-body-sm text-on-surface-variant line-clamp-2 mb-2">{{ act.description }}</p>
-                <button
-                  (click)="onAskAi('Add activity: ' + act.title + ' in ' + destination.country)"
-                  class="text-primary text-label-sm font-bold hover:underline inline-flex items-center gap-1"
-                >
-                  <span>Add to trip</span>
-                  <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
-                </button>
-              </div>
-            </div>
+  <!-- Practical tips + canonical planner CTA -->
+  <section class="mx-auto max-w-container-max px-margin-mobile py-stack-lg md:px-margin-desktop">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_0.65fr]">
+      <div>
+        <div class="mb-5 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">tips_and_updates</span>
+          <h2 class="text-headline-sm font-bold">Planning notes</h2>
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          @for (tip of destination.travelTips; track tip.title) {
+          <article class="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5 shadow-sm">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+              <span class="material-symbols-outlined text-[21px]">{{ tip.icon }}</span>
+            </span>
+            <h3 class="mt-4 font-bold text-on-background">{{ tip.title }}</h3>
+            <p class="mt-2 text-body-sm leading-6 text-on-surface-variant">{{ tip.content }}</p>
+          </article>
           }
         </div>
       </div>
 
-      <!-- AI Trip Builder Panel (1 Span) -->
-      <div class="bg-gradient-to-br from-surface-container-lowest via-surface-container-lowest to-primary/5 p-6 md:p-8 rounded-2xl border-2 border-primary/20 shadow-lg flex flex-col justify-between">
-        <div>
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-label-sm font-bold mb-4">
-            <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
-            <span>AI Trip Builder</span>
-          </div>
-          <h3 class="text-headline-sm font-bold text-on-background mb-2">Build a trip to {{ destination.country }}</h3>
-          <p class="text-body-sm text-on-surface-variant mb-6">Customize your trip preferences and let AI generate your personalized day-by-day plan.</p>
-
-          <!-- Form Controls -->
-          <div class="space-y-4 mb-6">
-            <!-- Days Selection -->
-            <div>
-              <label class="text-label-md font-bold text-on-background block mb-2">Trip Duration (Days)</label>
-              <div class="flex flex-wrap gap-2">
-                @for (d of daysOptions; track d) {
-                  <button
-                    (click)="builderDays = d"
-                    class="px-3.5 py-1.5 rounded-xl text-label-sm font-semibold transition-all"
-                    [class.bg-primary]="builderDays === d"
-                    [class.text-on-primary]="builderDays === d"
-                    [class.bg-surface-container]="builderDays !== d"
-                    [class.text-on-surface-variant]="builderDays !== d"
-                  >
-                    {{ d }} Days
-                  </button>
-                }
-              </div>
-            </div>
-
-            <!-- Budget Selection -->
-            <div>
-              <label class="text-label-md font-bold text-on-background block mb-2">Budget Level</label>
-              <div class="flex flex-wrap gap-2">
-                @for (b of budgetOptions; track b) {
-                  <button
-                    (click)="builderBudget = b"
-                    class="px-3.5 py-1.5 rounded-xl text-label-sm font-semibold transition-all"
-                    [class.bg-primary]="builderBudget === b"
-                    [class.text-on-primary]="builderBudget === b"
-                    [class.bg-surface-container]="builderBudget !== b"
-                    [class.text-on-surface-variant]="builderBudget !== b"
-                  >
-                    {{ b }}
-                  </button>
-                }
-              </div>
-            </div>
-
-            <!-- Travel Style Selection -->
-            <div>
-              <label class="text-label-md font-bold text-on-background block mb-2">Travel Style</label>
-              <select [(ngModel)]="builderStyle" class="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-2.5 text-body-sm text-on-background focus:ring-primary focus:border-primary">
-                @for (s of styleOptions; track s) {
-                  <option [value]="s">{{ s }}</option>
-                }
-              </select>
-            </div>
-
-            <!-- Group Selection -->
-            <div>
-              <label class="text-label-md font-bold text-on-background block mb-2">Who is traveling?</label>
-              <div class="grid grid-cols-4 gap-2">
-                @for (g of groupOptions; track g) {
-                  <button
-                    (click)="builderGroup = g"
-                    class="py-1.5 text-center rounded-xl text-label-sm font-semibold transition-all"
-                    [class.bg-primary]="builderGroup === g"
-                    [class.text-on-primary]="builderGroup === g"
-                    [class.bg-surface-container]="builderGroup !== g"
-                    [class.text-on-surface-variant]="builderGroup !== g"
-                  >
-                    {{ g }}
-                  </button>
-                }
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <button
-          (click)="onGenerateCustomTrip()"
-          class="w-full bg-primary text-on-primary font-bold py-3.5 px-6 rounded-xl shadow-md hover:bg-primary/90 transition-all active:scale-95 flex items-center justify-center gap-2 text-label-lg"
-        >
-          <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
-          <span>Generate My Trip</span>
+      <aside class="rounded-3xl bg-gradient-to-br from-primary to-secondary p-7 text-on-primary shadow-xl md:p-8">
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-label-sm font-bold text-white">
+          <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+          Safarni planner
+        </span>
+        <h2 class="mt-5 text-2xl font-bold text-white">Make {{ destination.country }} your trip</h2>
+        <p class="mt-3 text-body-sm leading-6 text-white/80">
+          Start one real trip, choose your dates and route, then generate or edit the itinerary in Planner. No second
+          mini-builder and no fake package price.
+        </p>
+        <button type="button" (click)="onCreateTrip()"
+          class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-label-lg font-bold text-primary shadow-sm transition hover:bg-white/90 active:scale-[0.98]">
+          Create my {{ destination.country }} trip
+          <span class="material-symbols-outlined text-[19px]">arrow_forward</span>
         </button>
-      </div>
-
+        <button type="button" (click)="onAskAi()"
+          class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-label-md font-bold text-white transition hover:bg-white/15">
+          Talk to Concierge first
+        </button>
+      </aside>
     </div>
   </section>
-
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 7: Practical Travel Tips               -->
-  <!-- ═══════════════════════════════════════════════ -->
-  <section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg">
-    <div class="mb-stack-md">
-      <h2 class="text-headline-sm font-bold text-on-background flex items-center gap-2">
-        <span class="material-symbols-outlined text-primary">tips_and_updates</span>
-        <span>Practical Advice & Local Customs</span>
-      </h2>
-      <p class="text-label-md text-on-surface-variant">Essential insider advice for a smooth arrival and stay</p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      @for (tip of destination.travelTips; track tip.title) {
-        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/15 shadow-sm">
-          <span class="material-symbols-outlined text-primary mb-3 text-[32px]">{{ tip.icon }}</span>
-          <h3 class="text-headline-sm font-bold text-on-background mb-2">{{ tip.title }}</h3>
-          <p class="text-body-sm text-on-surface-variant">{{ tip.content }}</p>
-        </div>
-      }
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- SECTION 8: Why Travelers Love It (Vibe Highlights) -->
-  <!-- ═══════════════════════════════════════════════ -->
-  <section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg">
-    <div class="bg-surface-container-low p-8 rounded-2xl border border-outline-variant/15 flex flex-col md:flex-row items-center justify-between gap-6">
-      <div>
-        <h3 class="text-headline-sm font-bold text-on-background mb-2">Why Travelers Choose {{ destination.country }}</h3>
-        <div class="flex flex-wrap gap-2 mt-3">
-          @for (vibe of destination.vibeHighlights; track vibe) {
-            <span class="px-4 py-1.5 rounded-full bg-surface-container-lowest text-primary font-bold text-label-md border border-primary/20 shadow-sm flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-[16px]">star</span>
-              <span>{{ vibe }}</span>
-            </span>
-          }
-        </div>
-      </div>
-
-      <button
-        (click)="onCreateTrip()"
-        class="bg-primary text-on-primary font-bold py-3.5 px-8 rounded-xl shadow-md hover:bg-primary/90 transition-all flex-shrink-0"
-      >
-        Plan My Journey Now
-      </button>
-    </div>
-  </section>
-
 </main>
-
-<!-- ═══════════════════════════════════════════════ -->
-<!-- SECTION 9: Bottom Sticky CTA (Mobile Only)     -->
-<!-- ═══════════════════════════════════════════════ -->
-<div class="md:hidden fixed bottom-0 left-0 w-full bg-surface/95 backdrop-blur-xl border-t border-outline-variant/20 p-4 z-50 flex items-center justify-between gap-3 shadow-lg">
-  <div>
-    <span class="text-label-sm text-on-surface-variant block">From</span>
-    <span class="text-headline-sm font-bold text-primary">${{ destination.priceFrom }}</span>
-  </div>
-
-  <div class="flex items-center gap-2">
-    <button
-      (click)="onAskAi()"
-      class="p-3 bg-surface-container rounded-xl text-primary font-semibold hover:bg-surface-container-high flex items-center justify-center"
-      aria-label="Chat with AI"
-    >
-      <span class="material-symbols-outlined text-[22px]">auto_awesome</span>
-    </button>
-    <button
-      (click)="onCreateTrip()"
-      class="bg-primary text-on-primary font-bold py-3 px-6 rounded-xl shadow-md hover:bg-primary/90 text-label-md flex items-center gap-1.5"
-    >
-      <span class="material-symbols-outlined text-[18px]">add_location_alt</span>
-      <span>Create Trip</span>
-    </button>
-  </div>
-</div>

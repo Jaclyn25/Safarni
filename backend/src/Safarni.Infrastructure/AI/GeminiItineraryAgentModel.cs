@@ -37,7 +37,7 @@ public sealed class GeminiItineraryAgentModel : IItineraryAgentModel
 
     public string ModelName =>
         _configuration[$"{ConfigurationSection}:Model"] ??
-        "gemini-3.5-flash";
+        "gemini-3.6-flash";
 
     public int MaxAgentSteps => Math.Clamp(
         ParseInt("AgentMaxSteps", 8),
@@ -360,7 +360,7 @@ public sealed class GeminiItineraryAgentModel : IItineraryAgentModel
             (_configuration[$"{ConfigurationSection}:BaseUrl"] ??
              DefaultBaseUrl).TrimEnd('/'),
             _configuration[$"{ConfigurationSection}:Model"] ??
-                "gemini-3.5-flash",
+                "gemini-3.6-flash",
             Math.Clamp(
                 ParseInt("AgentDecisionMaxOutputTokens", 6000),
                 1024,

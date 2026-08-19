@@ -86,6 +86,13 @@ jobs:
           port: 21
           local-dir: ./publish-offline/
           server-dir: ./wwwroot/
+          # Runtime uploads and private files must survive the offline-marker sync too.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/uploads/**
+            **/App_Data/**
           log-level: minimal
         
       - name: Wait for IIS to stop the ASP.NET process
@@ -103,8 +110,14 @@ jobs:
           port: 21
           local-dir: ./publish/
           server-dir: ./wwwroot/
+          # Keep runtime uploads and private App_Data files outside the build sync.
           exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
             **/app_offline.htm
+            **/uploads/**
+            **/App_Data/**
           log-level: minimal
 
       - name: Remove ASP.NET app-offline marker

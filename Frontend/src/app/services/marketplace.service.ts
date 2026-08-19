@@ -5,6 +5,11 @@ import { ApiResponse } from './auth.service';
 import {
   MarketplaceFilters,
   MarketplacePage,
+  BookingPayment,
+  BookingDocument,
+  BookingTraveler,
+  PackageBookingMessage,
+  SupplierEvidence,
   PackageBookingRequest,
   PackagePlaceSearchResult,
   PublicAgencyProfile,
@@ -171,6 +176,94 @@ export class MarketplaceService {
 
   listAgencyBookings(): Observable<PackageBookingRequest[]> {
     return this.http.get<ApiResponse<PackageBookingRequest[]>>('/api/agency/booking-requests')
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  sendBookingOffer(requestId: string, request: {
+    amount: number; supplierCostAmount?: number | null; agencyServiceFeeAmount?: number | null; safarniProtectionFeeAmount?: number | null; currencyCode: string; expiresAt: string;
+    included?: string | null; excluded?: string | null;
+    cancellationPolicy?: string | null; agencyNote?: string | null;
+    initialPaymentPercentage?: number | null; finalPaymentDueAt?: string | null;
+  }): Observable<PackageBookingRequest> {
+    return this.http.post<ApiResponse<PackageBookingRequest>>(
+      `/api/agency/booking-requests/${requestId}/offers`, request)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  acceptBookingOffer(requestId: string, offerId: string): Observable<PackageBookingRequest> {
+    return this.http.post<ApiResponse<PackageBookingRequest>>(
+      `/api/booking-requests/${requestId}/offers/${offerId}/accept`, {})
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  createBookingPayment(requestId: string): Observable<BookingPayment> {
+    return this.http.post<ApiResponse<BookingPayment>>(`/api/booking-requests/${requestId}/payment`, {})
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  completeBookingTestPayment(sessionId: string, success: boolean): Observable<BookingPayment> {
+    return this.http.post<ApiResponse<BookingPayment>>(
+      `/api/booking-payments/test/complete/${encodeURIComponent(sessionId)}?success=${success}`, {})
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  refundBooking(requestId: string, reason: string): Observable<BookingPayment> {
+    return this.http.post<ApiResponse<BookingPayment>>(`/api/booking-requests/${requestId}/refund`, { reason })
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  openBookingDispute(requestId: string, reason: string, requestedRefundAmount?: number | null): Observable<import('../models/marketplace.models').BookingDispute> {
+    return this.http.post<ApiResponse<import('../models/marketplace.models').BookingDispute>>(
+      `/api/booking-requests/${requestId}/disputes`, { reason, requestedRefundAmount: requestedRefundAmount ?? null })
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  listBookingMessages(requestId: string): Observable<PackageBookingMessage[]> {
+    return this.http.get<ApiResponse<PackageBookingMessage[]>>(`/api/booking-requests/${requestId}/messages`)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  sendBookingMessage(requestId: string, body: string): Observable<PackageBookingMessage> {
+    return this.http.post<ApiResponse<PackageBookingMessage>>(`/api/booking-requests/${requestId}/messages`, { body })
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  listBookingTravelers(requestId: string): Observable<BookingTraveler[]> {
+    return this.http.get<ApiResponse<BookingTraveler[]>>(`/api/booking-requests/${requestId}/travelers`)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  saveBookingTraveler(requestId: string, traveler: Omit<BookingTraveler, 'id' | 'bookingRequestId' | 'createdAt' | 'updatedAt'> & { travelerId?: string | null }): Observable<BookingTraveler> {
+    return this.http.post<ApiResponse<BookingTraveler>>(`/api/booking-requests/${requestId}/travelers`, traveler)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  listBookingDocuments(requestId: string): Observable<BookingDocument[]> {
+    return this.http.get<ApiResponse<BookingDocument[]>>(`/api/booking-requests/${requestId}/documents`)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  uploadBookingDocument(requestId: string, file: File, documentType: string, travelerId?: string | null): Observable<BookingDocument> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    form.append('documentType', documentType);
+    if (travelerId) form.append('travelerId', travelerId);
+    return this.http.post<ApiResponse<BookingDocument>>(`/api/booking-requests/${requestId}/documents`, form)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  submitSupplierEvidence(requestId: string, request: {
+    supplierType: string; supplierName: string; confirmationCode: string;
+    invoiceAmount: number; currencyCode: string; file: File;
+  }): Observable<SupplierEvidence> {
+    const form = new FormData();
+    form.append('supplierType', request.supplierType);
+    form.append('supplierName', request.supplierName);
+    form.append('confirmationCode', request.confirmationCode);
+    form.append('invoiceAmount', String(request.invoiceAmount));
+    form.append('currencyCode', request.currencyCode);
+    form.append('file', request.file, request.file.name);
+    return this.http.post<ApiResponse<SupplierEvidence>>(`/api/agency/booking-requests/${requestId}/supplier-evidence`, form)
       .pipe(map((response) => this.requireData(response)));
   }
 

@@ -143,6 +143,24 @@ export interface AgencyDashboardSummary {
   nextBillingDate: string | null;
 }
 
+export type AgencyPayoutMethod = 'BankTransfer' | 'MobileWallet';
+export type AgencyPayoutProfileStatus = 'PendingReview' | 'Verified' | 'Rejected';
+
+export interface AgencyPayoutProfile {
+  id: string;
+  method: AgencyPayoutMethod;
+  status: AgencyPayoutProfileStatus;
+  accountHolderName: string;
+  country: string;
+  bankName: string | null;
+  iban: string | null;
+  accountNumber: string | null;
+  swiftCode: string | null;
+  walletProvider: string | null;
+  walletNumber: string | null;
+  verifiedAt: string | null;
+}
+
 export interface AgencyDashboardTrendPoint {
   date: string;
   requestsCount: number;

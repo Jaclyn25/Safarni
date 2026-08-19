@@ -24,5 +24,23 @@
     </div>
     <div class="profile-actions"><button class="agency-button" type="submit" [disabled]="isSaving()"><span class="material-symbols-outlined">{{ isSaving() ? 'progress_activity' : 'save' }}</span>{{ isSaving() ? 'Saving profile…' : 'Save company profile' }}</button></div>
   </form>
+  <form class="agency-card profile-form" (ngSubmit)="savePayout()" novalidate>
+    <div class="agency-card__heading"><div><span class="agency-eyebrow">Protected payouts</span><h2>Where Safarni sends your money</h2><p class="text-xs text-gray-500">Traveler payments go to Safarni first. Your net amount is released to this account after the booking process.</p></div>@if (payout) { <span class="profile-status" [attr.data-status]="payout.status">{{ payout.status }}</span> }</div>
+    <div class="profile-fields">
+      <label class="profile-field"><span>Payment method *</span><select [(ngModel)]="payoutForm.method" name="payoutMethod"><option value="BankTransfer">Bank transfer</option><option value="MobileWallet">Mobile wallet</option></select></label>
+      <label class="profile-field"><span>Account holder *</span><input [(ngModel)]="payoutForm.accountHolderName" name="accountHolderName" required /></label>
+      <label class="profile-field"><span>Country *</span><input [(ngModel)]="payoutForm.country" name="payoutCountry" required /></label>
+      @if (payoutForm.method === 'BankTransfer') {
+        <label class="profile-field"><span>Bank name *</span><input [(ngModel)]="payoutForm.bankName" name="bankName" required /></label>
+        <label class="profile-field"><span>IBAN</span><input [(ngModel)]="payoutForm.iban" name="iban" autocomplete="off" /></label>
+        <label class="profile-field"><span>Account number</span><input [(ngModel)]="payoutForm.accountNumber" name="accountNumber" autocomplete="off" /></label>
+        <label class="profile-field"><span>SWIFT / BIC</span><input [(ngModel)]="payoutForm.swiftCode" name="swiftCode" /></label>
+      } @else {
+        <label class="profile-field"><span>Wallet provider *</span><input [(ngModel)]="payoutForm.walletProvider" name="walletProvider" placeholder="Vodafone Cash, Orange Money..." required /></label>
+        <label class="profile-field"><span>Wallet number *</span><input [(ngModel)]="payoutForm.walletNumber" name="walletNumber" required /></label>
+      }
+    </div>
+    <div class="profile-actions"><button class="agency-button" type="submit" [disabled]="isPayoutSaving()"><span class="material-symbols-outlined">account_balance</span>{{ isPayoutSaving() ? 'Saving payout details…' : 'Save payout details' }}</button></div>
+  </form>
   }
 </div>

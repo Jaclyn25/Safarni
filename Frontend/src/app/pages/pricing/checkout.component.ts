@@ -1,9 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Observable } from 'rxjs';
 import { AuthService, getApiErrorMessage } from '../../services/auth.service';
 import { PricingService } from '../../services/pricing.service';
 import { Subscription } from '../../models/billing.models';
+import { BookingPayment } from '../../models/marketplace.models';
+import { MarketplaceService } from '../../services/marketplace.service';
 
 @Component({ selector: 'app-pricing-checkout', standalone: true, imports: [CommonModule, RouterLink], templateUrl: './checkout.component.html', styleUrl: './checkout.component.css' })
 export class CheckoutComponent implements OnInit {
@@ -13,18 +16,28 @@ export class CheckoutComponent implements OnInit {
   readonly error = signal('');
   readonly processing = signal(false);
   readonly stripeCheckout = signal(false);
+  readonly bookingPayment = signal<BookingPayment | null>(null);
+  readonly bookingCheckout = signal(false);
+  readonly bookingRequestId = signal('');
 
-  constructor(private readonly route: ActivatedRoute, private readonly pricing: PricingService, private readonly auth: AuthService) {}
+  constructor(
+    private readonly route: ActivatedRoute,
+    private readonly pricing: PricingService,
+    private readonly marketplace: MarketplaceService,
+    private readonly auth: AuthService) {}
 
   ngOnInit(): void {
     const status = this.route.snapshot.queryParamMap.get('status');
+    this.bookingCheckout.set(this.route.snapshot.queryParamMap.get('type') === 'booking');
+    this.bookingRequestId.set(this.route.snapshot.queryParamMap.get('bookingRequestId') ?? '');
     const sessionId = this.route.snapshot.queryParamMap.get('session_id')
       ?? this.route.snapshot.queryParamMap.get('sessionId');
     this.sessionId.set(sessionId ?? '');
     if (status === 'cancelled') this.state.set('cancelled');
     if (status === 'success') {
       this.stripeCheckout.set(true);
-      this.confirmStripeSubscription();
+      if (this.bookingCheckout()) this.confirmStripeBooking();
+      else this.confirmStripeSubscription();
     } else if (!sessionId) {
       this.state.set('cancelled');
     }
@@ -34,8 +47,15 @@ export class CheckoutComponent implements OnInit {
   complete(success: boolean): void {
     if (!this.sessionId() || !this.auth.isAuthenticated()) return;
     this.processing.set(true); this.error.set('');
-    this.pricing.completeTestPayment(this.sessionId(), success).subscribe({
-      next: (subscription) => { this.subscription.set(subscription); this.state.set(success ? 'success' : 'failure'); this.processing.set(false); },
+    const operation: Observable<BookingPayment | Subscription> = this.bookingCheckout()
+      ? this.marketplace.completeBookingTestPayment(this.sessionId(), success)
+      : this.pricing.completeTestPayment(this.sessionId(), success);
+    operation.subscribe({
+      next: (result) => {
+        if (this.bookingCheckout()) this.bookingPayment.set(result as BookingPayment);
+        else this.subscription.set(result as Subscription);
+        this.state.set(success ? 'success' : 'failure'); this.processing.set(false);
+      },
       error: (error: unknown) => { this.error.set(getApiErrorMessage(error, 'We could not confirm this payment.')); this.processing.set(false); }
     });
   }
@@ -61,6 +81,36 @@ export class CheckoutComponent implements OnInit {
           return;
         }
         this.error.set(getApiErrorMessage(error, 'We could not confirm the Stripe payment yet.'));
+      }
+    });
+  }
+
+  private confirmStripeBooking(attempt = 0): void {
+    if (!this.auth.isAuthenticated()) return;
+    if (!this.bookingRequestId()) {
+      this.error.set('The booking reference was not returned by the payment provider. Open My Agency Trips to check the booking status.');
+      return;
+    }
+
+    this.marketplace.listTravelerBookings().subscribe({
+      next: (requests) => {
+        const booking = requests.find((request) => request.id === this.bookingRequestId());
+        if (booking && ['Confirmed', 'InProgress', 'Completed'].includes(booking.status)) {
+          this.state.set('success');
+          return;
+        }
+        if (attempt < 10) {
+          window.setTimeout(() => this.confirmStripeBooking(attempt + 1), 1000);
+          return;
+        }
+        this.error.set('Payment was returned successfully. We are waiting for the booking confirmation webhook. Open My Agency Trips in a moment.');
+      },
+      error: (error: unknown) => {
+        if (attempt < 10) {
+          window.setTimeout(() => this.confirmStripeBooking(attempt + 1), 1000);
+          return;
+        }
+        this.error.set(getApiErrorMessage(error, 'We could not confirm the booking payment yet.'));
       }
     });
   }

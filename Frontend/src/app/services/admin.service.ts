@@ -25,6 +25,10 @@ import {
   TopDestination,
   UserRole,
   UpdatePricingPlanRequest,
+  BookingPayoutItem,
+  SupplierEvidenceItem,
+  BookingDisputeItem,
+  AgencyPayoutProfileItem,
 } from '../models/admin.models';
 
 @Injectable({ providedIn: 'root' })
@@ -301,6 +305,57 @@ export class AdminService {
     }
     return this.http
       .get<ApiResponse<PagedResult<AuditLogEntry>>>(`${this.baseUrl}/audit-logs`, { params })
+      .pipe(map((response) => response.data!));
+  }
+
+  // ================= Protected booking settlement =================
+
+  getPendingSupplierEvidence(): Observable<SupplierEvidenceItem[]> {
+    return this.http
+      .get<ApiResponse<SupplierEvidenceItem[]>>(`${this.baseUrl}/booking-payouts/pending-evidence`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  reviewSupplierEvidence(id: string, approve: boolean, reviewNote: string | null): Observable<SupplierEvidenceItem> {
+    return this.http
+      .post<ApiResponse<SupplierEvidenceItem>>(`${this.baseUrl}/booking-payouts/${id}/review`, { approve, reviewNote })
+      .pipe(map((response) => response.data!));
+  }
+
+  markSupplierEvidencePaid(id: string, externalTransferId: string): Observable<SupplierEvidenceItem> {
+    return this.http
+      .post<ApiResponse<SupplierEvidenceItem>>(`${this.baseUrl}/booking-payouts/${id}/paid`, { externalTransferId })
+      .pipe(map((response) => response.data!));
+  }
+
+  markBookingPayoutPaid(id: string, externalTransferId: string): Observable<BookingPayoutItem> {
+    return this.http
+      .post<ApiResponse<BookingPayoutItem>>(`${this.baseUrl}/booking-payouts/payout/${id}/paid`, { externalTransferId })
+      .pipe(map((response) => response.data!));
+  }
+
+  getActionableBookingPayouts(): Observable<BookingPayoutItem[]> {
+    return this.http.get<ApiResponse<BookingPayoutItem[]>>(`${this.baseUrl}/booking-payouts/payouts`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  getBookingDisputes(): Observable<BookingDisputeItem[]> {
+    return this.http.get<ApiResponse<BookingDisputeItem[]>>(`${this.baseUrl}/booking-disputes`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  resolveBookingDispute(id: string, decision: 'ResolvedForTraveler' | 'ResolvedForAgency' | 'Rejected', refundAmount: number | null, adminNote: string | null): Observable<BookingDisputeItem> {
+    return this.http.post<ApiResponse<BookingDisputeItem>>(`${this.baseUrl}/booking-disputes/${id}/resolve`, { decision, refundAmount, adminNote })
+      .pipe(map((response) => response.data!));
+  }
+
+  getAgencyPayoutProfiles(status = 'PendingReview'): Observable<AgencyPayoutProfileItem[]> {
+    return this.http.get<ApiResponse<AgencyPayoutProfileItem[]>>(`${this.baseUrl}/booking-payouts/payout-profiles`, { params: new HttpParams().set('status', status) })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  reviewAgencyPayoutProfile(agencyId: string, approve: boolean, reviewNote: string | null): Observable<AgencyPayoutProfileItem> {
+    return this.http.post<ApiResponse<AgencyPayoutProfileItem>>(`${this.baseUrl}/booking-payouts/payout-profiles/${agencyId}/review`, { approve, reviewNote })
       .pipe(map((response) => response.data!));
   }
 }

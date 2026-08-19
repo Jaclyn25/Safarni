@@ -32,6 +32,7 @@ public sealed class ApplicationDbContext : DbContext
 
     // Travel Agency / Packages
     public DbSet<TravelAgency> TravelAgencies => Set<TravelAgency>();
+    public DbSet<AgencyPayoutProfile> AgencyPayoutProfiles => Set<AgencyPayoutProfile>();
 
     public DbSet<AgencyVerificationDocument> AgencyVerificationDocuments =>
         Set<AgencyVerificationDocument>();
@@ -45,6 +46,15 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<TravelPackageImage> TravelPackageImages => Set<TravelPackageImage>();
     public DbSet<PackageBookingRequest> PackageBookingRequests =>
         Set<PackageBookingRequest>();
+    public DbSet<PackageBookingOffer> PackageBookingOffers =>
+        Set<PackageBookingOffer>();
+    public DbSet<BookingPayment> BookingPayments => Set<BookingPayment>();
+    public DbSet<PackageBookingMessage> PackageBookingMessages => Set<PackageBookingMessage>();
+    public DbSet<PackageBookingTraveler> PackageBookingTravelers => Set<PackageBookingTraveler>();
+    public DbSet<PackageBookingDocument> PackageBookingDocuments => Set<PackageBookingDocument>();
+    public DbSet<BookingSupplierEvidence> BookingSupplierEvidence => Set<BookingSupplierEvidence>();
+    public DbSet<BookingPayout> BookingPayouts => Set<BookingPayout>();
+    public DbSet<BookingDispute> BookingDisputes => Set<BookingDispute>();
 
     public DbSet<AgencyReview> AgencyReviews => Set<AgencyReview>();
 

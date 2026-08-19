@@ -282,7 +282,11 @@ internal static class TravelPackageMapping
             package.CurrencyCode,
             package.AvailableSeats,
             Math.Max(0, package.AvailableSeats - package.BookingRequests
-                .Where(request => request.Status == Domain.Enums.PackageBookingRequestStatus.Accepted)
+                .Where(request => request.Status == Domain.Enums.PackageBookingRequestStatus.Accepted ||
+                    request.Status == Domain.Enums.PackageBookingRequestStatus.AwaitingPayment ||
+                    request.Status == Domain.Enums.PackageBookingRequestStatus.Confirmed ||
+                    request.Status == Domain.Enums.PackageBookingRequestStatus.InProgress ||
+                    request.Status == Domain.Enums.PackageBookingRequestStatus.Completed)
                 .Sum(request => request.TravelerCount)),
             canonicalCoverUrl,
             package.DiscountPercentage,

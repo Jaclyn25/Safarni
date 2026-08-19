@@ -24,4 +24,12 @@ public sealed class PackageBookingRequest
     public TravelPackage TravelPackage { get; set; } = null!;
     public User TravelerUser { get; set; } = null!;
     public AgencyReview? AgencyReview { get; set; }
+    public ICollection<PackageBookingOffer> Offers { get; set; } = new List<PackageBookingOffer>();
+    public ICollection<BookingPayment> Payments { get; set; } = new List<BookingPayment>();
+    public ICollection<PackageBookingMessage> Messages { get; set; } = new List<PackageBookingMessage>();
+    public ICollection<PackageBookingTraveler> Travelers { get; set; } = new List<PackageBookingTraveler>();
+    public ICollection<PackageBookingDocument> Documents { get; set; } = new List<PackageBookingDocument>();
+    public ICollection<BookingSupplierEvidence> SupplierEvidence { get; set; } = new List<BookingSupplierEvidence>();
+    public ICollection<BookingPayout> Payouts { get; set; } = new List<BookingPayout>();
+    public ICollection<BookingDispute> Disputes { get; set; } = new List<BookingDispute>();
 }

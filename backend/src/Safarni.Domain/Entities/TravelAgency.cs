@@ -47,4 +47,5 @@ public sealed class TravelAgency
     public ICollection<AgencyReview> Reviews { get; set; } = new List<AgencyReview>();
 
     public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
+    public AgencyPayoutProfile? PayoutProfile { get; set; }
 }

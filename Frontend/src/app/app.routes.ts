@@ -132,6 +132,14 @@ export const routes: Routes = [
   },
 
   {
+    path: 'booking-payment',
+    loadComponent: () =>
+      import('./pages/pricing/checkout.component')
+        .then((m) => m.CheckoutComponent),
+    title: 'Safarni | Booking Payment'
+  },
+
+  {
     path: 'pricing',
     loadComponent: () =>
       import('./pages/pricing/pricing.component')
@@ -532,6 +540,22 @@ export const routes: Routes = [
           import('./pages/admin/billing/admin-billing.component')
             .then((m) => m.AdminBillingComponent),
         title: 'Safarni | Billing'
+      },
+
+      {
+        path: 'booking-payouts',
+        loadComponent: () =>
+          import('./pages/admin/booking-payouts/booking-payouts.component')
+            .then((m) => m.AdminBookingPayoutsComponent),
+        title: 'Safarni | Booking Settlements'
+      },
+
+      {
+        path: 'booking-disputes',
+        loadComponent: () =>
+          import('./pages/admin/booking-disputes/booking-disputes.component')
+            .then((m) => m.AdminBookingDisputesComponent),
+        title: 'Safarni | Booking Disputes'
       },
 
       {

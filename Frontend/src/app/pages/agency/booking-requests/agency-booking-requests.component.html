@@ -97,90 +97,225 @@
             </div>
           </div>
 
-          <button type="button" (click)="openDetailPanel(request)" class="px-4 py-2 bg-gray-100 hover:bg-blue-600 hover:text-white text-gray-700 font-semibold text-xs rounded-xl shadow-2xs transition-all shrink-0 self-end sm:self-center">
-            Review Request
-          </button>
+          <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            <button type="button" (click)="openChat(request)" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs rounded-xl transition-all">
+              Chat
+            </button>
+            <button type="button" (click)="openDetailPanel(request)" class="px-4 py-2 bg-gray-100 hover:bg-blue-600 hover:text-white text-gray-700 font-semibold text-xs rounded-xl shadow-2xs transition-all">
+              Review Request
+            </button>
+          </div>
         </div>
       }
     </div>
   }
 
-  <!-- Request Detail Panel / Modal -->
+  <!-- Request detail workspace -->
   @if (selectedRequest(); as req) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" (click)="closeDetailPanel()"></div>
-      <div class="relative bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl z-10 overflow-y-auto max-h-[90vh] space-y-6">
-        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
-          <div>
-            <h3 class="text-lg font-bold text-gray-900 font-display">Booking Request Detail</h3>
-            <p class="text-xs text-gray-400">Received {{ req.createdAt | date:'mediumDate' }}</p>
-          </div>
-          <button type="button" (click)="closeDetailPanel()" class="p-1.5 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100">
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
-
-        <div class="space-y-4">
-          <!-- Customer & Trip Summary -->
-          <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-gray-900">{{ req.travelerName }}</span>
-              <app-agency-status-badge [status]="statusLabel(req.status)" />
-            </div>
-            <div class="text-xs text-gray-600 space-y-1">
-              <p><strong>Package:</strong> {{ req.packageTitle }}</p>
-              <p><strong>Destination:</strong> {{ req.destination }}</p>
-              <p><strong>Travel party:</strong> {{ req.adultCount }} adult{{ req.adultCount === 1 ? '' : 's' }}@if (req.childCount) { and {{ req.childCount }} child{{ req.childCount === 1 ? '' : 'ren' }} (ages {{ req.childrenAges.join(', ') }}) }</p>
-              <p><strong>Total travelers:</strong> {{ req.travelerCount }}</p>
-              <p><strong>Contact Email:</strong> {{ req.travelerEmail }}</p>
-              <p><strong>Primary phone:</strong> <a [href]="'tel:' + req.contactPhone" class="text-blue-600 font-bold">{{ req.contactPhone }}</a></p>
-              @if (req.alternatePhone) { <p><strong>Alternative phone:</strong> <a [href]="'tel:' + req.alternatePhone" class="text-blue-600 font-bold">{{ req.alternatePhone }}</a></p> }
-              <p><strong>Traveling from:</strong> {{ req.travelerCity }}, {{ req.travelerCountry }}</p>
-            </div>
-          </div>
-
-          <!-- Customer Note -->
-          @if (req.message) {
-            <div>
-              <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Traveler Note</label>
-              <div class="p-3.5 bg-blue-50/60 border border-blue-100 rounded-xl text-xs text-gray-700 italic">
-                “{{ req.message }}”
+    <div class="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="presentation">
+      <div class="fixed inset-0 bg-slate-950/65 backdrop-blur-[2px]" (click)="closeDetailPanel()"></div>
+      <section class="relative z-10 flex h-[96vh] w-full max-w-6xl flex-col overflow-hidden rounded-t-[2rem] bg-slate-50 shadow-2xl sm:h-[calc(100vh-2rem)] sm:rounded-[2rem]" role="dialog" aria-modal="true" aria-labelledby="booking-detail-title">
+        <!-- Workspace header -->
+        <header class="shrink-0 border-b border-slate-200 bg-white px-5 py-4 sm:px-7 sm:py-5">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex min-w-0 items-start gap-3 sm:gap-4">
+              <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-sm font-bold text-white shadow-sm sm:flex">
+                {{ req.travelerName.slice(0, 2).toUpperCase() }}
+              </div>
+              <div class="min-w-0">
+                <div class="mb-1 flex flex-wrap items-center gap-2">
+                  <span class="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-600">Booking request</span>
+                  <app-agency-status-badge [status]="statusLabel(req.status)" />
+                </div>
+                <h2 id="booking-detail-title" class="truncate font-display text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">{{ req.travelerName }}</h2>
+                <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                  <span class="font-medium text-slate-700">{{ req.packageTitle }}</span>
+                  <span class="text-slate-300">•</span>
+                  <span>{{ req.destination }}</span>
+                  <span class="text-slate-300">•</span>
+                  <span>Received {{ req.createdAt | date:'mediumDate' }}</span>
+                </p>
               </div>
             </div>
-          }
+            <button type="button" (click)="closeDetailPanel()" aria-label="Close booking request details" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </header>
 
-          <!-- Response Form (If Pending) -->
-          @if (req.status === 'Pending') {
-            <div>
-              <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Agency Response Note</label>
-              <textarea [ngModel]="responseMessage()" (ngModelChange)="responseMessage.set($event)" rows="3"
-                        placeholder="Required when declining (reason for traveler), optional when accepting..."
-                        class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"></textarea>
-            </div>
-          } @else if (req.agencyResponse) {
-            <div>
-              <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Sent Agency Response</label>
-              <div class="p-3 bg-gray-100 rounded-xl text-xs text-gray-700">
-                {{ req.agencyResponse }}
+        <!-- Scrollable review area -->
+        <div class="min-h-0 flex-1 overflow-y-auto">
+          <div class="mx-auto grid max-w-6xl grid-cols-1 gap-5 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_19rem]">
+            <main class="min-w-0 space-y-5">
+              <!-- Request snapshot -->
+              <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div class="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Request snapshot</p>
+                    <h3 class="mt-1 font-display text-base font-bold text-slate-950">Trip and traveler details</h3>
+                  </div>
+                  <span class="material-symbols-outlined text-2xl text-blue-600">luggage</span>
+                </div>
+                <div class="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Package</p>
+                    <p class="mt-1 text-sm font-semibold text-slate-900">{{ req.packageTitle }}</p>
+                    <p class="mt-0.5 text-xs text-slate-500">{{ req.destination }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Travel party</p>
+                    <p class="mt-1 text-sm font-semibold text-slate-900">{{ req.travelerCount }} traveler{{ req.travelerCount === 1 ? '' : 's' }}</p>
+                    <p class="mt-0.5 text-xs text-slate-500">{{ req.adultCount }} adult{{ req.adultCount === 1 ? '' : 's' }}@if (req.childCount) { · {{ req.childCount }} child{{ req.childCount === 1 ? '' : 'ren' }} (ages {{ req.childrenAges.join(', ') }}) }</p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Traveling from</p>
+                    <p class="mt-1 text-sm font-semibold text-slate-900">{{ req.travelerCity }}, {{ req.travelerCountry }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Requested on</p>
+                    <p class="mt-1 text-sm font-semibold text-slate-900">{{ req.createdAt | date:'mediumDate' }}</p>
+                    <p class="mt-0.5 text-xs text-slate-500">Package ends {{ req.packageEndDate | date:'mediumDate' }}</p>
+                  </div>
+                </div>
+              </section>
+
+              @if (req.message) {
+                <section class="rounded-2xl border border-blue-100 bg-blue-50/70 p-5 sm:p-6">
+                  <div class="flex gap-3">
+                    <span class="material-symbols-outlined mt-0.5 text-xl text-blue-600">format_quote</span>
+                    <div>
+                      <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-700">Traveler note</p>
+                      <p class="mt-2 text-sm leading-6 text-slate-700">{{ req.message }}</p>
+                    </div>
+                  </div>
+                </section>
+              }
+
+              <!-- Offer editor -->
+              @if (req.status === 'Pending' || req.status === 'OfferSent') {
+                <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                  <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-600">Commercial terms</p>
+                      <h3 class="mt-1 font-display text-base font-bold text-slate-950">Build the official offer</h3>
+                      <p class="mt-1 text-xs leading-5 text-slate-500">The traveler will see the total and the terms below before paying.</p>
+                    </div>
+                    @if (req.status === 'OfferSent') {
+                      <span class="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">Revision</span>
+                    }
+                  </div>
+
+                  <div class="grid grid-cols-[minmax(0,1fr)_5rem] gap-3">
+                    <label class="block">
+                      <span class="mb-1.5 block text-xs font-semibold text-slate-700">Total traveler price</span>
+                      <input type="number" min="0.01" step="0.01" [(ngModel)]="offerAmount" aria-label="Total traveler price" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/10" />
+                    </label>
+                    <label class="block">
+                      <span class="mb-1.5 block text-xs font-semibold text-slate-700">Currency</span>
+                      <input type="text" maxlength="3" [(ngModel)]="offerCurrency" aria-label="Offer currency" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold uppercase text-slate-900 outline-none transition focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/10" />
+                    </label>
+                  </div>
+
+                  <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Supplier cost</span><input type="number" min="0" step="0.01" [(ngModel)]="offerSupplierCost" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10" /></label>
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Agency fee</span><input type="number" min="0" step="0.01" [(ngModel)]="offerServiceFee" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10" /></label>
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Protection fee</span><input type="number" min="0" step="0.01" [(ngModel)]="offerProtectionFee" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10" /></label>
+                  </div>
+
+                  <label class="mt-4 block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Offer expires</span><input type="datetime-local" [(ngModel)]="offerExpiresAt" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10" /></label>
+
+                  <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Payment due now (%)</span><input type="number" min="1" max="99" step="1" [(ngModel)]="offerInitialPaymentPercentage" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10" /><small class="mt-1 block text-[11px] text-slate-400">Default is 30%; the rest is due before the trip.</small></label>
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Remaining payment due</span><input type="datetime-local" [(ngModel)]="offerFinalPaymentDueAt" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10" /><small class="mt-1 block text-[11px] text-slate-400">Leave blank to use 14 days before departure.</small></label>
+                  </div>
+
+                  <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">What’s included</span><textarea [(ngModel)]="offerIncluded" rows="3" placeholder="Airport transfer, breakfast, guided tours..." class="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"></textarea></label>
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">What’s excluded</span><textarea [(ngModel)]="offerExcluded" rows="3" placeholder="Flights, personal expenses..." class="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"></textarea></label>
+                  </div>
+                  <label class="mt-4 block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Cancellation and refund policy</span><textarea [(ngModel)]="offerCancellationPolicy" rows="3" placeholder="Share the terms clearly with the traveler..." class="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"></textarea></label>
+                  <label class="mt-4 block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Message to traveler <span class="font-normal text-slate-400">(optional)</span></span><textarea [(ngModel)]="offerAgencyNote" rows="3" placeholder="Add a helpful note about this offer..." class="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"></textarea></label>
+                </section>
+              } @else if (req.agencyResponse) {
+                <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                  <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Agency response</p>
+                  <p class="mt-3 text-sm leading-6 text-slate-700">{{ req.agencyResponse }}</p>
+                </section>
+              }
+
+              @if (req.status === 'Confirmed') {
+                <section class="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 sm:p-6">
+                  <div class="flex items-start gap-3">
+                    <span class="material-symbols-outlined text-xl text-amber-700">verified_user</span>
+                    <div>
+                      <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-800">Supplier proof</p>
+                      <h3 class="mt-1 font-display text-base font-bold text-slate-950">Support the staged payout</h3>
+                      <p class="mt-1 text-xs leading-5 text-slate-600">Upload the official hotel, flight, or transport confirmation for Safarni to review.</p>
+                    </div>
+                  </div>
+                  <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Supplier type</span><select [(ngModel)]="evidenceSupplierType" class="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-amber-600 focus:ring-4 focus:ring-amber-600/10"><option>Hotel</option><option>Flight</option><option>Transport</option><option>Activity</option></select></label>
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Supplier name</span><input [(ngModel)]="evidenceSupplierName" placeholder="e.g. Nile View Hotel" class="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-amber-600 focus:ring-4 focus:ring-amber-600/10" /></label>
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Confirmation code</span><input [(ngModel)]="evidenceConfirmationCode" placeholder="Booking or confirmation code" class="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-amber-600 focus:ring-4 focus:ring-amber-600/10" /></label>
+                    <div class="grid grid-cols-[minmax(0,1fr)_4.5rem] gap-2"><label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Invoice amount</span><input type="number" min="0.01" step="0.01" [(ngModel)]="evidenceInvoiceAmount" class="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-amber-600 focus:ring-4 focus:ring-amber-600/10" /></label><label class="block"><span class="mb-1.5 block text-xs font-semibold text-slate-700">Currency</span><input [(ngModel)]="evidenceCurrency" maxlength="3" class="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm uppercase outline-none focus:border-amber-600 focus:ring-4 focus:ring-amber-600/10" /></label></div>
+                  </div>
+                  <div class="mt-4 flex flex-wrap items-center gap-3"><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" (change)="selectEvidenceFile($event)" class="min-w-0 max-w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-xs file:font-semibold file:text-slate-700" /><button type="button" (click)="submitEvidence(req)" [disabled]="actionId() === req.id" class="rounded-xl bg-amber-700 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-amber-800 disabled:opacity-50">Submit proof</button></div>
+                </section>
+              }
+            </main>
+
+            <aside class="min-w-0 space-y-5">
+              <!-- Traveler contact -->
+              <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Traveler contact</p>
+                <div class="mt-4 flex items-center gap-3">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xs font-bold text-blue-700">{{ req.travelerName.slice(0, 2).toUpperCase() }}</div>
+                  <div class="min-w-0"><p class="truncate text-sm font-bold text-slate-900">{{ req.travelerName }}</p><p class="truncate text-xs text-slate-500">{{ req.travelerEmail }}</p></div>
+                </div>
+                <div class="mt-4 space-y-2 border-t border-slate-100 pt-4 text-xs">
+                  <a [href]="'tel:' + req.contactPhone" class="flex items-center gap-2 text-slate-600 transition hover:text-blue-600"><span class="material-symbols-outlined text-base text-slate-400">phone</span>{{ req.contactPhone }}</a>
+                  @if (req.alternatePhone) { <a [href]="'tel:' + req.alternatePhone" class="flex items-center gap-2 text-slate-600 transition hover:text-blue-600"><span class="material-symbols-outlined text-base text-slate-400">phone_in_talk</span>{{ req.alternatePhone }}</a> }
+                  <p class="flex items-start gap-2 text-slate-600"><span class="material-symbols-outlined text-base text-slate-400">location_on</span><span>{{ req.travelerCity }}, {{ req.travelerCountry }}</span></p>
+                </div>
+              </section>
+
+              @if (req.currentOffer) {
+                <section class="rounded-2xl border border-slate-200 bg-slate-900 p-5 text-white shadow-sm">
+                  <div class="flex items-center justify-between gap-3"><p class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Latest offer</p><span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">v{{ req.currentOffer.version }}</span></div>
+                  <p class="mt-3 text-2xl font-bold tracking-tight">{{ req.currentOffer.amount | number:'1.2-2' }} <span class="text-sm font-semibold text-slate-400">{{ req.currentOffer.currencyCode }}</span></p>
+                  <p class="mt-1 text-xs text-slate-400">Expires {{ req.currentOffer.expiresAt | date:'mediumDate' }}</p>
+                  <div class="mt-4 border-t border-white/10 pt-4 text-xs text-slate-300"><div class="flex justify-between gap-3"><span>Supplier cost</span><span>{{ req.currentOffer.supplierCostAmount | number:'1.2-2' }}</span></div><div class="mt-2 flex justify-between gap-3"><span>Agency fee</span><span>{{ req.currentOffer.agencyServiceFeeAmount | number:'1.2-2' }}</span></div></div>
+                </section>
+              }
+            </aside>
+          </div>
+        </div>
+
+        <!-- Persistent actions -->
+        @if (req.status === 'Pending' || req.status === 'OfferSent') {
+          <footer class="shrink-0 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
+            <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p class="flex items-center gap-2 text-xs text-slate-500"><span class="material-symbols-outlined text-base text-blue-600">info</span><span>Changes are shared with the traveler immediately.</span></p>
+              <div class="flex gap-2 sm:justify-end">
+                @if (req.status === 'Pending') { <button type="button" (click)="process(req, 'reject')" [disabled]="actionId() === req.id" class="flex-1 rounded-xl bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50 sm:flex-none">Decline request</button> }
+                <button type="button" (click)="sendOffer(req)" [disabled]="actionId() === req.id" class="flex-1 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50 sm:flex-none">{{ req.status === 'OfferSent' ? 'Send revised offer' : 'Send official offer' }}</button>
               </div>
             </div>
-          }
-
-          <!-- Actions -->
-          @if (req.status === 'Pending') {
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-              <button type="button" (click)="process(req, 'reject')" [disabled]="actionId() === req.id"
-                      class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-xl disabled:opacity-50">
-                Decline Request
-              </button>
-              <button type="button" (click)="process(req, 'accept')" [disabled]="actionId() === req.id"
-                      class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50">
-                Accept Booking
-              </button>
-            </div>
-          }
-        </div>
-      </div>
+          </footer>
+        }
+      </section>
     </div>
   }
 </div>
+
+@if (activeChatRequest(); as chatRequest) {
+  <app-booking-chat-panel
+    [request]="chatRequest"
+    [messages]="messages()"
+    [draft]="messageDraft()"
+    [sending]="actionId() === chatRequest.id"
+    counterpart="traveler"
+    (closed)="closeChat()"
+    (draftChange)="messageDraft.set($event)"
+    (send)="sendMessage(chatRequest)" />
+}

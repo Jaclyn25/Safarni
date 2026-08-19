@@ -31,6 +31,29 @@ public sealed class TestPaymentGateway : IPaymentGateway
         return Task.FromResult(new PaymentCheckoutSession("Test", sessionId, checkoutUrl));
     }
 
+    public Task<PaymentCheckoutSession> CreateOneTimeCheckoutSessionAsync(
+        PaymentCheckoutRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var sessionId = $"test_booking_{Guid.NewGuid():N}";
+        var bookingRequestId = request.Metadata.TryGetValue("bookingRequestId", out var value)
+            ? $"&bookingRequestId={Uri.EscapeDataString(value)}"
+            : string.Empty;
+        var checkoutUrl = $"{_frontendBaseUrl.TrimEnd('/')}/booking-payment?type=booking&sessionId={sessionId}{bookingRequestId}";
+        return Task.FromResult(new PaymentCheckoutSession("Test", sessionId, checkoutUrl));
+    }
+
+    public Task<string> GetOneTimeCheckoutUrlAsync(
+        string provider,
+        string sessionId,
+        Guid bookingRequestId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!string.Equals(provider, "Test", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The test payment session belongs to another provider.");
+        return Task.FromResult($"{_frontendBaseUrl.TrimEnd('/')}/booking-payment?type=booking&sessionId={Uri.EscapeDataString(sessionId)}&bookingRequestId={bookingRequestId}");
+    }
+
     public Task<PaymentWebhookEvent?> VerifyWebhookAsync(
         string payload,
         string signature,
@@ -60,6 +83,11 @@ public sealed class TestPaymentGateway : IPaymentGateway
             webhook.Success ? null : webhook.FailureReason ?? "Test payment failed.",
             webhook.OccurredAt ?? DateTime.UtcNow));
     }
+
+    public Task<PaymentRefundResult> RefundPaymentAsync(
+        PaymentRefundRequest request,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(new PaymentRefundResult("Test", $"test_refund_{Guid.NewGuid():N}"));
 
     public Task ScheduleSubscriptionCancellationAsync(
         string providerSubscriptionId,

@@ -70,6 +70,58 @@ public sealed class StripePaymentGateway : IPaymentGateway
         return new PaymentCheckoutSession("Stripe", session.Id, session.Url);
     }
 
+    public async Task<PaymentCheckoutSession> CreateOneTimeCheckoutSessionAsync(
+        PaymentCheckoutRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured(_secretKey, "Payments:StripeSecretKey");
+
+        StripeConfiguration.ApiKey = _secretKey;
+        var metadata = request.Metadata.ToDictionary(item => item.Key, item => item.Value);
+        var bookingReturnQuery = metadata.TryGetValue("bookingRequestId", out var bookingRequestId)
+            ? $"&bookingRequestId={Uri.EscapeDataString(bookingRequestId)}"
+            : string.Empty;
+        var options = new SessionCreateOptions
+        {
+            Mode = "payment",
+            SuccessUrl = $"{_frontendBaseUrl.TrimEnd('/')}/booking-payment?type=booking&status=success&session_id={{CHECKOUT_SESSION_ID}}{bookingReturnQuery}",
+            CancelUrl = $"{_frontendBaseUrl.TrimEnd('/')}/booking-payment?type=booking&status=cancelled{bookingReturnQuery}",
+            ClientReferenceId = request.CustomerReference,
+            CustomerEmail = request.CustomerEmail,
+            Metadata = metadata,
+            LineItems =
+            [
+                new SessionLineItemOptions
+                {
+                    Quantity = 1,
+                    PriceData = new SessionLineItemPriceDataOptions
+                    {
+                        Currency = request.CurrencyCode.ToLowerInvariant(),
+                        UnitAmount = checked((long)decimal.Round(request.Amount * 100m, 0, MidpointRounding.AwayFromZero)),
+                        ProductData = new SessionLineItemPriceDataProductDataOptions { Name = request.Description }
+                    }
+                }
+            ]
+        };
+
+        var session = await new SessionService().CreateAsync(options, cancellationToken: cancellationToken);
+        return new PaymentCheckoutSession("Stripe", session.Id, session.Url);
+    }
+
+    public async Task<string> GetOneTimeCheckoutUrlAsync(
+        string provider,
+        string sessionId,
+        Guid bookingRequestId,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured(_secretKey, "Payments:StripeSecretKey");
+        if (!string.Equals(provider, "Stripe", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The payment session belongs to another provider.");
+        StripeConfiguration.ApiKey = _secretKey;
+        var session = await new SessionService().GetAsync(sessionId, cancellationToken: cancellationToken);
+        return session.Url;
+    }
+
     public Task<PaymentWebhookEvent?> VerifyWebhookAsync(
         string payload,
         string signature,
@@ -110,6 +162,24 @@ public sealed class StripePaymentGateway : IPaymentGateway
         };
 
         return Task.FromResult(webhook);
+    }
+
+    public async Task<PaymentRefundResult> RefundPaymentAsync(
+        PaymentRefundRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured(_secretKey, "Payments:StripeSecretKey");
+        StripeConfiguration.ApiKey = _secretKey;
+        var session = await new SessionService().GetAsync(request.PaymentSessionId, cancellationToken: cancellationToken);
+        if (string.IsNullOrWhiteSpace(session.PaymentIntentId))
+            throw new InvalidOperationException("Stripe payment intent was not found for this checkout.");
+        var refund = await new RefundService().CreateAsync(new RefundCreateOptions
+        {
+            PaymentIntent = session.PaymentIntentId,
+            Amount = checked((long)decimal.Round(request.Amount * 100m, 0, MidpointRounding.AwayFromZero)),
+            Reason = request.Reason.Length > 500 ? request.Reason[..500] : request.Reason
+        }, cancellationToken: cancellationToken);
+        return new PaymentRefundResult("Stripe", refund.Id);
     }
 
     public async Task ScheduleSubscriptionCancellationAsync(

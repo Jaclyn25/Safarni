@@ -21,6 +21,7 @@ public sealed record AdminBillingPlanResponse(
     BillingPeriod BillingPeriod,
     decimal Price,
     string CurrencyCode,
+    decimal BookingCommissionRate,
     int AiItineraryGenerationsPerPeriod,
     int MaxPublishedPackages,
     bool IsActive,
@@ -64,6 +65,7 @@ public sealed record UpdatePricingPlanCommand(
     string CurrencyCode,
     int AiItineraryGenerationsPerPeriod,
     int MaxPublishedPackages,
+    decimal? BookingCommissionRate,
     bool IsActive)
     : IRequest<Result<PricingPlanResponse>>;
 
@@ -104,6 +106,7 @@ public sealed class GetAdminBillingOverviewQueryHandler
                 plan.BillingPeriod,
                 plan.Price,
                 plan.CurrencyCode,
+                plan.BookingCommissionRate,
                 plan.AiItineraryGenerationsPerPeriod,
                 plan.MaxPublishedPackages,
                 plan.IsActive,
@@ -168,7 +171,8 @@ public sealed class UpdatePricingPlanCommandHandler
             return Result<PricingPlanResponse>.Failure(BillingErrors.InvalidCurrencyCode);
         }
 
-        if (request.AiItineraryGenerationsPerPeriod < 0 || request.MaxPublishedPackages < 0)
+        if (request.AiItineraryGenerationsPerPeriod < 0 || request.MaxPublishedPackages < 0 ||
+            request.BookingCommissionRate is < 0m or > 100m)
         {
             return Result<PricingPlanResponse>.Failure(BillingErrors.InvalidPlanLimits);
         }
@@ -183,6 +187,10 @@ public sealed class UpdatePricingPlanCommandHandler
         plan.CurrencyCode = currencyCode;
         plan.AiItineraryGenerationsPerPeriod = request.AiItineraryGenerationsPerPeriod;
         plan.MaxPublishedPackages = request.MaxPublishedPackages;
+        if (request.BookingCommissionRate is { } bookingCommissionRate)
+        {
+            plan.BookingCommissionRate = decimal.Round(bookingCommissionRate, 2, MidpointRounding.AwayFromZero);
+        }
         plan.IsActive = request.IsActive;
         await _billing.SaveChangesAsync(cancellationToken);
 

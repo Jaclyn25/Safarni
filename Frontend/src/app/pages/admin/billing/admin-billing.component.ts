@@ -18,7 +18,7 @@ export class AdminBillingComponent implements OnInit {
   readonly savingPlanId = signal<string | null>(null);
 
   overview: AdminBillingOverview | null = null;
-  drafts: Record<string, { price: number; currencyCode: string; aiItineraryGenerationsPerPeriod: number; maxPublishedPackages: number; isActive: boolean }> = {};
+  drafts: Record<string, { price: number; currencyCode: string; aiItineraryGenerationsPerPeriod: number; maxPublishedPackages: number; bookingCommissionRate: number; isActive: boolean }> = {};
 
   constructor(private readonly adminService: AdminService) {}
 
@@ -38,6 +38,7 @@ export class AdminBillingComponent implements OnInit {
             currencyCode: plan.currencyCode,
             aiItineraryGenerationsPerPeriod: plan.aiItineraryGenerationsPerPeriod,
             maxPublishedPackages: plan.maxPublishedPackages,
+            bookingCommissionRate: plan.bookingCommissionRate,
             isActive: plan.isActive,
           }])
         );
@@ -50,8 +51,8 @@ export class AdminBillingComponent implements OnInit {
     });
   }
 
-  draft(plan: AdminBillingPlan): { price: number; currencyCode: string; aiItineraryGenerationsPerPeriod: number; maxPublishedPackages: number; isActive: boolean } {
-    return this.drafts[plan.id] ?? { price: plan.price, currencyCode: plan.currencyCode, aiItineraryGenerationsPerPeriod: plan.aiItineraryGenerationsPerPeriod, maxPublishedPackages: plan.maxPublishedPackages, isActive: plan.isActive };
+  draft(plan: AdminBillingPlan): { price: number; currencyCode: string; aiItineraryGenerationsPerPeriod: number; maxPublishedPackages: number; bookingCommissionRate: number; isActive: boolean } {
+    return this.drafts[plan.id] ?? { price: plan.price, currencyCode: plan.currencyCode, aiItineraryGenerationsPerPeriod: plan.aiItineraryGenerationsPerPeriod, maxPublishedPackages: plan.maxPublishedPackages, bookingCommissionRate: plan.bookingCommissionRate, isActive: plan.isActive };
   }
 
   save(plan: AdminBillingPlan): void {
@@ -68,6 +69,7 @@ export class AdminBillingComponent implements OnInit {
       currencyCode: draft.currencyCode,
       aiItineraryGenerationsPerPeriod: Number(draft.aiItineraryGenerationsPerPeriod),
       maxPublishedPackages: Number(draft.maxPublishedPackages),
+      bookingCommissionRate: Number(draft.bookingCommissionRate),
       isActive: draft.isActive,
     }).subscribe({
       next: () => {

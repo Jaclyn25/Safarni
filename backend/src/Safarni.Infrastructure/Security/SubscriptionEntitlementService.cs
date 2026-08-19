@@ -7,9 +7,9 @@ namespace Safarni.Infrastructure.Security;
 
 public sealed class SubscriptionEntitlementService : IEntitlementService
 {
-    private const int FreeTravelerAiGenerationsPerDay = 100;
-    private const int FreeAgencyPackageCreationsPerDay = 20;
-    private const int FreeAgencyPackagePublicationsPerDay = 20;
+    private const int FreeTravelerAiGenerationsPerMonth = 3;
+    private const int FreeAgencyPackageCreationsPerMonth = 3;
+    private const int FreeAgencyPackagePublications = 1;
     private const string FreeTravelerPlanCode = "traveler-basic";
     private const string FreeAgencyPlanCode = "agency-basic";
 
@@ -30,8 +30,8 @@ public sealed class SubscriptionEntitlementService : IEntitlementService
 
         if (subscription is null)
         {
-            var freePeriodStart = now.Date;
-            var freePeriodEnd = freePeriodStart.AddDays(1);
+            var freePeriodStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var freePeriodEnd = freePeriodStart.AddMonths(1);
             var freeUsed = await _dbContext.ItineraryGenerationJobs.CountAsync(job =>
                 job.UserId == userId &&
                 job.CreatedAt >= freePeriodStart &&
@@ -39,9 +39,9 @@ public sealed class SubscriptionEntitlementService : IEntitlementService
                 cancellationToken);
 
             return new(
-                freeUsed < FreeTravelerAiGenerationsPerDay,
+                freeUsed < FreeTravelerAiGenerationsPerMonth,
                 freeUsed,
-                FreeTravelerAiGenerationsPerDay,
+                FreeTravelerAiGenerationsPerMonth,
                 freePeriodEnd,
                 FreeTravelerPlanCode);
         }
@@ -59,18 +59,16 @@ public sealed class SubscriptionEntitlementService : IEntitlementService
         var subscription = await ActiveSubscriptionAsync(null, agencyId, PricingCustomerType.Agency, cancellationToken);
         if (subscription is null)
         {
-            var periodStart = DateTime.UtcNow.Date;
-            var periodEnd = periodStart.AddDays(1);
             var freeUsed = await _dbContext.TravelPackages.CountAsync(package =>
                 package.TravelAgencyId == agencyId &&
-                package.PublishedAt >= periodStart &&
-                package.PublishedAt < periodEnd,
+                package.IsPublished &&
+                package.IsActive,
                 cancellationToken);
             return new(
-                freeUsed < FreeAgencyPackagePublicationsPerDay,
+                freeUsed < FreeAgencyPackagePublications,
                 freeUsed,
-                FreeAgencyPackagePublicationsPerDay,
-                periodEnd,
+                FreeAgencyPackagePublications,
+                null,
                 FreeAgencyPlanCode);
         }
         var used = await _dbContext.TravelPackages.CountAsync(package =>
@@ -88,17 +86,18 @@ public sealed class SubscriptionEntitlementService : IEntitlementService
             return new(true, 0, int.MaxValue, subscription.CurrentPeriodEnd, subscription.Plan.Code);
         }
 
-        var periodStart = DateTime.UtcNow.Date;
-        var periodEnd = periodStart.AddDays(1);
+        var now = DateTime.UtcNow;
+        var periodStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var periodEnd = periodStart.AddMonths(1);
         var freeUsed = await _dbContext.TravelPackages.CountAsync(package =>
             package.TravelAgencyId == agencyId &&
             package.CreatedAt >= periodStart &&
             package.CreatedAt < periodEnd,
             cancellationToken);
         return new(
-            freeUsed < FreeAgencyPackageCreationsPerDay,
+            freeUsed < FreeAgencyPackageCreationsPerMonth,
             freeUsed,
-            FreeAgencyPackageCreationsPerDay,
+            FreeAgencyPackageCreationsPerMonth,
             periodEnd,
             FreeAgencyPlanCode);
     }

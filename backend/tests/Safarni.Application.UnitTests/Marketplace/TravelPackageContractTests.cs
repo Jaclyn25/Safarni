@@ -45,7 +45,20 @@ public sealed class TravelPackageContractTests
     public void PackageBookingStatuses_ExposeRequiredContractValues()
     {
         Enum.GetNames<PackageBookingRequestStatus>().Should().Equal(
-            "Pending", "Accepted", "Rejected", "Cancelled");
+            "Pending",
+            "Accepted",
+            "Rejected",
+            "Cancelled",
+            "OfferSent",
+            "AwaitingPayment",
+            "Confirmed",
+            "InProgress",
+            "Completed",
+            "Expired",
+            "CancelledByTraveler",
+            "CancelledByAgency",
+            "Refunded",
+            "Disputed");
     }
 
     [Fact]

@@ -11,6 +11,7 @@ export interface PricingPlan {
   billingPeriod: BillingPeriod;
   price: number;
   currencyCode: string;
+  bookingCommissionRate: number;
   aiItineraryGenerationsPerPeriod: number;
   maxPublishedPackages: number;
   benefits: string[];

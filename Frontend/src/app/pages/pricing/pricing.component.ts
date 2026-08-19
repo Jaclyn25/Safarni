@@ -47,13 +47,13 @@ export class PricingComponent implements OnInit {
   get freePlanName(): string { return this.isAgency ? 'Agency Basic' : 'Traveler Basic'; }
   get freePlanDescription(): string {
     return this.isAgency
-      ? 'Create your verified agency presence and publish up to three marketplace packages every day.'
-      : 'Explore Safarni and generate up to three AI-powered itineraries every day.';
+      ? 'Create your agency presence and publish one active package while you evaluate Safarni.'
+      : 'Explore Safarni with three AI-powered itinerary generations each month.';
   }
   get freePlanBenefits(): readonly string[] {
     return this.isAgency
-      ? ['Create 3 packages per day', 'Publish 3 packages per day', 'Build your verified agency presence']
-      : ['3 AI itinerary generations per day', 'Explore destinations and marketplace packages', 'Create and manage your trips'];
+      ? ['Create 3 packages per month', 'Publish 1 active package', 'Build your verified agency presence']
+      : ['3 AI itinerary generations per month', 'Explore destinations and marketplace packages', 'Create and manage your trips'];
   }
   get freePlanButtonLabel(): string {
     if (!this.auth.isAuthenticated()) return 'Start for free';

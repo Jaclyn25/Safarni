@@ -19,6 +19,7 @@ public sealed record PricingPlanResponse(
     BillingPeriod BillingPeriod,
     decimal Price,
     string CurrencyCode,
+    decimal BookingCommissionRate,
     int AiItineraryGenerationsPerPeriod,
     int MaxPublishedPackages,
     IReadOnlyList<string> Benefits,
@@ -60,6 +61,7 @@ internal static class BillingMapping
     public static PricingPlanResponse ToPlanResponse(PricingPlan plan) => new(
         plan.Id, plan.Code, plan.DisplayName, plan.Description, plan.CustomerType,
         plan.BillingPeriod, plan.Price, plan.CurrencyCode,
+        plan.BookingCommissionRate,
         plan.AiItineraryGenerationsPerPeriod, plan.MaxPublishedPackages,
         plan.BenefitsText.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
         plan.IsActive);

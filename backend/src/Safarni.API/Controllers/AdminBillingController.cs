@@ -37,7 +37,8 @@ public sealed class AdminBillingController : AdminControllerBase
     {
         var result = await _sender.Send(
             new UpdatePricingPlanCommand(planId, request.Price, request.CurrencyCode,
-                request.AiItineraryGenerationsPerPeriod, request.MaxPublishedPackages, request.IsActive),
+                request.AiItineraryGenerationsPerPeriod, request.MaxPublishedPackages,
+                request.BookingCommissionRate, request.IsActive),
             cancellationToken);
 
         return result.IsFailure
@@ -51,5 +52,6 @@ public sealed class AdminBillingController : AdminControllerBase
         string CurrencyCode,
         int AiItineraryGenerationsPerPeriod,
         int MaxPublishedPackages,
+        decimal? BookingCommissionRate,
         bool IsActive);
 }

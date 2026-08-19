@@ -201,6 +201,12 @@ export class MarketplaceService {
       .pipe(map((response) => this.requireData(response)));
   }
 
+  confirmBookingPayment(requestId: string, sessionId: string): Observable<boolean> {
+    return this.http.post<ApiResponse<boolean>>(
+      `/api/booking-requests/${requestId}/payment/confirm?sessionId=${encodeURIComponent(sessionId)}`, {})
+      .pipe(map((response) => this.requireData(response)));
+  }
+
   completeBookingTestPayment(sessionId: string, success: boolean): Observable<BookingPayment> {
     return this.http.post<ApiResponse<BookingPayment>>(
       `/api/booking-payments/test/complete/${encodeURIComponent(sessionId)}?success=${success}`, {})

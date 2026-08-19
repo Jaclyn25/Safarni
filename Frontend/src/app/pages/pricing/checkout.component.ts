@@ -92,6 +92,19 @@ export class CheckoutComponent implements OnInit {
       return;
     }
 
+    this.marketplace.confirmBookingPayment(this.bookingRequestId(), this.sessionId()).subscribe({
+      next: (confirmed) => {
+        if (confirmed) {
+          this.state.set('success');
+          return;
+        }
+        this.checkBookingStatus(attempt);
+      },
+      error: () => this.checkBookingStatus(attempt)
+    });
+  }
+
+  private checkBookingStatus(attempt: number): void {
     this.marketplace.listTravelerBookings().subscribe({
       next: (requests) => {
         const booking = requests.find((request) => request.id === this.bookingRequestId());
@@ -103,7 +116,7 @@ export class CheckoutComponent implements OnInit {
           window.setTimeout(() => this.confirmStripeBooking(attempt + 1), 1000);
           return;
         }
-        this.error.set('Payment was returned successfully. We are waiting for the booking confirmation webhook. Open My Agency Trips in a moment.');
+        this.error.set('Payment was received, but the booking status is still processing. Open My Agency Trips and refresh shortly.');
       },
       error: (error: unknown) => {
         if (attempt < 10) {

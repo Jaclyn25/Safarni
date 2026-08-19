@@ -154,12 +154,134 @@ export interface PackageBookingRequest {
   travelerCountry: string;
   travelerCity: string;
   message: string | null;
-  status: 'Pending' | 'Accepted' | 'Rejected' | 'Cancelled';
+  status: 'Pending' | 'Accepted' | 'Rejected' | 'Cancelled' | 'OfferSent' | 'AwaitingPayment' | 'Confirmed' | 'InProgress' | 'Completed' | 'Expired' | 'CancelledByTraveler' | 'CancelledByAgency' | 'Refunded' | 'Disputed';
   agencyResponse: string | null;
   createdAt: string;
   updatedAt: string | null;
   respondedAt: string | null;
   hasReview: boolean;
+  currentOffer: PackageBookingOffer | null;
+  latestPayment: BookingPayment | null;
+}
+
+export type BookingDisputeStatus = 'Open' | 'UnderReview' | 'ResolvedForTraveler' | 'ResolvedForAgency' | 'Rejected' | 'Cancelled';
+
+export interface BookingDispute {
+  id: string;
+  bookingRequestId: string;
+  openedByUserId: string;
+  reason: string;
+  requestedRefundAmount: number | null;
+  status: BookingDisputeStatus;
+  adminNote: string | null;
+  resolvedRefundAmount: number | null;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+export interface PackageBookingOffer {
+  id: string;
+  bookingRequestId: string;
+  version: number;
+  amount: number;
+  supplierCostAmount: number;
+  agencyServiceFeeAmount: number;
+  safarniProtectionFeeAmount: number;
+  currencyCode: string;
+  travelerCount: number;
+  included: string | null;
+  excluded: string | null;
+  cancellationPolicy: string | null;
+  agencyNote: string | null;
+  initialPaymentPercentage: number;
+  finalPaymentDueAt: string | null;
+  status: 'Sent' | 'Accepted' | 'Declined' | 'Expired' | 'Superseded';
+  expiresAt: string;
+  createdAt: string;
+  acceptedAt: string | null;
+}
+
+export interface BookingPayment {
+  id: string;
+  bookingRequestId: string;
+  offerId: string;
+  provider: string;
+  paymentSessionId: string;
+  checkoutUrl: string | null;
+  grossAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
+  agencyAmount: number;
+  currencyCode: string;
+  status: 'Pending' | 'Succeeded' | 'Failed' | 'Refunded';
+  createdAt: string;
+  paidAt: string | null;
+  refundedAt: string | null;
+  installmentNumber: number;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  nextPaymentDueAt: string | null;
+  isFullyPaid: boolean;
+  providerRefundId?: string | null;
+  refundedAmount?: number | null;
+  refundPercentage?: number | null;
+}
+
+export interface PackageBookingMessage {
+  id: string;
+  bookingRequestId: string;
+  senderUserId: string;
+  senderName: string;
+  body: string;
+  createdAt: string;
+  isMine: boolean;
+}
+
+export interface BookingTraveler {
+  id: string;
+  bookingRequestId: string;
+  fullName: string;
+  dateOfBirth: string | null;
+  nationality: string;
+  passportNumber: string;
+  passportExpiry: string | null;
+  email: string;
+  phone: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface BookingDocument {
+  id: string;
+  bookingRequestId: string;
+  travelerId: string | null;
+  documentType: string;
+  originalFileName: string;
+  contentType: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
+export interface SupplierEvidence {
+  id: string;
+  bookingRequestId: string;
+  offerId: string;
+  agencyId: string;
+  supplierType: string;
+  supplierName: string;
+  confirmationCode: string;
+  invoiceAmount: number;
+  currencyCode: string;
+  originalFileName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: 'PendingReview' | 'Approved' | 'Rejected';
+  reviewNote: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  payoutStatus: 'PendingReview' | 'Approved' | 'Paid' | 'Rejected' | 'Held' | null;
+  payoutAmount: number | null;
 }
 
 export interface TravelPackageRequest {

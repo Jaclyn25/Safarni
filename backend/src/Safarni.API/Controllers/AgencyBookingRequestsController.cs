@@ -50,6 +50,39 @@ public sealed class AgencyBookingRequestsController : ControllerBase
     public Task<IActionResult> Reject(Guid requestId, [FromBody] ProcessBookingRequest request, CancellationToken cancellationToken) =>
         Process(new RejectPackageBookingRequestCommand(User.GetRequiredUserId(), requestId, request.Response), "Booking request rejected.", cancellationToken);
 
+    [HttpPost("{requestId:guid}/offers")]
+    public Task<IActionResult> SendOffer(
+        Guid requestId,
+        [FromBody] SendOfferRequest request,
+        CancellationToken cancellationToken) =>
+        Process(
+            new SendPackageBookingOfferCommand(
+                User.GetRequiredUserId(),
+                requestId,
+                request.Amount,
+                request.SupplierCostAmount,
+                request.AgencyServiceFeeAmount,
+                request.SafarniProtectionFeeAmount,
+                request.CurrencyCode,
+                request.ExpiresAt,
+                request.Included,
+                request.Excluded,
+                request.CancellationPolicy,
+                request.AgencyNote,
+                request.InitialPaymentPercentage,
+                request.FinalPaymentDueAt),
+            "Booking offer sent.",
+            cancellationToken);
+
+    [HttpPost("{requestId:guid}/disputes")]
+    public async Task<IActionResult> OpenDispute(Guid requestId, [FromBody] AgencyDisputeRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new OpenAgencyBookingDisputeCommand(User.GetRequiredUserId(), requestId, request.Reason), cancellationToken);
+        return result.IsFailure
+            ? Failure<BookingDisputeResponse>(result.Error, "Booking dispute could not be opened.")
+            : Ok(ApiResponse<BookingDisputeResponse>.SuccessResponse(result.Value!, "Booking dispute opened for review.", StatusCodes.Status201Created));
+    }
+
     private async Task<IActionResult> Process<TCommand>(TCommand command, string message, CancellationToken cancellationToken)
         where TCommand : IRequest<Safarni.Application.Common.Results.Result<PackageBookingRequestResponse>>
     {
@@ -73,4 +106,20 @@ public sealed class AgencyBookingRequestsController : ControllerBase
     }
 
     public sealed record ProcessBookingRequest(string? Response);
+
+    public sealed record SendOfferRequest(
+        decimal Amount,
+        decimal? SupplierCostAmount,
+        decimal? AgencyServiceFeeAmount,
+        decimal? SafarniProtectionFeeAmount,
+        string CurrencyCode,
+        DateTime ExpiresAt,
+        string? Included,
+        string? Excluded,
+        string? CancellationPolicy,
+        string? AgencyNote,
+        decimal? InitialPaymentPercentage,
+        DateTime? FinalPaymentDueAt);
+
+    public sealed record AgencyDisputeRequest(string Reason);
 }

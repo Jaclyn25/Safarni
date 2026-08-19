@@ -279,3 +279,77 @@ export interface AuditLogEntry {
   severity: AuditSeverity;
   createdAt: string;
 }
+
+export type BookingSupplierEvidenceStatus = 'PendingReview' | 'Approved' | 'Rejected';
+export type BookingPayoutStatus = 'PendingReview' | 'Approved' | 'Paid' | 'Rejected' | 'Held';
+export type BookingPayoutType = 'SupplierCostAdvance' | 'AgencyServiceFee' | 'HoldbackRelease';
+
+export interface SupplierEvidenceItem {
+  id: string;
+  bookingRequestId: string;
+  offerId: string;
+  agencyId: string;
+  supplierType: string;
+  supplierName: string;
+  confirmationCode: string;
+  invoiceAmount: number;
+  currencyCode: string;
+  originalFileName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: BookingSupplierEvidenceStatus;
+  reviewNote: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  payoutStatus: BookingPayoutStatus | null;
+  payoutAmount: number | null;
+}
+
+export interface BookingPayoutItem {
+  id: string;
+  bookingRequestId: string;
+  agencyId: string;
+  type: BookingPayoutType;
+  status: BookingPayoutStatus;
+  amount: number;
+  currencyCode: string;
+  externalTransferId: string | null;
+  releaseAt: string | null;
+  createdAt: string;
+  paidAt: string | null;
+}
+
+export type BookingDisputeStatus = 'Open' | 'UnderReview' | 'ResolvedForTraveler' | 'ResolvedForAgency' | 'Rejected' | 'Cancelled';
+
+export interface BookingDisputeItem {
+  id: string;
+  bookingRequestId: string;
+  openedByUserId: string;
+  reason: string;
+  requestedRefundAmount: number | null;
+  status: BookingDisputeStatus;
+  adminNote: string | null;
+  resolvedRefundAmount: number | null;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+export interface AgencyPayoutProfileItem {
+  agencyId: string;
+  companyName: string;
+  agencyEmail: string;
+  profile: {
+    id: string;
+    method: 'BankTransfer' | 'MobileWallet' | string;
+    status: 'PendingReview' | 'Verified' | 'Rejected' | string;
+    accountHolderName: string;
+    country: string;
+    bankName: string | null;
+    iban: string | null;
+    accountNumber: string | null;
+    swiftCode: string | null;
+    walletProvider: string | null;
+    walletNumber: string | null;
+    verifiedAt: string | null;
+  };
+}

@@ -56,6 +56,27 @@ public sealed class TravelAgencyRepository : ITravelAgencyRepository
             cancellationToken);
     }
 
+    public Task<AgencyPayoutProfile?> GetPayoutProfileByUserIdAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        _dbContext.AgencyPayoutProfiles
+            .Include(profile => profile.TravelAgency)
+            .FirstOrDefaultAsync(profile => profile.TravelAgency.UserId == userId, cancellationToken);
+
+    public Task AddPayoutProfileAsync(AgencyPayoutProfile profile, CancellationToken cancellationToken = default) =>
+        _dbContext.AgencyPayoutProfiles.AddAsync(profile, cancellationToken).AsTask();
+
+    public async Task<IReadOnlyList<TravelAgency>> ListPayoutProfilesAsync(
+        AgencyPayoutProfileStatus? status,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.TravelAgencies
+            .Include(agency => agency.User)
+            .Include(agency => agency.PayoutProfile)
+            .Where(agency => agency.PayoutProfile != null);
+        if (status is not null)
+            query = query.Where(agency => agency.PayoutProfile!.Status == status);
+        return await query.OrderBy(agency => agency.PayoutProfile!.CreatedAt).ToListAsync(cancellationToken);
+    }
+
     public async Task<PagedResult<TravelAgency>> ListAsync(
         AgencyVerificationStatus? status,
         string? search,
@@ -132,7 +153,8 @@ public sealed class TravelAgencyRepository : ITravelAgencyRepository
     private IQueryable<TravelAgency> BaseQuery(bool includeDocuments)
     {
         IQueryable<TravelAgency> query = _dbContext.TravelAgencies
-            .Include(agency => agency.User);
+            .Include(agency => agency.User)
+            .Include(agency => agency.PayoutProfile);
 
         if (includeDocuments)
         {

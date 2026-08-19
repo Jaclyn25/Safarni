@@ -34,6 +34,8 @@ export class AdminLayoutComponent {
       sectionTitle: 'Commercial',
       items: [
         { path: '/admin/billing', label: 'Pricing & billing', icon: 'payments' },
+        { path: '/admin/booking-payouts', label: 'Booking settlements', icon: 'account_balance' },
+        { path: '/admin/booking-disputes', label: 'Booking disputes', icon: 'gavel' },
       ],
     },
     {

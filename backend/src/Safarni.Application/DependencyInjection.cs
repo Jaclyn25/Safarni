@@ -27,6 +27,7 @@ using Safarni.Application.Features.Trips.GenerateItinerary;
 using Safarni.Application.Features.Trips.GenerateItinerary.Jobs;
 using Safarni.Application.Features.Trips.UpdateTrip;
 using Safarni.Application.Features.Packages;
+using Safarni.Application.Features.Agencies.Payout;
 using Safarni.Application.Features.Trips.Itineraries.ManageItems;
 using Safarni.Application.Features.Trips.Itineraries.VenueSuggestions;
 
@@ -77,6 +78,17 @@ public static class DependencyInjection
         services.AddTransient<IValidator<CreatePackageBookingRequestCommand>, CreatePackageBookingRequestCommandValidator>();
         services.AddTransient<IValidator<AcceptPackageBookingRequestCommand>, ProcessPackageBookingRequestCommandValidator>();
         services.AddTransient<IValidator<RejectPackageBookingRequestCommand>, RejectPackageBookingRequestCommandValidator>();
+        services.AddTransient<IValidator<SendPackageBookingOfferCommand>, SendPackageBookingOfferCommandValidator>();
+        services.AddTransient<IValidator<AcceptPackageBookingOfferCommand>, AcceptPackageBookingOfferCommandValidator>();
+        services.AddTransient<IValidator<CreateBookingPaymentCommand>, CreateBookingPaymentCommandValidator>();
+        services.AddTransient<IValidator<RequestBookingRefundCommand>, RequestBookingRefundCommandValidator>();
+        services.AddTransient<IValidator<SendBookingMessageCommand>, SendBookingMessageCommandValidator>();
+        services.AddTransient<IValidator<UpsertBookingTravelerCommand>, UpsertBookingTravelerCommandValidator>();
+        services.AddTransient<IValidator<UpsertMyAgencyPayoutProfileCommand>, UpsertMyAgencyPayoutProfileCommandValidator>();
+        services.AddTransient<IValidator<SubmitSupplierEvidenceCommand>, SubmitSupplierEvidenceCommandValidator>();
+        services.AddTransient<IValidator<ReviewSupplierEvidenceCommand>, ReviewSupplierEvidenceCommandValidator>();
+        services.AddTransient<IValidator<MarkBookingPayoutPaidCommand>, MarkBookingPayoutPaidCommandValidator>();
+        services.AddTransient<IValidator<MarkBookingPayoutPaidByIdCommand>, MarkBookingPayoutPaidByIdCommandValidator>();
         services.AddTransient<AcceptPackageBookingRequestCommandHandler>();
         services.AddTransient<IValidator<AddTravelPackageDayCommand>, AddTravelPackageDayCommandValidator>();
         services.AddTransient<IValidator<UpdateTravelPackageDayCommand>, UpdateTravelPackageDayCommandValidator>();

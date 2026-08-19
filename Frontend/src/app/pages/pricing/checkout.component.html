@@ -3,8 +3,8 @@
     @if (state() === 'pending') {
       <span class="checkout-icon">💳</span>
       <span class="pricing-eyebrow">{{ stripeCheckout() ? 'Stripe payment' : 'Test payment checkout' }}</span>
-      <h1>{{ stripeCheckout() ? 'Confirming your subscription.' : 'Confirm your Safarni plan' }}</h1>
-      <p>{{ stripeCheckout() ? 'Stripe sent the payment result back to Safarni. We are confirming your subscription securely.' : 'This local test checkout sends the payment result through the same backend subscription processor used by the webhook flow.' }}</p>
+      <h1>{{ bookingCheckout() ? 'Secure your booking.' : (stripeCheckout() ? 'Confirming your subscription.' : 'Confirm your Safarni plan') }}</h1>
+      <p>{{ bookingCheckout() ? 'Your payment is protected and the booking is confirmed only after the payment succeeds.' : (stripeCheckout() ? 'Stripe sent the payment result back to Safarni. We are confirming your subscription securely.' : 'This local test checkout sends the payment result through the same backend subscription processor used by the webhook flow.') }}</p>
       @if (error()) { <div class="checkout-error">{{ error() }}</div> }
       @if (!error() && !stripeCheckout()) {
         <div class="checkout-actions">
@@ -16,23 +16,23 @@
     @else if (state() === 'success') {
       <span class="checkout-icon checkout-icon--success">✓</span>
       <span class="pricing-eyebrow">Payment confirmed</span>
-      <h1>Your subscription is active.</h1>
-      <p>Safarni confirmed the payment on the backend. Your protected feature is now available.</p>
-      <a routerLink="/pricing" class="checkout-link">Manage subscription</a>
+      <h1>{{ bookingCheckout() ? 'Your booking is confirmed.' : 'Your subscription is active.' }}</h1>
+      <p>{{ bookingCheckout() ? 'Safarni received your payment and confirmed the reservation. The agency can now complete the travel documents.' : 'Safarni confirmed the payment on the backend. Your protected feature is now available.' }}</p>
+      <a [routerLink]="bookingCheckout() ? '/agency-trips' : '/pricing'" class="checkout-link">{{ bookingCheckout() ? 'View my booking' : 'Manage subscription' }}</a>
     }
     @else if (state() === 'failure') {
       <span class="checkout-icon checkout-icon--failure">!</span>
       <span class="pricing-eyebrow">Payment failed</span>
-      <h1>No paid access was granted.</h1>
-      <p>Your subscription remains unavailable until a payment is confirmed successfully.</p>
-      <a routerLink="/pricing" class="checkout-link">Return to plans</a>
+      <h1>{{ bookingCheckout() ? 'Payment failed.' : 'No paid access was granted.' }}</h1>
+      <p>{{ bookingCheckout() ? 'The booking is not confirmed. You can return to your booking and try again.' : 'Your subscription remains unavailable until a payment is confirmed successfully.' }}</p>
+      <a [routerLink]="bookingCheckout() ? '/agency-trips' : '/pricing'" class="checkout-link">{{ bookingCheckout() ? 'Return to my booking' : 'Return to plans' }}</a>
     }
     @else {
       <span class="checkout-icon">↩</span>
       <span class="pricing-eyebrow">Checkout cancelled</span>
-      <h1>No changes were made.</h1>
-      <p>You can return to pricing whenever you are ready.</p>
-      <a routerLink="/pricing" class="checkout-link">Return to plans</a>
+      <h1>{{ bookingCheckout() ? 'Booking payment cancelled.' : 'No changes were made.' }}</h1>
+      <p>{{ bookingCheckout() ? 'The booking is still waiting for payment. You can return to your trips and try again.' : 'You can return to pricing whenever you are ready.' }}</p>
+      <a [routerLink]="bookingCheckout() ? '/agency-trips' : '/pricing'" class="checkout-link">{{ bookingCheckout() ? 'Return to my booking' : 'Return to plans' }}</a>
     }
   </section>
 </main>

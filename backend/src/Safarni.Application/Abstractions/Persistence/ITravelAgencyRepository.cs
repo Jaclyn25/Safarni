@@ -26,6 +26,10 @@ public interface ITravelAgencyRepository
         Guid excludingAgencyId,
         CancellationToken cancellationToken = default);
 
+    Task<AgencyPayoutProfile?> GetPayoutProfileByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task AddPayoutProfileAsync(AgencyPayoutProfile profile, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<TravelAgency>> ListPayoutProfilesAsync(AgencyPayoutProfileStatus? status, CancellationToken cancellationToken = default);
+
     Task<PagedResult<TravelAgency>> ListAsync(
         AgencyVerificationStatus? status,
         string? search,

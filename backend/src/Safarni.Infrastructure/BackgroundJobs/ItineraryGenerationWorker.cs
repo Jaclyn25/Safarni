@@ -6,6 +6,7 @@ using Safarni.Application.Abstractions.Notifications;
 using Safarni.Application.Abstractions.Persistence;
 using Safarni.Application.Features.Trips.GenerateItinerary;
 using Safarni.Domain.Entities;
+using Safarni.Domain.Enums;
 
 namespace Safarni.Infrastructure.BackgroundJobs;
 
@@ -32,6 +33,9 @@ internal sealed class ItineraryGenerationWorker : BackgroundService
     private static readonly TimeSpan StaleRecoveryInterval =
         TimeSpan.FromMinutes(1);
 
+    private static readonly TimeSpan SettlementReleaseInterval =
+        TimeSpan.FromMinutes(1);
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IItineraryGenerationQueueSignal _queueSignal;
     private readonly ILogger<ItineraryGenerationWorker> _logger;
@@ -52,6 +56,7 @@ internal sealed class ItineraryGenerationWorker : BackgroundService
         CancellationToken stoppingToken)
     {
         var nextStaleRecoveryAtUtc = DateTime.MinValue;
+        var nextSettlementReleaseAtUtc = DateTime.MinValue;
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -64,6 +69,12 @@ internal sealed class ItineraryGenerationWorker : BackgroundService
                     await RecoverStaleJobsAsync(stoppingToken);
                     nextStaleRecoveryAtUtc =
                         DateTime.UtcNow.Add(StaleRecoveryInterval);
+                }
+
+                if (now >= nextSettlementReleaseAtUtc)
+                {
+                    await ReleaseDueSettlementsAsync(stoppingToken);
+                    nextSettlementReleaseAtUtc = DateTime.UtcNow.Add(SettlementReleaseInterval);
                 }
 
                 var processed = await TryProcessNextAsync(stoppingToken);
@@ -96,6 +107,33 @@ internal sealed class ItineraryGenerationWorker : BackgroundService
 
                 await Task.Delay(FailureDelay, stoppingToken);
             }
+        }
+    }
+
+    private async Task ReleaseDueSettlementsAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var requests = scope.ServiceProvider.GetRequiredService<IPackageBookingRequestRepository>();
+        var duePayouts = await requests.ListHeldPayoutsReadyForReleaseAsync(DateTime.UtcNow, cancellationToken);
+        var released = 0;
+
+        foreach (var payout in duePayouts)
+        {
+            if (payout.TravelAgency.PayoutProfile?.Status != AgencyPayoutProfileStatus.Verified)
+            {
+                continue;
+            }
+
+            payout.Status = BookingPayoutStatus.Approved;
+            payout.ReviewNote = "Release date reached. Ready for transfer.";
+            payout.ReviewedAt ??= DateTime.UtcNow;
+            released++;
+        }
+
+        if (released > 0)
+        {
+            await requests.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Released {PayoutCount} booking payout(s) to the approved transfer queue.", released);
         }
     }
 

@@ -35,7 +35,9 @@ public sealed record PackageBookingRequestResponse(
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     DateTime? RespondedAt,
-    bool HasReview);
+    bool HasReview,
+    PackageBookingOfferResponse? CurrentOffer = null,
+    BookingPaymentResponse? LatestPayment = null);
 
 public sealed record CreatePackageBookingRequestCommand(
     Guid TravelerUserId,
@@ -146,7 +148,15 @@ internal static class PackageBookingMapping
             request.CreatedAt,
             request.UpdatedAt,
             request.RespondedAt,
-            request.AgencyReview is not null);
+            request.AgencyReview is not null,
+            request.Offers
+                .OrderByDescending(offer => offer.Version)
+                .Select(PackageBookingOfferMapping.ToResponse)
+                .FirstOrDefault(),
+            request.Payments
+                .OrderByDescending(payment => payment.CreatedAt)
+                .Select(payment => BookingPaymentMapping.ToResponse(payment))
+                .FirstOrDefault());
 
     private static IReadOnlyList<int> DeserializeAges(string json)
     {

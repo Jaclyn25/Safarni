@@ -15,5 +15,10 @@ public enum MarketplaceNotificationType
     AgencySuspended = 10,
     PackageBookingRequestReceived = 11,
     PackageBookingRequestAccepted = 12,
-    PackageBookingRequestRejected = 13
+    PackageBookingRequestRejected = 13,
+    PackageBookingOfferReceived = 14,
+    PackageBookingOfferAccepted = 15,
+    PackageBookingPaymentSucceeded = 16,
+    PackageBookingPaymentFailed = 17,
+    PackageBookingMessageReceived = 18
 }

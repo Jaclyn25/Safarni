@@ -11,6 +11,8 @@ import {
   AgencyDocumentDecision,
   AgencyOnboardingStatus,
   AgencyProfile,
+  AgencyPayoutProfile,
+  AgencyPayoutMethod,
   AgencyVerificationDecision,
   AgencyVerificationDocumentType,
   AgencyVerificationOverview,
@@ -90,6 +92,20 @@ export class AgencyService {
   updateProfile(request: UpdateAgencyProfileRequest): Observable<AgencyProfile> {
     return this.http
       .put<ApiResponse<AgencyProfile>>(`${this.agencyApi}/profile`, request)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  getPayoutProfile(): Observable<AgencyPayoutProfile> {
+    return this.http.get<ApiResponse<AgencyPayoutProfile>>(`${this.agencyApi}/payout-profile`)
+      .pipe(map((response) => this.requireData(response)));
+  }
+
+  savePayoutProfile(request: {
+    method: AgencyPayoutMethod; accountHolderName: string; country: string;
+    bankName: string | null; iban: string | null; accountNumber: string | null;
+    swiftCode: string | null; walletProvider: string | null; walletNumber: string | null;
+  }): Observable<AgencyPayoutProfile> {
+    return this.http.put<ApiResponse<AgencyPayoutProfile>>(`${this.agencyApi}/payout-profile`, request)
       .pipe(map((response) => this.requireData(response)));
   }
 

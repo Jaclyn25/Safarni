@@ -91,6 +91,11 @@ internal sealed class CommunityRepository : ICommunityRepository
         await _dbContext.CommunityPosts.AddAsync(post, cancellationToken);
     }
 
+    public async Task AddMediaAsync(CommunityPostMedia media, CancellationToken cancellationToken = default)
+    {
+        await _dbContext.CommunityPostMedia.AddAsync(media, cancellationToken);
+    }
+
     public async Task AddCommentAsync(CommunityPostComment comment, CancellationToken cancellationToken = default)
     {
         await _dbContext.CommunityPostComments.AddAsync(comment, cancellationToken);

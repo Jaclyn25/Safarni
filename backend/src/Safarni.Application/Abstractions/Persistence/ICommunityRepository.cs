@@ -29,6 +29,7 @@ public interface ICommunityRepository
         CancellationToken cancellationToken = default);
 
     Task AddPostAsync(CommunityPost post, CancellationToken cancellationToken = default);
+    Task AddMediaAsync(CommunityPostMedia media, CancellationToken cancellationToken = default);
     Task AddCommentAsync(CommunityPostComment comment, CancellationToken cancellationToken = default);
     Task AddInteractionAsync(CommunityPostInteraction interaction, CancellationToken cancellationToken = default);
     void RemoveInteraction(CommunityPostInteraction interaction);

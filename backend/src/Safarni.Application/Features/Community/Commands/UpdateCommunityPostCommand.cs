@@ -88,15 +88,21 @@ public sealed class UpdateCommunityPostCommandHandler
                     new Error("Community.InvalidMedia", "Media must have a valid image or video URL.", ErrorType.Validation));
             }
 
-            post.Media.Add(new Domain.Entities.CommunityPostMedia
+            var newMedia = new Domain.Entities.CommunityPostMedia
             {
                 Id = Guid.NewGuid(),
+                PostId = post.Id,
                 MediaType = media.MediaType.ToLowerInvariant(),
                 Url = media.Url.Trim(),
                 ThumbnailUrl = media.ThumbnailUrl?.Trim(),
                 AltText = media.AltText?.Trim(),
                 SortOrder = post.Media.Count + media.SortOrder
-            });
+            };
+
+            // Register the row explicitly as Added. The media key is assigned by the
+            // application, so relying on navigation discovery can make EF issue an
+            // UPDATE for a row that does not exist and raise a concurrency conflict.
+            await _repository.AddMediaAsync(newMedia, cancellationToken);
         }
 
         await _repository.SaveChangesAsync(cancellationToken);

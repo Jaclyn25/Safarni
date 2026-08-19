@@ -54,6 +54,12 @@ public sealed class TestPaymentGateway : IPaymentGateway
         return Task.FromResult($"{_frontendBaseUrl.TrimEnd('/')}/booking-payment?type=booking&sessionId={Uri.EscapeDataString(sessionId)}&bookingRequestId={bookingRequestId}");
     }
 
+    public Task<PaymentWebhookEvent?> GetOneTimePaymentStatusAsync(
+        string provider,
+        string sessionId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<PaymentWebhookEvent?>(null);
+
     public Task<PaymentWebhookEvent?> VerifyWebhookAsync(
         string payload,
         string signature,

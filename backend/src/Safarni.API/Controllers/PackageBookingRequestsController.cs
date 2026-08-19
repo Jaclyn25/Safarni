@@ -81,6 +81,47 @@ public sealed class PackageBookingRequestsController : ControllerBase
                 result.Value!, "Booking payment checkout created.", StatusCodes.Status201Created));
     }
 
+    [HttpPost("{requestId:guid}/payment/confirm")]
+    public async Task<IActionResult> ConfirmPayment(
+        Guid requestId,
+        [FromQuery] string sessionId,
+        CancellationToken cancellationToken)
+    {
+        var payment = await _requests.GetPaymentBySessionAsync("Stripe", sessionId, cancellationToken);
+        if (payment is null ||
+            payment.PackageBookingRequestId != requestId ||
+            payment.PackageBookingRequest.TravelerUserId != User.GetRequiredUserId())
+        {
+            return Failure<bool>(PackageBookingErrors.PaymentNotFound, "Booking payment session not found.");
+        }
+
+        PaymentWebhookEvent? webhook;
+        try
+        {
+            webhook = await _paymentGateway.GetOneTimePaymentStatusAsync(
+                payment.Provider,
+                payment.PaymentSessionId,
+                cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return Failure<bool>(PackageBookingErrors.PaymentProviderNotConfigured, "Booking payment status could not be checked.");
+        }
+
+        if (webhook is null)
+        {
+            return Ok(ApiResponse<bool>.SuccessResponse(false, "Booking payment is still processing.", StatusCodes.Status200OK));
+        }
+
+        var result = await _sender.Send(new ProcessBookingPaymentWebhookCommand(webhook), cancellationToken);
+        return result.IsFailure
+            ? Failure<bool>(result.Error, "Booking payment could not be confirmed.")
+            : Ok(ApiResponse<bool>.SuccessResponse(
+                result.Value!.Status == BookingPaymentStatus.Succeeded,
+                "Booking payment status reconciled.",
+                StatusCodes.Status200OK));
+    }
+
     [HttpPost("{requestId:guid}/refund")]
     public async Task<IActionResult> Refund(
         Guid requestId,

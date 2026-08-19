@@ -122,6 +122,47 @@ public sealed class StripePaymentGateway : IPaymentGateway
         return session.Url;
     }
 
+    public async Task<PaymentWebhookEvent?> GetOneTimePaymentStatusAsync(
+        string provider,
+        string sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured(_secretKey, "Payments:StripeSecretKey");
+        if (!string.Equals(provider, "Stripe", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The payment session belongs to another provider.");
+
+        StripeConfiguration.ApiKey = _secretKey;
+        var session = await new SessionService().GetAsync(sessionId, cancellationToken: cancellationToken);
+        var occurredAt = DateTime.UtcNow;
+        if (string.Equals(session.PaymentStatus, "paid", StringComparison.OrdinalIgnoreCase))
+        {
+            return new PaymentWebhookEvent(
+                "Stripe",
+                $"reconcile_{sessionId}_paid",
+                sessionId,
+                PaymentStatus.Succeeded,
+                null,
+                occurredAt,
+                Amount: session.AmountTotal.HasValue ? session.AmountTotal.Value / 100m : null,
+                CurrencyCode: session.Currency);
+        }
+
+        if (string.Equals(session.Status, "expired", StringComparison.OrdinalIgnoreCase))
+        {
+            return new PaymentWebhookEvent(
+                "Stripe",
+                $"reconcile_{sessionId}_expired",
+                sessionId,
+                PaymentStatus.Failed,
+                "Stripe Checkout session expired.",
+                occurredAt,
+                Amount: session.AmountTotal.HasValue ? session.AmountTotal.Value / 100m : null,
+                CurrencyCode: session.Currency);
+        }
+
+        return null;
+    }
+
     public Task<PaymentWebhookEvent?> VerifyWebhookAsync(
         string payload,
         string signature,

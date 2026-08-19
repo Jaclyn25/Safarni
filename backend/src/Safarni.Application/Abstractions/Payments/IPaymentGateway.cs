@@ -53,6 +53,11 @@ public interface IPaymentGateway
         Guid bookingRequestId,
         CancellationToken cancellationToken = default);
 
+    Task<PaymentWebhookEvent?> GetOneTimePaymentStatusAsync(
+        string provider,
+        string sessionId,
+        CancellationToken cancellationToken = default);
+
     Task<PaymentWebhookEvent?> VerifyWebhookAsync(
         string payload,
         string signature,

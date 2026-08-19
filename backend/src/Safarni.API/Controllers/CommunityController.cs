@@ -62,6 +62,21 @@ public sealed class CommunityController : ControllerBase
             : Ok(ApiResponse<CommunityPostResponse>.SuccessResponse(result.Value!, "Community post created successfully.", StatusCodes.Status200OK));
     }
 
+    [HttpPut("posts/{postId:guid}")]
+    public async Task<IActionResult> UpdatePost(
+        Guid postId,
+        [FromBody] UpdateCommunityPostRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new UpdateCommunityPostCommand(postId, request.Title, request.Body, request.Destination, request.Media),
+            cancellationToken);
+
+        return result.IsFailure
+            ? Failure<CommunityPostResponse>(result.Error, "Failed to update the community post.")
+            : Ok(ApiResponse<CommunityPostResponse>.SuccessResponse(result.Value!, "Community post updated successfully.", StatusCodes.Status200OK));
+    }
+
     [HttpPost("media")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(MaxCommunityMediaRequestSizeBytes)]
@@ -133,6 +148,7 @@ public sealed class CommunityController : ControllerBase
             ErrorType.Validation => StatusCodes.Status400BadRequest,
             ErrorType.NotFound => StatusCodes.Status404NotFound,
             ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+            ErrorType.Forbidden => StatusCodes.Status403Forbidden,
             ErrorType.Conflict => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status500InternalServerError
         };
@@ -148,6 +164,12 @@ public sealed record CreateCommunityPostRequest(
     string Body,
     string? Destination,
     Guid? LinkedTripId,
+    IReadOnlyCollection<CommunityMediaInput>? Media);
+
+public sealed record UpdateCommunityPostRequest(
+    string Title,
+    string Body,
+    string? Destination,
     IReadOnlyCollection<CommunityMediaInput>? Media);
 
 public sealed record CreateCommunityCommentRequest(string Body, Guid? ParentCommentId = null);

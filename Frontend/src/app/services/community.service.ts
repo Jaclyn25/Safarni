@@ -64,6 +64,19 @@ export interface CreateCommunityPostRequest {
   }>;
 }
 
+export interface UpdateCommunityPostRequest {
+  title: string;
+  body: string;
+  destination?: string | null;
+  media?: Array<{
+    mediaType: 'image' | 'video';
+    url: string;
+    thumbnailUrl?: string | null;
+    altText?: string | null;
+    sortOrder: number;
+  }>;
+}
+
 export interface ToggleCommunityInteractionResult {
   postId: string;
   type: 'Like' | 'Save';
@@ -107,6 +120,10 @@ export class CommunityService {
 
   createPost(request: CreateCommunityPostRequest): Observable<ApiResponse<CommunityPost>> {
     return this.http.post<ApiResponse<CommunityPost>>(`${this.baseUrl}/posts`, request);
+  }
+
+  updatePost(postId: string, request: UpdateCommunityPostRequest): Observable<ApiResponse<CommunityPost>> {
+    return this.http.put<ApiResponse<CommunityPost>>(`${this.baseUrl}/posts/${postId}`, request);
   }
 
   uploadMedia(file: File): Observable<ApiResponse<CommunityMediaUploadResponse>> {

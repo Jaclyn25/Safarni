@@ -7,7 +7,13 @@
   <ng-container *ngIf="!isLoading() && !errorMessage() && post() as currentPost">
     <article class="story-shell">
       <header class="story-header">
-        <div class="story-type">{{ postTypeLabel(currentPost.type) }}<span *ngIf="currentPost.destination"> · {{ currentPost.destination }}</span></div>
+        <div class="story-header-topline">
+          <div class="story-type">{{ postTypeLabel(currentPost.type) }}<span *ngIf="currentPost.destination"> · {{ currentPost.destination }}</span></div>
+          <button *ngIf="canEdit" type="button" class="edit-post-button" (click)="openEdit()">
+            <span class="material-symbols-outlined">edit</span>
+            Edit post
+          </button>
+        </div>
         <h1>{{ currentPost.title }}</h1>
         <div class="author-row">
           <div class="avatar">
@@ -18,20 +24,72 @@
         </div>
       </header>
 
-      <div *ngIf="currentPost.media.length" class="story-media">
-        <ng-container *ngFor="let media of currentPost.media">
-          <img *ngIf="media.mediaType !== 'video'" [src]="media.url" [alt]="media.altText || currentPost.title" />
-          <video *ngIf="media.mediaType === 'video'" [src]="media.url" [poster]="media.thumbnailUrl || undefined" controls preload="metadata"></video>
-        </ng-container>
-      </div>
+      <section *ngIf="isEditing()" class="edit-panel" aria-labelledby="edit-post-title">
+        <div class="edit-panel-heading">
+          <div>
+            <p class="eyebrow">Edit post</p>
+            <h2 id="edit-post-title">Keep your story up to date</h2>
+          </div>
+          <button type="button" class="edit-close-button" (click)="closeEdit()" [disabled]="isUpdating()" aria-label="Close edit form">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
 
-      <div class="story-body">{{ currentPost.body }}</div>
+        <label class="edit-field-label" for="edit-post-title-input">Title</label>
+        <input id="edit-post-title-input" class="edit-text-input" type="text" [(ngModel)]="editTitle" maxlength="180" />
 
-      <footer class="story-actions">
-        <button type="button" [class.active]="currentPost.isLikedByCurrentUser" (click)="toggleLike()"><span class="material-symbols-outlined">favorite</span>{{ currentPost.likesCount }} Likes</button>
-        <button type="button" [class.active]="currentPost.isSavedByCurrentUser" (click)="toggleSave()"><span class="material-symbols-outlined">bookmark</span>{{ currentPost.savesCount }} Saves</button>
-        <button type="button" (click)="sharePost()"><span class="material-symbols-outlined">share</span> Share</button>
-      </footer>
+        <label class="edit-field-label" for="edit-post-destination-input">Destination <span>Optional</span></label>
+        <input id="edit-post-destination-input" class="edit-text-input" type="text" [(ngModel)]="editDestination" maxlength="160" placeholder="e.g. Dahab, Egypt" />
+
+        <label class="edit-field-label" for="edit-post-body-input">Story</label>
+        <textarea id="edit-post-body-input" class="edit-textarea" [(ngModel)]="editBody" rows="8" maxlength="12000"></textarea>
+
+        <div class="edit-media-heading">
+          <span>Add more photos or video</span>
+          <span>Existing media stays attached</span>
+        </div>
+        <label class="edit-media-picker" for="edit-post-media-input">
+          <span class="material-symbols-outlined">add_photo_alternate</span>
+          <span><strong>Choose files</strong><small>Images up to 10 MB · videos up to 60 MB</small></span>
+        </label>
+        <input id="edit-post-media-input" class="visually-hidden" type="file" accept="image/*,video/*" multiple (change)="onEditMediaSelected($event)" [disabled]="isUpdating()" />
+
+        <div *ngIf="pendingEditMedia.length" class="edit-media-grid">
+          <div class="edit-media-tile" *ngFor="let media of pendingEditMedia; let i = index">
+            <img *ngIf="media.mediaType === 'image'" [src]="media.previewUrl" [alt]="media.file.name" />
+            <video *ngIf="media.mediaType === 'video'" [src]="media.previewUrl" muted></video>
+            <button type="button" class="remove-edit-media-button" (click)="removeEditMedia(i)" [disabled]="isUpdating()" [attr.aria-label]="'Remove ' + media.file.name">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+
+        <p *ngIf="editMessage()" class="edit-message" role="alert">{{ editMessage() }}</p>
+        <div class="edit-actions">
+          <button type="button" class="secondary-button" (click)="closeEdit()" [disabled]="isUpdating()">Cancel</button>
+          <button type="button" class="primary-button" (click)="submitEdit()" [disabled]="isUpdating()">
+            <span class="material-symbols-outlined">{{ isUpdating() ? 'progress_activity' : 'save' }}</span>
+            {{ isUpdating() ? 'Saving...' : 'Save changes' }}
+          </button>
+        </div>
+      </section>
+
+      <ng-container *ngIf="!isEditing()">
+        <div *ngIf="currentPost.media.length" class="story-media">
+          <ng-container *ngFor="let media of currentPost.media">
+            <img *ngIf="media.mediaType !== 'video'" [src]="media.url" [alt]="media.altText || currentPost.title" />
+            <video *ngIf="media.mediaType === 'video'" [src]="media.url" [poster]="media.thumbnailUrl || undefined" controls preload="metadata"></video>
+          </ng-container>
+        </div>
+
+        <div class="story-body">{{ currentPost.body }}</div>
+
+        <footer class="story-actions">
+          <button type="button" [class.active]="currentPost.isLikedByCurrentUser" (click)="toggleLike()"><span class="material-symbols-outlined">favorite</span>{{ currentPost.likesCount }} Likes</button>
+          <button type="button" [class.active]="currentPost.isSavedByCurrentUser" (click)="toggleSave()"><span class="material-symbols-outlined">bookmark</span>{{ currentPost.savesCount }} Saves</button>
+          <button type="button" (click)="sharePost()"><span class="material-symbols-outlined">share</span> Share</button>
+        </footer>
+      </ng-container>
     </article>
 
     <section class="comments-section" aria-labelledby="comments-title">

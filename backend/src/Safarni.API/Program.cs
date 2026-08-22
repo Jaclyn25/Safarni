@@ -80,7 +80,10 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
 {
-    options.CustomSchemaIds(type => type.FullName);
+    // Fix duplicate DTO/schema names such as:
+    // ChatBotApi.SendMessageRequest
+    // Safarni.API.Controllers.PackageBookingMessagesController.SendMessageRequest
+    options.CustomSchemaIds(type => type.FullName!.Replace("+", "."));
 
     options.AddSecurityDefinition(
         JwtBearerDefaults.AuthenticationScheme,
@@ -93,7 +96,6 @@ builder.Services.AddSwaggerGen(options =>
             In = ParameterLocation.Header,
             Description = "Enter a valid JWT access token."
         });
-
 
     options.AddSecurityRequirement(
         new OpenApiSecurityRequirement
@@ -111,7 +113,6 @@ builder.Services.AddSwaggerGen(options =>
             }
         });
 });
-
 
 
 builder.Services.AddApplication();

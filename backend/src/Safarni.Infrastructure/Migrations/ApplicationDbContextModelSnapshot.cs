@@ -1711,6 +1711,10 @@ namespace Safarni.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<decimal>("BookingCommissionRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(80)

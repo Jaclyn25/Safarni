@@ -3,7 +3,7 @@
     <div>
       <span class="pricing-eyebrow">{{ eyebrow }}</span>
       <h1>{{ title }}</h1>
-      <p>{{ isAgency ? 'Start with a free agency profile, then upgrade when you are ready to publish packages in the marketplace.' : 'Start with the essentials for free, then unlock additional AI itinerary planning when you need it.' }}</p>
+      <p>{{ isAgency ? 'Start with a free agency profile and one active package, then upgrade for more capacity and lower booking fees.' : 'Start with the essentials for free, then unlock additional AI itinerary planning when you need it.' }}</p>
     </div>
     <div class="pricing-hero__orb" aria-hidden="true"><span class="material-symbols-outlined">{{ isAgency ? 'storefront' : 'auto_awesome' }}</span></div>
   </section>
@@ -22,7 +22,7 @@
   @else {
     <section class="pricing-grid" aria-label="Pricing plans">
       <article class="pricing-card pricing-card--free">
-        <span class="pricing-card__period">Free forever</span>
+        <span class="pricing-card__period">Starter plan</span>
         <h2>{{ freePlanName }}</h2>
         <p>{{ freePlanDescription }}</p>
         <div class="pricing-card__price"><strong>{{ 0 | currency: 'USD' }}</strong><span>/ forever</span></div>
@@ -40,6 +40,7 @@
           @if (plan.billingPeriod === 'Yearly') { <span class="pricing-card__badge">Best value</span> }
           <span class="pricing-card__period">{{ plan.billingPeriod }}</span><h2>{{ plan.displayName }}</h2><p>{{ plan.description }}</p>
           <div class="pricing-card__price"><strong>{{ price(plan) }}</strong><span>{{ period(plan) }}</span></div>
+          @if (isAgency) { <p class="pricing-card__commission">Booking commission: <strong>{{ plan.bookingCommissionRate }}%</strong></p> }
           <ul>@for (benefit of plan.benefits; track benefit) { <li><span class="material-symbols-outlined">check</span>{{ benefit }}</li> }</ul>
           <button class="pricing-button" type="button" (click)="choose(plan)" [disabled]="isCurrent(plan)">{{ isCurrent(plan) ? 'Current plan' : 'Continue to checkout' }}</button>
         </article>

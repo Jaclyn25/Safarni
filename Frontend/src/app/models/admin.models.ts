@@ -54,6 +54,7 @@ export interface AdminBillingPlan {
   billingPeriod: 'Monthly' | 'Yearly' | string;
   price: number;
   currencyCode: string;
+  bookingCommissionRate: number;
   aiItineraryGenerationsPerPeriod: number;
   maxPublishedPackages: number;
   isActive: boolean;
@@ -96,6 +97,7 @@ export interface UpdatePricingPlanRequest {
   currencyCode: string;
   aiItineraryGenerationsPerPeriod: number;
   maxPublishedPackages: number;
+  bookingCommissionRate?: number | null;
   isActive: boolean;
 }
 

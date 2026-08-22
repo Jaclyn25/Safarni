@@ -16,6 +16,7 @@ public sealed class PricingPlanConfiguration : IEntityTypeConfiguration<PricingP
         builder.Property(plan => plan.CustomerType).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(plan => plan.BillingPeriod).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(plan => plan.Price).HasPrecision(18, 2).IsRequired();
+        builder.Property(plan => plan.BookingCommissionRate).HasPrecision(5, 2).IsRequired();
         builder.Property(plan => plan.CurrencyCode).HasMaxLength(3).IsRequired();
         builder.Property(plan => plan.AiItineraryGenerationsPerPeriod).IsRequired();
         builder.Property(plan => plan.MaxPublishedPackages).IsRequired();

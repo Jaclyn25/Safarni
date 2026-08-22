@@ -11,6 +11,7 @@ public sealed class PricingPlan
     public PricingCustomerType CustomerType { get; set; }
     public BillingPeriod BillingPeriod { get; set; }
     public decimal Price { get; set; }
+    public decimal BookingCommissionRate { get; set; } = 10m;
     public string CurrencyCode { get; set; } = "USD";
     public int AiItineraryGenerationsPerPeriod { get; set; }
     public int MaxPublishedPackages { get; set; }

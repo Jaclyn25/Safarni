@@ -221,11 +221,16 @@ public sealed class CreateBookingPaymentCommandHandler
     private const decimal CommissionRate = 10m;
     private readonly IPackageBookingRequestRepository _requests;
     private readonly IPaymentGateway _gateway;
+    private readonly IBillingRepository _billing;
 
-    public CreateBookingPaymentCommandHandler(IPackageBookingRequestRepository requests, IPaymentGateway gateway)
+    public CreateBookingPaymentCommandHandler(
+        IPackageBookingRequestRepository requests,
+        IPaymentGateway gateway,
+        IBillingRepository billing)
     {
         _requests = requests;
         _gateway = gateway;
+        _billing = billing;
     }
 
     public async Task<Result<BookingPaymentResponse>> Handle(CreateBookingPaymentCommand command, CancellationToken cancellationToken)
@@ -295,7 +300,15 @@ public sealed class CreateBookingPaymentCommandHandler
             pendingPayment.FailureReason = "Superseded by the staged payment schedule.";
         }
 
-        var commissionAmount = decimal.Round(installmentAmount * CommissionRate / 100m, 2, MidpointRounding.AwayFromZero);
+        var agencySubscription = await _billing.GetAgencySubscriptionAsync(
+            request.TravelPackage.TravelAgencyId,
+            cancellationToken: cancellationToken);
+        var commissionRate = agencySubscription?.Status == SubscriptionStatus.Active &&
+            agencySubscription.CurrentPeriodEnd > now &&
+            agencySubscription.Plan.CustomerType == PricingCustomerType.Agency
+                ? Math.Clamp(agencySubscription.Plan.BookingCommissionRate, 0m, 100m)
+                : CommissionRate;
+        var commissionAmount = decimal.Round(installmentAmount * commissionRate / 100m, 2, MidpointRounding.AwayFromZero);
         var payment = new BookingPayment
         {
             Id = Guid.NewGuid(),
@@ -304,7 +317,7 @@ public sealed class CreateBookingPaymentCommandHandler
             PackageBookingRequest = request,
             PackageBookingOffer = offer,
             GrossAmount = installmentAmount,
-            CommissionRate = CommissionRate,
+            CommissionRate = commissionRate,
             CommissionAmount = commissionAmount,
             AgencyAmount = installmentAmount - commissionAmount,
             CurrencyCode = offer.CurrencyCode.ToUpperInvariant(),

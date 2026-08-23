@@ -31,10 +31,17 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
   readonly errorMessage = signal('');
   readonly isCommenting = signal(false);
   readonly commentMessage = signal('');
+  readonly relatedJourneys = signal<PublicTripSearchResponse[]>([]);
+  readonly destinationPostCount = signal(0);
 
   commentBody = '';
   replyTo: CommunityComment | null = null;
   postId = '';
+  activeMediaIndex = 0;
+  showPostMenu = false;
+  showEmojiPicker = false;
+  pendingCommentImages: PendingCommentImage[] = [];
+  readonly emojis = ['😊', '😍', '😂', '👍', '🙌', '❤️', '🌍', '✈️'];
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
@@ -45,7 +52,7 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.clearPendingEditMedia();
+    this.pendingCommentImages.forEach(image => URL.revokeObjectURL(image.previewUrl));
   }
 
   get isSignedIn(): boolean {
@@ -249,9 +256,45 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  private clearPendingEditMedia(): void {
-    this.pendingEditMedia.forEach(media => URL.revokeObjectURL(media.previewUrl));
-    this.pendingEditMedia = [];
+  editPost(): void {
+    this.showPostMenu = false;
+    void this.router.navigate(['/community'], { queryParams: { edit: this.postId } });
+  }
+
+  private openEdit(): void {
+    if (this.canEdit) this.editPost();
+  }
+
+  async deletePost(): Promise<void> {
+    const currentPost = this.post();
+    this.showPostMenu = false;
+    if (!currentPost || !this.canEdit) return;
+    if (!window.confirm(`Delete “${currentPost.title}”? This will remove it from the community.`)) return;
+
+    try {
+      await firstValueFrom(this.communityService.deletePost(currentPost.id));
+      await this.router.navigate(['/community']);
+    } catch (error: any) {
+      this.errorMessage.set(error?.error?.errors?.[0]?.message || 'The post could not be deleted.');
+    }
+  }
+
+  private loadRelatedJourneys(destination: string | null | undefined): void {
+    const query = destination?.trim();
+    if (!query) {
+      this.relatedJourneys.set([]);
+      this.destinationPostCount.set(0);
+      return;
+    }
+
+    this.publicTripService.searchPublicTrips({ destination: query, sortOrder: 'newest' }).subscribe({
+      next: response => this.relatedJourneys.set((response.data ?? []).slice(0, 3)),
+      error: () => this.relatedJourneys.set([])
+    });
+    this.communityService.getFeed('', query).subscribe({
+      next: response => this.destinationPostCount.set((response.data ?? []).length),
+      error: () => this.destinationPostCount.set(0)
+    });
   }
 
   timeAgo(date: string): string {

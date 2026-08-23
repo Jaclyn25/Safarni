@@ -25,6 +25,41 @@ public class GeoapifyService : IGeoapifyService
         _apiKey = configuration["GeoapifySettings:ApiKey"] ?? string.Empty;
     }
 
+    public async Task<Result<List<DestinationSuggestion>>> SuggestDestinationsAsync(
+        string query,
+        CancellationToken cancellationToken = default)
+    {
+        var text = query?.Trim() ?? string.Empty;
+        if (text.Length < 2)
+            return Result<List<DestinationSuggestion>>.Success([]);
+        if (string.IsNullOrWhiteSpace(_apiKey))
+            return Result<List<DestinationSuggestion>>.Failure(new Error("Geoapify.Configuration", "Geoapify API key is missing.", ErrorType.Failure));
+
+        try
+        {
+            var url = $"v1/geocode/autocomplete?text={Uri.EscapeDataString(text)}&type=city&format=json&limit=8&apiKey={_apiKey}";
+            var response = await _httpClient.GetAsync(url, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<GeoapifyAutocompleteResponse>(cancellationToken: cancellationToken);
+            var suggestions = (payload?.Results ?? [])
+                .Where(result => !string.IsNullOrWhiteSpace(result.City) && !string.IsNullOrWhiteSpace(result.Country))
+                .Select(result => new DestinationSuggestion(
+                    result.City!.Trim(),
+                    result.Country!.Trim(),
+                    result.CountryCode?.ToUpperInvariant() ?? string.Empty,
+                    string.IsNullOrWhiteSpace(result.Formatted) ? $"{result.City}, {result.Country}" : result.Formatted!,
+                    result.Lat,
+                    result.Lon))
+                .DistinctBy(result => $"{result.City}|{result.Country}", StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            return Result<List<DestinationSuggestion>>.Success(suggestions);
+        }
+        catch (Exception exception)
+        {
+            return Result<List<DestinationSuggestion>>.Failure(new Error("Geoapify.Autocomplete", exception.Message, ErrorType.Failure));
+        }
+    }
+
     public async Task<Result<List<NearbyAttractionDto>>> GetNearbyPlacesAsync(
         double latitude,
         double longitude,
@@ -149,5 +184,27 @@ public class GeoapifyService : IGeoapifyService
     {
         [JsonPropertyName("phone")]
         public string? Phone { get; set; }
+    }
+
+    private sealed class GeoapifyAutocompleteResponse
+    {
+        [JsonPropertyName("results")]
+        public List<GeoapifyAutocompleteResult>? Results { get; set; }
+    }
+
+    private sealed class GeoapifyAutocompleteResult
+    {
+        [JsonPropertyName("city")]
+        public string? City { get; set; }
+        [JsonPropertyName("country")]
+        public string? Country { get; set; }
+        [JsonPropertyName("country_code")]
+        public string? CountryCode { get; set; }
+        [JsonPropertyName("formatted")]
+        public string? Formatted { get; set; }
+        [JsonPropertyName("lat")]
+        public double Lat { get; set; }
+        [JsonPropertyName("lon")]
+        public double Lon { get; set; }
     }
 }

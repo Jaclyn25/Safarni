@@ -6,8 +6,20 @@ using Safarni.Application.Features.Trips.GetNearbyAttractions;
 
 namespace Safarni.Application.Abstractions.Travel;
 
+public sealed record DestinationSuggestion(
+    string City,
+    string Country,
+    string CountryCode,
+    string Formatted,
+    double Latitude,
+    double Longitude);
+
 public interface IGeoapifyService
 {
+    Task<Result<List<DestinationSuggestion>>> SuggestDestinationsAsync(
+        string query,
+        CancellationToken cancellationToken = default);
+
     Task<Result<List<NearbyAttractionDto>>> GetNearbyPlacesAsync(
         double latitude,
         double longitude,

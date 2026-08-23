@@ -23,7 +23,14 @@ public sealed record CommunityCommentResponse(
     string Body,
     bool IsAcceptedAnswer,
     DateTime CreatedAt,
-    CommunityAuthorResponse Author);
+    CommunityAuthorResponse Author,
+    bool IsOwnedByCurrentUser,
+    IReadOnlyCollection<CommunityMediaResponse> Media);
+
+public sealed record CommunityDestinationTrendResponse(
+    string Destination,
+    int PostsCount,
+    int EngagementCount);
 
 public sealed record CommunityPostResponse(
     Guid Id,
@@ -38,6 +45,7 @@ public sealed record CommunityPostResponse(
     int LikesCount,
     int SavesCount,
     int CommentsCount,
+    bool IsOwnedByCurrentUser,
     bool IsLikedByCurrentUser,
     bool IsSavedByCurrentUser,
     IReadOnlyCollection<CommunityMediaResponse> Media,
@@ -61,7 +69,11 @@ public sealed record CommunityPostResponse(
                     comment.Body,
                     comment.IsAcceptedAnswer,
                     comment.CreatedAt,
-                    MapAuthor(comment.Author)))
+                    MapAuthor(comment.Author),
+                    currentUserId.HasValue && comment.AuthorUserId == currentUserId,
+                    comment.Media.OrderBy(media => media.SortOrder)
+                        .Select(media => new CommunityMediaResponse(media.Id, media.MediaType, media.Url, media.ThumbnailUrl, media.AltText, media.SortOrder))
+                        .ToArray()))
                 .ToArray()
             : null;
 
@@ -78,6 +90,7 @@ public sealed record CommunityPostResponse(
             post.LikesCount,
             post.SavesCount,
             post.CommentsCount,
+            currentUserId.HasValue && post.AuthorUserId == currentUserId,
             currentUserId.HasValue && post.Interactions.Any(i => i.UserId == currentUserId && i.Type == CommunityPostInteractionType.Like),
             currentUserId.HasValue && post.Interactions.Any(i => i.UserId == currentUserId && i.Type == CommunityPostInteractionType.Save),
             post.Media.OrderBy(media => media.SortOrder)

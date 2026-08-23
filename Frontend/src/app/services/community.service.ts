@@ -28,6 +28,8 @@ export interface CommunityComment {
   isAcceptedAnswer: boolean;
   createdAt: string;
   author: CommunityAuthor;
+  isOwnedByCurrentUser: boolean;
+  media: CommunityMedia[];
 }
 
 export interface CommunityPost {
@@ -43,6 +45,7 @@ export interface CommunityPost {
   likesCount: number;
   savesCount: number;
   commentsCount: number;
+  isOwnedByCurrentUser: boolean;
   isLikedByCurrentUser: boolean;
   isSavedByCurrentUser: boolean;
   media: CommunityMedia[];
@@ -55,19 +58,6 @@ export interface CreateCommunityPostRequest {
   body: string;
   destination?: string | null;
   linkedTripId?: string | null;
-  media?: Array<{
-    mediaType: 'image' | 'video';
-    url: string;
-    thumbnailUrl?: string | null;
-    altText?: string | null;
-    sortOrder: number;
-  }>;
-}
-
-export interface UpdateCommunityPostRequest {
-  title: string;
-  body: string;
-  destination?: string | null;
   media?: Array<{
     mediaType: 'image' | 'video';
     url: string;
@@ -94,6 +84,22 @@ export interface CommunityMediaUploadResponse {
 export interface CreateCommunityCommentRequest {
   body: string;
   parentCommentId?: string | null;
+  media?: CreateCommunityPostRequest['media'];
+}
+
+export interface CommunityDestinationTrend {
+  destination: string;
+  postsCount: number;
+  engagementCount: number;
+}
+
+export interface DestinationSuggestion {
+  city: string;
+  country: string;
+  countryCode: string;
+  formatted: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface CreateCommunityCommentResult {
@@ -122,8 +128,30 @@ export class CommunityService {
     return this.http.post<ApiResponse<CommunityPost>>(`${this.baseUrl}/posts`, request);
   }
 
-  updatePost(postId: string, request: UpdateCommunityPostRequest): Observable<ApiResponse<CommunityPost>> {
+  updatePost(postId: string, request: CreateCommunityPostRequest): Observable<ApiResponse<CommunityPost>> {
     return this.http.put<ApiResponse<CommunityPost>>(`${this.baseUrl}/posts/${postId}`, request);
+  }
+
+  deletePost(postId: string): Observable<ApiResponse<string>> {
+    return this.http.delete<ApiResponse<string>>(`${this.baseUrl}/posts/${postId}`);
+  }
+
+  getSavedPosts(take = 6): Observable<ApiResponse<CommunityPost[]>> {
+    return this.http.get<ApiResponse<CommunityPost[]>>(`${this.baseUrl}/saved`, {
+      params: new HttpParams().set('take', take.toString())
+    });
+  }
+
+  getTrendingDestinations(take = 5): Observable<ApiResponse<CommunityDestinationTrend[]>> {
+    return this.http.get<ApiResponse<CommunityDestinationTrend[]>>(`${this.baseUrl}/trending-destinations`, {
+      params: new HttpParams().set('take', take.toString())
+    });
+  }
+
+  suggestDestinations(query: string): Observable<ApiResponse<DestinationSuggestion[]>> {
+    return this.http.get<ApiResponse<DestinationSuggestion[]>>('/api/travel-locations/suggestions', {
+      params: new HttpParams().set('query', query.trim())
+    });
   }
 
   uploadMedia(file: File): Observable<ApiResponse<CommunityMediaUploadResponse>> {

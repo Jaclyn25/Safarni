@@ -5,111 +5,108 @@
   <div *ngIf="!isLoading() && errorMessage()" class="post-state error-state"><span class="material-symbols-outlined">cloud_off</span><p>{{ errorMessage() }}</p><button type="button" class="secondary-button" (click)="loadPost()">Try again</button></div>
 
   <ng-container *ngIf="!isLoading() && !errorMessage() && post() as currentPost">
-    <article class="story-shell">
-      <header class="story-header">
-        <div class="story-header-topline">
-          <div class="story-type">{{ postTypeLabel(currentPost.type) }}<span *ngIf="currentPost.destination"> · {{ currentPost.destination }}</span></div>
-          <button *ngIf="canEdit" type="button" class="edit-post-button" (click)="openEdit()">
-            <span class="material-symbols-outlined">edit</span>
-            Edit post
-          </button>
-        </div>
-        <h1>{{ currentPost.title }}</h1>
-        <div class="author-row">
-          <div class="avatar">
-            <img *ngIf="currentPost.author.profilePhotoUrl" [src]="currentPost.author.profilePhotoUrl" [alt]="currentPost.author.displayName" />
-            <span *ngIf="!currentPost.author.profilePhotoUrl">{{ currentPost.author.displayName.charAt(0).toUpperCase() }}</span>
+    <div class="post-detail-layout">
+      <div class="post-main-column">
+        <article class="story-shell">
+          <header class="story-header">
+            <div class="story-header-top">
+              <div class="story-type"><span class="material-symbols-outlined">{{ postTypeIcon(currentPost.type) }}</span>{{ postTypeLabel(currentPost.type) }}<span *ngIf="currentPost.destination"> · {{ currentPost.destination }}</span></div>
+              <button *ngIf="!currentPost.isOwnedByCurrentUser" type="button" class="follow-button">Follow</button>
+            </div>
+            <div class="author-row">
+              <div class="avatar">
+                <img *ngIf="currentPost.author.profilePhotoUrl" [src]="currentPost.author.profilePhotoUrl" [alt]="currentPost.author.displayName" />
+                <span *ngIf="!currentPost.author.profilePhotoUrl">{{ currentPost.author.displayName.charAt(0).toUpperCase() }}</span>
+              </div>
+              <div><strong>{{ currentPost.author.displayName }}</strong><span>{{ timeAgo(currentPost.createdAt) }} · Community member</span></div>
+              <div *ngIf="currentPost.isOwnedByCurrentUser" class="story-owner-menu-wrap">
+                <button type="button" class="story-more" aria-label="More post actions" (click)="showPostMenu = !showPostMenu"><span class="material-symbols-outlined">more_horiz</span></button>
+                <div *ngIf="showPostMenu" class="story-owner-menu"><button type="button" (click)="editPost()"><span class="material-symbols-outlined">edit</span>Edit post</button><button type="button" class="danger" (click)="deletePost()"><span class="material-symbols-outlined">delete</span>Delete post</button></div>
+              </div>
+            </div>
+          </header>
+
+          <div *ngIf="currentPost.media.length" class="story-media-gallery">
+            <div class="story-featured-media">
+              <ng-container *ngIf="currentPost.media[activeMediaIndex] as featuredMedia">
+                <img *ngIf="featuredMedia.mediaType !== 'video'" [src]="featuredMedia.url" [alt]="featuredMedia.altText || currentPost.title" />
+                <video *ngIf="featuredMedia.mediaType === 'video'" [src]="featuredMedia.url" [poster]="featuredMedia.thumbnailUrl || undefined" controls preload="metadata"></video>
+              </ng-container>
+              <button *ngIf="currentPost.media.length > 1" type="button" class="gallery-arrow gallery-arrow--previous" aria-label="Previous image" (click)="showPreviousMedia(currentPost.media.length)"><span class="material-symbols-outlined">chevron_left</span></button>
+              <button *ngIf="currentPost.media.length > 1" type="button" class="gallery-arrow gallery-arrow--next" aria-label="Next image" (click)="showNextMedia(currentPost.media.length)"><span class="material-symbols-outlined">chevron_right</span></button>
+              <span class="gallery-counter">{{ activeMediaIndex + 1 }} / {{ currentPost.media.length }}</span>
+            </div>
+            <div *ngIf="currentPost.media.length > 1" class="story-thumbnails">
+              <button type="button" *ngFor="let media of currentPost.media; let i = index" [class.active]="i === activeMediaIndex" [attr.aria-label]="'View image ' + (i + 1)" (click)="selectMedia(i)">
+                <img *ngIf="media.mediaType !== 'video'" [src]="media.thumbnailUrl || media.url" [alt]="media.altText || currentPost.title" />
+                <span *ngIf="media.mediaType === 'video'" class="thumbnail-video"><span class="material-symbols-outlined">play_circle</span></span>
+              </button>
+              <span *ngIf="currentPost.media.length > 7" class="more-thumbnails">+{{ currentPost.media.length - 7 }}</span>
+            </div>
           </div>
-          <div><strong>{{ currentPost.author.displayName }}</strong><span>{{ timeAgo(currentPost.createdAt) }}</span></div>
-        </div>
-      </header>
 
-      <section *ngIf="isEditing()" class="edit-panel" aria-labelledby="edit-post-title">
-        <div class="edit-panel-heading">
-          <div>
-            <p class="eyebrow">Edit post</p>
-            <h2 id="edit-post-title">Keep your story up to date</h2>
+          <div class="story-copy">
+            <h1>{{ currentPost.title }}</h1>
+            <div class="story-body" [innerHTML]="currentPost.body"></div>
+            <div class="story-tags">
+              <span *ngIf="currentPost.destination">{{ currentPost.destination }}</span>
+              <span>{{ postTypeLabel(currentPost.type) }}</span>
+              <span>Travel tips</span>
+            </div>
           </div>
-          <button type="button" class="edit-close-button" (click)="closeEdit()" [disabled]="isUpdating()" aria-label="Close edit form">
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
 
-        <label class="edit-field-label" for="edit-post-title-input">Title</label>
-        <input id="edit-post-title-input" class="edit-text-input" type="text" [(ngModel)]="editTitle" maxlength="180" />
+          <footer class="story-actions">
+            <button type="button" [class.active]="currentPost.isLikedByCurrentUser" (click)="toggleLike()"><span class="material-symbols-outlined">{{ currentPost.isLikedByCurrentUser ? 'favorite' : 'favorite_border' }}</span><span>Like</span><small>{{ currentPost.likesCount }}</small></button>
+            <button type="button" [class.active]="currentPost.isSavedByCurrentUser" (click)="toggleSave()"><span class="material-symbols-outlined">{{ currentPost.isSavedByCurrentUser ? 'bookmark' : 'bookmark_border' }}</span><span>Save</span><small>{{ currentPost.savesCount }}</small></button>
+            <button type="button" (click)="sharePost()"><span class="material-symbols-outlined">ios_share</span><span>Share</span></button>
+            <button type="button" (click)="scrollToComments()"><span class="material-symbols-outlined">chat_bubble_outline</span><span>Comments</span><small>{{ currentPost.commentsCount }}</small></button>
+          </footer>
+          <section class="comments-section" aria-labelledby="comments-title">
+          <div class="section-heading"><h2 id="comments-title">{{ currentPost.type === 'Question' ? 'Answers from travelers' : 'Comments' }} ({{ currentPost.commentsCount }})</h2><div class="comments-heading-actions"><button type="button">Sort by: <strong>Most relevant</strong><span class="material-symbols-outlined">expand_more</span></button></div></div>
 
-        <label class="edit-field-label" for="edit-post-destination-input">Destination <span>Optional</span></label>
-        <input id="edit-post-destination-input" class="edit-text-input" type="text" [(ngModel)]="editDestination" maxlength="160" placeholder="e.g. Dahab, Egypt" />
+          <div *ngIf="rootComments().length === 0" class="comments-empty"><span class="material-symbols-outlined">forum</span><p>No comments yet. Start the conversation.</p></div>
+          <article class="comment" *ngFor="let comment of rootComments()">
+            <div class="comment-avatar"><img *ngIf="comment.author.profilePhotoUrl" [src]="comment.author.profilePhotoUrl" [alt]="comment.author.displayName" /><span *ngIf="!comment.author.profilePhotoUrl">{{ comment.author.displayName.charAt(0).toUpperCase() }}</span></div>
+            <div class="comment-content"><div class="comment-meta"><strong>{{ comment.author.displayName }}</strong><span>{{ timeAgo(comment.createdAt) }}</span><button type="button" class="comment-more" aria-label="More comment actions"><span class="material-symbols-outlined">more_horiz</span></button></div><p>{{ comment.body }}</p><div *ngIf="comment.media.length" class="comment-media"><img *ngFor="let media of comment.media" [src]="media.thumbnailUrl || media.url" [alt]="media.altText || 'Comment image'" /></div><div class="comment-actions"><button type="button"><span class="material-symbols-outlined">thumb_up</span>Like</button><button type="button" class="reply-button" (click)="startReply(comment)">Reply</button></div>
+              <div class="reply-list" *ngIf="repliesFor(comment.id).length">
+                <div class="comment reply" *ngFor="let reply of repliesFor(comment.id)"><div class="comment-avatar"><img *ngIf="reply.author.profilePhotoUrl" [src]="reply.author.profilePhotoUrl" [alt]="reply.author.displayName" /><span *ngIf="!reply.author.profilePhotoUrl">{{ reply.author.displayName.charAt(0).toUpperCase() }}</span></div><div class="comment-content"><div class="comment-meta"><strong>{{ reply.author.displayName }}</strong><span *ngIf="reply.author.userId === currentPost.author.userId" class="comment-author-badge">Author</span><span>{{ timeAgo(reply.createdAt) }}</span><button type="button" class="comment-more" aria-label="More reply actions"><span class="material-symbols-outlined">more_horiz</span></button></div><p>{{ reply.body }}</p><div *ngIf="reply.media.length" class="comment-media"><img *ngFor="let media of reply.media" [src]="media.thumbnailUrl || media.url" [alt]="media.altText || 'Reply image'" /></div><div class="comment-actions"><button type="button"><span class="material-symbols-outlined">thumb_up</span>Like</button><button type="button" class="reply-button" (click)="startReply(reply)">Reply</button></div></div></div>
+              </div>
+            </div>
+          </article>
 
-        <label class="edit-field-label" for="edit-post-body-input">Story</label>
-        <textarea id="edit-post-body-input" class="edit-textarea" [(ngModel)]="editBody" rows="8" maxlength="12000"></textarea>
-
-        <div class="edit-media-heading">
-          <span>Add more photos or video</span>
-          <span>Existing media stays attached</span>
-        </div>
-        <label class="edit-media-picker" for="edit-post-media-input">
-          <span class="material-symbols-outlined">add_photo_alternate</span>
-          <span><strong>Choose files</strong><small>Images up to 10 MB · videos up to 60 MB</small></span>
-        </label>
-        <input id="edit-post-media-input" class="visually-hidden" type="file" accept="image/*,video/*" multiple (change)="onEditMediaSelected($event)" [disabled]="isUpdating()" />
-
-        <div *ngIf="pendingEditMedia.length" class="edit-media-grid">
-          <div class="edit-media-tile" *ngFor="let media of pendingEditMedia; let i = index">
-            <img *ngIf="media.mediaType === 'image'" [src]="media.previewUrl" [alt]="media.file.name" />
-            <video *ngIf="media.mediaType === 'video'" [src]="media.previewUrl" muted></video>
-            <button type="button" class="remove-edit-media-button" (click)="removeEditMedia(i)" [disabled]="isUpdating()" [attr.aria-label]="'Remove ' + media.file.name">
-              <span class="material-symbols-outlined">close</span>
-            </button>
+          <div class="comment-composer comment-composer--bottom">
+            <p *ngIf="replyTo" class="reply-context">Replying to <strong>{{ replyTo.author.displayName }}</strong> <button type="button" (click)="cancelReply()">Cancel</button></p>
+            <div class="comment-composer-avatar"><span>{{ currentUserName.charAt(0).toUpperCase() }}</span></div>
+            <textarea [(ngModel)]="commentBody" rows="1" maxlength="3000" [placeholder]="currentPost.type === 'Question' ? 'Share what you know...' : 'Write a thoughtful reply...'" aria-label="Comment"></textarea>
+            <div *ngIf="pendingCommentImages.length" class="pending-comment-media"><span *ngFor="let image of pendingCommentImages; let i = index"><img [src]="image.previewUrl" alt="Selected comment image" /><button type="button" (click)="removeCommentImage(i)" aria-label="Remove image">×</button></span></div>
+            <div class="comment-composer-footer"><span *ngIf="commentMessage()" class="comment-message">{{ commentMessage() }}</span><div class="emoji-control"><button type="button" class="comment-tool" aria-label="Add emoji" (click)="showEmojiPicker = !showEmojiPicker"><span class="material-symbols-outlined">sentiment_satisfied</span></button><div *ngIf="showEmojiPicker" class="emoji-picker"><button type="button" *ngFor="let emoji of emojis" (click)="addEmoji(emoji)">{{ emoji }}</button></div></div><button type="button" class="comment-tool" aria-label="Add image" (click)="openCommentImagePicker()"><span class="material-symbols-outlined">image</span></button><input id="comment-image" type="file" accept="image/*" multiple hidden (change)="onCommentImagesSelected($event)" /><button type="button" class="primary-button" (click)="submitComment()" [disabled]="isCommenting()">{{ isCommenting() ? 'Posting...' : 'Post' }}</button></div>
           </div>
-        </div>
-
-        <p *ngIf="editMessage()" class="edit-message" role="alert">{{ editMessage() }}</p>
-        <div class="edit-actions">
-          <button type="button" class="secondary-button" (click)="closeEdit()" [disabled]="isUpdating()">Cancel</button>
-          <button type="button" class="primary-button" (click)="submitEdit()" [disabled]="isUpdating()">
-            <span class="material-symbols-outlined">{{ isUpdating() ? 'progress_activity' : 'save' }}</span>
-            {{ isUpdating() ? 'Saving...' : 'Save changes' }}
-          </button>
-        </div>
-      </section>
-
-      <ng-container *ngIf="!isEditing()">
-        <div *ngIf="currentPost.media.length" class="story-media">
-          <ng-container *ngFor="let media of currentPost.media">
-            <img *ngIf="media.mediaType !== 'video'" [src]="media.url" [alt]="media.altText || currentPost.title" />
-            <video *ngIf="media.mediaType === 'video'" [src]="media.url" [poster]="media.thumbnailUrl || undefined" controls preload="metadata"></video>
-          </ng-container>
-        </div>
-
-        <div class="story-body">{{ currentPost.body }}</div>
-
-        <footer class="story-actions">
-          <button type="button" [class.active]="currentPost.isLikedByCurrentUser" (click)="toggleLike()"><span class="material-symbols-outlined">favorite</span>{{ currentPost.likesCount }} Likes</button>
-          <button type="button" [class.active]="currentPost.isSavedByCurrentUser" (click)="toggleSave()"><span class="material-symbols-outlined">bookmark</span>{{ currentPost.savesCount }} Saves</button>
-          <button type="button" (click)="sharePost()"><span class="material-symbols-outlined">share</span> Share</button>
-        </footer>
-      </ng-container>
-    </article>
-
-    <section class="comments-section" aria-labelledby="comments-title">
-      <div class="section-heading"><div><p class="eyebrow">Join the conversation</p><h2 id="comments-title">{{ currentPost.type === 'Question' ? 'Answers from travelers' : 'Comments' }}</h2></div><span>{{ currentPost.commentsCount }}</span></div>
-
-      <div class="comment-composer">
-        <p *ngIf="replyTo" class="reply-context">Replying to <strong>{{ replyTo.author.displayName }}</strong> <button type="button" (click)="cancelReply()">Cancel</button></p>
-        <textarea [(ngModel)]="commentBody" rows="3" maxlength="3000" [placeholder]="currentPost.type === 'Question' ? 'Share what you know...' : 'Add a helpful thought...'" aria-label="Comment"></textarea>
-        <div class="comment-composer-footer"><span *ngIf="commentMessage()" class="comment-message">{{ commentMessage() }}</span><button type="button" class="primary-button" (click)="submitComment()" [disabled]="isCommenting()">{{ isCommenting() ? 'Posting...' : 'Post comment' }}</button></div>
+          </section>
+        </article>
       </div>
 
-      <div *ngIf="rootComments().length === 0" class="comments-empty"><span class="material-symbols-outlined">forum</span><p>No comments yet. Start the conversation.</p></div>
-      <article class="comment" *ngFor="let comment of rootComments()">
-        <div class="comment-avatar">{{ comment.author.displayName.charAt(0).toUpperCase() }}</div>
-        <div class="comment-content"><div class="comment-meta"><strong>{{ comment.author.displayName }}</strong><span>{{ timeAgo(comment.createdAt) }}</span></div><p>{{ comment.body }}</p><button type="button" class="reply-button" (click)="startReply(comment)">Reply</button>
-          <div class="reply-list" *ngIf="repliesFor(comment.id).length">
-            <div class="comment reply" *ngFor="let reply of repliesFor(comment.id)"><div class="comment-avatar">{{ reply.author.displayName.charAt(0).toUpperCase() }}</div><div class="comment-content"><div class="comment-meta"><strong>{{ reply.author.displayName }}</strong><span>{{ timeAgo(reply.createdAt) }}</span></div><p>{{ reply.body }}</p></div></div>
-          </div>
-        </div>
-      </article>
-    </section>
+      <aside class="post-sidebar">
+        <section class="sidebar-card destination-card">
+          <div class="sidebar-card-heading"><span class="material-symbols-outlined">landscape</span><h2>About this destination</h2></div>
+          <div class="destination-photo" [style.background-image]="'url(' + destinationCover(currentPost.destination) + ')' "></div>
+          <h3>{{ destinationParts(currentPost.destination).city }}</h3>
+          <p>{{ destinationParts(currentPost.destination).country }} · Real stories and public journeys shared by Safarni travelers.</p>
+          <dl><div><dt><span class="material-symbols-outlined">article</span>Community posts</dt><dd>{{ destinationPostCount() }} published</dd></div><div><dt><span class="material-symbols-outlined">route</span>Related journeys</dt><dd>{{ relatedJourneys().length }} available</dd></div></dl>
+          <a routerLink="/explore" class="sidebar-link">View travel guide <span class="material-symbols-outlined">arrow_forward</span></a>
+        </section>
+
+        <section class="sidebar-card related-card">
+          <div class="sidebar-card-heading"><span class="material-symbols-outlined">route</span><h2>Related journeys</h2><a routerLink="/community">View all</a></div>
+          <a *ngFor="let journey of relatedJourneys(); let i = index" [routerLink]="['/public-trips', journey.versionId]" class="related-journey"><span class="related-image" [style.background-image]="'url(' + destinationCover(journey.destination) + ')' "></span><span><strong>{{ journey.tripName }}</strong><small>By {{ journey.authorName }}</small></span></a>
+          <p *ngIf="relatedJourneys().length === 0" class="sidebar-empty">No public journeys for this destination yet.</p>
+        </section>
+
+        <section class="sidebar-card tips-card">
+          <div class="sidebar-card-heading"><span class="material-symbols-outlined">lightbulb</span><h2>Helpful tips</h2></div>
+          <ul><li><span class="material-symbols-outlined">check_circle</span>Save useful details for your next trip.</li><li><span class="material-symbols-outlined">check_circle</span>Ask a question when you need local insight.</li><li><span class="material-symbols-outlined">check_circle</span>Share the small details that made your trip better.</li></ul>
+          <a routerLink="/community" class="sidebar-link">See more tips <span class="material-symbols-outlined">arrow_forward</span></a>
+        </section>
+      </aside>
+    </div>
   </ng-container>
 </main>

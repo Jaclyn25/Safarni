@@ -55,9 +55,62 @@ internal sealed class CommunityRepository : ICommunityRepository
             .Include(post => post.Comments.Where(comment => !comment.IsDeleted))
                 .ThenInclude(comment => comment.Author)
             .Include(post => post.Comments.Where(comment => !comment.IsDeleted))
+                .ThenInclude(comment => comment.Media)
+            .Include(post => post.Comments.Where(comment => !comment.IsDeleted))
                 .ThenInclude(comment => comment.Replies.Where(reply => !reply.IsDeleted))
                     .ThenInclude(reply => reply.Author)
+            .Include(post => post.Comments.Where(comment => !comment.IsDeleted))
+                .ThenInclude(comment => comment.Replies.Where(reply => !reply.IsDeleted))
+                    .ThenInclude(reply => reply.Media)
             .FirstOrDefaultAsync(post => post.Id == postId, cancellationToken);
+    }
+
+    public Task<CommunityPost?> GetPostForUpdateAsync(
+        Guid postId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.CommunityPosts
+            .Include(post => post.Author)
+            .Include(post => post.Media)
+            .Include(post => post.Interactions)
+            .FirstOrDefaultAsync(post => post.Id == postId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<CommunityPost>> ListSavedPostsAsync(
+        Guid userId,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.CommunityPosts
+            .AsNoTracking()
+            .Include(post => post.Author)
+            .Include(post => post.Media)
+            .Include(post => post.Interactions)
+            .Where(post => post.Status == CommunityPostStatus.Published &&
+                post.Interactions.Any(interaction => interaction.UserId == userId && interaction.Type == CommunityPostInteractionType.Save))
+            .OrderByDescending(post => post.Interactions
+                .Where(interaction => interaction.UserId == userId && interaction.Type == CommunityPostInteractionType.Save)
+                .Max(interaction => interaction.CreatedAt))
+            .Take(Math.Clamp(take, 1, 30))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<CommunityDestinationTrend>> ListTrendingDestinationsAsync(
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.CommunityPosts
+            .AsNoTracking()
+            .Where(post => post.Status == CommunityPostStatus.Published && post.Destination != null && post.Destination != "")
+            .GroupBy(post => post.Destination!)
+            .Select(group => new CommunityDestinationTrend(
+                group.Key,
+                group.Count(),
+                group.Sum(post => post.LikesCount + post.SavesCount + post.CommentsCount)))
+            .OrderByDescending(destination => destination.EngagementCount)
+            .ThenByDescending(destination => destination.PostsCount)
+            .Take(Math.Clamp(take, 1, 20))
+            .ToListAsync(cancellationToken);
     }
 
     public Task<CommunityPost?> GetPostWithInteractionsAsync(
@@ -91,9 +144,11 @@ internal sealed class CommunityRepository : ICommunityRepository
         await _dbContext.CommunityPosts.AddAsync(post, cancellationToken);
     }
 
-    public async Task AddMediaAsync(CommunityPostMedia media, CancellationToken cancellationToken = default)
+    public Task AddPostMediaAsync(
+        IEnumerable<CommunityPostMedia> media,
+        CancellationToken cancellationToken = default)
     {
-        await _dbContext.CommunityPostMedia.AddAsync(media, cancellationToken);
+        return _dbContext.CommunityPostMedia.AddRangeAsync(media, cancellationToken);
     }
 
     public async Task AddCommentAsync(CommunityPostComment comment, CancellationToken cancellationToken = default)
@@ -109,6 +164,11 @@ internal sealed class CommunityRepository : ICommunityRepository
     public void RemoveInteraction(CommunityPostInteraction interaction)
     {
         _dbContext.CommunityPostInteractions.Remove(interaction);
+    }
+
+    public void RemovePostMedia(IEnumerable<CommunityPostMedia> media)
+    {
+        _dbContext.CommunityPostMedia.RemoveRange(media);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)

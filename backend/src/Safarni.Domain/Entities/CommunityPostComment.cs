@@ -16,4 +16,5 @@ public sealed class CommunityPostComment
     public User Author { get; set; } = null!;
     public CommunityPostComment? ParentComment { get; set; }
     public ICollection<CommunityPostComment> Replies { get; set; } = new List<CommunityPostComment>();
+    public ICollection<CommunityCommentMedia> Media { get; set; } = new List<CommunityCommentMedia>();
 }

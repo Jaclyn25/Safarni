@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import {
@@ -10,6 +10,9 @@ import {
 } from '../../services/public-trip.service';
 import {
   CommunityPost,
+  CommunityMedia,
+  CommunityDestinationTrend,
+  DestinationSuggestion,
   CommunityPostType,
   CommunityService,
   CreateCommunityPostRequest
@@ -29,13 +32,18 @@ interface PendingMedia {
   styleUrl: './community.component.css'
 })
 export class CommunityComponent implements OnInit, OnDestroy {
+  @ViewChild('bodyEditor') bodyEditor?: ElementRef<HTMLElement>;
   private readonly communityService = inject(CommunityService);
   private readonly publicTripService = inject(PublicTripService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly posts = signal<CommunityPost[]>([]);
   readonly publicTrips = signal<PublicTripSearchResponse[]>([]);
+  readonly savedPosts = signal<CommunityPost[]>([]);
+  readonly trendingDestinations = signal<CommunityDestinationTrend[]>([]);
+  readonly destinationSuggestions = signal<DestinationSuggestion[]>([]);
   readonly isLoading = signal(true);
   readonly isPublicTripsLoading = signal(true);
   readonly isSubmitting = signal(false);
@@ -44,12 +52,18 @@ export class CommunityComponent implements OnInit, OnDestroy {
 
   selectedType: CommunityPostType | '' = '';
   destinationFilter = '';
+  showFilters = false;
   showComposer = false;
+  activePostMenuId = '';
+  editingPostId = '';
   postType: CommunityPostType = 'TravelStory';
   postTitle = '';
   postBody = '';
   postDestination = '';
+  postTags = '';
   pendingMedia: PendingMedia[] = [];
+  existingMedia: CommunityMedia[] = [];
+  private destinationLookupTimer?: number;
 
   readonly maxMediaFiles = 5;
   readonly maxImageSizeBytes = 10 * 1024 * 1024;
@@ -64,24 +78,44 @@ export class CommunityComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadFeed();
+    this.loadCommunitySidebar();
+    this.route.queryParamMap.subscribe(params => {
+      const postId = params.get('edit');
+      if (!postId || !this.isSignedIn) return;
+      this.communityService.getPost(postId).subscribe({
+        next: response => {
+          if (response.data?.isOwnedByCurrentUser) this.openComposer(response.data);
+        },
+        error: () => this.errorMessage.set('The post could not be opened for editing.')
+      });
+    });
   }
 
   ngOnDestroy(): void {
     this.clearPendingMedia();
+    if (this.destinationLookupTimer) window.clearTimeout(this.destinationLookupTimer);
   }
 
   get isSignedIn(): boolean {
     return !!this.authService.getCurrentUser();
   }
 
-  isOwnPost(post: CommunityPost): boolean {
-    const currentUser = this.authService.getCurrentUser();
-    const authorId = post?.author?.userId;
-    const currentUserId = currentUser?.userId;
-    return typeof authorId === 'string'
-      && typeof currentUserId === 'string'
-      && authorId.trim().length > 0
-      && authorId.trim().toLowerCase() === currentUserId.trim().toLowerCase();
+  get currentUserName(): string {
+    return this.authService.getCurrentUser()?.fullName || 'Your name';
+  }
+
+  get tagCount(): number {
+    return this.postTags.split(',').map(tag => tag.trim()).filter(Boolean).length;
+  }
+
+  get bodyLength(): number {
+    const holder = document.createElement('div');
+    holder.innerHTML = this.postBody;
+    return (holder.textContent || '').length;
+  }
+
+  get isEditing(): boolean {
+    return !!this.editingPostId;
   }
 
   loadFeed(): void {
@@ -98,6 +132,23 @@ export class CommunityComponent implements OnInit, OnDestroy {
         this.errorMessage.set(error?.error?.message || 'We could not load the community right now.');
         this.isLoading.set(false);
       }
+    });
+  }
+
+  private loadCommunitySidebar(): void {
+    this.communityService.getTrendingDestinations().subscribe({
+      next: response => this.trendingDestinations.set(response.data ?? []),
+      error: () => this.trendingDestinations.set([])
+    });
+
+    if (!this.isSignedIn) {
+      this.savedPosts.set([]);
+      return;
+    }
+
+    this.communityService.getSavedPosts().subscribe({
+      next: response => this.savedPosts.set(response.data ?? []),
+      error: () => this.savedPosts.set([])
     });
   }
 
@@ -119,18 +170,53 @@ export class CommunityComponent implements OnInit, OnDestroy {
     });
   }
 
-  openComposer(): void {
+  openComposer(post?: CommunityPost): void {
     if (!this.isSignedIn) {
       void this.router.navigate(['/login']);
       return;
     }
+    this.editingPostId = post?.id ?? '';
+    this.postType = post?.type ?? 'TravelStory';
+    this.postTitle = post?.title ?? '';
+    this.postBody = post?.body ?? '';
+    this.postDestination = post?.destination ?? '';
+    this.existingMedia = [...(post?.media ?? [])];
+    this.clearPendingMedia();
+    this.destinationSuggestions.set([]);
+    this.activePostMenuId = '';
     this.showComposer = true;
     this.formMessage.set('');
+    window.setTimeout(() => {
+      if (this.bodyEditor) this.bodyEditor.nativeElement.innerHTML = this.postBody;
+    });
   }
 
   closeComposer(): void {
     if (!this.isSubmitting()) {
       this.showComposer = false;
+      this.editingPostId = '';
+      this.existingMedia = [];
+      this.destinationSuggestions.set([]);
+    }
+  }
+
+  togglePostMenu(event: Event, postId: string): void {
+    event.stopPropagation();
+    this.activePostMenuId = this.activePostMenuId === postId ? '' : postId;
+  }
+
+  async deletePost(event: Event, post: CommunityPost): Promise<void> {
+    event.stopPropagation();
+    this.activePostMenuId = '';
+    if (!window.confirm(`Delete “${post.title}”? This will remove it from the community.`)) return;
+
+    try {
+      await firstValueFrom(this.communityService.deletePost(post.id));
+      this.posts.update(posts => posts.filter(item => item.id !== post.id));
+      this.savedPosts.update(posts => posts.filter(item => item.id !== post.id));
+      this.loadCommunitySidebar();
+    } catch (error: any) {
+      this.errorMessage.set(error?.error?.errors?.[0]?.message || 'The post could not be deleted.');
     }
   }
 
@@ -141,7 +227,7 @@ export class CommunityComponent implements OnInit, OnDestroy {
 
     if (files.length === 0) return;
 
-    if (this.pendingMedia.length + files.length > this.maxMediaFiles) {
+    if (this.existingMedia.length + this.pendingMedia.length + files.length > this.maxMediaFiles) {
       this.formMessage.set(`You can add up to ${this.maxMediaFiles} files to one post.`);
       return;
     }
@@ -187,7 +273,7 @@ export class CommunityComponent implements OnInit, OnDestroy {
       destination: this.postDestination.trim() || null
     };
 
-    if (request.title.length < 3 || request.body.length < 10) {
+    if (request.title.length < 3 || this.bodyLength < 10) {
       this.formMessage.set('Add a title and a little more detail so travelers can help.');
       return;
     }
@@ -196,7 +282,13 @@ export class CommunityComponent implements OnInit, OnDestroy {
     this.formMessage.set('');
 
     try {
-      const uploadedMedia: NonNullable<CreateCommunityPostRequest['media']> = [];
+      const uploadedMedia: NonNullable<CreateCommunityPostRequest['media']> = this.existingMedia.map((media, index) => ({
+        mediaType: media.mediaType === 'video' ? 'video' : 'image',
+        url: media.url,
+        thumbnailUrl: media.thumbnailUrl ?? null,
+        altText: media.altText ?? null,
+        sortOrder: index
+      }));
       for (const [index, media] of this.pendingMedia.entries()) {
         const uploadResponse = await firstValueFrom(this.communityService.uploadMedia(media.file));
         if (!uploadResponse.data) {
@@ -208,19 +300,27 @@ export class CommunityComponent implements OnInit, OnDestroy {
           url: uploadResponse.data.url,
           thumbnailUrl: uploadResponse.data.thumbnailUrl ?? null,
           altText: uploadResponse.data.altText,
-          sortOrder: index
+          sortOrder: this.existingMedia.length + index
         });
       }
 
       request.media = uploadedMedia;
-      const response = await firstValueFrom(this.communityService.createPost(request));
+      const response = await firstValueFrom(this.editingPostId
+        ? this.communityService.updatePost(this.editingPostId, request)
+        : this.communityService.createPost(request));
       if (response.data) {
-        this.posts.update(posts => [response.data!, ...posts]);
+        this.posts.update(posts => this.editingPostId
+          ? posts.map(post => post.id === this.editingPostId ? response.data! : post)
+          : [response.data!, ...posts]);
         this.postTitle = '';
         this.postBody = '';
         this.postDestination = '';
+        this.postTags = '';
         this.clearPendingMedia();
+        this.existingMedia = [];
+        this.editingPostId = '';
         this.showComposer = false;
+        this.loadCommunitySidebar();
       }
     } catch (error: any) {
       this.formMessage.set(error?.error?.errors?.[0]?.message || error?.error?.message || 'We could not publish your post.');
@@ -232,6 +332,60 @@ export class CommunityComponent implements OnInit, OnDestroy {
   clearPendingMedia(): void {
     this.pendingMedia.forEach(media => URL.revokeObjectURL(media.previewUrl));
     this.pendingMedia = [];
+  }
+
+  removeExistingMedia(index: number): void {
+    this.existingMedia = this.existingMedia.filter((_, mediaIndex) => mediaIndex !== index);
+  }
+
+  onBodyInput(event: Event): void {
+    this.postBody = (event.target as HTMLElement).innerHTML;
+  }
+
+  formatBody(command: 'bold' | 'italic' | 'insertUnorderedList' | 'insertOrderedList' | 'formatBlock' | 'justifyLeft' | 'justifyCenter' | 'justifyRight' | 'undo' | 'redo'): void {
+    this.bodyEditor?.nativeElement.focus();
+    document.execCommand(command, false, command === 'formatBlock' ? 'blockquote' : undefined);
+    this.postBody = this.bodyEditor?.nativeElement.innerHTML ?? this.postBody;
+  }
+
+  openMediaPicker(): void {
+    (document.getElementById('post-media') as HTMLInputElement | null)?.click();
+  }
+
+  focusDestination(): void {
+    document.getElementById('post-destination')?.focus();
+  }
+
+  onDestinationInput(): void {
+    if (this.destinationLookupTimer) window.clearTimeout(this.destinationLookupTimer);
+    const query = this.postDestination.trim();
+    if (query.length < 2) {
+      this.destinationSuggestions.set([]);
+      return;
+    }
+
+    this.destinationLookupTimer = window.setTimeout(() => {
+      this.communityService.suggestDestinations(query).subscribe({
+        next: response => this.destinationSuggestions.set(response.data ?? []),
+        error: () => this.destinationSuggestions.set([])
+      });
+    }, 280);
+  }
+
+  selectDestination(suggestion: DestinationSuggestion): void {
+    this.postDestination = `${suggestion.city}, ${suggestion.country}`;
+    this.destinationSuggestions.set([]);
+  }
+
+  saveDraft(): void {
+    localStorage.setItem('safarni-community-draft', JSON.stringify({
+      type: this.postType,
+      title: this.postTitle,
+      body: this.postBody,
+      destination: this.postDestination,
+      tags: this.postTags
+    }));
+    this.formMessage.set('Draft saved on this device.');
   }
 
   async toggleLike(event: Event, post: CommunityPost): Promise<void> {
@@ -254,12 +408,6 @@ export class CommunityComponent implements OnInit, OnDestroy {
     }
   }
 
-  editPost(event: Event, post: CommunityPost): void {
-    event.stopPropagation();
-    if (!this.isOwnPost(post)) return;
-    void this.router.navigate(['/community', post.id], { queryParams: { edit: 'true' } });
-  }
-
   async toggleSave(event: Event, post: CommunityPost): Promise<void> {
     event.stopPropagation();
     if (!this.isSignedIn) {
@@ -274,6 +422,7 @@ export class CommunityComponent implements OnInit, OnDestroy {
           isSavedByCurrentUser: response.data.isActive,
           savesCount: response.data.newCount
         });
+        this.loadCommunitySidebar();
       }
     } catch {
       this.errorMessage.set('Save could not be updated. Please try again.');
@@ -308,6 +457,50 @@ export class CommunityComponent implements OnInit, OnDestroy {
   formatTripCost(amount: number | null): string {
     if (amount == null) return 'Budget flexible';
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(amount);
+  }
+
+  tripCover(index: number): string {
+    const covers = [
+      'assets/countries/turkey.webp',
+      'assets/countries/thailand.webp',
+      'assets/countries/japan.webp',
+      'assets/countries/maldives.webp'
+    ];
+
+    return covers[index % covers.length];
+  }
+
+  postCover(post: CommunityPost, index = 0): string {
+    const image = post.media.find(media => media.mediaType === 'image');
+    return image?.thumbnailUrl || image?.url || this.destinationCover(post.destination, index);
+  }
+
+  destinationCover(destination: string | null | undefined, index = 0): string {
+    const value = (destination || '').toLowerCase();
+    if (value.includes('japan') || value.includes('tokyo') || value.includes('kyoto')) return 'assets/countries/japan.webp';
+    if (value.includes('maldives')) return 'assets/countries/maldives.webp';
+    if (value.includes('thailand') || value.includes('bangkok') || value.includes('bali')) return 'assets/countries/thailand.webp';
+    if (value.includes('dubai')) return 'assets/countries/dubai.webp';
+    const covers = ['assets/countries/turkey.webp', 'assets/countries/thailand.webp', 'assets/countries/japan.webp', 'assets/countries/maldives.webp'];
+    return covers[index % covers.length];
+  }
+
+  async sharePost(event: Event, post: CommunityPost): Promise<void> {
+    event.stopPropagation();
+    const url = new URL(`/community/${post.id}`, window.location.origin).toString();
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: post.title, url });
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      this.formMessage.set('Link copied to your clipboard.');
+      window.setTimeout(() => this.formMessage.set(''), 2500);
+    } catch {
+      // Sharing can be cancelled by the user; no error state is needed.
+    }
   }
 
   private updatePost(postId: string, patch: Partial<CommunityPost>): void {

@@ -76,6 +76,12 @@ public sealed class CreateCommunityPostCommandHandler
                 new Error("Community.InvalidDestination", "Destination is too long.", ErrorType.Validation));
         }
 
+        if ((request.Media?.Count ?? 0) > 5)
+        {
+            return Result<CommunityPostResponse>.Failure(
+                new Error("Community.TooManyMedia", "A post can contain up to five media files.", ErrorType.Validation));
+        }
+
         if (request.LinkedTripId is { } linkedTripId &&
             !await _repository.IsTripOwnedByUserAsync(linkedTripId, userId, cancellationToken))
         {

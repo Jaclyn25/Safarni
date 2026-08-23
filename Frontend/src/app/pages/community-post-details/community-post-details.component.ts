@@ -5,11 +5,11 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { CommunityComment, CommunityPost, CommunityService } from '../../services/community.service';
+import { PublicTripSearchResponse, PublicTripService } from '../../services/public-trip.service';
 
-interface PendingEditMedia {
+interface PendingCommentImage {
   file: File;
   previewUrl: string;
-  mediaType: 'image' | 'video';
 }
 
 @Component({
@@ -24,31 +24,22 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly communityService = inject(CommunityService);
   private readonly authService = inject(AuthService);
+  private readonly publicTripService = inject(PublicTripService);
 
   readonly post = signal<CommunityPost | null>(null);
   readonly isLoading = signal(true);
   readonly errorMessage = signal('');
   readonly isCommenting = signal(false);
   readonly commentMessage = signal('');
-  readonly isEditing = signal(false);
-  readonly isUpdating = signal(false);
-  readonly editMessage = signal('');
 
   commentBody = '';
   replyTo: CommunityComment | null = null;
   postId = '';
-  editTitle = '';
-  editBody = '';
-  editDestination = '';
-  pendingEditMedia: PendingEditMedia[] = [];
-
-  readonly maxEditMediaFiles = 10;
-  readonly maxImageSizeBytes = 10 * 1024 * 1024;
-  readonly maxVideoSizeBytes = 60 * 1024 * 1024;
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       this.postId = params.get('postId') || '';
+      this.activeMediaIndex = 0;
       if (this.postId) this.loadPost();
     });
   }
@@ -59,6 +50,10 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
 
   get isSignedIn(): boolean {
     return !!this.authService.getCurrentUser();
+  }
+
+  get currentUserName(): string {
+    return this.authService.getCurrentUser()?.fullName || 'Traveler';
   }
 
   get comments(): CommunityComment[] {
@@ -90,6 +85,7 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
     this.communityService.getPost(this.postId).subscribe({
       next: response => {
         this.post.set(response.data ?? null);
+        this.loadRelatedJourneys(response.data?.destination);
         this.isLoading.set(false);
         if (this.route.snapshot.queryParamMap.get('edit') === 'true') {
           this.openEdit();
@@ -100,125 +96,6 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
         this.isLoading.set(false);
       }
     });
-  }
-
-  openEdit(): void {
-    const currentPost = this.post();
-    if (!currentPost || !this.canEdit) return;
-
-    this.editTitle = currentPost.title;
-    this.editBody = currentPost.body;
-    this.editDestination = currentPost.destination ?? '';
-    this.editMessage.set('');
-    this.isEditing.set(true);
-  }
-
-  closeEdit(): void {
-    if (!this.isUpdating()) {
-      this.isEditing.set(false);
-      this.editMessage.set('');
-      this.clearPendingEditMedia();
-    }
-  }
-
-  onEditMediaSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const files = Array.from(input.files ?? []);
-    input.value = '';
-
-    if (files.length === 0) return;
-
-    if (this.pendingEditMedia.length + files.length > this.maxEditMediaFiles) {
-      this.editMessage.set(`You can add up to ${this.maxEditMediaFiles} new files at a time.`);
-      return;
-    }
-
-    const nextMedia: PendingEditMedia[] = [];
-    for (const file of files) {
-      const isImage = file.type.startsWith('image/');
-      const isVideo = file.type.startsWith('video/');
-      const maxSize = isVideo ? this.maxVideoSizeBytes : this.maxImageSizeBytes;
-
-      if ((!isImage && !isVideo) || file.size > maxSize) {
-        this.editMessage.set(isVideo
-          ? `${file.name} is too large. Videos must be 60 MB or smaller.`
-          : `${file.name} is not a supported image or is larger than 10 MB.`);
-        nextMedia.forEach(media => URL.revokeObjectURL(media.previewUrl));
-        return;
-      }
-
-      nextMedia.push({
-        file,
-        previewUrl: URL.createObjectURL(file),
-        mediaType: isVideo ? 'video' : 'image'
-      });
-    }
-
-    this.editMessage.set('');
-    this.pendingEditMedia = [...this.pendingEditMedia, ...nextMedia];
-  }
-
-  removeEditMedia(index: number): void {
-    const [removed] = this.pendingEditMedia.splice(index, 1);
-    if (removed) URL.revokeObjectURL(removed.previewUrl);
-    this.pendingEditMedia = [...this.pendingEditMedia];
-  }
-
-  async submitEdit(): Promise<void> {
-    const currentPost = this.post();
-    if (!currentPost || !this.canEdit || this.isUpdating()) return;
-
-    const title = this.editTitle.trim();
-    const body = this.editBody.trim();
-    if (title.length < 3 || body.length < 10) {
-      this.editMessage.set('Add a title and a little more detail so travelers can help.');
-      return;
-    }
-
-    this.isUpdating.set(true);
-    this.editMessage.set('');
-
-    try {
-      const uploadedMedia = [] as Array<{
-        mediaType: 'image' | 'video';
-        url: string;
-        thumbnailUrl: string | null;
-        altText: string;
-        sortOrder: number;
-      }>;
-
-      for (const [index, media] of this.pendingEditMedia.entries()) {
-        const uploadResponse = await firstValueFrom(this.communityService.uploadMedia(media.file));
-        if (!uploadResponse.data) {
-          throw new Error(`Could not upload ${media.file.name}.`);
-        }
-
-        uploadedMedia.push({
-          mediaType: uploadResponse.data.mediaType,
-          url: uploadResponse.data.url,
-          thumbnailUrl: uploadResponse.data.thumbnailUrl ?? null,
-          altText: uploadResponse.data.altText,
-          sortOrder: index
-        });
-      }
-
-      const response = await firstValueFrom(this.communityService.updatePost(currentPost.id, {
-        title,
-        body,
-        destination: this.editDestination.trim() || null,
-        media: uploadedMedia
-      }));
-
-      if (response.data) {
-        this.post.set(response.data);
-        this.isEditing.set(false);
-        this.clearPendingEditMedia();
-      }
-    } catch (error: any) {
-      this.editMessage.set(error?.error?.errors?.[0]?.message || error?.error?.message || 'The post could not be updated.');
-    } finally {
-      this.isUpdating.set(false);
-    }
   }
 
   async toggleLike(): Promise<void> {
@@ -269,10 +146,59 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
     this.replyTo = null;
   }
 
+  addEmoji(emoji: string): void {
+    this.commentBody += emoji;
+    this.showEmojiPicker = false;
+  }
+
+  openCommentImagePicker(): void {
+    (document.getElementById('comment-image') as HTMLInputElement | null)?.click();
+  }
+
+  onCommentImagesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    if (this.pendingCommentImages.length + files.length > 3) {
+      this.commentMessage.set('You can attach up to three images to a comment.');
+      return;
+    }
+    for (const file of files) {
+      if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) {
+        this.commentMessage.set('Comment images must be 10 MB or smaller.');
+        return;
+      }
+      this.pendingCommentImages.push({ file, previewUrl: URL.createObjectURL(file) });
+    }
+    this.pendingCommentImages = [...this.pendingCommentImages];
+  }
+
+  removeCommentImage(index: number): void {
+    const [removed] = this.pendingCommentImages.splice(index, 1);
+    if (removed) URL.revokeObjectURL(removed.previewUrl);
+    this.pendingCommentImages = [...this.pendingCommentImages];
+  }
+
+  selectMedia(index: number): void {
+    this.activeMediaIndex = index;
+  }
+
+  showPreviousMedia(total: number): void {
+    this.activeMediaIndex = (this.activeMediaIndex - 1 + total) % total;
+  }
+
+  showNextMedia(total: number): void {
+    this.activeMediaIndex = (this.activeMediaIndex + 1) % total;
+  }
+
+  scrollToComments(): void {
+    document.getElementById('comments-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   async submitComment(): Promise<void> {
     if (!this.requireSignIn() || this.isCommenting()) return;
     const body = this.commentBody.trim();
-    if (!body) {
+    if (!body && this.pendingCommentImages.length === 0) {
       this.commentMessage.set('Write something before posting.');
       return;
     }
@@ -280,12 +206,27 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
     this.isCommenting.set(true);
     this.commentMessage.set('');
     try {
+      const media = [];
+      for (const [index, image] of this.pendingCommentImages.entries()) {
+        const upload = await firstValueFrom(this.communityService.uploadMedia(image.file));
+        if (!upload.data) throw new Error('Image upload failed.');
+        media.push({
+          mediaType: 'image' as const,
+          url: upload.data.url,
+          thumbnailUrl: upload.data.thumbnailUrl ?? null,
+          altText: upload.data.altText,
+          sortOrder: index
+        });
+      }
       await firstValueFrom(this.communityService.addComment(this.postId, {
         body,
-        parentCommentId: this.replyTo?.id ?? null
+        parentCommentId: this.replyTo?.id ?? null,
+        media
       }));
       this.commentBody = '';
       this.replyTo = null;
+      this.pendingCommentImages.forEach(image => URL.revokeObjectURL(image.previewUrl));
+      this.pendingCommentImages = [];
       this.loadPost();
     } catch (error: any) {
       this.commentMessage.set(error?.error?.errors?.[0]?.message || error?.error?.message || 'Comment could not be added.');
@@ -324,6 +265,26 @@ export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
 
   postTypeLabel(type: string): string {
     return ({ TravelStory: 'Travel story', Vlog: 'Travel vlog', Question: 'Question', Recommendation: 'Recommendation' } as Record<string, string>)[type] || type;
+  }
+
+  postTypeIcon(type: string): string {
+    return ({ TravelStory: 'auto_stories', Vlog: 'videocam', Question: 'help', Recommendation: 'tips_and_updates' } as Record<string, string>)[type] || 'article';
+  }
+
+  destinationCover(destination: string | null | undefined): string {
+    const postImage = this.post()?.media.find(media => media.mediaType === 'image');
+    if (postImage) return postImage.thumbnailUrl || postImage.url;
+    const value = (destination || '').toLowerCase();
+    if (value.includes('japan') || value.includes('tokyo') || value.includes('kyoto')) return 'assets/countries/japan.webp';
+    if (value.includes('maldives')) return 'assets/countries/maldives.webp';
+    if (value.includes('thailand') || value.includes('bangkok')) return 'assets/countries/thailand.webp';
+    if (value.includes('dubai')) return 'assets/countries/dubai.webp';
+    return 'assets/countries/turkey.webp';
+  }
+
+  destinationParts(destination: string | null | undefined): { city: string; country: string } {
+    const parts = (destination || 'Featured destination').split(',').map(part => part.trim()).filter(Boolean);
+    return { city: parts[0] || 'Featured destination', country: parts.slice(1).join(', ') || 'Shared by the community' };
   }
 
   private requireSignIn(): boolean {

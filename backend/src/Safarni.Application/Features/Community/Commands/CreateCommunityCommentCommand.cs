@@ -11,7 +11,8 @@ namespace Safarni.Application.Features.Community.Commands;
 public sealed record CreateCommunityCommentCommand(
     Guid PostId,
     string Body,
-    Guid? ParentCommentId = null)
+    Guid? ParentCommentId = null,
+    IReadOnlyCollection<CommunityMediaInput>? Media = null)
     : IRequest<Result<CreateCommunityCommentResult>>;
 
 public sealed record CreateCommunityCommentResult(Guid CommentId, int NewCommentsCount);
@@ -41,10 +42,17 @@ public sealed class CreateCommunityCommentCommandHandler
         }
 
         var body = request.Body?.Trim() ?? string.Empty;
-        if (body.Length is < 1 or > 3000)
+        var media = request.Media ?? [];
+        if ((body.Length < 1 && media.Count == 0) || body.Length > 3000)
         {
             return Result<CreateCommunityCommentResult>.Failure(
                 new Error("Community.InvalidComment", "Comments must be between 1 and 3,000 characters.", ErrorType.Validation));
+        }
+
+        if (media.Count > 3 || media.Any(item => string.IsNullOrWhiteSpace(item.Url) || !string.Equals(item.MediaType, "image", StringComparison.OrdinalIgnoreCase)))
+        {
+            return Result<CreateCommunityCommentResult>.Failure(
+                new Error("Community.InvalidCommentMedia", "Comments can contain up to three valid images.", ErrorType.Validation));
         }
 
         var post = await _repository.GetPostWithInteractionsAsync(request.PostId, cancellationToken);
@@ -73,6 +81,19 @@ public sealed class CreateCommunityCommentCommandHandler
             Body = body,
             CreatedAt = DateTime.UtcNow
         };
+
+        foreach (var item in media)
+        {
+            comment.Media.Add(new CommunityCommentMedia
+            {
+                Id = Guid.NewGuid(),
+                MediaType = "image",
+                Url = item.Url.Trim(),
+                ThumbnailUrl = item.ThumbnailUrl?.Trim(),
+                AltText = item.AltText?.Trim(),
+                SortOrder = item.SortOrder
+            });
+        }
 
         await _repository.AddCommentAsync(comment, cancellationToken);
         post.CommentsCount++;

@@ -785,6 +785,43 @@ namespace Safarni.Infrastructure.Migrations
                     b.ToTable("BookingSupplierEvidence", (string)null);
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.CommunityCommentMedia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AltText")
+                        .HasMaxLength(240)
+                        .HasColumnType("nvarchar(240)");
+
+                    b.Property<Guid>("CommentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId", "SortOrder");
+
+                    b.ToTable("CommunityCommentMedia", (string)null);
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.CommunityPost", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2991,6 +3028,17 @@ namespace Safarni.Infrastructure.Migrations
                     b.Navigation("TravelAgency");
                 });
 
+            modelBuilder.Entity("Safarni.Domain.Entities.CommunityCommentMedia", b =>
+                {
+                    b.HasOne("Safarni.Domain.Entities.CommunityPostComment", "Comment")
+                        .WithMany("Media")
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Comment");
+                });
+
             modelBuilder.Entity("Safarni.Domain.Entities.CommunityPost", b =>
                 {
                     b.HasOne("Safarni.Domain.Entities.User", "Author")
@@ -3486,6 +3534,8 @@ namespace Safarni.Infrastructure.Migrations
 
             modelBuilder.Entity("Safarni.Domain.Entities.CommunityPostComment", b =>
                 {
+                    b.Navigation("Media");
+
                     b.Navigation("Replies");
                 });
 

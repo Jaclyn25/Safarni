@@ -48,6 +48,25 @@ public sealed class CommunityController : ControllerBase
             : Ok(ApiResponse<CommunityPostResponse>.SuccessResponse(result.Value!, "Community post loaded successfully.", StatusCodes.Status200OK));
     }
 
+    [HttpGet("saved")]
+    public async Task<IActionResult> GetSavedPosts([FromQuery] int take = 10, CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(new GetSavedCommunityPostsQuery(take), cancellationToken);
+        return result.IsFailure
+            ? Failure<IReadOnlyCollection<CommunityPostResponse>>(result.Error, "Failed to load saved posts.")
+            : Ok(ApiResponse<IReadOnlyCollection<CommunityPostResponse>>.SuccessResponse(result.Value!, "Saved posts loaded successfully.", StatusCodes.Status200OK));
+    }
+
+    [HttpGet("trending-destinations")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetTrendingDestinations([FromQuery] int take = 5, CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(new GetTrendingCommunityDestinationsQuery(take), cancellationToken);
+        return result.IsFailure
+            ? Failure<IReadOnlyCollection<CommunityDestinationTrendResponse>>(result.Error, "Failed to load trending destinations.")
+            : Ok(ApiResponse<IReadOnlyCollection<CommunityDestinationTrendResponse>>.SuccessResponse(result.Value!, "Trending destinations loaded successfully.", StatusCodes.Status200OK));
+    }
+
     [HttpPost("posts")]
     public async Task<IActionResult> CreatePost(
         [FromBody] CreateCommunityPostRequest request,
@@ -60,6 +79,26 @@ public sealed class CommunityController : ControllerBase
         return result.IsFailure
             ? Failure<CommunityPostResponse>(result.Error, "Failed to create the community post.")
             : Ok(ApiResponse<CommunityPostResponse>.SuccessResponse(result.Value!, "Community post created successfully.", StatusCodes.Status200OK));
+    }
+
+    [HttpPut("posts/{postId:guid}")]
+    public async Task<IActionResult> UpdatePost(Guid postId, [FromBody] UpdateCommunityPostRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new UpdateCommunityPostCommand(postId, request.Type, request.Title, request.Body, request.Destination, request.LinkedTripId, request.Media),
+            cancellationToken);
+        return result.IsFailure
+            ? Failure<CommunityPostResponse>(result.Error, "Failed to update the community post.")
+            : Ok(ApiResponse<CommunityPostResponse>.SuccessResponse(result.Value!, "Community post updated successfully.", StatusCodes.Status200OK));
+    }
+
+    [HttpDelete("posts/{postId:guid}")]
+    public async Task<IActionResult> DeletePost(Guid postId, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new DeleteCommunityPostCommand(postId), cancellationToken);
+        return result.IsFailure
+            ? Failure<Guid>(result.Error, "Failed to delete the community post.")
+            : Ok(ApiResponse<Guid>.SuccessResponse(result.Value, "Community post deleted successfully.", StatusCodes.Status200OK));
     }
 
     [HttpPost("media")]
@@ -107,7 +146,7 @@ public sealed class CommunityController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _sender.Send(
-            new CreateCommunityCommentCommand(postId, request.Body, request.ParentCommentId),
+            new CreateCommunityCommentCommand(postId, request.Body, request.ParentCommentId, request.Media),
             cancellationToken);
 
         return result.IsFailure
@@ -133,6 +172,7 @@ public sealed class CommunityController : ControllerBase
             ErrorType.Validation => StatusCodes.Status400BadRequest,
             ErrorType.NotFound => StatusCodes.Status404NotFound,
             ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+            ErrorType.Forbidden => StatusCodes.Status403Forbidden,
             ErrorType.Conflict => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status500InternalServerError
         };
@@ -150,5 +190,16 @@ public sealed record CreateCommunityPostRequest(
     Guid? LinkedTripId,
     IReadOnlyCollection<CommunityMediaInput>? Media);
 
-public sealed record CreateCommunityCommentRequest(string Body, Guid? ParentCommentId = null);
+public sealed record UpdateCommunityPostRequest(
+    CommunityPostType Type,
+    string Title,
+    string Body,
+    string? Destination,
+    Guid? LinkedTripId,
+    IReadOnlyCollection<CommunityMediaInput>? Media);
+
+public sealed record CreateCommunityCommentRequest(
+    string Body,
+    Guid? ParentCommentId = null,
+    IReadOnlyCollection<CommunityMediaInput>? Media = null);
 public sealed record UploadCommunityMediaRequest(IFormFile File);

@@ -101,21 +101,6 @@ public sealed class CommunityController : ControllerBase
             : Ok(ApiResponse<Guid>.SuccessResponse(result.Value, "Community post deleted successfully.", StatusCodes.Status200OK));
     }
 
-    [HttpPut("posts/{postId:guid}")]
-    public async Task<IActionResult> UpdatePost(
-        Guid postId,
-        [FromBody] UpdateCommunityPostRequest request,
-        CancellationToken cancellationToken)
-    {
-        var result = await _sender.Send(
-            new UpdateCommunityPostCommand(postId, request.Title, request.Body, request.Destination, request.Media),
-            cancellationToken);
-
-        return result.IsFailure
-            ? Failure<CommunityPostResponse>(result.Error, "Failed to update the community post.")
-            : Ok(ApiResponse<CommunityPostResponse>.SuccessResponse(result.Value!, "Community post updated successfully.", StatusCodes.Status200OK));
-    }
-
     [HttpPost("media")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(MaxCommunityMediaRequestSizeBytes)]
@@ -205,5 +190,17 @@ public sealed record CreateCommunityPostRequest(
     Guid? LinkedTripId,
     IReadOnlyCollection<CommunityMediaInput>? Media);
 
-public sealed record CreateCommunityCommentRequest(string Body, Guid? ParentCommentId = null);
+public sealed record UpdateCommunityPostRequest(
+    CommunityPostType Type,
+    string Title,
+    string Body,
+    string? Destination,
+    Guid? LinkedTripId,
+    IReadOnlyCollection<CommunityMediaInput>? Media);
+
+public sealed record CreateCommunityCommentRequest(
+    string Body,
+    Guid? ParentCommentId = null,
+    IReadOnlyCollection<CommunityMediaInput>? Media = null);
+
 public sealed record UploadCommunityMediaRequest(IFormFile File);

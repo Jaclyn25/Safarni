@@ -202,4 +202,5 @@ public sealed record CreateCommunityCommentRequest(
     string Body,
     Guid? ParentCommentId = null,
     IReadOnlyCollection<CommunityMediaInput>? Media = null);
+
 public sealed record UploadCommunityMediaRequest(IFormFile File);

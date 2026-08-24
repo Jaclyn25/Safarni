@@ -1,11 +1,17 @@
+using Microsoft.Extensions.Hosting;
 using Safarni.Application.Abstractions.Storage;
 
 namespace Safarni.Infrastructure.Storage;
 
 public sealed class LocalCommunityMediaStorage : ICommunityMediaStorage
 {
-    private const string DirectoryRelativePath = "wwwroot/uploads/community-media";
+    private readonly string _directory;
     private const string UrlBasePath = "/uploads/community-media";
+
+    public LocalCommunityMediaStorage(IHostEnvironment environment)
+    {
+        _directory = Path.Combine(environment.ContentRootPath, "App_Data", "uploads", "community-media");
+    }
 
     public async Task<string> SaveAsync(Stream fileStream, string fileExtension, CancellationToken cancellationToken = default)
     {
@@ -13,10 +19,9 @@ public sealed class LocalCommunityMediaStorage : ICommunityMediaStorage
             ? fileExtension.ToLowerInvariant()
             : $".{fileExtension.ToLowerInvariant()}";
         var fileName = $"{Guid.NewGuid():N}{safeExtension}";
-        var directory = Path.Combine(Directory.GetCurrentDirectory(), DirectoryRelativePath);
-        Directory.CreateDirectory(directory);
+        Directory.CreateDirectory(_directory);
 
-        var filePath = Path.Combine(directory, fileName);
+        var filePath = Path.Combine(_directory, fileName);
         await using var output = new FileStream(filePath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
         await fileStream.CopyToAsync(output, cancellationToken);
 
@@ -33,7 +38,7 @@ public sealed class LocalCommunityMediaStorage : ICommunityMediaStorage
         var fileName = Path.GetFileName(normalized);
         if (string.IsNullOrWhiteSpace(fileName)) return Task.CompletedTask;
 
-        var filePath = Path.Combine(Directory.GetCurrentDirectory(), DirectoryRelativePath, fileName);
+        var filePath = Path.Combine(_directory, fileName);
         if (File.Exists(filePath)) File.Delete(filePath);
 
         return Task.CompletedTask;

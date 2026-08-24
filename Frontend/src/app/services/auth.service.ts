@@ -195,8 +195,30 @@ export class AuthService {
   }
 
   getCurrentUser(): { userId: string; fullName: string; email: string } | null {
-    const user = localStorage.getItem('user');
-    return user ? (JSON.parse(user) as { userId: string; fullName: string; email: string }) : null;
+    const storedUser = localStorage.getItem('user');
+    if (!storedUser) return null;
+
+    try {
+      const parsed = JSON.parse(storedUser) as Record<string, unknown>;
+      const tokenPayload = decodeJwtPayload(localStorage.getItem('access_token') || '');
+      const userId = [
+        parsed['userId'],
+        parsed['id'],
+        parsed['sub'],
+        tokenPayload?.['sub'],
+        tokenPayload?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
+      ].find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+      if (!userId) return null;
+
+      return {
+        userId,
+        fullName: typeof parsed['fullName'] === 'string' ? parsed['fullName'] : (typeof parsed['name'] === 'string' ? parsed['name'] : ''),
+        email: typeof parsed['email'] === 'string' ? parsed['email'] : ''
+      };
+    } catch {
+      return null;
+    }
   }
 
   getUserRole(): string | null {

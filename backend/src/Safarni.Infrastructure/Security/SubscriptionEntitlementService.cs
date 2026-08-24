@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Safarni.Application.Abstractions.Security;
+using Safarni.Domain.Entities;
 using Safarni.Domain.Enums;
 using Safarni.Infrastructure.Persistence;
 
@@ -34,6 +35,7 @@ public sealed class SubscriptionEntitlementService : IEntitlementService
             var freePeriodEnd = freePeriodStart.AddMonths(1);
             var freeUsed = await _dbContext.ItineraryGenerationJobs.CountAsync(job =>
                 job.UserId == userId &&
+                job.Status == ItineraryGenerationJobStatus.Completed &&
                 job.CreatedAt >= freePeriodStart &&
                 job.CreatedAt < freePeriodEnd,
                 cancellationToken);
@@ -48,7 +50,10 @@ public sealed class SubscriptionEntitlementService : IEntitlementService
 
         var periodStart = subscription.StartAt ?? subscription.CreatedAt;
         var used = await _dbContext.ItineraryGenerationJobs.CountAsync(job =>
-            job.UserId == userId && job.CreatedAt >= periodStart && job.CreatedAt < subscription.CurrentPeriodEnd,
+            job.UserId == userId &&
+            job.Status == ItineraryGenerationJobStatus.Completed &&
+            job.CreatedAt >= periodStart &&
+            job.CreatedAt < subscription.CurrentPeriodEnd,
             cancellationToken);
         return new(used < subscription.Plan.AiItineraryGenerationsPerPeriod, used,
             subscription.Plan.AiItineraryGenerationsPerPeriod, subscription.CurrentPeriodEnd, subscription.Plan.Code);

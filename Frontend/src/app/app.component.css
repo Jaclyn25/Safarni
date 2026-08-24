@@ -1,0 +1,99 @@
+:host {
+  display: block;
+}
+
+.concierge-fab {
+  position: fixed;
+  right: clamp(1rem, 2vw, 1.75rem);
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 60;
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow:
+    0 12px 26px color-mix(in srgb, var(--primary) 28%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--primary) 9%, transparent);
+  text-decoration: none;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.concierge-fab::before {
+  position: absolute;
+  inset: 0.3rem;
+  border: 1px solid color-mix(in srgb, var(--on-primary) 28%, transparent);
+  border-radius: inherit;
+  content: '';
+  pointer-events: none;
+}
+
+.concierge-fab__icon {
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.concierge-fab__label {
+  position: absolute;
+  right: calc(100% + 0.75rem);
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.75rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--on-surface) 12%, transparent);
+  font: 700 0.75rem/1 Manrope, sans-serif;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(0.35rem);
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.concierge-fab:hover,
+.concierge-fab:focus-visible {
+  background: color-mix(in srgb, var(--primary) 88%, var(--secondary));
+  box-shadow:
+    0 16px 32px color-mix(in srgb, var(--primary) 34%, transparent),
+    0 0 0 8px color-mix(in srgb, var(--primary) 11%, transparent);
+  transform: translateY(-2px);
+}
+
+.concierge-fab:hover .concierge-fab__label,
+.concierge-fab:focus-visible .concierge-fab__label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.concierge-fab:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--secondary) 50%, transparent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .concierge-fab {
+    right: 1rem;
+    bottom: calc(env(safe-area-inset-bottom) + 4.75rem);
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .concierge-fab__label {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .concierge-fab,
+  .concierge-fab__label {
+    transition: none;
+  }
+
+  .concierge-fab:hover,
+  .concierge-fab:focus-visible {
+    transform: none;
+  }
+}

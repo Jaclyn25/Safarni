@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -19,7 +19,7 @@ interface PendingCommentImage {
   templateUrl: './community-post-details.component.html',
   styleUrl: './community-post-details.component.css'
 })
-export class CommunityPostDetailsComponent implements OnInit {
+export class CommunityPostDetailsComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly communityService = inject(CommunityService);
@@ -41,7 +41,7 @@ export class CommunityPostDetailsComponent implements OnInit {
   showPostMenu = false;
   showEmojiPicker = false;
   pendingCommentImages: PendingCommentImage[] = [];
-  readonly emojis = ['😀', '😍', '✈️', '🌍', '📍', '🏝️', '⛰️', '❤️', '👏', '🙏', '👍', '🎉'];
+  readonly emojis = ['😊', '😍', '😂', '👍', '🙌', '❤️', '🌍', '✈️'];
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
@@ -49,6 +49,10 @@ export class CommunityPostDetailsComponent implements OnInit {
       this.activeMediaIndex = 0;
       if (this.postId) this.loadPost();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.pendingCommentImages.forEach(image => URL.revokeObjectURL(image.previewUrl));
   }
 
   get isSignedIn(): boolean {
@@ -61,6 +65,17 @@ export class CommunityPostDetailsComponent implements OnInit {
 
   get comments(): CommunityComment[] {
     return this.post()?.comments ?? [];
+  }
+
+  get canEdit(): boolean {
+    const currentPost = this.post();
+    const currentUser = this.authService.getCurrentUser();
+    const authorId = currentPost?.author?.userId;
+    const currentUserId = currentUser?.userId;
+    return typeof authorId === 'string'
+      && typeof currentUserId === 'string'
+      && authorId.trim().length > 0
+      && authorId.trim().toLowerCase() === currentUserId.trim().toLowerCase();
   }
 
   rootComments(): CommunityComment[] {
@@ -79,46 +94,15 @@ export class CommunityPostDetailsComponent implements OnInit {
         this.post.set(response.data ?? null);
         this.loadRelatedJourneys(response.data?.destination);
         this.isLoading.set(false);
+        if (this.route.snapshot.queryParamMap.get('edit') === 'true') {
+          this.openEdit();
+        }
       },
       error: error => {
         this.errorMessage.set(error?.error?.message || 'We could not load this post.');
         this.isLoading.set(false);
       }
     });
-  }
-
-  private loadRelatedJourneys(destination: string | null | undefined): void {
-    if (!destination) {
-      this.relatedJourneys.set([]);
-      return;
-    }
-    this.publicTripService.searchPublicTrips({ destination, sortOrder: 'popular' }).subscribe({
-      next: response => this.relatedJourneys.set((response.data ?? []).slice(0, 3)),
-      error: () => this.relatedJourneys.set([])
-    });
-    this.communityService.getTrendingDestinations(20).subscribe({
-      next: response => {
-        const match = (response.data ?? []).find(item => item.destination.toLowerCase() === destination.toLowerCase());
-        this.destinationPostCount.set(match?.postsCount ?? 1);
-      },
-      error: () => this.destinationPostCount.set(1)
-    });
-  }
-
-  editPost(): void {
-    const current = this.post();
-    if (current) void this.router.navigate(['/community'], { queryParams: { edit: current.id } });
-  }
-
-  async deletePost(): Promise<void> {
-    const current = this.post();
-    if (!current || !window.confirm(`Delete “${current.title}”? This will remove it from the community.`)) return;
-    try {
-      await firstValueFrom(this.communityService.deletePost(current.id));
-      void this.router.navigate(['/community']);
-    } catch (error: any) {
-      this.errorMessage.set(error?.error?.errors?.[0]?.message || 'The post could not be deleted.');
-    }
   }
 
   async toggleLike(): Promise<void> {
@@ -270,6 +254,47 @@ export class CommunityPostDetailsComponent implements OnInit {
     } catch {
       // Sharing can be cancelled by the user, so no error state is needed.
     }
+  }
+
+  editPost(): void {
+    this.showPostMenu = false;
+    void this.router.navigate(['/community'], { queryParams: { edit: this.postId } });
+  }
+
+  private openEdit(): void {
+    if (this.canEdit) this.editPost();
+  }
+
+  async deletePost(): Promise<void> {
+    const currentPost = this.post();
+    this.showPostMenu = false;
+    if (!currentPost || !this.canEdit) return;
+    if (!window.confirm(`Delete “${currentPost.title}”? This will remove it from the community.`)) return;
+
+    try {
+      await firstValueFrom(this.communityService.deletePost(currentPost.id));
+      await this.router.navigate(['/community']);
+    } catch (error: any) {
+      this.errorMessage.set(error?.error?.errors?.[0]?.message || 'The post could not be deleted.');
+    }
+  }
+
+  private loadRelatedJourneys(destination: string | null | undefined): void {
+    const query = destination?.trim();
+    if (!query) {
+      this.relatedJourneys.set([]);
+      this.destinationPostCount.set(0);
+      return;
+    }
+
+    this.publicTripService.searchPublicTrips({ destination: query, sortOrder: 'newest' }).subscribe({
+      next: response => this.relatedJourneys.set((response.data ?? []).slice(0, 3)),
+      error: () => this.relatedJourneys.set([])
+    });
+    this.communityService.getFeed('', query).subscribe({
+      next: response => this.destinationPostCount.set((response.data ?? []).length),
+      error: () => this.destinationPostCount.set(0)
+    });
   }
 
   timeAgo(date: string): string {
